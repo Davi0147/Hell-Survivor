@@ -14,10 +14,10 @@ type BossState =
   | 'SLAM_RECOVERY';
 
 export class SuccubusBoss extends BaseEnemy {
-  public maxHp: number = 3800;
-  public hp: number = 3800;
-  public speed: number = 120;
-  public damage: number = 25;
+  public maxHp: number = 18000;
+  public hp: number = 18000;
+  public speed: number = 125;
+  public damage: number = 32;
   public isBoss: boolean = true;
 
   private bossState: BossState = 'CHASE';
@@ -76,10 +76,10 @@ export class SuccubusBoss extends BaseEnemy {
   public override spawn(
     x: number,
     y: number,
-    hp: number = 3800,
-    speed: number = 120,
-    damage: number = 25,
-    customScale: number = 1.65
+    hp: number = 18000,
+    speed: number = 125,
+    damage: number = 32,
+    customScale: number = 1.75
   ): void {
     super.spawn(x, y, hp, speed, damage);
     this.setScale(customScale);
@@ -273,7 +273,7 @@ export class SuccubusBoss extends BaseEnemy {
     // Checa colisão destrutiva com a Nixy durante a investida
     const distToPlayer = Math.hypot(this.x - player.x, this.y - player.y);
     if (distToPlayer <= 44) {
-      player.takeDamage(40); // Dano pesado
+      player.takeDamage(48); // Dano pesado de investida proporcional
       this.scene.cameras.main.shake(180, 0.018);
       this.endDash();
       return;
@@ -320,7 +320,7 @@ export class SuccubusBoss extends BaseEnemy {
           this.projectilesGroup.add(proj);
         }
 
-        proj.fire(this.x, this.y, baseAngle + offset, 275, 20);
+        proj.fire(this.x, this.y, baseAngle + offset, 275, 24);
       });
     });
   }
@@ -425,7 +425,7 @@ export class SuccubusBoss extends BaseEnemy {
         // Aplicação do dano massivo se a Nixy for pega pelo círculo
         const distToNixy = Math.hypot(tx - player.x, ty - player.y);
         if (distToNixy <= this.SLAM_MAX_RADIUS) {
-          player.takeDamage(55);
+          player.takeDamage(70);
         }
 
         // Fica parada e vulnerável no centro até a recuperação
@@ -451,11 +451,27 @@ export class SuccubusBoss extends BaseEnemy {
   }
 
   // =========================================================================
-  // GESTÃO DE DANO E MORTE DA CHEFE
+  // GESTÃO DE DANO E MORTE DA CHEFE COM RESISTÊNCIA PROPORCIONAL
   // =========================================================================
   public override takeDamage(amount: number): void {
     if (this.isDead || !this.active) return;
-    super.takeDamage(amount);
+
+    let finalDamage = amount;
+
+    // 1. Janela de vulnerabilidade: durante a recuperação do Salto Esmagador (SLAM_RECOVERY), recebe +25% de dano
+    if (this.bossState === 'SLAM_RECOVERY') {
+      finalDamage = Math.round(amount * 1.25);
+    }
+    // 2. Barreira Mística Demoníaca: durante canalização da investida ou salto aéreo, mitiga 35% do dano
+    else if (this.bossState === 'TELEGRAPH_DASH' || this.bossState === 'AIR_JUMP') {
+      finalDamage = Math.max(1, Math.round(amount * 0.65));
+    }
+    // 3. Couraça Infernal: resistência passiva de 15% contra disparos contínuos e foices
+    else {
+      finalDamage = Math.max(1, Math.round(amount * 0.85));
+    }
+
+    super.takeDamage(finalDamage);
     this.emit('boss-hp-changed', this.hp, this.maxHp);
   }
 
