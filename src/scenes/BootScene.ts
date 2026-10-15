@@ -78,6 +78,7 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('gem-orange');
     this.textures.remove('gem-purple');
     this.textures.remove('gem-gold');
+    this.textures.remove('game-title-logo');
   }
 
   preload(): void {
@@ -246,6 +247,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('gem-orange', `assets/sprites/items/gem-orange.png?t=${cacheBuster}`);
     this.load.image('gem-purple', `assets/sprites/items/gem-purple.png?t=${cacheBuster}`);
     this.load.image('gem-gold', `assets/sprites/items/gem-gold.png?t=${cacheBuster}`);
+    this.load.image('game-title-logo', `assets/sprites/title.png?t=${cacheBuster}`);
   }
 
   create(): void {

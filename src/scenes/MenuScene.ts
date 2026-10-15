@@ -34,25 +34,50 @@ export class MenuScene extends Phaser.Scene {
       });
     }
 
-    // 2. Título Central Gótico Anime: HELL SURVIVOR
-    const titleY = 130;
-    const titleShadow = this.add.text(width / 2 + 4, titleY + 4, 'HELL SURVIVOR', {
-      fontFamily: pixelFont,
-      fontSize: '52px',
-      fontStyle: 'bold',
-      color: '#3a0208'
-    }).setOrigin(0.5);
+    // 2. Título Central Oficial em Pixel Art: HELL SURVIVOR (Title.png)
+    const titleY = 145;
 
-    const titleText = this.add.text(width / 2, titleY, 'HELL SURVIVOR', {
-      fontFamily: pixelFont,
-      fontSize: '52px',
-      fontStyle: 'bold',
-      color: '#ff0055',
-      stroke: '#ffd60a',
-      strokeThickness: 3
-    }).setOrigin(0.5);
+    // Brilho infernal avermelhado pulsante atrás do logotipo
+    const titleGlow = this.add.circle(width / 2, titleY + 10, 160, 0xd90429, 0.18);
+    titleGlow.setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: titleGlow,
+      scaleX: 1.15,
+      scaleY: 1.15,
+      alpha: 0.28,
+      duration: 1800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
-    const subTitle = this.add.text(width / 2, titleY + 48, '— A SAGA DE NIXY —', {
+    if (this.textures.exists('game-title-logo')) {
+      const titleLogo = this.add.image(width / 2, titleY, 'game-title-logo');
+      titleLogo.setScale(1.4); // 392 x 238 px em pixel-perfect
+      titleLogo.setOrigin(0.5);
+
+      // Flutuação mística sutil
+      this.tweens.add({
+        targets: titleLogo,
+        y: titleY - 6,
+        duration: 2200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    } else {
+      // Fallback tipográfico caso a textura esteja carregando
+      this.add.text(width / 2, titleY, 'HELL SURVIVOR', {
+        fontFamily: pixelFont,
+        fontSize: '52px',
+        fontStyle: 'bold',
+        color: '#ff0055',
+        stroke: '#ffd60a',
+        strokeThickness: 3
+      }).setOrigin(0.5);
+    }
+
+    const subTitle = this.add.text(width / 2, titleY + 130, '— A SAGA DE NIXY —', {
       fontFamily: pixelFont,
       fontSize: '13px',
       fontStyle: 'bold',
