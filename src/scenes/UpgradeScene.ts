@@ -180,20 +180,39 @@ export class UpgradeScene extends Phaser.Scene {
       }
     ];
 
-    // Adiciona a arma nova "LÂMINAS ORBITAIS" se ainda não foi escolhida
+    // Adiciona a arma "LÂMINAS ORBITAIS" ou sua evolução até 6 lâminas
     if (!hasVoidScythes) {
       catalog.unshift({
         id: 'void_scythes',
         title: 'LÂMINAS ORBITAIS',
-        category: 'NOVA ARMA SECUNDÁRIA',
+        category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0xf72585,
         icon: '⚔️',
-        description: 'Foices Místicas em Órbita\n\nDuas foices giram ao redor da Nixy fatiando monstros!',
+        description: 'Foice Mística em Órbita\n\n1 foice espectral veloz gira ao redor da Nixy retalhando monstros!',
         apply: (player, gameScene) => {
           const scythes = new VoidScythesWeapon(gameScene, player);
           gameScene.weapons.push(scythes);
         }
       });
+    } else {
+      const scythesWeapon = this.gameScene.weapons && this.gameScene.weapons.find(
+        (w: any) => w instanceof VoidScythesWeapon
+      ) as VoidScythesWeapon | undefined;
+
+      if (scythesWeapon && !scythesWeapon.isMaxBlades()) {
+        const nextBlades = scythesWeapon.getBladeCount() + 1;
+        catalog.unshift({
+          id: 'void_scythes_upgrade',
+          title: 'LÂMINAS ORBITAIS',
+          category: `MELHORIA // ${nextBlades} LÂMINAS`,
+          badgeColor: 0xf72585,
+          icon: '⚔️',
+          description: `+1 Lâmina em Órbita (${nextBlades}/6)\n\nAdiciona mais uma foice mística veloz girando ao redor da Nixy!`,
+          apply: () => {
+            scythesWeapon.addBlade();
+          }
+        });
+      }
     }
 
     return catalog;
