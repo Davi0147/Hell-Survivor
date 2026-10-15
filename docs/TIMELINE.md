@@ -13,8 +13,8 @@ flowchart TD
     M3 --> M4["Fase 4: Gemas de XP, Níveis & Cartas de Armas ✅"]
     M4 --> M5["Fase 5: Habilidade Suprema (Ultimate) & Anime Cut-In ✅"]
     M5 --> M6["Fase 6: Modo História (Capítulo 1 Completo) ✅"]
-    M6 --> M7["Fase 7: Modo Infinito (Mini-Bosses 3m / Bosses 10m) ⏳"]
-    M7 --> M8["Fase 8: Polish Audiovisual, SoundGroups & Meta-Loja"]
+    M6 --> M7["Fase 7: Modo Infinito (Mini-Bosses 3m / Bosses 10m) ✅"]
+    M7 --> M8["Fase 8: Polish Audiovisual, SoundGroups & Meta-Loja ⏳"]
 ```
 
 ---
@@ -149,20 +149,27 @@ flowchart TD
 
 ---
 
-### 🔹 Fase 7: Modo Infinito (Endless / Survival Arcade)
+### 🔹 Fase 7: Modo Infinito (Endless / Survival Arcade) (CONCLUÍDO ✅)
 **Objetivo:** Arena ilimitada para recordes de tempo, testes de builds extremas e farm de recursos.
-* [ ] **Motor de Hordas Infinito com Escalonamento por Minuto:**
-  * Multiplicadores progressivos contínuos de HP, velocidade e densidade a cada minuto.
-* [ ] **Roleta de Mini-Bosses e Bosses Temporizados:**
-  * **A cada 3 Minutos:** Mini-Boss aleatório no meio do enxame com baú de recompensas.
-  * **A cada 10 Minutos:** Boss Principal aleatório com mecânicas de alta ameaça.
-* [ ] **Tela de Recordes & Farm:**
-  * Rastreamento de tempo sobrevivido (`MM:SS`), total de abates e dano causado.
-  * Moedas/Almas acumuladas para futura Loja de Melhorias Permanentes.
+* [x] **Motor de Hordas Infinito com Escalonamento por Minuto:**
+  * Multiplicadores progressivos contínuos de densidade (até 12 monstros por onda), velocidade e HP.
+  * Inclusão de Alfas Elites a partir do minuto 2 (drops aprimorados e carga bônus de Ultimate).
+* [x] **Mini-Bosses e Chefes Temporizados:**
+  * **Aos 3 Minutos (180s):** Mini-Chefe Titã Cerberus (1400 HP, 1.85x escala, drop de Gema Roxa Lendária).
+  * **Aos 6 Minutos (360s):** Mini-Chefe Matriarca Succubus (2400 HP, 1.45x escala, tiros e investidas, drop de 2 Gemas Roxas).
+  * **Aos 10 Minutos (600s):** Chefe Suprema Succubus Imperial (4800 HP, barra de vida dinâmica, drop de 3 Gemas Roxas).
+* [x] **Gema Roxa Lendária (`gem-purple`):**
+  * 250 XP e concessão imediata de +25% de carga da Suprema (Ultimate).
+* [x] **HUD de Sobrevivência & Persistência de Recordes (`localStorage`):**
+  * Cronômetro ao vivo (`MM:SS`) e Melhor Tempo Pessoal preservado entre sessões.
+  * Faixas e avisos táticos de onda (`showWaveAlert`) avisando a aproximação de ameaças.
+* [x] **Modal Completo de Fim de Jornada (Game Over):**
+  * Estatísticas completas: tempo sobrevivido, abates, nível alcançado e celebração de novo recorde.
+  * Botões chanfrados interativos: [ 🔄 TENTAR NOVAMENTE ] e [ 🏠 MENU PRINCIPAL ].
 
 ---
 
-### 🔹 Fase 8: Polish Audiovisual & SoundGroups
+### 🔹 Fase 8: Polish Audiovisual & SoundGroups (PRÓXIMA ETAPA ⏳)
 **Objetivo:** Elevar o acabamento para padrão comercial.
 * [ ] **Sonorização Modular Categorizada (SoundGroups):**
   * Canais dedicados: `SFXGroup` (tiros, gemas, acertos, ultimates) e `MusicGroup` (trilhas de combate e boss).

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../characters/BaseCharacter';
 
-export type GemType = 'green' | 'blue' | 'red';
+export type GemType = 'green' | 'blue' | 'red' | 'purple';
 
 export class SoulGem extends Phaser.Physics.Arcade.Sprite {
   public xpValue: number = 5;
@@ -47,6 +47,11 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
         this.setTexture('gem-red');
         this.xpValue = 100;
         this.setScale(1.25);
+        break;
+      case 'purple':
+        this.setTexture('gem-purple');
+        this.xpValue = 250;
+        this.setScale(1.45);
         break;
     }
 
@@ -96,9 +101,9 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
     // 1. Partículas de faísca da gema absorvida
     this.emitPickupSparkles();
 
-    // 2. Concede XP e carga de Ultimate ao jogador
+    // 2. Concede XP e carga de Ultimate ao jogador (+25% de carga para gema roxa lendária)
     player.gainXp(this.xpValue);
-    player.gainUltimateCharge(this.xpValue * 0.15);
+    player.gainUltimateCharge(this.gemType === 'purple' ? 25 : this.xpValue * 0.15);
 
     // 3. Desativa e retorna para a pool
     this.deactivate();
@@ -114,7 +119,7 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
   }
 
   private emitPickupSparkles(): void {
-    const tintColor = this.gemType === 'green' ? 0x06d6a0 : (this.gemType === 'blue' ? 0x00f5d4 : 0xff0054);
+    const tintColor = this.gemType === 'green' ? 0x06d6a0 : (this.gemType === 'blue' ? 0x00f5d4 : (this.gemType === 'purple' ? 0xf72585 : 0xff0054));
     for (let i = 0; i < 4; i++) {
       const spark = this.scene.add.image(this.x, this.y, 'particle-spark');
       spark.setDepth(150);

@@ -66,6 +66,12 @@ export class UIScene extends Phaser.Scene {
   private bossBarGraphics!: Phaser.GameObjects.Graphics;
   private bossNameText!: Phaser.GameObjects.Text;
 
+  // Elementos do Modo Infinito (Topo Central)
+  private endlessTimerText!: Phaser.GameObjects.Text;
+  private endlessRecordText!: Phaser.GameObjects.Text;
+  private waveAlertBanner!: Phaser.GameObjects.Text;
+  private bestRecordSec: number = 0;
+
   constructor() {
     super('UIScene');
   }
@@ -300,6 +306,44 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(116);
     this.bossNameText.setVisible(false);
 
+    // ==========================================
+    // 5.1 TOPO CENTRAL: CRONÔMETRO E RECORDE DO MODO INFINITO
+    // ==========================================
+    this.bestRecordSec = this.getBestRecordSec();
+    const formattedBest = this.formatTime(this.bestRecordSec);
+
+    this.endlessTimerText = this.add.text(width / 2, 22, '⏱️ 00:00', {
+      fontFamily: pixelFont,
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#3a0812',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(115);
+    this.endlessTimerText.setVisible(false);
+
+    this.endlessRecordText = this.add.text(width / 2, 38, `★ RECORDE: ${formattedBest}`, {
+      fontFamily: pixelFont,
+      fontSize: '9px',
+      fontStyle: 'bold',
+      color: '#f3d17a',
+      stroke: '#0e0208',
+      strokeThickness: 2
+    }).setOrigin(0.5).setDepth(116);
+    this.endlessRecordText.setVisible(false);
+
+    this.waveAlertBanner = this.add.text(width / 2, 60, '', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ff0055',
+      backgroundColor: '#1a0208dd',
+      padding: { x: 12, y: 5 },
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(120);
+    this.waveAlertBanner.setVisible(false);
+
     // Atalho silencioso de teclado para recarregar com F2 (sem nenhum botão ou texto na tela)
     if (this.input.keyboard) {
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F2).on('down', () => {
@@ -374,6 +418,9 @@ export class UIScene extends Phaser.Scene {
       this.purifyLabelText,
       this.bossBarGraphics,
       this.bossNameText,
+      this.endlessTimerText,
+      this.endlessRecordText,
+      this.waveAlertBanner,
       this.controlsText,
       this.xpBarBg,
       this.xpBarFill,
@@ -696,13 +743,24 @@ export class UIScene extends Phaser.Scene {
       this.weaponInfoText.setText(`🔮 ${names}`);
     }
 
-    // Atualizar Barra de Purificação de Almas (Modo História) ou Barra de Vida da Chefe
+    // Atualizar Barra de Purificação de Almas (Modo História), Barra de Vida da Chefe, ou Cronômetro (Modo Infinito)
     if (gameScene.isBossFightActive && gameScene.bossInstance && gameScene.bossInstance.active) {
       // Exibe Barra de Vida da Chefe
       this.purifyBarGraphics.setVisible(false);
       this.purifyLabelText.setVisible(false);
       this.bossBarGraphics.setVisible(true);
       this.bossNameText.setVisible(true);
+
+      if (gameScene.gameMode === 'endless') {
+        this.endlessTimerText.setVisible(true);
+        this.endlessTimerText.setY(48);
+        this.endlessRecordText.setVisible(false);
+        const sec = Math.floor(gameScene.survivalTimeMs / 1000);
+        this.endlessTimerText.setText(`⏱️ ${this.formatTime(sec)}`);
+      } else {
+        this.endlessTimerText.setVisible(false);
+        this.endlessRecordText.setVisible(false);
+      }
 
       const bG = this.bossBarGraphics;
       bG.clear();
@@ -730,12 +788,28 @@ export class UIScene extends Phaser.Scene {
         bG.fillStyle(0xff4d6d, 0.85);
         bG.fillRect(bX + 3, bY + 3, (bW - 6) * bossHpRatio, 2);
       }
-    } else if (gameScene.gameMode === 'story' && !gameScene.isBossFightActive) {
-      // Exibe Barra de Purificação de Almas (SEM NÚMEROS VISÍVEIS)
-      this.purifyBarGraphics.setVisible(true);
-      this.purifyLabelText.setVisible(true);
+    } else if (gameScene.gameMode === 'endless') {
+      // MODO INFINITO: Exibe Cronômetro e Recorde Pessoal
+      this.purifyBarGraphics.setVisible(false);
+      this.purifyLabelText.setVisible(false);
       this.bossBarGraphics.setVisible(false);
       this.bossNameText.setVisible(false);
+
+      this.endlessTimerText.setY(22);
+      this.endlessTimerText.setVisible(true);
+      this.endlessRecordText.setVisible(true);
+
+      const sec = Math.floor(gameScene.survivalTimeMs / 1000);
+      this.endlessTimerText.setText(`⏱️ ${this.formatTime(sec)}`);
+    } else if (gameScene.gameMode === 'story' && !gameScene.isBossFightActive) {
+      // MODO HISTÓRIA: Exibe Barra de Purificação de Almas (SEM NÚMEROS VISÍVEIS)
+      this.endlessTimerText.setVisible(false);
+      this.endlessRecordText.setVisible(false);
+      this.bossBarGraphics.setVisible(false);
+      this.bossNameText.setVisible(false);
+
+      this.purifyBarGraphics.setVisible(true);
+      this.purifyLabelText.setVisible(true);
 
       const pG = this.purifyBarGraphics;
       pG.clear();
@@ -762,6 +836,8 @@ export class UIScene extends Phaser.Scene {
         pG.fillRoundedRect(pX + 1.5, pY + 1.5, (pW - 3) * purifyRatio, pH - 3, 2);
       }
     } else {
+      this.endlessTimerText.setVisible(false);
+      this.endlessRecordText.setVisible(false);
       this.purifyBarGraphics.setVisible(false);
       this.purifyLabelText.setVisible(false);
       this.bossBarGraphics.setVisible(false);
@@ -992,5 +1068,191 @@ export class UIScene extends Phaser.Scene {
     btnZone.on('pointerover', () => renderBtn(true));
     btnZone.on('pointerout', () => renderBtn(false));
     btnZone.on('pointerdown', onReturnToMenu);
+  }
+
+  public formatTime(totalSec: number): string {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    const mStr = mins < 10 ? `0${mins}` : `${mins}`;
+    const sStr = secs < 10 ? `0${secs}` : `${secs}`;
+    return `${mStr}:${sStr}`;
+  }
+
+  public getBestRecordSec(): number {
+    try {
+      const val = localStorage.getItem('hell_survivor_endless_record_sec');
+      return val ? parseInt(val, 10) || 0 : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  public saveBestRecordSec(sec: number): boolean {
+    try {
+      const current = this.getBestRecordSec();
+      if (sec > current) {
+        localStorage.setItem('hell_survivor_endless_record_sec', sec.toString());
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  public showWaveAlert(message: string, durationMs: number = 3500): void {
+    if (!this.waveAlertBanner) return;
+    this.waveAlertBanner.setText(message);
+    this.waveAlertBanner.setVisible(true);
+    this.waveAlertBanner.setScale(1.2);
+    this.tweens.add({
+      targets: this.waveAlertBanner,
+      scaleX: 1.0,
+      scaleY: 1.0,
+      duration: 250,
+      ease: 'Back.easeOut'
+    });
+
+    this.time.delayedCall(durationMs, () => {
+      if (this.waveAlertBanner) {
+        this.waveAlertBanner.setVisible(false);
+      }
+    });
+  }
+
+  public showGameOverModal(
+    stats: { kills: number; level: number; timeSec: number; mode: 'story' | 'endless' },
+    onRetry: () => void,
+    onReturnToMenu: () => void
+  ): void {
+    this.setHUDVisible(false);
+    const { width, height } = this.scale;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    const isNewRecord = stats.mode === 'endless' && stats.timeSec > this.bestRecordSec;
+    if (isNewRecord) {
+      this.saveBestRecordSec(stats.timeSec);
+      this.bestRecordSec = stats.timeSec;
+    }
+
+    const modal = this.add.container(0, 0);
+    modal.setDepth(3600);
+
+    const darkBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.90);
+    darkBg.setInteractive();
+    modal.add(darkBg);
+
+    const panelW = 560;
+    const panelH = 370;
+    const panelX = width / 2;
+    const panelY = height / 2;
+
+    const g = this.add.graphics();
+    // Fundo carmesim/obsidiana profundo
+    g.fillStyle(0x180208, 0.98);
+    g.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+    g.lineStyle(3, 0xff0055, 1);
+    g.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+    g.lineStyle(1.5, 0xf3d17a, 0.7);
+    g.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 11);
+    modal.add(g);
+
+    const title = this.add.text(panelX, panelY - 125, '💀 FIM DA JORNADA 💀', {
+      fontFamily: pixelFont,
+      fontSize: '24px',
+      fontStyle: 'bold',
+      color: '#ff0055',
+      stroke: '#000000',
+      strokeThickness: 5
+    }).setOrigin(0.5);
+    modal.add(title);
+
+    const subtitle = this.add.text(panelX, panelY - 85, 'SUA ALMA FOI REIVINDICADA PELO ABISMO', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#e0aaff',
+      stroke: '#100306',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    modal.add(subtitle);
+
+    const formattedTime = this.formatTime(stats.timeSec);
+    const bestText = stats.mode === 'endless' ? `\n🏆 Recorde Pessoal: ${this.formatTime(this.bestRecordSec)}` : '';
+    const newRecordNotice = isNewRecord ? '\n★ NOVO RECORDE PESSOAL ALCANÇADO! ★\n' : '\n';
+
+    const statsText = this.add.text(panelX, panelY - 5,
+      `⏱️ Tempo Sobrevivido: ${formattedTime}${bestText}${newRecordNotice}` +
+      `💀 Inimigos Abatidos: ${stats.kills}\n⭐ Nível Alcançado: LVL ${stats.level}`, {
+      fontFamily: pixelFont,
+      fontSize: '12px',
+      color: isNewRecord ? '#ffd60a' : '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3,
+      align: 'center',
+      lineSpacing: 8
+    }).setOrigin(0.5);
+    modal.add(statsText);
+
+    // Botões Lado a Lado: [ JOGAR NOVAMENTE ] e [ VOLTAR AO MENU ]
+    const btnW = 230;
+    const btnH = 42;
+    const btn1X = panelX - btnW / 2 - 12;
+    const btn2X = panelX + btnW / 2 + 12;
+    const btnY = panelY + 125;
+
+    // Botão 1: Tentar Novamente
+    const btn1Bg = this.add.graphics();
+    const renderBtn1 = (h: boolean) => {
+      btn1Bg.clear();
+      btn1Bg.fillStyle(h ? 0xff0055 : 0x720012, 1);
+      btn1Bg.fillRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+      btn1Bg.lineStyle(2, h ? 0xffffff : 0xf3d17a, 1);
+      btn1Bg.strokeRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+    };
+    renderBtn1(false);
+    modal.add(btn1Bg);
+
+    const btn1Text = this.add.text(btn1X, btnY, '🔄 TENTAR NOVAMENTE', {
+      fontFamily: pixelFont,
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    modal.add(btn1Text);
+
+    const btn1Zone = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
+    btn1Zone.on('pointerover', () => renderBtn1(true));
+    btn1Zone.on('pointerout', () => renderBtn1(false));
+    btn1Zone.on('pointerdown', onRetry);
+    modal.add(btn1Zone);
+
+    // Botão 2: Voltar ao Menu
+    const btn2Bg = this.add.graphics();
+    const renderBtn2 = (h: boolean) => {
+      btn2Bg.clear();
+      btn2Bg.fillStyle(h ? 0x240046 : 0x10002b, 1);
+      btn2Bg.fillRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+      btn2Bg.lineStyle(2, h ? 0x00f5d4 : 0x7b2cbf, 1);
+      btn2Bg.strokeRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+    };
+    renderBtn2(false);
+    modal.add(btn2Bg);
+
+    const btn2Text = this.add.text(btn2X, btnY, '🏠 MENU PRINCIPAL', {
+      fontFamily: pixelFont,
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    modal.add(btn2Text);
+
+    const btn2Zone = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
+    btn2Zone.on('pointerover', () => renderBtn2(true));
+    btn2Zone.on('pointerout', () => renderBtn2(false));
+    btn2Zone.on('pointerdown', onReturnToMenu);
+    modal.add(btn2Zone);
   }
 }

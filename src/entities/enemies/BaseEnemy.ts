@@ -105,7 +105,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
       duration: 180,
       ease: 'Power2',
       onComplete: () => {
-        this.emit('enemy-killed', this.x, this.y);
+        this.emit('enemy-killed', this.x, this.y, this);
         this.setActive(false);
         this.setVisible(false);
         this.setScale(1);
