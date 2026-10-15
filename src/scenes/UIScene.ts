@@ -1,11 +1,17 @@
 import Phaser from 'phaser';
 import { DialogueSystem, DialogueLine } from '../systems/DialogueSystem';
+import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
+import { SoundManager } from '../systems/SoundManager';
 
 export class UIScene extends Phaser.Scene {
   // Sistema de Diálogos Estilo Persona 5
   private dialogueSystem!: DialogueSystem;
   private hudElements: any[] = [];
   private isHUDVisibleState: boolean = true;
+
+  // Estado e Container de Pausa
+  public isPaused: boolean = false;
+  private pauseModalContainer?: Phaser.GameObjects.Container;
 
   // Painel de Status Barroco Vampírico (Canto Inferior Direito)
   private baroquePanelGraphics!: Phaser.GameObjects.Graphics;
@@ -739,8 +745,13 @@ export class UIScene extends Phaser.Scene {
 
     // Atualizar Armas Ativas no Painel Superior Direito
     if (gameScene.weapons && gameScene.weapons.length > 0) {
-      const names = gameScene.weapons.map((w: any) => w.name).join(', ');
-      this.weaponInfoText.setText(`🔮 ${names}`);
+      const names = gameScene.weapons.map((w: any) => {
+        if (w instanceof VoidScythesWeapon) {
+          return `${w.name} (${w.getBladeCount()}/6)`;
+        }
+        return w.name;
+      }).join(' | ');
+      this.weaponInfoText.setText(`⚔️ ${names}`);
     }
 
     // Atualizar Barra de Purificação de Almas (Modo História), Barra de Vida da Chefe, ou Cronômetro (Modo Infinito)
@@ -1254,5 +1265,289 @@ export class UIScene extends Phaser.Scene {
     btn2Zone.on('pointerout', () => renderBtn2(false));
     btn2Zone.on('pointerdown', onReturnToMenu);
     modal.add(btn2Zone);
+  }
+
+  // ==========================================
+  // MENU DE PAUSA (ESC / PAUSE GAMEPLAY)
+  // ==========================================
+  public togglePause(gameScene: any): void {
+    if (this.dialogueSystem && this.dialogueSystem.isDialogueActive()) return;
+    if (this.isPaused) {
+      this.resumeGame(gameScene);
+    } else {
+      this.pauseGame(gameScene);
+    }
+  }
+
+  public pauseGame(gameScene: any): void {
+    if (this.isPaused || gameScene.isGameOver || gameScene.isChapterCompleted) return;
+    this.isPaused = true;
+    SoundManager.getInstance().playMenuClick();
+    gameScene.physics.pause();
+    gameScene.scene.pause();
+
+    const { width, height } = this.scale;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    this.pauseModalContainer = this.add.container(0, 0);
+    this.pauseModalContainer.setDepth(3500);
+
+    // 1. Fundo escuro semitransparente que bloqueia cliques no jogo
+    const darkBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.82);
+    darkBg.setInteractive();
+    this.pauseModalContainer.add(darkBg);
+
+    // 2. Painel gótico barroco
+    const panelW = 540;
+    const panelH = 390;
+    const panelX = width / 2;
+    const panelY = height / 2;
+
+    const g = this.add.graphics();
+    g.fillStyle(0x150308, 0.98);
+    g.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+    g.lineStyle(3, 0xc59b27, 1);
+    g.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+    g.lineStyle(1.5, 0xff4500, 0.6);
+    g.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 10);
+    this.pauseModalContainer.add(g);
+
+    // 3. Título
+    const title = this.add.text(panelX, panelY - panelH / 2 + 38, '⏸️ JOGO PAUSADO', {
+      fontFamily: pixelFont,
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#ffa200',
+      stroke: '#300207',
+      strokeThickness: 3
+    }).setOrigin(0.5);
+    this.pauseModalContainer.add(title);
+
+    // 4. Estatísticas da Partida Atual
+    const sec = Math.floor(gameScene.survivalTimeMs / 1000);
+    const statsText = this.add.text(
+      panelX,
+      panelY - 95,
+      `TEMPO: ${this.formatTime(sec)}   |   ABATES: ${gameScene.killCount}   |   NÍVEL: ${gameScene.player?.currentLevel || 1}`,
+      {
+        fontFamily: pixelFont,
+        fontSize: '11px',
+        color: '#f3d17a'
+      }
+    ).setOrigin(0.5);
+    this.pauseModalContainer.add(statsText);
+
+    // Divisória sutil
+    const div = this.add.graphics();
+    div.lineStyle(1.5, 0xc59b27, 0.35);
+    div.lineBetween(panelX - 200, panelY - 75, panelX + 200, panelY - 75);
+    this.pauseModalContainer.add(div);
+
+    // 5. Volume de Música (ao vivo na partida)
+    const bgmRowY = panelY - 30;
+    const bgmLabel = this.add.text(panelX, bgmRowY - 18, '🎵 VOLUME DA MÚSICA', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    this.pauseModalContainer.add(bgmLabel);
+
+    const bgmPct = this.add.text(
+      panelX + 130,
+      bgmRowY + 10,
+      `${Math.round(SoundManager.getInstance().getMusicVolume() * 100)}%`,
+      {
+        fontFamily: pixelFont,
+        fontSize: '12px',
+        color: '#f3d17a'
+      }
+    ).setOrigin(0, 0.5);
+    this.pauseModalContainer.add(bgmPct);
+
+    const updateBgmDisplay = () => {
+      const vol = SoundManager.getInstance().getMusicVolume();
+      bgmPct.setText(`${Math.round(vol * 100)}%`);
+    };
+
+    this.createPauseStepperBtn(panelX - 110, bgmRowY + 10, '➖', () => {
+      const cur = SoundManager.getInstance().getMusicVolume();
+      SoundManager.getInstance().setMusicVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
+      updateBgmDisplay();
+    });
+
+    this.createPauseStepperBtn(panelX + 100, bgmRowY + 10, '➕', () => {
+      const cur = SoundManager.getInstance().getMusicVolume();
+      SoundManager.getInstance().setMusicVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
+      updateBgmDisplay();
+    });
+
+    // 6. Volume de SFX (ao vivo na partida)
+    const sfxRowY = panelY + 40;
+    const sfxLabel = this.add.text(panelX, sfxRowY - 18, '🔊 VOLUME DE EFEITOS (SFX)', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    this.pauseModalContainer.add(sfxLabel);
+
+    const sfxPct = this.add.text(
+      panelX + 130,
+      sfxRowY + 10,
+      `${Math.round(SoundManager.getInstance().getSfxVolume() * 100)}%`,
+      {
+        fontFamily: pixelFont,
+        fontSize: '12px',
+        color: '#00f5d4'
+      }
+    ).setOrigin(0, 0.5);
+    this.pauseModalContainer.add(sfxPct);
+
+    const updateSfxDisplay = () => {
+      const vol = SoundManager.getInstance().getSfxVolume();
+      sfxPct.setText(`${Math.round(vol * 100)}%`);
+    };
+
+    this.createPauseStepperBtn(panelX - 110, sfxRowY + 10, '➖', () => {
+      const cur = SoundManager.getInstance().getSfxVolume();
+      SoundManager.getInstance().setSfxVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
+      updateSfxDisplay();
+      SoundManager.getInstance().playEnemyHit();
+    });
+
+    this.createPauseStepperBtn(panelX + 100, sfxRowY + 10, '➕', () => {
+      const cur = SoundManager.getInstance().getSfxVolume();
+      SoundManager.getInstance().setSfxVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
+      updateSfxDisplay();
+      SoundManager.getInstance().playEnemyHit();
+    });
+
+    // 7. Botões Inferiores: CONTINUAR | REINICIAR | MENU
+    const btnY = panelY + panelH / 2 - 42;
+    const bW = 150;
+    const bH = 34;
+    const bSpacing = 16;
+    const bTotalW = 3 * bW + 2 * bSpacing;
+    const bStartX = panelX - bTotalW / 2 + bW / 2;
+
+    this.createPauseActionBtn(bStartX, btnY, bW, bH, '▶️ CONTINUAR', 0x225522, 0x00ff88, () => {
+      this.resumeGame(gameScene);
+    });
+
+    this.createPauseActionBtn(bStartX + (bW + bSpacing), btnY, bW, bH, '🔄 REINICIAR', 0x553311, 0xffaa00, () => {
+      this.isPaused = false;
+      if (this.pauseModalContainer) {
+        this.pauseModalContainer.destroy();
+        this.pauseModalContainer = undefined;
+      }
+      this.scene.stop('UIScene');
+      gameScene.scene.restart({ mode: gameScene.gameMode });
+    });
+
+    this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, '🏠 MENU', 0x551122, 0xff0055, () => {
+      this.isPaused = false;
+      if (this.pauseModalContainer) {
+        this.pauseModalContainer.destroy();
+        this.pauseModalContainer = undefined;
+      }
+      this.scene.stop('UIScene');
+      gameScene.scene.stop('GameScene');
+      this.scene.start('MenuScene');
+    });
+  }
+
+  public resumeGame(gameScene: any): void {
+    if (!this.isPaused) return;
+    SoundManager.getInstance().playMenuClick();
+    if (this.pauseModalContainer) {
+      this.pauseModalContainer.destroy();
+      this.pauseModalContainer = undefined;
+    }
+    gameScene.physics.resume();
+    gameScene.scene.resume();
+    this.isPaused = false;
+  }
+
+  private createPauseStepperBtn(x: number, y: number, symbol: string, onClick: () => void): void {
+    if (!this.pauseModalContainer) return;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    const bg = this.add.graphics();
+    const render = (hover: boolean) => {
+      bg.clear();
+      bg.fillStyle(hover ? 0xff4500 : 0x22050e, 1);
+      bg.fillCircle(x, y, 14);
+      bg.lineStyle(1.5, hover ? 0xffffff : 0xc59b27, 1);
+      bg.strokeCircle(x, y, 14);
+    };
+    render(false);
+    this.pauseModalContainer.add(bg);
+
+    const txt = this.add.text(x, y, symbol, {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    this.pauseModalContainer.add(txt);
+
+    const zone = this.add.zone(x, y, 30, 30);
+    zone.setInteractive({ useHandCursor: true });
+    this.pauseModalContainer.add(zone);
+
+    zone.on('pointerover', () => {
+      render(true);
+      SoundManager.getInstance().playMenuHover();
+    });
+    zone.on('pointerout', () => render(false));
+    zone.on('pointerdown', () => onClick());
+  }
+
+  private createPauseActionBtn(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    label: string,
+    bgCol: number,
+    borderCol: number,
+    onClick: () => void
+  ): void {
+    if (!this.pauseModalContainer) return;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    const bg = this.add.graphics();
+    const render = (hover: boolean) => {
+      bg.clear();
+      bg.fillStyle(hover ? borderCol : bgCol, 1);
+      bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 6);
+      bg.lineStyle(1.5, hover ? 0xffffff : borderCol, 1);
+      bg.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 6);
+    };
+    render(false);
+    this.pauseModalContainer.add(bg);
+
+    const txt = this.add.text(x, y, label, {
+      fontFamily: pixelFont,
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    this.pauseModalContainer.add(txt);
+
+    const zone = this.add.zone(x, y, w, h);
+    zone.setInteractive({ useHandCursor: true });
+    this.pauseModalContainer.add(zone);
+
+    zone.on('pointerover', () => {
+      render(true);
+      txt.setColor('#000000');
+      SoundManager.getInstance().playMenuHover();
+    });
+    zone.on('pointerout', () => {
+      render(false);
+      txt.setColor('#ffffff');
+    });
+    zone.on('pointerdown', () => onClick());
   }
 }

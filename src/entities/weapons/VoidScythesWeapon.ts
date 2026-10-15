@@ -11,26 +11,46 @@ export class VoidScythesWeapon extends BaseWeapon {
   private orbitAngle: number = 0;
   private orbitRadius: number = 70;
   private rotationSpeed: number = 3.6; // Radianos por segundo
-  private bladeCount: number = 2;
+  private bladeCount: number = 1; // Começa rigorosamente com 1 foice
   private enemyHitCooldowns: Map<BaseEnemy, number> = new Map();
 
   constructor(scene: Phaser.Scene, player: BaseCharacter) {
     super(
       scene,
       'Lâminas Orbitais',
-      9,    // Dano base por golpe reduzido em 75% (balanceamento equilibrado)
+      9,    // Dano base por golpe reduzido em 75%
       0,    // Cooldown não usado para lâmina contínua
       100,  // Raio de órbita
       0,    // Velocidade linear não usada
-      2,    // Quantidade inicial de lâminas
+      1,    // Quantidade inicial de lâminas = 1
       999   // Perfuração infinita
     );
     this.player = player;
+    this.bladeCount = 1;
     this.createBlades();
   }
 
   public fire(_originX: number, _originY: number, _target: BaseEnemy): void {
     // VoidScythes opera continuamente em órbita através de updateWeapon()
+  }
+
+  /**
+   * Incrementa +1 lâmina em órbita até no máximo 6
+   */
+  public addBlade(): boolean {
+    if (this.bladeCount >= 6) return false;
+    this.bladeCount++;
+    this.projectileCount = this.bladeCount;
+    this.createBlades();
+    return true;
+  }
+
+  public getBladeCount(): number {
+    return this.bladeCount;
+  }
+
+  public isMaxBlades(): boolean {
+    return this.bladeCount >= 6;
   }
 
   private createBlades(): void {
@@ -40,7 +60,7 @@ export class VoidScythesWeapon extends BaseWeapon {
     }
     this.blades = [];
 
-    const totalBlades = this.bladeCount + this.player.extraProjectiles;
+    const totalBlades = Math.min(6, Math.max(1, this.bladeCount));
 
     for (let i = 0; i < totalBlades; i++) {
       const blade = this.scene.add.sprite(this.player.x, this.player.y, 'void-scythe');
@@ -69,9 +89,8 @@ export class VoidScythesWeapon extends BaseWeapon {
       }
     }
 
-    // Se o número de projéteis extras mudou via upgrade, recria as lâminas
-    const expectedCount = this.bladeCount + this.player.extraProjectiles;
-    if (this.blades.length !== expectedCount) {
+    // Se o número de lâminas mudou via upgrade, recria as lâminas
+    if (this.blades.length !== this.bladeCount) {
       this.createBlades();
     }
 

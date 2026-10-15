@@ -128,6 +128,15 @@ export class GameScene extends Phaser.Scene {
           this.triggerUltimate();
         }
       });
+
+      keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => {
+        if (!this.isGameOver && !this.isChapterCompleted) {
+          const uiScene = this.scene.get('UIScene') as UIScene;
+          if (uiScene) {
+            uiScene.togglePause(this);
+          }
+        }
+      });
     }
 
     // 5. Inicialização de Grupos, Armas e Gemas de Alma
