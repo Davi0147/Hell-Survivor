@@ -12,49 +12,57 @@ export class MenuScene extends Phaser.Scene {
     // 1. Fundo obsidiana profundo
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x090205);
 
-    // Grid e partículas de brasas infernais subindo
-    for (let i = 0; i < 35; i++) {
+    // 2. Partículas incandescentes subindo (estritamente cores de lava)
+    const LAVA_COLORS = [0xff2200, 0xd00000, 0xff4500, 0xff7b00, 0xff9900, 0xffba08];
+    for (let i = 0; i < 45; i++) {
       const ember = this.add.circle(
         Phaser.Math.Between(0, width),
         Phaser.Math.Between(height, height + 100),
-        Phaser.Math.Between(1.5, 3.5),
-        Phaser.Math.RND.pick([0xff0055, 0xffbe0b, 0x9d0208, 0x7209b7]),
-        Phaser.Math.FloatBetween(0.4, 0.85)
+        Phaser.Math.Between(1.5, 3.2),
+        Phaser.Math.RND.pick(LAVA_COLORS),
+        Phaser.Math.FloatBetween(0.45, 0.9)
       );
       ember.setBlendMode(Phaser.BlendModes.ADD);
+      ember.setDepth(3);
 
       this.tweens.add({
         targets: ember,
         y: -50,
         x: ember.x + Phaser.Math.Between(-80, 80),
         alpha: 0,
-        duration: Phaser.Math.Between(4000, 8500),
+        duration: Phaser.Math.Between(3500, 8000),
         repeat: -1,
         delay: Phaser.Math.Between(0, 3000)
       });
     }
 
-    // 2. Título Central Oficial em Pixel Art: HELL SURVIVOR (Title.png)
-    const titleY = 145;
+    // 3. Luz vermelha infernal pulsando na base da tela (Reflexo do lago de lava subterrâneo)
+    const bottomGlowDeep = this.add.ellipse(width / 2, height + 50, width * 1.3, 240, 0x9d0208, 0.40);
+    bottomGlowDeep.setBlendMode(Phaser.BlendModes.ADD);
+    bottomGlowDeep.setDepth(1);
 
-    // Brilho infernal avermelhado pulsante atrás do logotipo
-    const titleGlow = this.add.circle(width / 2, titleY + 10, 160, 0xd90429, 0.18);
-    titleGlow.setBlendMode(Phaser.BlendModes.ADD);
+    const bottomGlowHot = this.add.ellipse(width / 2, height + 20, width * 0.9, 130, 0xff2200, 0.35);
+    bottomGlowHot.setBlendMode(Phaser.BlendModes.ADD);
+    bottomGlowHot.setDepth(2);
+
     this.tweens.add({
-      targets: titleGlow,
-      scaleX: 1.15,
-      scaleY: 1.15,
-      alpha: 0.28,
-      duration: 1800,
+      targets: [bottomGlowDeep, bottomGlowHot],
+      alpha: { from: 0.20, to: 0.60 },
+      scaleY: { from: 0.85, to: 1.25 },
+      duration: 2000,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
 
+    // 4. Título Central Oficial em Pixel Art: HELL SURVIVOR (Title.png)
+    const titleY = 150;
+
     if (this.textures.exists('game-title-logo')) {
       const titleLogo = this.add.image(width / 2, titleY, 'game-title-logo');
       titleLogo.setScale(1.4); // 392 x 238 px em pixel-perfect
       titleLogo.setOrigin(0.5);
+      titleLogo.setDepth(10);
 
       // Flutuação mística sutil
       this.tweens.add({
@@ -67,7 +75,7 @@ export class MenuScene extends Phaser.Scene {
       });
     } else {
       // Fallback tipográfico caso a textura esteja carregando
-      this.add.text(width / 2, titleY, 'HELL SURVIVOR', {
+      const fallback = this.add.text(width / 2, titleY, 'HELL SURVIVOR', {
         fontFamily: pixelFont,
         fontSize: '52px',
         fontStyle: 'bold',
@@ -75,16 +83,8 @@ export class MenuScene extends Phaser.Scene {
         stroke: '#ffd60a',
         strokeThickness: 3
       }).setOrigin(0.5);
+      fallback.setDepth(10);
     }
-
-    const subTitle = this.add.text(width / 2, titleY + 130, '— A SAGA DE NIXY —', {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#1a0308',
-      strokeThickness: 2
-    }).setOrigin(0.5);
 
     // 3. Cards de Seleção de Modo (Estilo Persona 5 Chanfrado)
     const cardW = 440;
@@ -127,10 +127,10 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(width / 2, height - 32, '💡 Use o Mouse ou [1] e [2] no teclado para selecionar o modo', {
       fontFamily: pixelFont,
       fontSize: '10px',
-      color: '#a2a2a2',
+      color: '#e0e0e0',
       stroke: '#000000',
       strokeThickness: 2
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(25);
 
     // 5. Atalhos de Teclado
     if (this.input.keyboard) {
@@ -154,6 +154,7 @@ export class MenuScene extends Phaser.Scene {
   ): void {
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
     const container = this.add.container(x, y);
+    container.setDepth(15);
 
     const bgG = this.add.graphics();
     const renderCard = (hover: boolean) => {
