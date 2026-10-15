@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { CharacterStats, Direction8 } from '../../config/balance';
+import { SoundManager } from '../../systems/SoundManager';
 
 export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public maxHp: number;
@@ -150,6 +151,9 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public takeDamage(amount: number): void {
     this.currentHp = Math.max(0, this.currentHp - amount);
     this.hurtTimer = 250; // Ativa a pose de taking_damage por 250ms
+    if (amount > 0) {
+      SoundManager.getInstance().playPlayerHurt();
+    }
   }
 
   public heal(amount: number): void {
