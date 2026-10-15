@@ -1,0 +1,511 @@
+import Phaser from 'phaser';
+import { Nixy } from '../entities/characters/Nixy';
+import { BaseEnemy } from '../entities/enemies/BaseEnemy';
+import { ZombieDog } from '../entities/enemies/ZombieDog';
+import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
+import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
+import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
+import { BaseWeapon } from '../entities/weapons/BaseWeapon';
+import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
+import { SoulGem, GemType } from '../entities/items/SoulGem';
+import { UltimateSystem } from '../systems/UltimateSystem';
+import { DialogueLine } from '../systems/DialogueSystem';
+import { UIScene } from './UIScene';
+
+export class GameScene extends Phaser.Scene {
+  public player!: Nixy;
+  private floorTile!: Phaser.GameObjects.TileSprite;
+
+  // Modo de Jogo e Campanha
+  public gameMode: 'story' | 'endless' = 'story';
+  public chapterPurifiedSouls: number = 0;
+  public readonly chapterTargetSouls: number = 50;
+  public isBossFightActive: boolean = false;
+  public bossInstance?: SuccubusBoss;
+  public survivalTimeMs: number = 0;
+  public isChapterCompleted: boolean = false;
+  private bossMinionTimer: number = 0;
+
+  // Sistema de Combate e Armas
+  public weapons: BaseWeapon[] = [];
+  public soulBoltWeapon!: SoulBoltWeapon;
+  public enemiesGroup!: Phaser.GameObjects.Group;
+  public gemsGroup!: Phaser.GameObjects.Group;
+  private spawnTimer: number = 0;
+  public killCount: number = 0;
+  private playerInvulnerableTimer: number = 0;
+
+  // Teclas de controle
+  private keyW!: Phaser.Input.Keyboard.Key;
+  private keyA!: Phaser.Input.Keyboard.Key;
+  private keyS!: Phaser.Input.Keyboard.Key;
+  private keyD!: Phaser.Input.Keyboard.Key;
+  private keyUp!: Phaser.Input.Keyboard.Key;
+  private keyLeft!: Phaser.Input.Keyboard.Key;
+  private keyDown!: Phaser.Input.Keyboard.Key;
+  private keyRight!: Phaser.Input.Keyboard.Key;
+  private keyShift!: Phaser.Input.Keyboard.Key;
+  private keySpace!: Phaser.Input.Keyboard.Key;
+  private keyE!: Phaser.Input.Keyboard.Key;
+
+  constructor() {
+    super('GameScene');
+  }
+
+  init(data?: { mode?: 'story' | 'endless' }): void {
+    this.gameMode = data?.mode ?? 'story';
+    this.chapterPurifiedSouls = 0;
+    this.killCount = 0;
+    this.isBossFightActive = false;
+    this.isChapterCompleted = false;
+    this.survivalTimeMs = 0;
+    this.bossInstance = undefined;
+    this.spawnTimer = 0;
+    this.bossMinionTimer = 0;
+  }
+
+  create(): void {
+    const { width, height } = this.scale;
+
+    // 1. Chão infinito repetido (TileSprite duplicando a textura Chão1 em proporção adequada)
+    const floorScale = 0.10;
+    this.floorTile = this.add.tileSprite(width / 2, height / 2, width * 2, height * 2, 'floor-tile');
+    this.floorTile.setOrigin(0.5);
+    this.floorTile.setScrollFactor(0);
+    this.floorTile.setDepth(-100);
+    this.floorTile.setTileScale(floorScale, floorScale);
+    this.floorTile.setTint(0x423232); // Diminui a cor e saturação das pedras para destacar monstros e Nixy
+
+    // 2. Instanciação da Nixy no centro do mundo (0, 0)
+    this.player = new Nixy(this, 0, 0);
+    this.player.setDepth(20);
+
+    // 3. Câmera travada no jogador com zoom 2x inteiro e pixels arredondados (pixel-perfect)
+    this.cameras.main.startFollow(this.player, true, 1, 1);
+    this.cameras.main.setZoom(2);
+    this.cameras.main.setRoundPixels(true);
+
+    // Sincronizar o chão infinito no POST_UPDATE compensando a escala do ladrilho (sem deslizar)
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
+      if (this.floorTile && this.cameras.main) {
+        this.floorTile.tilePositionX = Math.round(this.cameras.main.scrollX / floorScale);
+        this.floorTile.tilePositionY = Math.round(this.cameras.main.scrollY / floorScale);
+      }
+    });
+
+    // 4. Mapeamento de Teclado
+    const keyboard = this.input.keyboard;
+    if (keyboard) {
+      this.keyW = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+      this.keyA = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+      this.keyS = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+      this.keyD = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+      this.keyUp = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+      this.keyLeft = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+      this.keyDown = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+      this.keyRight = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+      this.keyShift = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+      this.keySpace = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+      this.keyE.on('down', () => {
+        if (this.player.isUltimateReady) {
+          this.triggerUltimate();
+        }
+      });
+    }
+
+    // 5. Inicialização de Grupos, Armas e Gemas de Alma
+    this.enemiesGroup = this.add.group({
+      classType: BaseEnemy,
+      maxSize: 150,
+      runChildUpdate: false
+    });
+
+    this.gemsGroup = this.add.group({
+      classType: SoulGem,
+      maxSize: 250,
+      runChildUpdate: false
+    });
+
+    this.weapons = [];
+    this.soulBoltWeapon = new SoulBoltWeapon(this, this.player);
+    this.weapons.push(this.soulBoltWeapon);
+
+    // Escutar Level Up da heroína para abrir UpgradeScene
+    this.player.on('player-level-up', () => {
+      this.cameras.main.flash(220, 255, 215, 0);
+      this.scene.pause();
+      this.scene.launch('UpgradeScene', { player: this.player, gameScene: this });
+    });
+
+    // 6. Configuração de Colisão Projétil -> Inimigo
+    this.physics.add.overlap(
+      this.soulBoltWeapon.projectilesGroup,
+      this.enemiesGroup,
+      (projObj, enemyObj) => {
+        const proj = projObj as SoulBoltProjectile;
+        const enemy = enemyObj as BaseEnemy;
+        if (proj.active && enemy.active && !enemy.isDead) {
+          proj.onHit(enemy);
+        }
+      }
+    );
+
+    // 7. Configuração de Colisão Inimigo -> Nixy (Dano de contato)
+    this.physics.add.overlap(
+      this.player,
+      this.enemiesGroup,
+      (_playerObj, enemyObj) => {
+        const enemy = enemyObj as BaseEnemy;
+        if (enemy.active && !enemy.isDead && this.playerInvulnerableTimer <= 0) {
+          this.player.takeDamage(enemy.damage);
+          this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
+          this.cameras.main.shake(120, 0.005);
+          this.player.setTint(0xff3333);
+          this.time.delayedCall(150, () => {
+            this.player.clearTint();
+          });
+        }
+      }
+    );
+
+    // 8. Inicialização da Interface (UIScene em camada separada desacoplada do zoom da câmera)
+    const ui = this.scene.get('UIScene');
+    if (ui && this.scene.isActive('UIScene')) {
+      ui.scene.restart();
+    } else {
+      this.scene.launch('UIScene');
+    }
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scene.stop('UIScene');
+    });
+
+    // Spawns Iniciais de Cães Zumbis (no modo infinito começam imediatamente)
+    if (this.gameMode === 'endless') {
+      this.spawnZombieDogAt(-220, -100);
+      this.spawnZombieDogAt(220, -120);
+      this.spawnZombieDogAt(-180, 180);
+      this.spawnZombieDogAt(200, 160);
+    } else {
+      // No Modo História: Inicia com o diálogo de introdução com a física pausada!
+      this.time.delayedCall(200, () => {
+        this.playDialogue([
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'O ar aqui embaixo é sufocante... As catacumbas do abismo estão infestadas de almas atormentadas.'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Preciso purificar a energia deste lugar antes que o selo da cripta se rompa de vez. Hora da colheita.'
+          }
+        ], () => {
+          // Os primeiros cães zumbis surgem somente APÓS a conclusão do diálogo!
+          this.spawnZombieDogAt(-220, -100);
+          this.spawnZombieDogAt(220, -120);
+          this.spawnZombieDogAt(-180, 180);
+          this.spawnZombieDogAt(200, 160);
+        });
+      });
+    }
+  }
+
+  /**
+   * Dispara um diálogo na UIScene (1:1 com a tela) pausando a física da arena
+   */
+  public playDialogue(lines: DialogueLine[], onComplete: () => void): void {
+    const uiScene = this.scene.get('UIScene') as UIScene;
+    this.physics.pause();
+    if (this.player?.body) {
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    }
+    if (uiScene) {
+      uiScene.startDialogue(lines, () => {
+        if (!this.isChapterCompleted) {
+          this.physics.resume();
+        }
+        onComplete();
+      });
+    } else {
+      if (!this.isChapterCompleted) {
+        this.physics.resume();
+      }
+      onComplete();
+    }
+  }
+
+  update(_time: number, delta: number): void {
+    // Se o capítulo foi concluído ou diálogo estiver ativo na tela, congela toda a ação do jogo
+    if (this.isChapterCompleted) return;
+    const uiScene = this.scene.get('UIScene') as UIScene;
+    if (uiScene && uiScene.isDialogueActive()) return;
+
+    this.survivalTimeMs += delta;
+
+    // 1. Leitura dos vetores de entrada (Input)
+    let dx = 0;
+    let dy = 0;
+
+    if (this.keyA?.isDown || this.keyLeft?.isDown) dx -= 1;
+    if (this.keyD?.isDown || this.keyRight?.isDown) dx += 1;
+    if (this.keyW?.isDown || this.keyUp?.isDown) dy -= 1;
+    if (this.keyS?.isDown || this.keyDown?.isDown) dy += 1;
+
+    const isSprintRequested = Boolean(this.keyShift?.isDown || this.keySpace?.isDown);
+
+    // 2. Atualizar lógica e animações da Nixy
+    this.player.updateNixy(dx, dy, isSprintRequested, delta);
+
+    // 3. Atualizar tempo de imunidade
+    if (this.playerInvulnerableTimer > 0) {
+      this.playerInvulnerableTimer -= delta;
+    }
+
+    // 4. Atualizar Todas as Armas Ativas
+    for (const weapon of this.weapons) {
+      if (weapon instanceof SoulBoltWeapon) {
+        weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
+      } else if (weapon instanceof VoidScythesWeapon) {
+        weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
+      }
+    }
+
+    // 5. Atualizar Gemas de Alma no Chão (Atração Magnética e Coleta)
+    const activeGems = this.gemsGroup.getChildren() as SoulGem[];
+    for (let i = 0; i < activeGems.length; i++) {
+      const g = activeGems[i];
+      if (g.active) {
+        g.updateGem(this.player, delta);
+      }
+    }
+
+    // 6. Atualizar Inimigos Ativos e IA da Boss Succubus
+    const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.active) {
+        if (e instanceof SuccubusBoss) {
+          e.updateBoss(this.player, delta);
+        } else {
+          e.updateEnemy(this.player.x, this.player.y, delta);
+        }
+      }
+    }
+
+    // 7. Spawner Escalável Contínuo de Hordas
+    if (!this.isBossFightActive) {
+      this.spawnTimer += delta;
+
+      // Intervalo de spawn diminui de 1500ms para até 650ms conforme o tempo de sobrevivência cresce
+      const minutes = this.survivalTimeMs / 60000;
+      const currentInterval = Math.max(650, 1500 - minutes * 400);
+
+      if (this.spawnTimer >= currentInterval) {
+        this.spawnTimer = 0;
+        this.spawnEnemyRandomPerimeter();
+      }
+    } else if (this.bossInstance && this.bossInstance.active && !this.bossInstance.isDead) {
+      // Durante o confronto contra a Boss, invoca uma dupla de cães a cada 9s para manter a arena dinâmica
+      this.bossMinionTimer += delta;
+      if (this.bossMinionTimer >= 9000) {
+        this.bossMinionTimer = 0;
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        this.spawnZombieDogAt(this.player.x + Math.cos(angle) * 360, this.player.y + Math.sin(angle) * 360);
+        this.spawnZombieDogAt(this.player.x - Math.cos(angle) * 360, this.player.y - Math.sin(angle) * 360);
+      }
+    }
+  }
+
+  private spawnZombieDogAt(x: number, y: number): void {
+    let enemy = this.enemiesGroup.getChildren().find(
+      (child) => !child.active && child instanceof ZombieDog
+    ) as ZombieDog | undefined;
+
+    if (!enemy) {
+      enemy = new ZombieDog(this, x, y);
+      enemy.setDepth(5);
+      this.enemiesGroup.add(enemy);
+
+      enemy.on('enemy-killed', (ex: number, ey: number) => {
+        this.killCount++;
+        this.player.gainUltimateCharge(2.5); // Cão Zumbi concede +2.5% de carga
+        this.chapterPurifiedSouls++;
+
+        // 90% chance de gema verde (5 XP), 10% chance de gema azul (20 XP)
+        const gemType: GemType = Math.random() < 0.1 ? 'blue' : 'green';
+        this.spawnGemAt(ex, ey, gemType);
+
+        // Se bater a meta de purificação no Modo História, invoca o confronto de Boss!
+        if (
+          this.gameMode === 'story' &&
+          !this.isBossFightActive &&
+          this.chapterPurifiedSouls >= this.chapterTargetSouls
+        ) {
+          this.triggerBossEncounter();
+        }
+      });
+    }
+
+    enemy.spawn(x, y, 35, 85, 8);
+  }
+
+  private spawnGemAt(x: number, y: number, type: GemType): void {
+    let gem = this.gemsGroup.getChildren().find(
+      (child) => !child.active
+    ) as SoulGem | undefined;
+
+    if (!gem) {
+      gem = new SoulGem(this, x, y);
+      this.gemsGroup.add(gem);
+    }
+
+    gem.spawn(x, y, type);
+  }
+
+  private spawnEnemyRandomPerimeter(): void {
+    // Não spawna se a Boss estiver em campo ou durante a Ultimate
+    if (this.player.isUltimateActive || this.isBossFightActive) return;
+
+    // Quantidade de inimigos por onda escalona com o tempo (de 2 até 6 ao mesmo tempo)
+    const minutes = this.survivalTimeMs / 60000;
+    const countToSpawn = Math.min(6, Math.floor(2 + minutes * 1.5));
+
+    for (let i = 0; i < countToSpawn; i++) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(340, 480);
+      const spawnX = this.player.x + Math.cos(angle) * dist;
+      const spawnY = this.player.y + Math.sin(angle) * dist;
+      this.spawnZombieDogAt(spawnX, spawnY);
+    }
+  }
+
+  /**
+   * Inicia o confronto épico contra a Boss Succubus Imperial
+   */
+  private triggerBossEncounter(): void {
+    this.isBossFightActive = true;
+
+    // 1. Dissipa todos os inimigos normais da arena
+    const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
+    for (const m of mobs) {
+      if (m.active && !(m instanceof SuccubusBoss)) {
+        m.takeDamage(999);
+      }
+    }
+
+    this.cameras.main.flash(260, 255, 255, 255);
+    this.cameras.main.shake(200, 0.015);
+
+    // 2. Diálogo Pré-Boss (Persona 5 style)
+    this.time.delayedCall(300, () => {
+      this.playDialogue([
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus Imperial',
+          portraitKey: 'chat-succubus',
+          text: 'Hahaha... Que doce e insolente heroína temos aqui. Você realmente achou que poderia ceifar minhas almas impunemente?'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Uma Succubus Imperial... Então era você quem estava comandando essa matilha pútrida. Prepare-se, demônio.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus Imperial',
+          portraitKey: 'chat-succubus',
+          text: 'Prepare-se você, mortal! Suas cinzas alimentarão as chamas do abismo eterno!'
+        }
+      ], () => {
+        this.spawnSuccubusBoss();
+      });
+    });
+  }
+
+  private spawnSuccubusBoss(): void {
+    const bossX = this.player.x + 220;
+    const bossY = this.player.y - 140;
+
+    this.bossInstance = new SuccubusBoss(this, bossX, bossY);
+    this.bossInstance.setDepth(22);
+    this.enemiesGroup.add(this.bossInstance);
+    this.bossInstance.spawn(bossX, bossY);
+
+    this.cameras.main.flash(200, 255, 0, 85);
+    this.cameras.main.shake(250, 0.02);
+
+    this.bossInstance.on('boss-defeated', () => {
+      this.handleBossDefeated();
+    });
+  }
+
+  private handleBossDefeated(): void {
+    this.isChapterCompleted = true;
+    this.physics.pause();
+    if (this.player?.body) {
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    }
+
+    // Dissipa inimigos restantes da arena
+    const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
+    for (const m of mobs) {
+      if (m.active && m !== this.bossInstance) {
+        m.takeDamage(9999);
+      }
+    }
+
+    this.time.delayedCall(600, () => {
+      this.playDialogue([
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus Imperial',
+          portraitKey: 'chat-succubus',
+          text: 'Não... isso é impossível... uma mera mortal do plano terreno...'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Descanse no vazio. O primeiro círculo foi purificado. Mas sinto que o verdadeiro pesadelo do inferno está apenas começando...'
+        }
+      ], () => {
+        this.showChapterVictoryModal();
+      });
+    });
+  }
+
+  private showChapterVictoryModal(): void {
+    this.isChapterCompleted = true;
+    this.physics.pause();
+
+    const uiScene = this.scene.get('UIScene') as UIScene;
+    if (uiScene) {
+      uiScene.showChapterVictoryModal(
+        {
+          kills: this.killCount,
+          level: this.player.currentLevel,
+          timeSec: Math.floor(this.survivalTimeMs / 1000)
+        },
+        () => {
+          this.scene.stop('UIScene');
+          this.scene.stop('GameScene');
+          this.scene.start('MenuScene');
+        }
+      );
+    }
+  }
+
+  /**
+   * Dispara a Habilidade Suprema (Ultimate: Eternal Despair)
+   */
+  public triggerUltimate(): void {
+    if (!this.player.isUltimateReady || this.player.isUltimateActive) return;
+    UltimateSystem.execute(this, this.player, this.enemiesGroup);
+  }
+}
