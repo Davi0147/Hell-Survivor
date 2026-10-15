@@ -736,6 +736,7 @@ export class GameScene extends Phaser.Scene {
     if (this.isGameOver) return;
     this.isGameOver = true;
     SoundManager.getInstance().stopMusic(1200);
+    SoundManager.getInstance().playGameOver();
 
     this.physics.pause();
     if (this.player?.body) {

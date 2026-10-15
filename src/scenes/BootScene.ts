@@ -11,6 +11,8 @@ export class BootScene extends Phaser.Scene {
     // Limpar áudios prévios
     this.sound.removeByKey('bgm-battle');
     this.sound.removeByKey('bgm-boss');
+    this.sound.removeByKey('bgm-menu');
+    this.textures.remove('menu-background');
     // Limpeza profunda de texturas e animações anteriores para permitir hot-reload sob demanda
     for (const dir of DIRECTIONS_8) {
       this.textures.remove(`nixy-idle-${dir}`);
@@ -252,8 +254,10 @@ export class BootScene extends Phaser.Scene {
     this.load.image('gem-purple', `assets/sprites/items/gem-purple.png?t=${cacheBuster}`);
     this.load.image('gem-gold', `assets/sprites/items/gem-gold.png?t=${cacheBuster}`);
     this.load.image('game-title-logo', `assets/sprites/title.png?t=${cacheBuster}`);
+    this.load.image('menu-background', `assets/sprites/main_menu_background.jpg?t=${cacheBuster}`);
 
     // 16. Carregar trilhas sonoras oficiais (BGM)
+    this.load.audio('bgm-menu', 'assets/audio/hell-survivor.mp3');
     this.load.audio('bgm-battle', 'assets/audio/eternal-shadow.mp3');
     this.load.audio('bgm-boss', 'assets/audio/orchestral-overture.mp3');
   }

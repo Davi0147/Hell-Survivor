@@ -3,6 +3,7 @@ import { BaseWeapon } from './BaseWeapon';
 import { BaseCharacter } from '../characters/BaseCharacter';
 import { BaseEnemy } from '../enemies/BaseEnemy';
 import { DamageTextSystem } from '../../systems/DamageTextSystem';
+import { SoundManager } from '../../systems/SoundManager';
 
 export class VoidScythesWeapon extends BaseWeapon {
   private player: BaseCharacter;
@@ -17,7 +18,7 @@ export class VoidScythesWeapon extends BaseWeapon {
     super(
       scene,
       'Lâminas Orbitais',
-      35,   // Dano base por golpe
+      9,    // Dano base por golpe reduzido em 75% (balanceamento equilibrado)
       0,    // Cooldown não usado para lâmina contínua
       100,  // Raio de órbita
       0,    // Velocidade linear não usada
@@ -107,6 +108,7 @@ export class VoidScythesWeapon extends BaseWeapon {
     // 2. Cálculo de Dano com bônus da personagem
     const effectiveDamage = Math.round(this.damage * (1 + this.player.bonusDamagePercent / 100));
     enemy.takeDamage(effectiveDamage);
+    SoundManager.getInstance().playEnemyHit();
 
     // 3. Empurrão (Knockback) leve para afastar da heroína
     const kx = enemy.x - this.player.x;

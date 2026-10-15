@@ -10,18 +10,72 @@ export class SoundManager {
   // Gerenciamento de BGM
   private currentBgm?: Phaser.Sound.BaseSound;
   private currentBgmKey?: string;
-  private musicVolume: number = 0.35;
-  private sfxVolume: number = 0.55;
+  private musicVolume: number = 0.10; // Volume padrão das músicas ajustado para 10%
+  private sfxVolume: number = 0.60;
 
-  // Rate limiter para digitação para manter um ritmo suave e agradável
+  // Rate limiter para digitação e dano
   private lastTypewriterTime: number = 0;
   private readonly TYPEWRITER_MIN_INTERVAL = 38; // ms
+  private lastHurtTime: number = 0;
+  private readonly HURT_MIN_INTERVAL = 140; // ms
 
   private isAudioUnlocked: boolean = false;
 
   private constructor() {
+    this.loadSavedVolumes();
     this.initAudioContext();
     this.setupAutoplayUnlock();
+  }
+
+  private loadSavedVolumes(): void {
+    try {
+      const savedMusic = localStorage.getItem('hell_survivor_bgm_vol');
+      if (savedMusic !== null) {
+        const val = parseFloat(savedMusic);
+        if (!isNaN(val)) this.musicVolume = Phaser.Math.Clamp(val, 0, 1);
+      }
+      const savedSfx = localStorage.getItem('hell_survivor_sfx_vol');
+      if (savedSfx !== null) {
+        const val = parseFloat(savedSfx);
+        if (!isNaN(val)) this.sfxVolume = Phaser.Math.Clamp(val, 0, 1);
+      }
+    } catch {}
+  }
+
+  public getMusicVolume(): number {
+    return this.musicVolume;
+  }
+
+  public setMusicVolume(volume: number): void {
+    this.musicVolume = Phaser.Math.Clamp(volume, 0, 1);
+    try {
+      localStorage.setItem('hell_survivor_bgm_vol', this.musicVolume.toString());
+    } catch {}
+    if (this.currentBgm && (this.currentBgm as any).setVolume) {
+      (this.currentBgm as any).setVolume(this.musicVolume);
+    }
+  }
+
+  public setBgmVolume(volume: number): void {
+    this.setMusicVolume(volume);
+  }
+
+  public getBgmVolume(): number {
+    return this.getMusicVolume();
+  }
+
+  public getSfxVolume(): number {
+    return this.sfxVolume;
+  }
+
+  public setSfxVolume(volume: number): void {
+    this.sfxVolume = Phaser.Math.Clamp(volume, 0, 1);
+    try {
+      localStorage.setItem('hell_survivor_sfx_vol', this.sfxVolume.toString());
+    } catch {}
+    if (this.sfxGainNode && this.audioCtx) {
+      this.sfxGainNode.gain.setValueAtTime(this.sfxVolume, this.audioCtx.currentTime);
+    }
   }
 
   public static getInstance(): SoundManager {
@@ -93,6 +147,13 @@ export class SoundManager {
   // =========================================================================
   // MÚSICAS DE FUNDO (BGM) COM FADE-IN SUAVE E LOOP PERFEITO
   // =========================================================================
+
+  /**
+   * Toca a música oficial do Menu Inicial ("Hell Survivor") com fade-in suave
+   */
+  public playMenuMusic(fadeInMs: number = 1800): void {
+    this.playMusicTrack('bgm-menu', this.musicVolume, fadeInMs);
+  }
 
   /**
    * Toca a música da horda normal ("Eternal Shadow") com fade-in suave
@@ -389,28 +450,93 @@ export class SoundManager {
   }
 
   /**
-   * Som quando a Nixy sofre dano (Impacto pesado e crunch)
+   * Som visceral quando a Nixy sofre dano (Impacto pesado e crunch com debounce)
    */
   public playPlayerHurt(): void {
+    const nowMs = Date.now();
+    if (nowMs - this.lastHurtTime < this.HURT_MIN_INTERVAL) return;
+    this.lastHurtTime = nowMs;
+
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(190, now);
-    osc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
+    // 1. Pancada subgrave rápida (Punch / Thud)
+    const punchOsc = ctx.createOscillator();
+    const punchGain = ctx.createGain();
+    punchOsc.type = 'triangle';
+    punchOsc.frequency.setValueAtTime(160, now);
+    punchOsc.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+    punchGain.gain.setValueAtTime(0.40 * this.sfxVolume, now);
+    punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    punchOsc.connect(punchGain);
+    punchGain.connect(this.sfxGainNode || ctx.destination);
+    punchOsc.start(now);
+    punchOsc.stop(now + 0.15);
 
-    gain.gain.setValueAtTime(0.28 * this.sfxVolume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    // 2. Crunch cortante (Dano recebido)
+    const crunchOsc = ctx.createOscillator();
+    const crunchGain = ctx.createGain();
+    crunchOsc.type = 'sawtooth';
+    crunchOsc.frequency.setValueAtTime(280, now);
+    crunchOsc.frequency.exponentialRampToValueAtTime(65, now + 0.10);
+    crunchGain.gain.setValueAtTime(0.30 * this.sfxVolume, now);
+    crunchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    crunchOsc.connect(crunchGain);
+    crunchGain.connect(this.sfxGainNode || ctx.destination);
+    crunchOsc.start(now);
+    crunchOsc.stop(now + 0.13);
+  }
 
-    osc.connect(gain);
-    gain.connect(this.sfxGainNode || ctx.destination);
+  /**
+   * Som dramático e fúnebre de Game Over / Derrota da heroína
+   */
+  public playGameOver(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
 
-    osc.start(now);
-    osc.stop(now + 0.20);
+    const now = ctx.currentTime;
+
+    // 1. Sino fúnebre sub-bass profundo
+    const tollOsc = ctx.createOscillator();
+    const tollGain = ctx.createGain();
+    tollOsc.type = 'sine';
+    tollOsc.frequency.setValueAtTime(95, now);
+    tollOsc.frequency.exponentialRampToValueAtTime(22, now + 1.8);
+    tollGain.gain.setValueAtTime(0.60 * this.sfxVolume, now);
+    tollGain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
+    tollOsc.connect(tollGain);
+    tollGain.connect(this.sfxGainNode || ctx.destination);
+    tollOsc.start(now);
+    tollOsc.stop(now + 2.0);
+
+    // 2. Acorde menor descendente fúnebre retrô (Eb4 -> C4 -> Ab3 -> D3)
+    const funeralNotes = [
+      { freq: 311.13, delay: 0.00, dur: 0.8 },
+      { freq: 261.63, delay: 0.28, dur: 0.9 },
+      { freq: 207.65, delay: 0.60, dur: 1.1 },
+      { freq: 146.83, delay: 0.95, dur: 1.4 }
+    ];
+
+    funeralNotes.forEach((note) => {
+      const noteOsc = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+      const noteStart = now + note.delay;
+
+      noteOsc.type = 'sawtooth';
+      noteOsc.frequency.setValueAtTime(note.freq, noteStart);
+      noteOsc.frequency.exponentialRampToValueAtTime(note.freq * 0.92, noteStart + note.dur);
+
+      noteGain.gain.setValueAtTime(0.18 * this.sfxVolume, noteStart);
+      noteGain.gain.exponentialRampToValueAtTime(0.001, noteStart + note.dur);
+
+      noteOsc.connect(noteGain);
+      noteGain.connect(this.sfxGainNode || ctx.destination);
+
+      noteOsc.start(noteStart);
+      noteOsc.stop(noteStart + note.dur + 0.05);
+    });
   }
 
   /**
