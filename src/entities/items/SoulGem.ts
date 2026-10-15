@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../characters/BaseCharacter';
+import { SoundManager } from '../../systems/SoundManager';
 
 export type GemType = 'green' | 'blue' | 'red' | 'purple' | 'gold' | 'orange';
 
@@ -107,14 +108,17 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
     // 1. Partículas de faísca da gema absorvida
     this.emitPickupSparkles();
 
-    // 2. Concede XP e carga de Ultimate ao jogador (+25% para roxa, +50% para dourada)
+    // 2. Efeito sonoro procedural de coleta de gema
+    SoundManager.getInstance().playGemCollect(this.gemType);
+
+    // 3. Concede XP e carga de Ultimate ao jogador (+25% para roxa, +50% para dourada)
     player.gainXp(this.xpValue);
     let ultGain = this.xpValue * 0.15;
     if (this.gemType === 'purple') ultGain = 25;
     else if (this.gemType === 'gold') ultGain = 50;
     player.gainUltimateCharge(ultGain);
 
-    // 3. Desativa e retorna para a pool
+    // 4. Desativa e retorna para a pool
     this.deactivate();
   }
 

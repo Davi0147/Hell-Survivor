@@ -3,6 +3,7 @@ import { BaseEnemy } from './BaseEnemy';
 import { Nixy } from '../characters/Nixy';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
 import { DamageTextSystem } from '../../systems/DamageTextSystem';
+import { SoundManager } from '../../systems/SoundManager';
 
 type BossState =
   | 'CHASE'
@@ -239,6 +240,8 @@ export class SuccubusBoss extends BaseEnemy {
       this.bossState = 'DASHING';
       this.stateTimer = this.DASH_DURATION;
 
+      SoundManager.getInstance().playBossDash();
+
       const body = this.body as Phaser.Physics.Arcade.Body;
       if (body) {
         body.setVelocity(
@@ -399,6 +402,7 @@ export class SuccubusBoss extends BaseEnemy {
       ease: 'Quad.easeIn',
       onComplete: () => {
         // Impacto violento!
+        SoundManager.getInstance().playBossSlam();
         this.scene.cameras.main.shake(250, 0.02);
 
         // Reativa física

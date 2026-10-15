@@ -3,6 +3,7 @@ import { BaseEnemy } from './BaseEnemy';
 import { Nixy } from '../characters/Nixy';
 import { DamageTextSystem } from '../../systems/DamageTextSystem';
 import { GemType } from '../items/SoulGem';
+import { SoundManager } from '../../systems/SoundManager';
 
 type SlimeState = 'CHASE' | 'TELEGRAPH' | 'DASH' | 'EXPLODED';
 
@@ -186,6 +187,9 @@ export class SkullSlime extends BaseEnemy {
     if (this.slimeState === 'EXPLODED' || this.isDead) return;
     this.slimeState = 'EXPLODED';
     this.setVelocity(0, 0);
+
+    // Efeito sonoro de detonação ácida
+    SoundManager.getInstance().playSlimeExplode();
 
     // Se a explosão atingir a heroína
     if (hitsPlayer) {

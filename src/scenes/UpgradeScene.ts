@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
+import { SoundManager } from '../systems/SoundManager';
 
 export interface UpgradeCard {
   id: string;
@@ -24,6 +25,9 @@ export class UpgradeScene extends Phaser.Scene {
   create(data: { player: BaseCharacter; gameScene: any }): void {
     this.player = data.player;
     this.gameScene = data.gameScene;
+
+    // Toca fanfarra mágica de Level Up
+    SoundManager.getInstance().playLevelUp();
 
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
@@ -316,6 +320,7 @@ export class UpgradeScene extends Phaser.Scene {
     container.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
 
     container.on('pointerover', () => {
+      SoundManager.getInstance().playMenuHover();
       drawCardBg(true);
       drawBtn(true);
       btnText.setColor('#000000');
@@ -344,6 +349,7 @@ export class UpgradeScene extends Phaser.Scene {
     });
 
     container.on('pointerdown', () => {
+      SoundManager.getInstance().playMenuClick();
       // 1. Aplica o upgrade
       card.apply(this.player, this.gameScene);
 

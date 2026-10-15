@@ -12,6 +12,7 @@ import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
+import { SoundManager } from '../systems/SoundManager';
 import { UIScene } from './UIScene';
 
 export class GameScene extends Phaser.Scene {
@@ -76,6 +77,10 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+
+    SoundManager.getInstance().setScene(this);
+    // Inicia a música de batalha com fade-in suave
+    SoundManager.getInstance().playBattleMusic(3000);
 
     // 1. Chão infinito repetido (TileSprite duplicando a textura Chão1 em proporção adequada)
     const floorScale = 0.10;
@@ -158,6 +163,7 @@ export class GameScene extends Phaser.Scene {
         const proj = projObj as SoulBoltProjectile;
         const enemy = enemyObj as BaseEnemy;
         if (proj.active && enemy.active && !enemy.isDead) {
+          SoundManager.getInstance().playEnemyHit();
           proj.onHit(enemy);
         }
       }
@@ -170,6 +176,7 @@ export class GameScene extends Phaser.Scene {
       (_playerObj, enemyObj) => {
         const enemy = enemyObj as BaseEnemy;
         if (enemy.active && !enemy.isDead && this.playerInvulnerableTimer <= 0 && !this.isGameOver) {
+          SoundManager.getInstance().playPlayerHurt();
           this.player.takeDamage(enemy.damage);
           this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
           this.cameras.main.shake(120, 0.005);
@@ -414,6 +421,7 @@ export class GameScene extends Phaser.Scene {
 
       enemy.on('enemy-killed', (ex: number, ey: number, killedEnemy?: BaseEnemy) => {
         this.killCount++;
+        SoundManager.getInstance().playEnemyDeath();
         const dog = killedEnemy instanceof ZombieDog ? killedEnemy : undefined;
         const ultBonus = dog?.isElite ? 10 : 2.5;
         this.player.gainUltimateCharge(ultBonus);
@@ -448,6 +456,7 @@ export class GameScene extends Phaser.Scene {
 
       enemy.on('enemy-killed', (ex: number, ey: number) => {
         this.killCount++;
+        SoundManager.getInstance().playEnemyDeath();
         this.player.gainUltimateCharge(5); // Tanque concede +5% de carga
         this.addPurificationPoints(8);
 
@@ -474,6 +483,7 @@ export class GameScene extends Phaser.Scene {
 
       enemy.on('enemy-killed', (ex: number, ey: number) => {
         this.killCount++;
+        SoundManager.getInstance().playEnemyDeath();
         this.player.gainUltimateCharge(1.5);
         this.addPurificationPoints(1);
 
@@ -685,6 +695,7 @@ export class GameScene extends Phaser.Scene {
    */
   private spawnSuccubusBossEndless(): void {
     this.isBossFightActive = true;
+    SoundManager.getInstance().playBossMusic(2200);
     const bossX = this.player.x + 240;
     const bossY = this.player.y - 140;
 
@@ -724,6 +735,7 @@ export class GameScene extends Phaser.Scene {
   private handlePlayerDeath(): void {
     if (this.isGameOver) return;
     this.isGameOver = true;
+    SoundManager.getInstance().stopMusic(1200);
 
     this.physics.pause();
     if (this.player?.body) {
@@ -766,6 +778,7 @@ export class GameScene extends Phaser.Scene {
    */
   private triggerBossEncounter(): void {
     this.isBossFightActive = true;
+    SoundManager.getInstance().playBossMusic(2200);
 
     // 1. Dissipa todos os inimigos normais da arena
     const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
@@ -824,6 +837,7 @@ export class GameScene extends Phaser.Scene {
 
   private handleBossDefeated(): void {
     this.isChapterCompleted = true;
+    SoundManager.getInstance().stopMusic(2500);
     this.physics.pause();
     if (this.player?.body) {
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
@@ -883,6 +897,7 @@ export class GameScene extends Phaser.Scene {
    */
   public triggerUltimate(): void {
     if (!this.player.isUltimateReady || this.player.isUltimateActive) return;
+    SoundManager.getInstance().playUltimateCast();
     UltimateSystem.execute(this, this.player, this.enemiesGroup);
   }
 }

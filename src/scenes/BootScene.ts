@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { DIRECTIONS_8 } from '../config/balance';
+import { SoundManager } from '../systems/SoundManager';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -7,6 +8,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   init(): void {
+    // Limpar áudios prévios
+    this.sound.removeByKey('bgm-battle');
+    this.sound.removeByKey('bgm-boss');
     // Limpeza profunda de texturas e animações anteriores para permitir hot-reload sob demanda
     for (const dir of DIRECTIONS_8) {
       this.textures.remove(`nixy-idle-${dir}`);
@@ -248,9 +252,15 @@ export class BootScene extends Phaser.Scene {
     this.load.image('gem-purple', `assets/sprites/items/gem-purple.png?t=${cacheBuster}`);
     this.load.image('gem-gold', `assets/sprites/items/gem-gold.png?t=${cacheBuster}`);
     this.load.image('game-title-logo', `assets/sprites/title.png?t=${cacheBuster}`);
+
+    // 16. Carregar trilhas sonoras oficiais (BGM)
+    this.load.audio('bgm-battle', 'assets/audio/eternal-shadow.mp3');
+    this.load.audio('bgm-boss', 'assets/audio/orchestral-overture.mp3');
   }
 
   create(): void {
+    SoundManager.getInstance().setScene(this);
+
     // 1. Textura do chão: fallback procedural apenas caso a imagem não exista
     if (!this.textures.exists('floor-tile')) {
       this.createFloorTexture();

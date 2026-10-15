@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundManager } from '../systems/SoundManager';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +9,9 @@ export class MenuScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    SoundManager.getInstance().setScene(this);
+    SoundManager.getInstance().stopMusic(800);
 
     // 1. Fundo obsidiana profundo
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x090205);
@@ -234,6 +238,7 @@ export class MenuScene extends Phaser.Scene {
     container.add(hitZone);
 
     hitZone.on('pointerover', () => {
+      SoundManager.getInstance().playMenuHover();
       renderCard(true);
       renderBtn(true);
       btnTxt.setColor('#000000');
@@ -259,10 +264,14 @@ export class MenuScene extends Phaser.Scene {
       });
     });
 
-    hitZone.on('pointerdown', () => onClick());
+    hitZone.on('pointerdown', () => {
+      SoundManager.getInstance().playMenuClick();
+      onClick();
+    });
   }
 
   private startGame(mode: 'story' | 'endless'): void {
+    SoundManager.getInstance().playMenuClick();
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(150, () => {
       this.scene.start('GameScene', { mode });
