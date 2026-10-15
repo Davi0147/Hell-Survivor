@@ -21,7 +21,7 @@ export class GameScene extends Phaser.Scene {
   // Modo de Jogo e Campanha
   public gameMode: 'story' | 'endless' = 'story';
   public chapterPurifiedSouls: number = 0;
-  public readonly chapterTargetSouls: number = 180;
+  public readonly chapterTargetSouls: number = 900;
   public isBossFightActive: boolean = false;
   public bossInstance?: SuccubusBoss;
   public survivalTimeMs: number = 0;
@@ -529,14 +529,14 @@ export class GameScene extends Phaser.Scene {
       : 0;
 
     // Determinar Fase Atual da Horda:
-    // Fase 1: Somente Cães Zumbis
-    // Fase 2: Cães Zumbis + Morcegos de Sangue (em bandos rápidos)
-    // Fase 3: Cães Zumbis + Morcegos de Sangue + Skull Slimes (tanques perigosos)
+    // Fase 1: Somente Cães Zumbis (Até 25% da barra ou 90s)
+    // Fase 2: Cães Zumbis + Morcegos de Sangue (De 25% a 60% da barra ou 90s-210s)
+    // Fase 3: Cães Zumbis + Morcegos de Sangue + Skull Slimes (A partir de 60% da barra ou >210s)
     let phase: 1 | 2 | 3 = 1;
     if (this.gameMode === 'story') {
-      if (purifyRatio >= 0.60 || elapsedSec >= 95) {
+      if (purifyRatio >= 0.60 || elapsedSec >= 210) {
         phase = 3;
-      } else if (purifyRatio >= 0.28 || elapsedSec >= 45) {
+      } else if (purifyRatio >= 0.25 || elapsedSec >= 90) {
         phase = 2;
       } else {
         phase = 1;
@@ -692,7 +692,7 @@ export class GameScene extends Phaser.Scene {
     this.bossInstance.setDepth(25);
     this.enemiesGroup.add(this.bossInstance);
 
-    this.bossInstance.spawn(bossX, bossY, 4800, 130, 28, 1.75);
+    this.bossInstance.spawn(bossX, bossY, 24000, 135, 36, 1.85);
 
     this.cameras.main.flash(300, 255, 0, 85);
     this.cameras.main.shake(400, 0.025);
