@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { Nixy } from '../entities/characters/Nixy';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { ZombieDog } from '../entities/enemies/ZombieDog';
+import { SkullSlime } from '../entities/enemies/SkullSlime';
+import { BloodBat } from '../entities/enemies/BloodBat';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
@@ -126,13 +128,13 @@ export class GameScene extends Phaser.Scene {
     // 5. Inicialização de Grupos, Armas e Gemas de Alma
     this.enemiesGroup = this.add.group({
       classType: BaseEnemy,
-      maxSize: 150,
+      maxSize: 300,
       runChildUpdate: false
     });
 
     this.gemsGroup = this.add.group({
       classType: SoulGem,
-      maxSize: 250,
+      maxSize: 400,
       runChildUpdate: false
     });
 
@@ -174,7 +176,11 @@ export class GameScene extends Phaser.Scene {
           this.player.setTint(0xff3333);
           this.time.delayedCall(150, () => {
             if (!this.isGameOver) {
-              this.player.clearTint();
+              if (this.player.isRooted) {
+                this.player.setTint(0x55ff77);
+              } else {
+                this.player.clearTint();
+              }
             }
           });
         }
@@ -193,12 +199,12 @@ export class GameScene extends Phaser.Scene {
       this.scene.stop('UIScene');
     });
 
-    // Spawns Iniciais de Cães Zumbis (no modo infinito começam imediatamente)
+    // Spawns Iniciais de Monstros (no Modo Infinito começam imediatamente)
     if (this.gameMode === 'endless') {
       this.spawnZombieDogAt(-220, -100);
       this.spawnZombieDogAt(220, -120);
-      this.spawnZombieDogAt(-180, 180);
-      this.spawnZombieDogAt(200, 160);
+      this.spawnSkullSlimeAt(180, 180);
+      this.spawnBloodBatFlock(4);
     } else {
       // No Modo História: Inicia com o diálogo de introdução com a física pausada!
       this.time.delayedCall(200, () => {
@@ -216,11 +222,11 @@ export class GameScene extends Phaser.Scene {
             text: 'Preciso purificar a energia deste lugar antes que o selo da cripta se rompa de vez. Hora da colheita.'
           }
         ], () => {
-          // Os primeiros cães zumbis surgem somente APÓS a conclusão do diálogo!
+          // Os primeiros monstros surgem somente APÓS a conclusão do diálogo!
           this.spawnZombieDogAt(-220, -100);
           this.spawnZombieDogAt(220, -120);
-          this.spawnZombieDogAt(-180, 180);
-          this.spawnZombieDogAt(200, 160);
+          this.spawnSkullSlimeAt(180, 180);
+          this.spawnBloodBatFlock(4);
         });
       });
     }
@@ -301,13 +307,17 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 6. Atualizar Inimigos Ativos e IA da Boss Succubus
+    // 6. Atualizar Inimigos Ativos, Skull Slimes, Blood Bats e IA da Boss Succubus
     const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
       if (e.active) {
         if (e instanceof SuccubusBoss) {
           e.updateBoss(this.player, delta);
+        } else if (e instanceof SkullSlime) {
+          e.updateSlime(this.player, delta);
+        } else if (e instanceof BloodBat) {
+          e.updateBat(this.player.x, this.player.y, delta);
         } else {
           e.updateEnemy(this.player.x, this.player.y, delta);
         }
@@ -360,13 +370,13 @@ export class GameScene extends Phaser.Scene {
         }
       }
     } else if (this.bossInstance && this.bossInstance.active && !this.bossInstance.isDead) {
-      // Durante o confronto contra a Boss, invoca uma matilha de cães a cada 8s para manter a arena dinâmica
+      // Durante o confronto contra a Boss, invoca reforços a cada 8s para manter a arena dinâmica
       this.bossMinionTimer += delta;
       if (this.bossMinionTimer >= 8000) {
         this.bossMinionTimer = 0;
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
         this.spawnZombieDogAt(this.player.x + Math.cos(angle) * 360, this.player.y + Math.sin(angle) * 360);
-        this.spawnZombieDogAt(this.player.x - Math.cos(angle) * 360, this.player.y - Math.sin(angle) * 360);
+        this.spawnBloodBatFlock(3);
       }
     }
   }
@@ -423,6 +433,91 @@ export class GameScene extends Phaser.Scene {
     enemy.spawn(x, y, hp, speed, damage, isElite, eliteScale, customDrop);
   }
 
+  private spawnSkullSlimeAt(x: number, y: number): void {
+    let enemy = this.enemiesGroup.getChildren().find(
+      (child) => !child.active && child instanceof SkullSlime
+    ) as SkullSlime | undefined;
+
+    if (!enemy) {
+      enemy = new SkullSlime(this, x, y);
+      enemy.setDepth(6);
+      this.enemiesGroup.add(enemy);
+
+      enemy.on('enemy-killed', (ex: number, ey: number) => {
+        this.killCount++;
+        this.player.gainUltimateCharge(5); // Tanque concede +5% de carga
+        this.chapterPurifiedSouls++;
+
+        // Skull Slime tem chance de gema azul (70%) e vermelha (30%)
+        const gemType: GemType = Math.random() < 0.3 ? 'red' : 'blue';
+        this.spawnGemAt(ex, ey, gemType);
+
+        if (
+          this.gameMode === 'story' &&
+          !this.isBossFightActive &&
+          this.chapterPurifiedSouls >= this.chapterTargetSouls
+        ) {
+          this.triggerBossEncounter();
+        }
+      });
+    }
+
+    const minutes = this.survivalTimeMs / 60000;
+    const hp = Math.floor(160 + (this.gameMode === 'endless' ? minutes * 30 : 0));
+    enemy.spawn(x, y, hp, 46, 10);
+  }
+
+  private spawnBloodBatAt(x: number, y: number): void {
+    let enemy = this.enemiesGroup.getChildren().find(
+      (child) => !child.active && child instanceof BloodBat
+    ) as BloodBat | undefined;
+
+    if (!enemy) {
+      enemy = new BloodBat(this, x, y);
+      enemy.setDepth(8);
+      this.enemiesGroup.add(enemy);
+
+      enemy.on('enemy-killed', (ex: number, ey: number) => {
+        this.killCount++;
+        this.player.gainUltimateCharge(1.5);
+        this.chapterPurifiedSouls++;
+
+        // 95% gema verde, 5% azul
+        const gemType: GemType = Math.random() < 0.05 ? 'blue' : 'green';
+        this.spawnGemAt(ex, ey, gemType);
+
+        if (
+          this.gameMode === 'story' &&
+          !this.isBossFightActive &&
+          this.chapterPurifiedSouls >= this.chapterTargetSouls
+        ) {
+          this.triggerBossEncounter();
+        }
+      });
+    }
+
+    const minutes = this.survivalTimeMs / 60000;
+    const hp = Math.floor(14 + (this.gameMode === 'endless' ? minutes * 3 : 0));
+    const speed = Math.floor(155 + (this.gameMode === 'endless' ? minutes * 5 : 0));
+    enemy.spawn(x, y, hp, speed, 4);
+  }
+
+  /**
+   * Spawna um bando coordenado de Blood Bats voando em nuvem do perímetro
+   */
+  public spawnBloodBatFlock(count: number = 5): void {
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const dist = Phaser.Math.Between(360, 480);
+    const originX = this.player.x + Math.cos(angle) * dist;
+    const originY = this.player.y + Math.sin(angle) * dist;
+
+    for (let i = 0; i < count; i++) {
+      const offsetX = Phaser.Math.Between(-35, 35);
+      const offsetY = Phaser.Math.Between(-35, 35);
+      this.spawnBloodBatAt(originX + offsetX, originY + offsetY);
+    }
+  }
+
   private spawnGemAt(x: number, y: number, type: GemType): void {
     let gem = this.gemsGroup.getChildren().find(
       (child) => !child.active
@@ -445,24 +540,42 @@ export class GameScene extends Phaser.Scene {
     const maxMobs = this.gameMode === 'endless' ? 12 : 6;
     const countToSpawn = Math.min(maxMobs, Math.floor(2 + minutes * 1.5));
 
+    // Chance de 18% por onda de invocar um bando aéreo de Blood Bats!
+    if (Math.random() < 0.18) {
+      const flockSize = Math.min(8, Math.floor(4 + minutes * 1.2));
+      this.spawnBloodBatFlock(flockSize);
+    }
+
     for (let i = 0; i < countToSpawn; i++) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       const dist = Phaser.Math.Between(340, 480);
       const spawnX = this.player.x + Math.cos(angle) * dist;
       const spawnY = this.player.y + Math.sin(angle) * dist;
 
-      // No Modo Infinito a partir de 2 min, 12% de chance de spawnar um Alfa Elite
-      const isElite = this.gameMode === 'endless' && minutes >= 2 && Math.random() < 0.12;
-      if (isElite) {
-        const eliteHp = Math.floor(140 + minutes * 40);
-        const eliteSpeed = Math.floor(90 + minutes * 4);
-        const eliteDmg = Math.floor(12 + minutes * 2);
-        this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
-      } else {
-        const hp = Math.floor(35 + (this.gameMode === 'endless' ? minutes * 15 : 0));
-        const speed = Math.floor(85 + (this.gameMode === 'endless' ? minutes * 3 : 0));
-        const dmg = Math.floor(8 + (this.gameMode === 'endless' ? minutes * 1 : 0));
-        this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
+      const roll = Math.random();
+
+      // 22% chance: Skull Slime (Tanque kamikaze com bote de ácido)
+      if (roll < 0.22) {
+        this.spawnSkullSlimeAt(spawnX, spawnY);
+      }
+      // 18% chance: Blood Bat individual
+      else if (roll < 0.40) {
+        this.spawnBloodBatAt(spawnX, spawnY);
+      }
+      // 60% chance: Zombie Dog (com chance de Alfa Elite no modo infinito)
+      else {
+        const isElite = this.gameMode === 'endless' && minutes >= 2 && Math.random() < 0.12;
+        if (isElite) {
+          const eliteHp = Math.floor(140 + minutes * 40);
+          const eliteSpeed = Math.floor(90 + minutes * 4);
+          const eliteDmg = Math.floor(12 + minutes * 2);
+          this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
+        } else {
+          const hp = Math.floor(35 + (this.gameMode === 'endless' ? minutes * 15 : 0));
+          const speed = Math.floor(85 + (this.gameMode === 'endless' ? minutes * 3 : 0));
+          const dmg = Math.floor(8 + (this.gameMode === 'endless' ? minutes * 1 : 0));
+          this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
+        }
       }
     }
   }

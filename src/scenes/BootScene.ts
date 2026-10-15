@@ -43,6 +43,27 @@ export class BootScene extends Phaser.Scene {
       for (let i = 0; i < 5; i++) {
         this.textures.remove(`succubus-fly-${dir}-${i}`);
       }
+
+      // Limpar texturas e animações do Skull Slime
+      this.textures.remove(`skull-slime-idle-${dir}`);
+      if (this.anims.exists(`skull-slime-idle-${dir}`)) this.anims.remove(`skull-slime-idle-${dir}`);
+
+      // Limpar texturas e animações do Blood Bat
+      this.textures.remove(`blood-bat-idle-${dir}`);
+      if (this.anims.exists(`blood-bat-idle-${dir}`)) this.anims.remove(`blood-bat-idle-${dir}`);
+    }
+
+    const CARDINALS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of CARDINALS) {
+      if (this.anims.exists(`skull-slime-run-${dir}`)) this.anims.remove(`skull-slime-run-${dir}`);
+      for (let i = 0; i < 9; i++) {
+        this.textures.remove(`skull-slime-run-${dir}-${i}`);
+      }
+
+      if (this.anims.exists(`blood-bat-fly-${dir}`)) this.anims.remove(`blood-bat-fly-${dir}`);
+      for (let i = 0; i < 5; i++) {
+        this.textures.remove(`blood-bat-fly-${dir}-${i}`);
+      }
     }
 
     this.textures.remove('floor-tile');
@@ -50,6 +71,13 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('nixy-portrait-damage');
     this.textures.remove('chat-succubus');
     this.textures.remove('chat-nixy');
+
+    this.textures.remove('gem-green');
+    this.textures.remove('gem-blue');
+    this.textures.remove('gem-red');
+    this.textures.remove('gem-orange');
+    this.textures.remove('gem-purple');
+    this.textures.remove('gem-gold');
   }
 
   preload(): void {
@@ -176,6 +204,48 @@ export class BootScene extends Phaser.Scene {
     // 12. Carregar sprites especiais de conversa/diálogo (Chat<Nome>)
     this.load.image('chat-succubus', `assets/sprites/enemies/Succubus/ChatSuccubus.png?t=${cacheBuster}`);
     this.load.image('chat-nixy', `assets/sprites/nixy/ChatNixy.png?t=${cacheBuster}`);
+
+    // 13. Carregar sprites do Skull Slime (Idle nos 8 ângulos e corrida em 4 eixos x 9 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(
+        `skull-slime-idle-${dir}`,
+        `assets/sprites/enemies/Skull Slime/Idle/rotations/${dir}.png?t=${cacheBuster}`
+      );
+    }
+    const SLIME_DIRS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of SLIME_DIRS) {
+      for (let i = 0; i < 9; i++) {
+        this.load.image(
+          `skull-slime-run-${dir}-${i}`,
+          `assets/sprites/enemies/Skull Slime/Idle/animations/Running/${dir}/frame_00${i}.png?t=${cacheBuster}`
+        );
+      }
+    }
+
+    // 14. Carregar sprites do Blood Bat (Idle nos 8 ângulos e voo em 4 eixos x 5 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(
+        `blood-bat-idle-${dir}`,
+        `assets/sprites/enemies/Blood Bat/Idle/rotations/${dir}.png?t=${cacheBuster}`
+      );
+    }
+    const BAT_DIRS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of BAT_DIRS) {
+      for (let i = 0; i < 5; i++) {
+        this.load.image(
+          `blood-bat-fly-${dir}-${i}`,
+          `assets/sprites/enemies/Blood Bat/Idle/animations/The_creature_rapidly_beats_its_wings_to_hover_keep/${dir}/frame_00${i}.png?t=${cacheBuster}`
+        );
+      }
+    }
+
+    // 15. Carregar sprites oficiais das Gemas de Alma criadas pelo usuário (40x40px)
+    this.load.image('gem-green', `assets/sprites/items/gem-green.png?t=${cacheBuster}`);
+    this.load.image('gem-blue', `assets/sprites/items/gem-blue.png?t=${cacheBuster}`);
+    this.load.image('gem-red', `assets/sprites/items/gem-red.png?t=${cacheBuster}`);
+    this.load.image('gem-orange', `assets/sprites/items/gem-orange.png?t=${cacheBuster}`);
+    this.load.image('gem-purple', `assets/sprites/items/gem-purple.png?t=${cacheBuster}`);
+    this.load.image('gem-gold', `assets/sprites/items/gem-gold.png?t=${cacheBuster}`);
   }
 
   create(): void {
@@ -224,6 +294,56 @@ export class BootScene extends Phaser.Scene {
       this.anims.create({
         key: `succubus-idle-${dir}`,
         frames: [{ key: `succubus-idle-${dir}` }],
+        frameRate: 1,
+        repeat: -1
+      });
+    }
+
+    // Registrar animações do Skull Slime (9 frames de corrida e 8 direções de idle)
+    const SLIME_DIRS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of SLIME_DIRS) {
+      const slimeFrames = [];
+      for (let i = 0; i < 9; i++) {
+        slimeFrames.push({ key: `skull-slime-run-${dir}-${i}` });
+      }
+
+      this.anims.create({
+        key: `skull-slime-run-${dir}`,
+        frames: slimeFrames,
+        frameRate: 11,
+        repeat: -1
+      });
+    }
+
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({
+        key: `skull-slime-idle-${dir}`,
+        frames: [{ key: `skull-slime-idle-${dir}` }],
+        frameRate: 1,
+        repeat: -1
+      });
+    }
+
+    // Registrar animações do Blood Bat (5 frames de voo e 8 direções de idle)
+    const BAT_DIRS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of BAT_DIRS) {
+      const batFrames = [];
+      for (let i = 0; i < 5; i++) {
+        batFrames.push({ key: `blood-bat-fly-${dir}-${i}` });
+      }
+
+      this.anims.create({
+        key: `blood-bat-fly-${dir}`,
+        frames: batFrames,
+        frameRate: 13,
+        repeat: -1
+      });
+    }
+
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({
+        key: `blood-bat-idle-${dir}`,
+        frames: [{ key: `blood-bat-idle-${dir}` }],
         frameRate: 1,
         repeat: -1
       });

@@ -6,9 +6,23 @@ export class Nixy extends BaseCharacter {
   private trailTimer: number = 0;
   private readonly TRAIL_INTERVAL_MS = 40;
 
+  // Estado de Prisão Ácida (Skull Slime Root)
+  public isRooted: boolean = false;
+  private rootTimer: number = 0;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'nixy-idle-south', BALANCE.NIXY);
     this.play('nixy-idle-south');
+  }
+
+  public applyAcidRoot(durationMs: number = 1000): void {
+    this.isRooted = true;
+    this.rootTimer = durationMs;
+    this.setTint(0x55ff77); // Sprite esverdeado do ácido
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(0, 0);
+    }
   }
 
   public updateNixy(
@@ -17,6 +31,21 @@ export class Nixy extends BaseCharacter {
     isSprintRequested: boolean,
     deltaMs: number
   ): void {
+    // Gerenciamento de Prisão Ácida
+    if (this.isRooted) {
+      this.rootTimer -= deltaMs;
+      if (this.rootTimer <= 0) {
+        this.isRooted = false;
+        this.clearTint();
+      } else {
+        // Bloqueia movimentação física e sprint enquanto enraizada
+        dx = 0;
+        dy = 0;
+        isSprintRequested = false;
+        this.setTint(0x55ff77);
+      }
+    }
+
     // Atualiza lógica central de física e estamina
     this.updateMovement(dx, dy, isSprintRequested, deltaMs);
 
