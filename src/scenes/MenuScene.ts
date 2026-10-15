@@ -172,25 +172,33 @@ export class MenuScene extends Phaser.Scene {
       this.textObjects.push(txt);
     });
 
-    // 7. Indicadores Visuais da Opção Selecionada (🔥 Fogo à esquerda | 🗡️ / ▶ Adaga à direita)
-    this.leftIndicator = this.add.text(0, 0, '🔥', {
+    // 7. Indicadores Visuais da Opção Selecionada (> à esquerda e < à direita)
+    this.leftIndicator = this.add.text(0, 0, '>', {
       fontFamily: pixelFont,
-      fontSize: '20px'
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#ffa200',
+      stroke: '#ff4500',
+      strokeThickness: 3
     }).setOrigin(0.5).setDepth(16);
 
-    this.rightIndicator = this.add.text(0, 0, '🗡️', {
+    this.rightIndicator = this.add.text(0, 0, '<', {
       fontFamily: pixelFont,
-      fontSize: '18px'
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#ffa200',
+      stroke: '#ff4500',
+      strokeThickness: 3
     }).setOrigin(0.5).setDepth(16);
 
     // Efeito de pulso suave e rítmico dos indicadores
     this.tweens.add({
       targets: [this.leftIndicator, this.rightIndicator],
-      scale: { from: 0.95, to: 1.15 },
-      duration: 480,
+      alpha: { from: 0.65, to: 1.0 },
+      duration: 420,
       yoyo: true,
       repeat: -1,
-      ease: 'Quad.easeInOut'
+      ease: 'Sine.easeInOut'
     });
 
     this.updateMenuVisuals();
@@ -213,7 +221,7 @@ export class MenuScene extends Phaser.Scene {
     barG.lineStyle(1, 0xc59b27, 0.5);
     barG.strokeRoundedRect(width / 2 - barW / 2 + 2, bottomBarY - barH / 2 + 2, barW - 4, barH - 4, 6);
 
-    this.add.text(width / 2, bottomBarY, '💡 USE O TECLADO (W/S/ENTER) OU MOUSE PARA SELECIONAR', {
+    this.add.text(width / 2, bottomBarY, 'USE O TECLADO (W/S/ENTER) OU MOUSE PARA SELECIONAR', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -227,7 +235,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   /**
-   * Atualiza o estado visual das opções (laranja brilhante + glow na selecionada)
+   * Atualiza o estado visual das opções (laranja brilhante + glow na selecionada, sem alterar escala)
    */
   private updateMenuVisuals(): void {
     const selected = this.selectedIndex;
@@ -248,16 +256,16 @@ export class MenuScene extends Phaser.Scene {
             fill: true
           }
         });
-        txt.setScale(1.08);
+        txt.setScale(1.0); // FIX: Mantém escala estritamente 1.0 para evitar redimensionamento e jitter
 
-        // Posiciona a chama à esquerda e a adaga à direita do texto
-        const halfWidth = txt.width * 0.54;
+        // Posiciona os ponteiros > e < flanking o texto selecionado
+        const halfWidth = txt.width * 0.5;
         if (this.leftIndicator) {
-          this.leftIndicator.setPosition(txt.x - halfWidth - 32, txt.y);
+          this.leftIndicator.setPosition(txt.x - halfWidth - 24, txt.y);
           this.leftIndicator.setVisible(true);
         }
         if (this.rightIndicator) {
-          this.rightIndicator.setPosition(txt.x + halfWidth + 32, txt.y);
+          this.rightIndicator.setPosition(txt.x + halfWidth + 24, txt.y);
           this.rightIndicator.setVisible(true);
         }
       } else {
@@ -358,7 +366,7 @@ export class MenuScene extends Phaser.Scene {
     this.modalContainer.add(panelG);
 
     // 3. Título do Modal
-    const titleTxt = this.add.text(panelX, panelY - panelH / 2 + 40, '⚙️ CONFIGURAÇÕES DE ÁUDIO', {
+    const titleTxt = this.add.text(panelX, panelY - panelH / 2 + 40, 'CONFIGURAÇÕES DE ÁUDIO', {
       fontFamily: pixelFont,
       fontSize: '20px',
       fontStyle: 'bold',
@@ -378,17 +386,18 @@ export class MenuScene extends Phaser.Scene {
     // CONTROLE 1: VOLUME DA MÚSICA (BGM)
     // =========================================================================
     const bgmRowY = panelY - 45;
-    const bgmLabel = this.add.text(panelX, bgmRowY - 26, '🎵 VOLUME DA MÚSICA', {
+    const bgmLabel = this.add.text(panelX, bgmRowY - 26, 'VOLUME DA MÚSICA', {
       fontFamily: pixelFont,
-      fontSize: '14px',
+      fontSize: '13px',
       fontStyle: 'bold',
       color: '#f3d17a'
     }).setOrigin(0.5);
     this.modalContainer.add(bgmLabel);
 
-    const bgmPercentTxt = this.add.text(panelX + 165, bgmRowY + 12, '', {
+    const bgmPercentTxt = this.add.text(panelX + 160, bgmRowY + 12, '', {
       fontFamily: pixelFont,
-      fontSize: '14px',
+      fontSize: '13px',
+      fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0, 0.5);
     this.modalContainer.add(bgmPercentTxt);
@@ -404,7 +413,7 @@ export class MenuScene extends Phaser.Scene {
       bgmBarGraphics.clear();
       const barX = panelX - 110;
       const barY = bgmRowY + 4;
-      const barW = 240;
+      const barW = 210;
       const barH = 16;
 
       // Fundo do slider
@@ -425,7 +434,7 @@ export class MenuScene extends Phaser.Scene {
     updateBgmDisplay();
 
     // Botão [-] Música
-    this.createStepperBtn(panelX - 150, bgmRowY + 12, '➖', () => {
+    this.createStepperBtn(panelX - 140, bgmRowY + 12, '-', () => {
       const cur = SoundManager.getInstance().getMusicVolume();
       const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
       SoundManager.getInstance().setMusicVolume(next);
@@ -433,7 +442,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Botão [+] Música
-    this.createStepperBtn(panelX + 140, bgmRowY + 12, '➕', () => {
+    this.createStepperBtn(panelX + 120, bgmRowY + 12, '+', () => {
       const cur = SoundManager.getInstance().getMusicVolume();
       const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
       SoundManager.getInstance().setMusicVolume(next);
@@ -444,17 +453,18 @@ export class MenuScene extends Phaser.Scene {
     // CONTROLE 2: VOLUME DOS EFEITOS SONOROS (SFX)
     // =========================================================================
     const sfxRowY = panelY + 65;
-    const sfxLabel = this.add.text(panelX, sfxRowY - 26, '🔊 VOLUME DOS EFEITOS (SFX)', {
+    const sfxLabel = this.add.text(panelX, sfxRowY - 26, 'VOLUME DOS EFEITOS (SFX)', {
       fontFamily: pixelFont,
-      fontSize: '14px',
+      fontSize: '13px',
       fontStyle: 'bold',
       color: '#f3d17a'
     }).setOrigin(0.5);
     this.modalContainer.add(sfxLabel);
 
-    const sfxPercentTxt = this.add.text(panelX + 165, sfxRowY + 12, '', {
+    const sfxPercentTxt = this.add.text(panelX + 160, sfxRowY + 12, '', {
       fontFamily: pixelFont,
-      fontSize: '14px',
+      fontSize: '13px',
+      fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0, 0.5);
     this.modalContainer.add(sfxPercentTxt);
@@ -470,7 +480,7 @@ export class MenuScene extends Phaser.Scene {
       sfxBarGraphics.clear();
       const barX = panelX - 110;
       const barY = sfxRowY + 4;
-      const barW = 240;
+      const barW = 210;
       const barH = 16;
 
       sfxBarGraphics.fillStyle(0x280d15, 1);
@@ -488,7 +498,7 @@ export class MenuScene extends Phaser.Scene {
     updateSfxDisplay();
 
     // Botão [-] SFX
-    this.createStepperBtn(panelX - 150, sfxRowY + 12, '➖', () => {
+    this.createStepperBtn(panelX - 140, sfxRowY + 12, '-', () => {
       const cur = SoundManager.getInstance().getSfxVolume();
       const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
       SoundManager.getInstance().setSfxVolume(next);
@@ -497,7 +507,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Botão [+] SFX
-    this.createStepperBtn(panelX + 140, sfxRowY + 12, '➕', () => {
+    this.createStepperBtn(panelX + 120, sfxRowY + 12, '+', () => {
       const cur = SoundManager.getInstance().getSfxVolume();
       const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
       SoundManager.getInstance().setSfxVolume(next);
@@ -523,7 +533,7 @@ export class MenuScene extends Phaser.Scene {
     renderCloseBtn(false);
     this.modalContainer.add(closeBtnG);
 
-    const closeTxt = this.add.text(panelX, closeBtnY, '↩️ FECHAR E SALVAR', {
+    const closeTxt = this.add.text(panelX, closeBtnY, 'FECHAR E SALVAR', {
       fontFamily: pixelFont,
       fontSize: '12px',
       fontStyle: 'bold',
@@ -563,7 +573,8 @@ export class MenuScene extends Phaser.Scene {
 
     const txt = this.add.text(x, y, symbol, {
       fontFamily: pixelFont,
-      fontSize: '12px',
+      fontSize: '14px',
+      fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
     this.modalContainer.add(txt);
@@ -611,7 +622,7 @@ export class MenuScene extends Phaser.Scene {
     panelG.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 12);
     this.modalContainer.add(panelG);
 
-    const title = this.add.text(panelX, panelY - 60, '💀 ENCERRAR JOGO', {
+    const title = this.add.text(panelX, panelY - 60, 'ENCERRAR JOGO', {
       fontFamily: pixelFont,
       fontSize: '18px',
       fontStyle: 'bold',
@@ -648,7 +659,7 @@ export class MenuScene extends Phaser.Scene {
     renderBtn(false);
     this.modalContainer.add(btnG);
 
-    const btnTxt = this.add.text(panelX, btnY, '↩️ VOLTAR AO MENU', {
+    const btnTxt = this.add.text(panelX, btnY, 'VOLTAR AO MENU', {
       fontFamily: pixelFont,
       fontSize: '11px',
       fontStyle: 'bold',

@@ -74,7 +74,7 @@ export class UltimateSystem {
     }).setOrigin(0, 0.5);
     titleText.setAngle(-2);
 
-    const subText = scene.add.text(width / 2 + 15, stripY + 24, '★ SUPREME PURIFICATION ★', {
+    const subText = scene.add.text(width / 2 + 15, stripY + 24, 'SUPREME PURIFICATION', {
       fontFamily: pixelFont,
       fontSize: '13px',
       fontStyle: 'bold',
