@@ -1,0 +1,168 @@
+import Phaser from 'phaser';
+import { BaseWeapon } from './BaseWeapon';
+import { BaseCharacter } from '../characters/BaseCharacter';
+import { BaseEnemy } from '../enemies/BaseEnemy';
+import { SoundManager } from '../../systems/SoundManager';
+
+export class HellfireAuraWeapon extends BaseWeapon {
+  private player: BaseCharacter;
+  private level: number = 1;
+  private maxLevel: number = 5;
+  private pulseCooldownMs: number = 1400;
+  private pulseTimer: number = 600; // Primeiro pulso ocorre rapidamente
+
+  constructor(scene: Phaser.Scene, player: BaseCharacter) {
+    super(
+      scene,
+      'Chamas do Purgatório',
+      16,   // Dano base do pulso de chamas
+      1400, // Intervalo entre pulsos em ms
+      95,   // Raio inicial da onda vulcânica
+      0,    // Velocidade linear (arma de área contínua)
+      1,    // 1 pulso por ciclo
+      999   // Dano de área penetrante
+    );
+    this.player = player;
+  }
+
+  public fire(_originX: number, _originY: number, _target: BaseEnemy): void {
+    // Operada através de updateWeapon() com pulso omnidirecional em área
+  }
+
+  public updateWeapon(
+    deltaMs: number,
+    originX: number,
+    originY: number,
+    enemies: Phaser.GameObjects.Group
+  ): void {
+    this.pulseTimer -= deltaMs;
+
+    if (this.pulseTimer <= 0) {
+      this.pulseTimer = this.pulseCooldownMs;
+      this.triggerHellfirePulse(originX, originY, enemies);
+    }
+  }
+
+  private triggerHellfirePulse(
+    originX: number,
+    originY: number,
+    enemies: Phaser.GameObjects.Group
+  ): void {
+    // 1. Efeito sonoro do estouro de chamas vulcânicas
+    SoundManager.getInstance().playHellfireBurst();
+
+    // 2. Animação de anel de fogo expansivo em Blend Mode ADD
+    const fireRing = this.scene.add.graphics();
+    fireRing.setDepth(18);
+    fireRing.setBlendMode(Phaser.BlendModes.ADD);
+
+    const targetRadius = this.range;
+
+    this.scene.tweens.addCounter({
+      from: 14,
+      to: targetRadius,
+      duration: 320,
+      ease: 'Quad.easeOut',
+      onUpdate: (tween) => {
+        const r = tween.getValue() ?? 14;
+        const progress = (r - 14) / (targetRadius - 14);
+        const alpha = Math.max(0, 1 - progress);
+
+        fireRing.clear();
+        // Preenchimento de brasa quente
+        fireRing.fillStyle(0xff3300, alpha * 0.35);
+        fireRing.fillCircle(originX, originY, r);
+
+        // Borda de fogo brilhante incandescente
+        fireRing.lineStyle(3 + (1 - progress) * 3, 0xffa200, alpha * 0.95);
+        fireRing.strokeCircle(originX, originY, r);
+
+        // Anel interno de calor branco
+        fireRing.lineStyle(1.5, 0xffffff, alpha * 0.7);
+        fireRing.strokeCircle(originX, originY, Math.max(6, r - 4));
+      },
+      onComplete: () => {
+        fireRing.destroy();
+      }
+    });
+
+    // 3. Faíscas de cinzas e brasas saltando para fora
+    for (let i = 0; i < 6; i++) {
+      const spark = this.scene.add.circle(
+        originX,
+        originY,
+        Phaser.Math.Between(2, 4),
+        Phaser.Math.RND.pick([0xff2200, 0xff5500, 0xff9900, 0xffd000]),
+        0.9
+      );
+      spark.setDepth(19);
+      spark.setBlendMode(Phaser.BlendModes.ADD);
+
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(targetRadius * 0.5, targetRadius * 1.1);
+
+      this.scene.tweens.add({
+        targets: spark,
+        x: originX + Math.cos(angle) * dist,
+        y: originY + Math.sin(angle) * dist,
+        alpha: 0,
+        scale: 0.2,
+        duration: Phaser.Math.Between(260, 420),
+        ease: 'Quad.easeOut',
+        onComplete: () => spark.destroy()
+      });
+    }
+
+    // 4. Detecção e dano aos inimigos dentro do raio da explosão de chamas
+    const effectiveDamage = Math.round(
+      this.damage * (1 + this.player.bonusDamagePercent / 100)
+    );
+
+    const activeEnemies = enemies.getChildren() as BaseEnemy[];
+    let hitCount = 0;
+
+    for (const enemy of activeEnemies) {
+      if (!enemy.active || enemy.isDead) continue;
+
+      const dist = Math.hypot(enemy.x - originX, enemy.y - originY);
+      if (dist <= targetRadius) {
+        enemy.takeDamage(effectiveDamage);
+
+        // Flash de queimação laranja no monstro
+        enemy.setTint(0xff6600);
+        this.scene.time.delayedCall(120, () => {
+          if (enemy.active && !enemy.isDead) {
+            enemy.clearTint();
+          }
+        });
+
+        hitCount++;
+      }
+    }
+
+    if (hitCount > 0) {
+      SoundManager.getInstance().playEnemyHit();
+    }
+  }
+
+  /**
+   * Evolução de Nível da Arma (Nível 1 a 5)
+   */
+  public upgrade(): boolean {
+    if (this.level >= this.maxLevel) return false;
+    this.level++;
+    this.damage += 7;
+    this.range += 18;
+    this.pulseCooldownMs = Math.max(900, this.pulseCooldownMs - 80);
+    this.cooldownMs = this.pulseCooldownMs;
+    return true;
+  }
+
+  public getLevel(): number {
+    return this.level;
+  }
+
+  public isMaxLevel(): boolean {
+    return this.level >= this.maxLevel;
+  }
+}

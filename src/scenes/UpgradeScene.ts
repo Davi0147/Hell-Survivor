@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
+import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoundManager } from '../systems/SoundManager';
 
 export interface UpgradeCard {
@@ -210,6 +211,45 @@ export class UpgradeScene extends Phaser.Scene {
           description: `+1 Lâmina em Órbita (${nextBlades}/6)\n\nAdiciona mais uma foice mística veloz girando ao redor da Nixy!`,
           apply: () => {
             scythesWeapon.addBlade();
+          }
+        });
+      }
+    }
+
+    // Adiciona a arma "CHAMAS DO PURGATÓRIO" ou sua evolução até Nível 5
+    const hasHellfire = this.gameScene.weapons && this.gameScene.weapons.some(
+      (w: any) => w instanceof HellfireAuraWeapon
+    );
+
+    if (!hasHellfire) {
+      catalog.unshift({
+        id: 'hellfire_aura',
+        title: 'CHAMAS DO PURGATÓRIO',
+        category: 'NOVA ARMA // NÍVEL 1',
+        badgeColor: 0xff4500,
+        icon: '🔥',
+        description: 'Aura Vulcânica Devoradora\n\nEmite pulsos periódicos de fogo infernal calcinando monstros em área!',
+        apply: (player, gameScene) => {
+          const hellfire = new HellfireAuraWeapon(gameScene, player);
+          gameScene.weapons.push(hellfire);
+        }
+      });
+    } else {
+      const hellfireWeapon = this.gameScene.weapons && this.gameScene.weapons.find(
+        (w: any) => w instanceof HellfireAuraWeapon
+      ) as HellfireAuraWeapon | undefined;
+
+      if (hellfireWeapon && !hellfireWeapon.isMaxLevel()) {
+        const nextLvl = hellfireWeapon.getLevel() + 1;
+        catalog.unshift({
+          id: 'hellfire_aura_upgrade',
+          title: 'CHAMAS DO PURGATÓRIO',
+          category: `MELHORIA // NÍVEL ${nextLvl}/5`,
+          badgeColor: 0xff4500,
+          icon: '🔥',
+          description: `+Raio e Dano Ígneo (Nív ${nextLvl}/5)\n\nExpande o raio da onda de chamas e intensifica o calor das cinzas!`,
+          apply: () => {
+            hellfireWeapon.upgrade();
           }
         });
       }
