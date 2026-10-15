@@ -9,11 +9,11 @@ Este documento define as etapas de desenvolvimento para a construção do **Hell
 ```mermaid
 flowchart TD
     M1["Fase 1: Fundação & Movimento 8-Way (Nixy) ✅"] --> M2["Fase 2: Motor de Ataque & Auto-Aim ✅"]
-    M2 --> M3["Fase 3: Hordas de Inimigos & Bestiário Inicial ⏳"]
+    M2 --> M3["Fase 3: Hordas de Inimigos & Bestiário Inicial ✅"]
     M3 --> M4["Fase 4: Gemas de XP, Níveis & Cartas de Armas ✅"]
     M4 --> M5["Fase 5: Habilidade Suprema (Ultimate) & Anime Cut-In ✅"]
-    M5 --> M6["Fase 6: Modo História (Capítulos, Almas & Diálogos)"]
-    M6 --> M7["Fase 7: Modo Infinito (Mini-Bosses 3m / Bosses 10m)"]
+    M5 --> M6["Fase 6: Modo História (Capítulo 1 Completo) ✅"]
+    M6 --> M7["Fase 7: Modo Infinito (Mini-Bosses 3m / Bosses 10m) ⏳"]
     M7 --> M8["Fase 8: Polish Audiovisual, SoundGroups & Meta-Loja"]
 ```
 
@@ -128,20 +128,22 @@ flowchart TD
 
 ---
 
-### 🔹 Fase 6: Modo História (Capítulos & Narrativa)
+### 🔹 Fase 6: Modo História (Capítulos & Narrativa) (CONCLUÍDO ✅)
 **Objetivo:** Criar a campanha episódica com diálogos teatrais, metas de purificação e chefes predefinidos.
-* [ ] **Estrutura por Capítulos Independentes:**
-  * Cada capítulo possui mapa, meta de monstros e Boss predefinido (Capítulo 1: Catacumbas com a Boss Succubus).
+* [x] **Estrutura por Capítulos Independentes:**
+  * Cada capítulo possui mapa, meta de monstros e Boss predefinido (Capítulo 1: Catacumbas com a Boss Succubus Imperial).
   * **Reset de Nível:** O jogador sempre volta para o Nível 1 ao iniciar um novo capítulo.
-* [ ] **Barra de Purificação de Almas (Objetivo da Fase):**
-  * Meta fixa de monstros (ex: 250 monstros). Barra no topo da HUD que monitora o progresso.
-  * Ao encher em 100%, os monstros comuns cessam e o Boss do capítulo desce à arena.
-* [ ] **Sistema de Diálogos Estilo Persona 5 (Comic Noir & Balões Angulares):**
-  * Balões de fala com polígonos inclinados, borda branca pontiaguda, nameplate recortada e portraits expressivos no canto inferior.
-  * Efeito de digitação suave (Typewriter FX) e atalhos rápidos (`[Espaço]` avançar, `[F]` acelerar, `[ESC]` pular).
-  * Diálogo 1: Introdução da fase com lore e falas da protagonista.
-  * Diálogo 2: Confronto verbal antes do combate contra o Boss.
-  * Diálogo 3: Conclusão vitoriosa pós-derrota do Boss.
+* [x] **Barra de Purificação de Almas (Objetivo da Fase):**
+  * Meta fixa de almas/monstros no Capítulo 1 monitorada pela barra barroca no topo.
+  * Ao encher em 100%, os monstros comuns são dissipados e a Boss Succubus desce à arena com intro falada.
+* [x] **Sistema de Diálogos Estilo Persona 5 (Comic Noir & Balões Angulares):**
+  * Balões de fala com polígonos chanfrados, bordas em destaque, nameplate recortada e retratos expressivos de 420px.
+  * Transição cinematográfica com balão deslizante e troca de falantes (apenas quando o interlocutor muda).
+  * Ocultação automática de toda a HUD durante diálogos e modais de vitória.
+  * Efeito de digitação suave (Typewriter FX) e atalhos rápidos (`[Espaço]` / `[Enter]` avançar, `[ESC]` pular).
+  * Diálogo 1: Introdução da fase com lore e falas da protagonista Nixy.
+  * Diálogo 2: Confronto verbal antes do combate contra a Succubus Imperial.
+  * Diálogo 3: Conclusão vitoriosa pós-derrota do Boss com modal de estatísticas e retorno ao menu.
 * [ ] **Desbloqueio de Personagens:**
   * Vencer o capítulo desbloqueia novas personagens jogáveis para uso no Modo Infinito.
 
