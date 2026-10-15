@@ -21,7 +21,7 @@ export class GameScene extends Phaser.Scene {
   // Modo de Jogo e Campanha
   public gameMode: 'story' | 'endless' = 'story';
   public chapterPurifiedSouls: number = 0;
-  public readonly chapterTargetSouls: number = 50;
+  public readonly chapterTargetSouls: number = 180;
   public isBossFightActive: boolean = false;
   public bossInstance?: SuccubusBoss;
   public survivalTimeMs: number = 0;
@@ -199,12 +199,12 @@ export class GameScene extends Phaser.Scene {
       this.scene.stop('UIScene');
     });
 
-    // Spawns Iniciais de Monstros (no Modo Infinito começam imediatamente)
+    // Spawns Iniciais de Monstros (apenas Cães Zumbis no início de ambos os modos - Fase 1)
     if (this.gameMode === 'endless') {
       this.spawnZombieDogAt(-220, -100);
       this.spawnZombieDogAt(220, -120);
-      this.spawnSkullSlimeAt(180, 180);
-      this.spawnBloodBatFlock(4);
+      this.spawnZombieDogAt(-160, 160);
+      this.spawnZombieDogAt(180, 150);
     } else {
       // No Modo História: Inicia com o diálogo de introdução com a física pausada!
       this.time.delayedCall(200, () => {
@@ -222,11 +222,11 @@ export class GameScene extends Phaser.Scene {
             text: 'Preciso purificar a energia deste lugar antes que o selo da cripta se rompa de vez. Hora da colheita.'
           }
         ], () => {
-          // Os primeiros monstros surgem somente APÓS a conclusão do diálogo!
+          // Os primeiros monstros surgem somente APÓS a conclusão do diálogo! (Apenas Cães na Fase 1)
           this.spawnZombieDogAt(-220, -100);
           this.spawnZombieDogAt(220, -120);
-          this.spawnSkullSlimeAt(180, 180);
-          this.spawnBloodBatFlock(4);
+          this.spawnZombieDogAt(-160, 160);
+          this.spawnZombieDogAt(180, 150);
         });
       });
     }
@@ -381,6 +381,18 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Adiciona pontos ponderados de energia para purificação do Capítulo 1 (Modo História).
+   * Cão Zumbi: 2 pts | Alfa Elite: 6 pts | Morcego: 1 pt | Skull Slime: 8 pts
+   */
+  private addPurificationPoints(points: number): void {
+    if (this.gameMode !== 'story' || this.isBossFightActive || this.isChapterCompleted) return;
+    this.chapterPurifiedSouls += points;
+    if (this.chapterPurifiedSouls >= this.chapterTargetSouls) {
+      this.triggerBossEncounter();
+    }
+  }
+
   private spawnZombieDogAt(
     x: number,
     y: number,
@@ -405,7 +417,7 @@ export class GameScene extends Phaser.Scene {
         const dog = killedEnemy instanceof ZombieDog ? killedEnemy : undefined;
         const ultBonus = dog?.isElite ? 10 : 2.5;
         this.player.gainUltimateCharge(ultBonus);
-        this.chapterPurifiedSouls++;
+        this.addPurificationPoints(dog?.isElite ? 6 : 2);
 
         let gemType: GemType;
         if (dog?.customDrop) {
@@ -418,15 +430,6 @@ export class GameScene extends Phaser.Scene {
           gemType = Math.random() < 0.1 ? 'blue' : 'green';
         }
         this.spawnGemAt(ex, ey, gemType);
-
-        // Se bater a meta de purificação no Modo História, invoca o confronto de Boss!
-        if (
-          this.gameMode === 'story' &&
-          !this.isBossFightActive &&
-          this.chapterPurifiedSouls >= this.chapterTargetSouls
-        ) {
-          this.triggerBossEncounter();
-        }
       });
     }
 
@@ -446,19 +449,11 @@ export class GameScene extends Phaser.Scene {
       enemy.on('enemy-killed', (ex: number, ey: number) => {
         this.killCount++;
         this.player.gainUltimateCharge(5); // Tanque concede +5% de carga
-        this.chapterPurifiedSouls++;
+        this.addPurificationPoints(8);
 
         // Skull Slime tem chance de gema azul (70%) e vermelha (30%)
         const gemType: GemType = Math.random() < 0.3 ? 'red' : 'blue';
         this.spawnGemAt(ex, ey, gemType);
-
-        if (
-          this.gameMode === 'story' &&
-          !this.isBossFightActive &&
-          this.chapterPurifiedSouls >= this.chapterTargetSouls
-        ) {
-          this.triggerBossEncounter();
-        }
       });
     }
 
@@ -480,19 +475,11 @@ export class GameScene extends Phaser.Scene {
       enemy.on('enemy-killed', (ex: number, ey: number) => {
         this.killCount++;
         this.player.gainUltimateCharge(1.5);
-        this.chapterPurifiedSouls++;
+        this.addPurificationPoints(1);
 
         // 95% gema verde, 5% azul
         const gemType: GemType = Math.random() < 0.05 ? 'blue' : 'green';
         this.spawnGemAt(ex, ey, gemType);
-
-        if (
-          this.gameMode === 'story' &&
-          !this.isBossFightActive &&
-          this.chapterPurifiedSouls >= this.chapterTargetSouls
-        ) {
-          this.triggerBossEncounter();
-        }
       });
     }
 
@@ -536,46 +523,103 @@ export class GameScene extends Phaser.Scene {
     if (this.player.isUltimateActive || this.isBossFightActive) return;
 
     const minutes = this.survivalTimeMs / 60000;
-    // Quantidade de inimigos por onda escalona com o tempo (de 2 até 12 no Modo Infinito)
-    const maxMobs = this.gameMode === 'endless' ? 12 : 6;
-    const countToSpawn = Math.min(maxMobs, Math.floor(2 + minutes * 1.5));
+    const elapsedSec = Math.floor(this.survivalTimeMs / 1000);
+    const purifyRatio = this.gameMode === 'story'
+      ? this.chapterPurifiedSouls / this.chapterTargetSouls
+      : 0;
 
-    // Chance de 18% por onda de invocar um bando aéreo de Blood Bats!
-    if (Math.random() < 0.18) {
-      const flockSize = Math.min(8, Math.floor(4 + minutes * 1.2));
-      this.spawnBloodBatFlock(flockSize);
+    // Determinar Fase Atual da Horda:
+    // Fase 1: Somente Cães Zumbis
+    // Fase 2: Cães Zumbis + Morcegos de Sangue (em bandos rápidos)
+    // Fase 3: Cães Zumbis + Morcegos de Sangue + Skull Slimes (tanques perigosos)
+    let phase: 1 | 2 | 3 = 1;
+    if (this.gameMode === 'story') {
+      if (purifyRatio >= 0.60 || elapsedSec >= 95) {
+        phase = 3;
+      } else if (purifyRatio >= 0.28 || elapsedSec >= 45) {
+        phase = 2;
+      } else {
+        phase = 1;
+      }
+    } else {
+      // Modo Infinito (escalonado pelo tempo de sobrevivência)
+      if (elapsedSec >= 135) {
+        phase = 3;
+      } else if (elapsedSec >= 60) {
+        phase = 2;
+      } else {
+        phase = 1;
+      }
     }
 
-    for (let i = 0; i < countToSpawn; i++) {
+    // 1. BLOOD BATS: Surgem a partir da Fase 2, aumentam muito e voam em bandos numerosos
+    if (phase >= 2) {
+      const flockChance = phase === 3 ? 0.35 : 0.25;
+      if (Math.random() < flockChance) {
+        let flockSize: number;
+        if (phase === 2) {
+          flockSize = Phaser.Math.Between(4, 6);
+        } else {
+          // Na Fase 3 o bando cresce consideravelmente (muitos morcegos frágeis)
+          flockSize = this.gameMode === 'endless'
+            ? Math.min(14, Math.floor(6 + minutes * 1.5))
+            : Phaser.Math.Between(6, 9);
+        }
+        this.spawnBloodBatFlock(flockSize);
+      }
+    }
+
+    // 2. SKULL SLIMES: Surgem a partir da Fase 3, aumento estritamente controlado (tanques kamikaze mortais)
+    if (phase === 3) {
+      const activeSlimes = (this.enemiesGroup.getChildren() as BaseEnemy[]).filter(
+        (e) => e.active && e instanceof SkullSlime
+      ).length;
+
+      // Limite rígido de slimes vivos simultaneamente para evitar superlotação de veneno/root
+      const maxSlimes = this.gameMode === 'endless'
+        ? (minutes >= 5 ? 3 : 2)
+        : (purifyRatio >= 0.85 ? 2 : 1);
+
+      const slimeChance = this.gameMode === 'endless' ? 0.25 : 0.20;
+
+      if (activeSlimes < maxSlimes && Math.random() < slimeChance) {
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const dist = Phaser.Math.Between(340, 460);
+        this.spawnSkullSlimeAt(this.player.x + Math.cos(angle) * dist, this.player.y + Math.sin(angle) * dist);
+      }
+    }
+
+    // 3. ZOMBIE DOGS: Presentes em todas as fases, aumento mediano constante compondo a linha de frente
+    let dogCount: number;
+    if (phase === 1) {
+      dogCount = Phaser.Math.Between(2, 3);
+    } else if (phase === 2) {
+      dogCount = this.gameMode === 'endless'
+        ? Math.min(5, Math.floor(3 + minutes * 0.8))
+        : Phaser.Math.Between(3, 4);
+    } else {
+      dogCount = this.gameMode === 'endless'
+        ? Math.min(7, Math.floor(4 + minutes * 1.0))
+        : Phaser.Math.Between(4, 6);
+    }
+
+    for (let i = 0; i < dogCount; i++) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       const dist = Phaser.Math.Between(340, 480);
       const spawnX = this.player.x + Math.cos(angle) * dist;
       const spawnY = this.player.y + Math.sin(angle) * dist;
 
-      const roll = Math.random();
-
-      // 22% chance: Skull Slime (Tanque kamikaze com bote de ácido)
-      if (roll < 0.22) {
-        this.spawnSkullSlimeAt(spawnX, spawnY);
-      }
-      // 18% chance: Blood Bat individual
-      else if (roll < 0.40) {
-        this.spawnBloodBatAt(spawnX, spawnY);
-      }
-      // 60% chance: Zombie Dog (com chance de Alfa Elite no modo infinito)
-      else {
-        const isElite = this.gameMode === 'endless' && minutes >= 2 && Math.random() < 0.12;
-        if (isElite) {
-          const eliteHp = Math.floor(140 + minutes * 40);
-          const eliteSpeed = Math.floor(90 + minutes * 4);
-          const eliteDmg = Math.floor(12 + minutes * 2);
-          this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
-        } else {
-          const hp = Math.floor(35 + (this.gameMode === 'endless' ? minutes * 15 : 0));
-          const speed = Math.floor(85 + (this.gameMode === 'endless' ? minutes * 3 : 0));
-          const dmg = Math.floor(8 + (this.gameMode === 'endless' ? minutes * 1 : 0));
-          this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
-        }
+      const isElite = this.gameMode === 'endless' && minutes >= 2 && Math.random() < 0.12;
+      if (isElite) {
+        const eliteHp = Math.floor(140 + minutes * 40);
+        const eliteSpeed = Math.floor(90 + minutes * 4);
+        const eliteDmg = Math.floor(12 + minutes * 2);
+        this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
+      } else {
+        const hp = Math.floor(35 + (this.gameMode === 'endless' ? minutes * 15 : 0));
+        const speed = Math.floor(85 + (this.gameMode === 'endless' ? minutes * 3 : 0));
+        const dmg = Math.floor(8 + (this.gameMode === 'endless' ? minutes * 1 : 0));
+        this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
       }
     }
   }
