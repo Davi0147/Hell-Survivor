@@ -760,4 +760,64 @@ export class SoundManager {
     osc.start(now);
     osc.stop(now + 0.48);
   }
+
+  private lastHeartbeatTime: number = 0;
+
+  /**
+   * Som de pulso ígneo das Chamas do Purgatório (Whoosh flamejante com ressonância)
+   */
+  public playHellfireBurst(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(38, now + 0.32);
+
+    gain.gain.setValueAtTime(0.24 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGainNode || ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.38);
+  }
+
+  /**
+   * Som de batimento cardíaco tenso quando a heroína está com pouca vida (Low HP)
+   */
+  public playHeartbeat(): void {
+    const nowMs = Date.now();
+    if (nowMs - this.lastHeartbeatTime < 850) return;
+    this.lastHeartbeatTime = nowMs;
+
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Duplo impacto abafado de batimento (Lub-Dub)
+    [0, 0.16].forEach((delay, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(idx === 0 ? 75 : 60, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(25, now + delay + 0.14);
+
+      gain.gain.setValueAtTime((idx === 0 ? 0.35 : 0.28) * this.sfxVolume, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.15);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.16);
+    });
+  }
 }

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { DialogueSystem, DialogueLine } from '../systems/DialogueSystem';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
+import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoundManager } from '../systems/SoundManager';
 
 export class UIScene extends Phaser.Scene {
@@ -12,6 +13,9 @@ export class UIScene extends Phaser.Scene {
   // Estado e Container de Pausa
   public isPaused: boolean = false;
   private pauseModalContainer?: Phaser.GameObjects.Container;
+
+  // Vinheta de Alerta de Vida Crítica (Low HP)
+  private lowHpVignetteGraphics!: Phaser.GameObjects.Graphics;
 
   // Painel de Status Barroco Vampírico (Canto Inferior Direito)
   private baroquePanelGraphics!: Phaser.GameObjects.Graphics;
@@ -85,6 +89,10 @@ export class UIScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    // 0. Vinheta de Alerta de Vida Baixa (Depth 200 - acima da HUD e abaixo de modais)
+    this.lowHpVignetteGraphics = this.add.graphics();
+    this.lowHpVignetteGraphics.setDepth(200);
 
     // ==========================================
     // 0. RADAR TÁTICO / MINIMAPA CIRCULAR (CANTO SUPERIOR ESQUERDO)
@@ -735,7 +743,7 @@ export class UIScene extends Phaser.Scene {
     }
 
     // Atualizar Barra Superior de Experiência (XP)
-    const { width } = this.scale;
+    const { width, height } = this.scale;
     const xpRatio = Phaser.Math.Clamp(p.currentXp / p.xpToNextLevel, 0, 1);
     this.xpBarFill.clear();
     this.xpBarFill.fillStyle(0x00f5d4, 1);
@@ -748,6 +756,9 @@ export class UIScene extends Phaser.Scene {
       const names = gameScene.weapons.map((w: any) => {
         if (w instanceof VoidScythesWeapon) {
           return `${w.name} (${w.getBladeCount()}/6)`;
+        }
+        if (w instanceof HellfireAuraWeapon) {
+          return `${w.name} (Nív ${w.getLevel()}/5)`;
         }
         return w.name;
       }).join(' | ');
@@ -846,13 +857,32 @@ export class UIScene extends Phaser.Scene {
         pG.fillStyle(0xff0055, 1);
         pG.fillRoundedRect(pX + 1.5, pY + 1.5, (pW - 3) * purifyRatio, pH - 3, 2);
       }
+    }
+
+    // ==========================================
+    // ALERTA DE VIDA CRÍTICA (LOW HP VIGNETTE & HEARTBEAT)
+    // ==========================================
+    const currentHpRatio = p.maxHp > 0 ? p.currentHp / p.maxHp : 1;
+    if (currentHpRatio <= 0.30 && p.currentHp > 0 && !gameScene.isGameOver) {
+      const dangerFactor = 1 - (currentHpRatio / 0.30); // 0 (a 30%) até 1 (a 0%)
+      const pulse = 0.35 + Math.sin(this.time.now * 0.007) * 0.25 * dangerFactor;
+
+      const vg = this.lowHpVignetteGraphics;
+      vg.clear();
+
+      const edgeSize = 48 + dangerFactor * 32;
+      vg.fillStyle(0x780000, pulse * 0.65);
+
+      // Faixas de vinheta sangrenta nas 4 bordas da tela
+      vg.fillRect(0, 0, width, edgeSize);
+      vg.fillRect(0, height - edgeSize, width, edgeSize);
+      vg.fillRect(0, 0, edgeSize, height);
+      vg.fillRect(width - edgeSize, 0, edgeSize, height);
+
+      // Toca batimento cardíaco abafado periódico
+      SoundManager.getInstance().playHeartbeat();
     } else {
-      this.endlessTimerText.setVisible(false);
-      this.endlessRecordText.setVisible(false);
-      this.purifyBarGraphics.setVisible(false);
-      this.purifyLabelText.setVisible(false);
-      this.bossBarGraphics.setVisible(false);
-      this.bossNameText.setVisible(false);
+      this.lowHpVignetteGraphics.clear();
     }
 
     // Atualizar Radar Tático / Minimapa

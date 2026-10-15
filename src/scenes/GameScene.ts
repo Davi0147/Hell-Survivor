@@ -9,6 +9,7 @@ import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
 import { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
+import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
@@ -310,6 +311,8 @@ export class GameScene extends Phaser.Scene {
       if (weapon instanceof SoulBoltWeapon) {
         weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
       } else if (weapon instanceof VoidScythesWeapon) {
+        weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
+      } else if (weapon instanceof HellfireAuraWeapon) {
         weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
       }
     }
