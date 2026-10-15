@@ -66,7 +66,7 @@ export class UpgradeScene extends Phaser.Scene {
     titleBox.lineStyle(1, 0xffffff, 0.8);
     titleBox.strokeRect(width / 2 - 277, titleY - 21, 554, 42);
 
-    this.add.text(width / 2, titleY, '★ LEVEL UP! // ESCOLHA UMA BÊNÇÃO ★', {
+    this.add.text(width / 2, titleY, 'LEVEL UP! // ESCOLHA UMA BÊNÇÃO', {
       fontFamily: pixelFont,
       fontSize: '15px',
       fontStyle: 'bold',
@@ -104,7 +104,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'ALMA EXTRA',
         category: 'BÊNÇÃO DE TIRO',
         badgeColor: 0x00f5d4,
-        icon: '🔮',
+        icon: '+TIRO',
         description: '+1 Projétil Simultâneo\n\nDispara mais uma esfera mística a cada rajada.',
         apply: (player) => {
           player.extraProjectiles += 1;
@@ -115,7 +115,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'PERFURAÇÃO MÍSTICA',
         category: 'BÊNÇÃO DE TIRO',
         badgeColor: 0x9b5de5,
-        icon: '⚡',
+        icon: 'PERF',
         description: '+1 Perfuração\n\nSeus tiros atravessam mais um monstro antes de dissipar.',
         apply: (player) => {
           player.extraPierce += 1;
@@ -126,7 +126,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'FÚRIA INFERNAL',
         category: 'ATRIBUTO PASSIVO',
         badgeColor: 0xd90429,
-        icon: '🔥',
+        icon: 'FÚRIA',
         description: '+25% Dano Global\n\nAumenta a força destrutiva de todas as armas equipadas.',
         apply: (player) => {
           player.bonusDamagePercent += 25;
@@ -137,7 +137,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'CELERIDADE ABISSAL',
         category: 'MOBILIDADE',
         badgeColor: 0xffb703,
-        icon: '👟',
+        icon: 'PASSOS',
         description: '+15% Velocidade\n\nPassos e sprint acelerados para escapar de enxames.',
         apply: (player) => {
           player.bonusSpeedPercent += 15;
@@ -148,7 +148,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'PULMÕES DO DEMÔNIO',
         category: 'RESISTÊNCIA',
         badgeColor: 0x06d6a0,
-        icon: '🫁',
+        icon: 'VIGOR',
         description: '+30 Estamina Máxima\n\nCorra por mais tempo e recarregue fôlego mais rápido.',
         apply: (player) => {
           player.maxStamina += 30;
@@ -161,7 +161,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'ÍMÃ DE ALMAS',
         category: 'UTILIDADE',
         badgeColor: 0x3a86ff,
-        icon: '🧲',
+        icon: 'ÍMÃ',
         description: '+50% Raio de Coleta\n\nAtrai gemas de alma caídas a distâncias muito maiores.',
         apply: (player) => {
           player.bonusPickupRadiusPercent += 50;
@@ -172,7 +172,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'VITALIDADE SANGRENTA',
         category: 'SOBREVIVÊNCIA',
         badgeColor: 0xff0054,
-        icon: '🩸',
+        icon: 'VIDA',
         description: '+25 Vida Máxima\n\nCura 40 HP na hora e expande sua resistência vital.',
         apply: (player) => {
           player.maxHp += 25;
@@ -188,7 +188,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'LÂMINAS ORBITAIS',
         category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0xf72585,
-        icon: '⚔️',
+        icon: 'FOICE',
         description: 'Foice Mística em Órbita\n\n1 foice espectral veloz gira ao redor da Nixy retalhando monstros!',
         apply: (player, gameScene) => {
           const scythes = new VoidScythesWeapon(gameScene, player);
@@ -207,7 +207,7 @@ export class UpgradeScene extends Phaser.Scene {
           title: 'LÂMINAS ORBITAIS',
           category: `MELHORIA // ${nextBlades} LÂMINAS`,
           badgeColor: 0xf72585,
-          icon: '⚔️',
+          icon: 'FOICE',
           description: `+1 Lâmina em Órbita (${nextBlades}/6)\n\nAdiciona mais uma foice mística veloz girando ao redor da Nixy!`,
           apply: () => {
             scythesWeapon.addBlade();
@@ -227,7 +227,7 @@ export class UpgradeScene extends Phaser.Scene {
         title: 'CHAMAS DO PURGATÓRIO',
         category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0xff4500,
-        icon: '🔥',
+        icon: 'CHAMAS',
         description: 'Aura Vulcânica Devoradora\n\nEmite pulsos periódicos de fogo infernal calcinando monstros em área!',
         apply: (player, gameScene) => {
           const hellfire = new HellfireAuraWeapon(gameScene, player);
@@ -246,7 +246,7 @@ export class UpgradeScene extends Phaser.Scene {
           title: 'CHAMAS DO PURGATÓRIO',
           category: `MELHORIA // NÍVEL ${nextLvl}/5`,
           badgeColor: 0xff4500,
-          icon: '🔥',
+          icon: 'CHAMAS',
           description: `+Raio e Dano Ígneo (Nív ${nextLvl}/5)\n\nExpande o raio da onda de chamas e intensifica o calor das cinzas!`,
           apply: () => {
             hellfireWeapon.upgrade();
@@ -320,9 +320,23 @@ export class UpgradeScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(categoryText);
 
-    // Ícone da Carta
-    const iconText = this.add.text(0, -h / 2 + 85, card.icon, {
-      fontSize: '44px'
+    // Insígnia / Brasão da Carta (Badge estilizado gótico)
+    const iconBox = this.add.graphics();
+    iconBox.fillStyle(0x0a0105, 0.92);
+    iconBox.fillRoundedRect(-44, -h / 2 + 62, 88, 44, 8);
+    iconBox.lineStyle(2, card.badgeColor, 0.95);
+    iconBox.strokeRoundedRect(-44, -h / 2 + 62, 88, 44, 8);
+    iconBox.lineStyle(1, 0xffffff, 0.35);
+    iconBox.strokeRoundedRect(-41, -h / 2 + 65, 82, 38, 6);
+    container.add(iconBox);
+
+    const iconText = this.add.text(0, -h / 2 + 84, card.icon, {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3
     }).setOrigin(0.5);
     container.add(iconText);
 

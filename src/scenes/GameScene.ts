@@ -365,7 +365,7 @@ export class GameScene extends Phaser.Scene {
         if (!this.miniBoss3mSpawned && elapsedSec >= 180) {
           this.miniBoss3mSpawned = true;
           if (uiScene) {
-            uiScene.showWaveAlert('⚠️ ALERTA: TITÃ CERBERUS DETECTADO! ⚠️', 4500);
+            uiScene.showWaveAlert('ALERTA: TITÃ CERBERUS DETECTADO!', 4500);
           }
           this.spawnTitanCerberus();
         }
@@ -374,7 +374,7 @@ export class GameScene extends Phaser.Scene {
         if (!this.miniBoss6mSpawned && elapsedSec >= 360) {
           this.miniBoss6mSpawned = true;
           if (uiScene) {
-            uiScene.showWaveAlert('⚠️ ALERTA: MATRIARCA SUCCUBUS DETECTADA! ⚠️', 4500);
+            uiScene.showWaveAlert('ALERTA: MATRIARCA SUCCUBUS DETECTADA!', 4500);
           }
           this.spawnMatriarchSuccubus();
         }
@@ -383,7 +383,7 @@ export class GameScene extends Phaser.Scene {
         if (!this.boss10mSpawned && elapsedSec >= 600) {
           this.boss10mSpawned = true;
           if (uiScene) {
-            uiScene.showWaveAlert('👑 ALERTA CRÍTICO: SUCCUBUS IMPERIAL DESPERTA! 👑', 5000);
+            uiScene.showWaveAlert('ALERTA CRÍTICO: SUCCUBUS IMPERIAL DESPERTA!', 5000);
           }
           this.spawnSuccubusBossEndless();
         }
@@ -736,7 +736,7 @@ export class GameScene extends Phaser.Scene {
 
       const uiScene = this.scene.get('UIScene') as UIScene;
       if (uiScene) {
-        uiScene.showWaveAlert('👑 CHEFE SUPREMA DERROTADA! A SOBREVIVÊNCIA CONTINUA... 👑', 5000);
+        uiScene.showWaveAlert('CHEFE SUPREMA DERROTADA! A SOBREVIVÊNCIA CONTINUA...', 5000);
       }
     });
   }

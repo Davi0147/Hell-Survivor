@@ -274,7 +274,7 @@ export class UIScene extends Phaser.Scene {
     this.killsPanelGraphics.lineStyle(1, 0xf3d17a, 0.7);
     this.killsPanelGraphics.strokeRoundedRect(killsPanelX + 3, killsPanelY + 3, killsPanelW - 6, killsPanelH - 6, 6);
 
-    this.killsText = this.add.text(killsPanelX + 16, killsPanelY + 14, '💀 ABATES: 0', {
+    this.killsText = this.add.text(killsPanelX + 16, killsPanelY + 14, 'ABATES: 0', {
       fontFamily: pixelFont,
       fontSize: '13px',
       fontStyle: 'bold',
@@ -283,7 +283,7 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 2
     });
 
-    this.weaponInfoText = this.add.text(killsPanelX + 16, killsPanelY + 38, '🔮 Soul Bolts (Nív 1)', {
+    this.weaponInfoText = this.add.text(killsPanelX + 16, killsPanelY + 38, 'Soul Bolts (Nív 1)', {
       fontFamily: pixelFont,
       fontSize: '10px',
       color: '#00f5d4',
@@ -297,7 +297,7 @@ export class UIScene extends Phaser.Scene {
     this.purifyBarGraphics = this.add.graphics();
     this.purifyBarGraphics.setDepth(110);
 
-    this.purifyLabelText = this.add.text(width / 2, 19, '✦ PURIFICAÇÃO DE ALMAS ✦', {
+    this.purifyLabelText = this.add.text(width / 2, 19, 'PURIFICAÇÃO DE ALMAS', {
       fontFamily: pixelFont,
       fontSize: '8px',
       fontStyle: 'bold',
@@ -310,7 +310,7 @@ export class UIScene extends Phaser.Scene {
     this.bossBarGraphics.setDepth(115);
     this.bossBarGraphics.setVisible(false);
 
-    this.bossNameText = this.add.text(width / 2, 17, '👑 SUCCUBUS IMPERIAL [CHEFE DO CAPÍTULO 1]', {
+    this.bossNameText = this.add.text(width / 2, 17, 'SUCCUBUS IMPERIAL [CHEFE DO CAPÍTULO 1]', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -326,7 +326,7 @@ export class UIScene extends Phaser.Scene {
     this.bestRecordSec = this.getBestRecordSec();
     const formattedBest = this.formatTime(this.bestRecordSec);
 
-    this.endlessTimerText = this.add.text(width / 2, 22, '⏱️ 00:00', {
+    this.endlessTimerText = this.add.text(width / 2, 22, '00:00', {
       fontFamily: pixelFont,
       fontSize: '15px',
       fontStyle: 'bold',
@@ -336,7 +336,7 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(115);
     this.endlessTimerText.setVisible(false);
 
-    this.endlessRecordText = this.add.text(width / 2, 38, `★ RECORDE: ${formattedBest}`, {
+    this.endlessRecordText = this.add.text(width / 2, 38, `RECORDE: ${formattedBest}`, {
       fontFamily: pixelFont,
       fontSize: '9px',
       fontStyle: 'bold',
@@ -373,7 +373,7 @@ export class UIScene extends Phaser.Scene {
     // 6. CANTO INFERIOR ESQUERDO: CONTROLES
     // ==========================================
     this.controlsText = this.add.text(20, height - 36,
-      '🕹️ [WASD] Mover  |  ⚡ [Shift] Sprint  |  🎯 Auto-Aim  |  💀 [E] Ultimate', {
+      '[WASD] Mover  |  [Shift] Sprint  |  Auto-Aim  |  [E] Ultimate', {
       fontFamily: pixelFont,
       fontSize: '10px',
       color: '#e0aaff',
@@ -739,7 +739,7 @@ export class UIScene extends Phaser.Scene {
 
     // Atualizar Abates
     if (typeof gameScene.killCount === 'number') {
-      this.killsText.setText(`💀 ABATES: ${gameScene.killCount}`);
+      this.killsText.setText(`ABATES: ${gameScene.killCount}`);
     }
 
     // Atualizar Barra Superior de Experiência (XP)
@@ -762,7 +762,7 @@ export class UIScene extends Phaser.Scene {
         }
         return w.name;
       }).join(' | ');
-      this.weaponInfoText.setText(`⚔️ ${names}`);
+      this.weaponInfoText.setText(names);
     }
 
     // Atualizar Barra de Purificação de Almas (Modo História), Barra de Vida da Chefe, ou Cronômetro (Modo Infinito)
@@ -778,7 +778,7 @@ export class UIScene extends Phaser.Scene {
         this.endlessTimerText.setY(48);
         this.endlessRecordText.setVisible(false);
         const sec = Math.floor(gameScene.survivalTimeMs / 1000);
-        this.endlessTimerText.setText(`⏱️ ${this.formatTime(sec)}`);
+        this.endlessTimerText.setText(this.formatTime(sec));
       } else {
         this.endlessTimerText.setVisible(false);
         this.endlessRecordText.setVisible(false);
@@ -822,7 +822,7 @@ export class UIScene extends Phaser.Scene {
       this.endlessRecordText.setVisible(true);
 
       const sec = Math.floor(gameScene.survivalTimeMs / 1000);
-      this.endlessTimerText.setText(`⏱️ ${this.formatTime(sec)}`);
+      this.endlessTimerText.setText(this.formatTime(sec));
     } else if (gameScene.gameMode === 'story' && !gameScene.isBossFightActive) {
       // MODO HISTÓRIA: Exibe Barra de Purificação de Almas (SEM NÚMEROS VISÍVEIS)
       this.endlessTimerText.setVisible(false);
@@ -1043,7 +1043,7 @@ export class UIScene extends Phaser.Scene {
     g.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 11);
     modal.add(g);
 
-    const title = this.add.text(panelX, panelY - 110, '★ CAPÍTULO 1 CONCLUÍDO ★', {
+    const title = this.add.text(panelX, panelY - 110, 'CAPÍTULO 1 CONCLUÍDO', {
       fontFamily: pixelFont,
       fontSize: '22px',
       fontStyle: 'bold',
@@ -1064,7 +1064,7 @@ export class UIScene extends Phaser.Scene {
     modal.add(subtitle);
 
     const statsText = this.add.text(panelX, panelY, 
-      `💀 Inimigos Abatidos: ${stats.kills}\n⭐ Nível Alcançado: ${stats.level}\n⏱️ Tempo: ${stats.timeSec}s\n👑 Chefe: Succubus Imperial (DERROTADA)`, {
+      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Succubus Imperial (DERROTADA)`, {
       fontFamily: pixelFont,
       fontSize: '12px',
       color: '#e0aaff',
@@ -1092,7 +1092,7 @@ export class UIScene extends Phaser.Scene {
     renderBtn(false);
     modal.add(btnBg);
 
-    const btnText = this.add.text(btnX, btnY, '🏠 VOLTAR AO MENU', {
+    const btnText = this.add.text(btnX, btnY, 'VOLTAR AO MENU', {
       fontFamily: pixelFont,
       fontSize: '12px',
       fontStyle: 'bold',
@@ -1196,7 +1196,7 @@ export class UIScene extends Phaser.Scene {
     g.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 11);
     modal.add(g);
 
-    const title = this.add.text(panelX, panelY - 125, '💀 FIM DA JORNADA 💀', {
+    const title = this.add.text(panelX, panelY - 125, 'FIM DA JORNADA', {
       fontFamily: pixelFont,
       fontSize: '24px',
       fontStyle: 'bold',
@@ -1217,12 +1217,12 @@ export class UIScene extends Phaser.Scene {
     modal.add(subtitle);
 
     const formattedTime = this.formatTime(stats.timeSec);
-    const bestText = stats.mode === 'endless' ? `\n🏆 Recorde Pessoal: ${this.formatTime(this.bestRecordSec)}` : '';
-    const newRecordNotice = isNewRecord ? '\n★ NOVO RECORDE PESSOAL ALCANÇADO! ★\n' : '\n';
+    const bestText = stats.mode === 'endless' ? `\nRecorde Pessoal: ${this.formatTime(this.bestRecordSec)}` : '';
+    const newRecordNotice = isNewRecord ? '\nNOVO RECORDE PESSOAL ALCANÇADO!\n' : '\n';
 
     const statsText = this.add.text(panelX, panelY - 5,
-      `⏱️ Tempo Sobrevivido: ${formattedTime}${bestText}${newRecordNotice}` +
-      `💀 Inimigos Abatidos: ${stats.kills}\n⭐ Nível Alcançado: LVL ${stats.level}`, {
+      `Tempo Sobrevivido: ${formattedTime}${bestText}${newRecordNotice}` +
+      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: LVL ${stats.level}`, {
       fontFamily: pixelFont,
       fontSize: '12px',
       color: isNewRecord ? '#ffd60a' : '#ffffff',
@@ -1252,7 +1252,7 @@ export class UIScene extends Phaser.Scene {
     renderBtn1(false);
     modal.add(btn1Bg);
 
-    const btn1Text = this.add.text(btn1X, btnY, '🔄 TENTAR NOVAMENTE', {
+    const btn1Text = this.add.text(btn1X, btnY, 'TENTAR NOVAMENTE', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -1280,7 +1280,7 @@ export class UIScene extends Phaser.Scene {
     renderBtn2(false);
     modal.add(btn2Bg);
 
-    const btn2Text = this.add.text(btn2X, btnY, '🏠 MENU PRINCIPAL', {
+    const btn2Text = this.add.text(btn2X, btnY, 'MENU PRINCIPAL', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -1343,7 +1343,7 @@ export class UIScene extends Phaser.Scene {
     this.pauseModalContainer.add(g);
 
     // 3. Título
-    const title = this.add.text(panelX, panelY - panelH / 2 + 38, '⏸️ JOGO PAUSADO', {
+    const title = this.add.text(panelX, panelY - panelH / 2 + 38, 'JOGO PAUSADO', {
       fontFamily: pixelFont,
       fontSize: '20px',
       fontStyle: 'bold',
@@ -1375,37 +1375,64 @@ export class UIScene extends Phaser.Scene {
 
     // 5. Volume de Música (ao vivo na partida)
     const bgmRowY = panelY - 30;
-    const bgmLabel = this.add.text(panelX, bgmRowY - 18, '🎵 VOLUME DA MÚSICA', {
+    const bgmLabel = this.add.text(panelX, bgmRowY - 18, 'VOLUME DA MÚSICA', {
       fontFamily: pixelFont,
       fontSize: '11px',
+      fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
     this.pauseModalContainer.add(bgmLabel);
 
     const bgmPct = this.add.text(
-      panelX + 130,
+      panelX + 138,
       bgmRowY + 10,
-      `${Math.round(SoundManager.getInstance().getMusicVolume() * 100)}%`,
+      '',
       {
         fontFamily: pixelFont,
         fontSize: '12px',
+        fontStyle: 'bold',
         color: '#f3d17a'
       }
     ).setOrigin(0, 0.5);
     this.pauseModalContainer.add(bgmPct);
 
+    const bgmBarGraphics = this.add.graphics();
+    this.pauseModalContainer.add(bgmBarGraphics);
+
     const updateBgmDisplay = () => {
       const vol = SoundManager.getInstance().getMusicVolume();
       bgmPct.setText(`${Math.round(vol * 100)}%`);
-    };
 
-    this.createPauseStepperBtn(panelX - 110, bgmRowY + 10, '➖', () => {
+      bgmBarGraphics.clear();
+      const barX = panelX - 98;
+      const barY = bgmRowY + 3;
+      const barW = 188;
+      const barH = 14;
+
+      // Fundo escuro do medidor
+      bgmBarGraphics.fillStyle(0x280d15, 1);
+      bgmBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
+
+      // Preenchimento proporcional
+      const fillW = Math.max(0, barW * vol);
+      if (fillW > 0) {
+        bgmBarGraphics.fillStyle(0xff7700, 1);
+        bgmBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
+      }
+
+      // Borda dourada
+      bgmBarGraphics.lineStyle(1.5, 0xc59b27, 0.85);
+      bgmBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
+    };
+    updateBgmDisplay();
+
+    this.createPauseStepperBtn(panelX - 125, bgmRowY + 10, '-', () => {
       const cur = SoundManager.getInstance().getMusicVolume();
       SoundManager.getInstance().setMusicVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
       updateBgmDisplay();
     });
 
-    this.createPauseStepperBtn(panelX + 100, bgmRowY + 10, '➕', () => {
+    this.createPauseStepperBtn(panelX + 112, bgmRowY + 10, '+', () => {
       const cur = SoundManager.getInstance().getMusicVolume();
       SoundManager.getInstance().setMusicVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
       updateBgmDisplay();
@@ -1413,40 +1440,67 @@ export class UIScene extends Phaser.Scene {
 
     // 6. Volume de SFX (ao vivo na partida)
     const sfxRowY = panelY + 40;
-    const sfxLabel = this.add.text(panelX, sfxRowY - 18, '🔊 VOLUME DE EFEITOS (SFX)', {
+    const sfxLabel = this.add.text(panelX, sfxRowY - 18, 'VOLUME DE EFEITOS (SFX)', {
       fontFamily: pixelFont,
       fontSize: '11px',
+      fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
     this.pauseModalContainer.add(sfxLabel);
 
     const sfxPct = this.add.text(
-      panelX + 130,
+      panelX + 138,
       sfxRowY + 10,
-      `${Math.round(SoundManager.getInstance().getSfxVolume() * 100)}%`,
+      '',
       {
         fontFamily: pixelFont,
         fontSize: '12px',
+        fontStyle: 'bold',
         color: '#00f5d4'
       }
     ).setOrigin(0, 0.5);
     this.pauseModalContainer.add(sfxPct);
 
+    const sfxBarGraphics = this.add.graphics();
+    this.pauseModalContainer.add(sfxBarGraphics);
+
     const updateSfxDisplay = () => {
       const vol = SoundManager.getInstance().getSfxVolume();
       sfxPct.setText(`${Math.round(vol * 100)}%`);
-    };
 
-    this.createPauseStepperBtn(panelX - 110, sfxRowY + 10, '➖', () => {
+      sfxBarGraphics.clear();
+      const barX = panelX - 98;
+      const barY = sfxRowY + 3;
+      const barW = 188;
+      const barH = 14;
+
+      // Fundo escuro do medidor
+      sfxBarGraphics.fillStyle(0x280d15, 1);
+      sfxBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
+
+      // Preenchimento ciano
+      const fillW = Math.max(0, barW * vol);
+      if (fillW > 0) {
+        sfxBarGraphics.fillStyle(0x00f5d4, 1);
+        sfxBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
+      }
+
+      // Borda dourada
+      sfxBarGraphics.lineStyle(1.5, 0xc59b27, 0.85);
+      sfxBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
+    };
+    updateSfxDisplay();
+
+    this.createPauseStepperBtn(panelX - 125, sfxRowY + 10, '-', () => {
       const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setSfxVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
+      SoundManager.getInstance().setMusicVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
       updateSfxDisplay();
       SoundManager.getInstance().playEnemyHit();
     });
 
-    this.createPauseStepperBtn(panelX + 100, sfxRowY + 10, '➕', () => {
+    this.createPauseStepperBtn(panelX + 112, sfxRowY + 10, '+', () => {
       const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setSfxVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
+      SoundManager.getInstance().setMusicVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
       updateSfxDisplay();
       SoundManager.getInstance().playEnemyHit();
     });
@@ -1459,11 +1513,11 @@ export class UIScene extends Phaser.Scene {
     const bTotalW = 3 * bW + 2 * bSpacing;
     const bStartX = panelX - bTotalW / 2 + bW / 2;
 
-    this.createPauseActionBtn(bStartX, btnY, bW, bH, '▶️ CONTINUAR', 0x225522, 0x00ff88, () => {
+    this.createPauseActionBtn(bStartX, btnY, bW, bH, 'CONTINUAR', 0x225522, 0x00ff88, () => {
       this.resumeGame(gameScene);
     });
 
-    this.createPauseActionBtn(bStartX + (bW + bSpacing), btnY, bW, bH, '🔄 REINICIAR', 0x553311, 0xffaa00, () => {
+    this.createPauseActionBtn(bStartX + (bW + bSpacing), btnY, bW, bH, 'REINICIAR', 0x553311, 0xffaa00, () => {
       this.isPaused = false;
       if (this.pauseModalContainer) {
         this.pauseModalContainer.destroy();
@@ -1473,7 +1527,7 @@ export class UIScene extends Phaser.Scene {
       gameScene.scene.restart({ mode: gameScene.gameMode });
     });
 
-    this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, '🏠 MENU', 0x551122, 0xff0055, () => {
+    this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, 'MENU', 0x551122, 0xff0055, () => {
       this.isPaused = false;
       if (this.pauseModalContainer) {
         this.pauseModalContainer.destroy();
@@ -1514,7 +1568,8 @@ export class UIScene extends Phaser.Scene {
 
     const txt = this.add.text(x, y, symbol, {
       fontFamily: pixelFont,
-      fontSize: '11px',
+      fontSize: '13px',
+      fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
     this.pauseModalContainer.add(txt);
