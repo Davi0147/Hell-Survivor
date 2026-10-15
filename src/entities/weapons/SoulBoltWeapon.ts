@@ -3,6 +3,7 @@ import { BaseWeapon } from './BaseWeapon';
 import { SoulBoltProjectile } from './SoulBoltProjectile';
 import { BaseEnemy } from '../enemies/BaseEnemy';
 import { BALANCE } from '../../config/balance';
+import { SoundManager } from '../../systems/SoundManager';
 
 import { BaseCharacter } from '../characters/BaseCharacter';
 
@@ -62,6 +63,9 @@ export class SoulBoltWeapon extends BaseWeapon {
         effectivePierce
       );
     }
+
+    // Efeito sonoro procedural retrô de disparo de magia espiritual
+    SoundManager.getInstance().playSoulBoltFire();
 
     // Efeito visual sutil de clarão de disparo (muzzle glow)
     this.createMuzzleFlash(originX, originY);

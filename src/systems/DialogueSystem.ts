@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundManager } from './SoundManager';
 
 export interface DialogueLine {
   speaker: string; // 'nixy', 'succubus', ou futuros NPCs
@@ -287,11 +288,14 @@ export class DialogueSystem {
       this.currentSpeakerSide = newSide;
     }
 
-    // Inicia efeito de máquina de escrever
+    // Inicia efeito de máquina de escrever com áudio característico de voz e digitação
     this.currentFullText = line.text;
     this.currentDisplayedText = '';
     this.dialogueText.setText('');
     this.isTyping = true;
+
+    // Toca som de voz do personagem no início do balão
+    SoundManager.getInstance().playDialogueVoice(line.speaker);
 
     if (this.typeTimer) {
       this.typeTimer.remove();
@@ -299,12 +303,16 @@ export class DialogueSystem {
 
     let charIndex = 0;
     this.typeTimer = this.scene.time.addEvent({
-      delay: 20,
+      delay: 24,
       repeat: this.currentFullText.length - 1,
       callback: () => {
         charIndex++;
         this.currentDisplayedText = this.currentFullText.substring(0, charIndex);
         this.dialogueText.setText(this.currentDisplayedText);
+
+        // Barulhinho sutil de digitação por caractere
+        const char = this.currentFullText[charIndex - 1];
+        SoundManager.getInstance().playDialogueTypewriter(char);
 
         if (charIndex >= this.currentFullText.length) {
           this.isTyping = false;
@@ -409,6 +417,8 @@ export class DialogueSystem {
 
   public handleAdvance(): void {
     if (!this.container.visible) return;
+
+    SoundManager.getInstance().playMenuClick();
 
     if (this.isTyping) {
       // Se ainda estiver digitando, completa a frase imediatamente

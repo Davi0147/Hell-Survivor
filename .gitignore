@@ -30,3 +30,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Raw Source Assets (processed into public/)
+Sounds/
