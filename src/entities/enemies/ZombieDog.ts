@@ -1,8 +1,12 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
+import { GemType } from '../items/SoulGem';
 
 export class ZombieDog extends BaseEnemy {
   private currentDir: 'east' | 'west' | 'north' | 'south' = 'south';
+  public isElite: boolean = false;
+  public eliteScale: number = 1.0;
+  public customDrop?: GemType;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'zombie-dog-idle-south');
@@ -15,19 +19,41 @@ export class ZombieDog extends BaseEnemy {
     }
   }
 
-  public spawn(x: number, y: number, hp: number = 35, speed: number = 85, damage: number = 8): void {
+  public override spawn(
+    x: number,
+    y: number,
+    hp: number = 35,
+    speed: number = 85,
+    damage: number = 8,
+    isElite: boolean = false,
+    eliteScale: number = 1.0,
+    customDrop?: GemType
+  ): void {
     super.spawn(x, y, hp, speed, damage);
+    this.isElite = isElite;
+    this.eliteScale = eliteScale;
+    this.customDrop = customDrop;
+    this.setScale(eliteScale);
+    if (isElite) {
+      this.setTint(0xff4455);
+    } else {
+      this.clearTint();
+    }
     this.play('zombie-dog-idle-south', true);
   }
 
-  public updateEnemy(targetX: number, targetY: number, deltaMs: number): void {
+  public override updateEnemy(targetX: number, targetY: number, deltaMs: number): void {
     if (this.isDead || !this.active) return;
 
     // Gerenciar duração do flash branco de hit
     if (this.hitFlashTimer > 0) {
       this.hitFlashTimer -= deltaMs;
       if (this.hitFlashTimer <= 0) {
-        this.clearTint();
+        if (this.isElite) {
+          this.setTint(0xff4455);
+        } else {
+          this.clearTint();
+        }
       }
     }
 

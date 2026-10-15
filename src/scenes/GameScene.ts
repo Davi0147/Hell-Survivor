@@ -24,6 +24,10 @@ export class GameScene extends Phaser.Scene {
   public bossInstance?: SuccubusBoss;
   public survivalTimeMs: number = 0;
   public isChapterCompleted: boolean = false;
+  public isGameOver: boolean = false;
+  public miniBoss3mSpawned: boolean = false;
+  public miniBoss6mSpawned: boolean = false;
+  public boss10mSpawned: boolean = false;
   private bossMinionTimer: number = 0;
 
   // Sistema de Combate e Armas
@@ -58,6 +62,10 @@ export class GameScene extends Phaser.Scene {
     this.killCount = 0;
     this.isBossFightActive = false;
     this.isChapterCompleted = false;
+    this.isGameOver = false;
+    this.miniBoss3mSpawned = false;
+    this.miniBoss6mSpawned = false;
+    this.boss10mSpawned = false;
     this.survivalTimeMs = 0;
     this.bossInstance = undefined;
     this.spawnTimer = 0;
@@ -109,7 +117,7 @@ export class GameScene extends Phaser.Scene {
       this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
       this.keyE.on('down', () => {
-        if (this.player.isUltimateReady) {
+        if (this.player.isUltimateReady && !this.isGameOver) {
           this.triggerUltimate();
         }
       });
@@ -134,6 +142,7 @@ export class GameScene extends Phaser.Scene {
 
     // Escutar Level Up da heroína para abrir UpgradeScene
     this.player.on('player-level-up', () => {
+      if (this.isGameOver) return;
       this.cameras.main.flash(220, 255, 215, 0);
       this.scene.pause();
       this.scene.launch('UpgradeScene', { player: this.player, gameScene: this });
@@ -158,13 +167,15 @@ export class GameScene extends Phaser.Scene {
       this.enemiesGroup,
       (_playerObj, enemyObj) => {
         const enemy = enemyObj as BaseEnemy;
-        if (enemy.active && !enemy.isDead && this.playerInvulnerableTimer <= 0) {
+        if (enemy.active && !enemy.isDead && this.playerInvulnerableTimer <= 0 && !this.isGameOver) {
           this.player.takeDamage(enemy.damage);
           this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
           this.cameras.main.shake(120, 0.005);
           this.player.setTint(0xff3333);
           this.time.delayedCall(150, () => {
-            this.player.clearTint();
+            if (!this.isGameOver) {
+              this.player.clearTint();
+            }
           });
         }
       }
@@ -240,10 +251,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    // Se o capítulo foi concluído ou diálogo estiver ativo na tela, congela toda a ação do jogo
-    if (this.isChapterCompleted) return;
+    // Se o jogo acabou ou capítulo foi concluído ou diálogo estiver ativo na tela, congela toda a ação do jogo
+    if (this.isGameOver || this.isChapterCompleted) return;
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene && uiScene.isDialogueActive()) return;
+
+    // Verificar se Nixy foi derrotada
+    if (this.player.currentHp <= 0) {
+      this.handlePlayerDeath();
+      return;
+    }
 
     this.survivalTimeMs += delta;
 
@@ -301,18 +318,51 @@ export class GameScene extends Phaser.Scene {
     if (!this.isBossFightActive) {
       this.spawnTimer += delta;
 
-      // Intervalo de spawn diminui de 1500ms para até 650ms conforme o tempo de sobrevivência cresce
+      // Intervalo de spawn diminui de 1500ms para até 450ms no Modo Infinito
       const minutes = this.survivalTimeMs / 60000;
-      const currentInterval = Math.max(650, 1500 - minutes * 400);
+      const minInterval = this.gameMode === 'endless' ? 450 : 650;
+      const currentInterval = Math.max(minInterval, 1500 - minutes * 350);
 
       if (this.spawnTimer >= currentInterval) {
         this.spawnTimer = 0;
         this.spawnEnemyRandomPerimeter();
       }
+
+      // Diretor de Ondas do Modo Infinito (Marcos de tempo, Mini-Chefes e Chefe Suprema)
+      if (this.gameMode === 'endless') {
+        const elapsedSec = Math.floor(this.survivalTimeMs / 1000);
+
+        // 3:00 (180s): Titã Cerberus Mini-Boss
+        if (!this.miniBoss3mSpawned && elapsedSec >= 180) {
+          this.miniBoss3mSpawned = true;
+          if (uiScene) {
+            uiScene.showWaveAlert('⚠️ ALERTA: TITÃ CERBERUS DETECTADO! ⚠️', 4500);
+          }
+          this.spawnTitanCerberus();
+        }
+
+        // 6:00 (360s): Matriarca Succubus Mini-Boss
+        if (!this.miniBoss6mSpawned && elapsedSec >= 360) {
+          this.miniBoss6mSpawned = true;
+          if (uiScene) {
+            uiScene.showWaveAlert('⚠️ ALERTA: MATRIARCA SUCCUBUS DETECTADA! ⚠️', 4500);
+          }
+          this.spawnMatriarchSuccubus();
+        }
+
+        // 10:00 (600s): Succubus Imperial Desperta (Chefe Suprema do Modo Infinito)
+        if (!this.boss10mSpawned && elapsedSec >= 600) {
+          this.boss10mSpawned = true;
+          if (uiScene) {
+            uiScene.showWaveAlert('👑 ALERTA CRÍTICO: SUCCUBUS IMPERIAL DESPERTA! 👑', 5000);
+          }
+          this.spawnSuccubusBossEndless();
+        }
+      }
     } else if (this.bossInstance && this.bossInstance.active && !this.bossInstance.isDead) {
-      // Durante o confronto contra a Boss, invoca uma dupla de cães a cada 9s para manter a arena dinâmica
+      // Durante o confronto contra a Boss, invoca uma matilha de cães a cada 8s para manter a arena dinâmica
       this.bossMinionTimer += delta;
-      if (this.bossMinionTimer >= 9000) {
+      if (this.bossMinionTimer >= 8000) {
         this.bossMinionTimer = 0;
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
         this.spawnZombieDogAt(this.player.x + Math.cos(angle) * 360, this.player.y + Math.sin(angle) * 360);
@@ -321,9 +371,18 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private spawnZombieDogAt(x: number, y: number): void {
+  private spawnZombieDogAt(
+    x: number,
+    y: number,
+    hp: number = 35,
+    speed: number = 85,
+    damage: number = 8,
+    isElite: boolean = false,
+    eliteScale: number = 1.0,
+    customDrop?: GemType
+  ): void {
     let enemy = this.enemiesGroup.getChildren().find(
-      (child) => !child.active && child instanceof ZombieDog
+      (child) => !child.active && child instanceof ZombieDog && !(child as any).isSpecialMiniBoss
     ) as ZombieDog | undefined;
 
     if (!enemy) {
@@ -331,13 +390,23 @@ export class GameScene extends Phaser.Scene {
       enemy.setDepth(5);
       this.enemiesGroup.add(enemy);
 
-      enemy.on('enemy-killed', (ex: number, ey: number) => {
+      enemy.on('enemy-killed', (ex: number, ey: number, killedEnemy?: BaseEnemy) => {
         this.killCount++;
-        this.player.gainUltimateCharge(2.5); // Cão Zumbi concede +2.5% de carga
+        const dog = killedEnemy instanceof ZombieDog ? killedEnemy : undefined;
+        const ultBonus = dog?.isElite ? 10 : 2.5;
+        this.player.gainUltimateCharge(ultBonus);
         this.chapterPurifiedSouls++;
 
-        // 90% chance de gema verde (5 XP), 10% chance de gema azul (20 XP)
-        const gemType: GemType = Math.random() < 0.1 ? 'blue' : 'green';
+        let gemType: GemType;
+        if (dog?.customDrop) {
+          gemType = dog.customDrop;
+        } else if (dog?.isElite) {
+          // Elites dropam gemas azuis (70%) ou vermelhas (30%)
+          gemType = Math.random() < 0.3 ? 'red' : 'blue';
+        } else {
+          // 90% chance de gema verde (5 XP), 10% chance de gema azul (20 XP)
+          gemType = Math.random() < 0.1 ? 'blue' : 'green';
+        }
         this.spawnGemAt(ex, ey, gemType);
 
         // Se bater a meta de purificação no Modo História, invoca o confronto de Boss!
@@ -351,7 +420,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    enemy.spawn(x, y, 35, 85, 8);
+    enemy.spawn(x, y, hp, speed, damage, isElite, eliteScale, customDrop);
   }
 
   private spawnGemAt(x: number, y: number, type: GemType): void {
@@ -371,17 +440,168 @@ export class GameScene extends Phaser.Scene {
     // Não spawna se a Boss estiver em campo ou durante a Ultimate
     if (this.player.isUltimateActive || this.isBossFightActive) return;
 
-    // Quantidade de inimigos por onda escalona com o tempo (de 2 até 6 ao mesmo tempo)
     const minutes = this.survivalTimeMs / 60000;
-    const countToSpawn = Math.min(6, Math.floor(2 + minutes * 1.5));
+    // Quantidade de inimigos por onda escalona com o tempo (de 2 até 12 no Modo Infinito)
+    const maxMobs = this.gameMode === 'endless' ? 12 : 6;
+    const countToSpawn = Math.min(maxMobs, Math.floor(2 + minutes * 1.5));
 
     for (let i = 0; i < countToSpawn; i++) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       const dist = Phaser.Math.Between(340, 480);
       const spawnX = this.player.x + Math.cos(angle) * dist;
       const spawnY = this.player.y + Math.sin(angle) * dist;
-      this.spawnZombieDogAt(spawnX, spawnY);
+
+      // No Modo Infinito a partir de 2 min, 12% de chance de spawnar um Alfa Elite
+      const isElite = this.gameMode === 'endless' && minutes >= 2 && Math.random() < 0.12;
+      if (isElite) {
+        const eliteHp = Math.floor(140 + minutes * 40);
+        const eliteSpeed = Math.floor(90 + minutes * 4);
+        const eliteDmg = Math.floor(12 + minutes * 2);
+        this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
+      } else {
+        const hp = Math.floor(35 + (this.gameMode === 'endless' ? minutes * 15 : 0));
+        const speed = Math.floor(85 + (this.gameMode === 'endless' ? minutes * 3 : 0));
+        const dmg = Math.floor(8 + (this.gameMode === 'endless' ? minutes * 1 : 0));
+        this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
+      }
     }
+  }
+
+  /**
+   * Spawna o Mini-Chefe Titã Cerberus no Modo Infinito (3:00)
+   */
+  private spawnTitanCerberus(): void {
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const dist = 380;
+    const x = this.player.x + Math.cos(angle) * dist;
+    const y = this.player.y + Math.sin(angle) * dist;
+
+    const titan = new ZombieDog(this, x, y);
+    (titan as any).isSpecialMiniBoss = true;
+    titan.setDepth(15);
+    this.enemiesGroup.add(titan);
+
+    titan.spawn(x, y, 1400, 95, 18, true, 1.85, 'purple');
+
+    titan.on('enemy-killed', (ex: number, ey: number) => {
+      this.killCount++;
+      this.player.gainUltimateCharge(25);
+      this.spawnGemAt(ex, ey, 'purple');
+      this.cameras.main.shake(250, 0.015);
+    });
+
+    this.cameras.main.flash(200, 255, 60, 60);
+    this.cameras.main.shake(300, 0.015);
+  }
+
+  /**
+   * Spawna a Mini-Chefe Matriarca Succubus no Modo Infinito (6:00)
+   */
+  private spawnMatriarchSuccubus(): void {
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const dist = 400;
+    const x = this.player.x + Math.cos(angle) * dist;
+    const y = this.player.y + Math.sin(angle) * dist;
+
+    const matriarch = new SuccubusBoss(this, x, y);
+    matriarch.setDepth(21);
+    this.enemiesGroup.add(matriarch);
+
+    matriarch.spawn(x, y, 2400, 115, 22, 1.45);
+    matriarch.setTint(0xff758f);
+
+    matriarch.on('boss-defeated', () => {
+      this.killCount++;
+      this.player.gainUltimateCharge(50);
+      // Recompensa lendária: 2 Gemas Roxas
+      this.spawnGemAt(matriarch.x - 20, matriarch.y, 'purple');
+      this.spawnGemAt(matriarch.x + 20, matriarch.y, 'purple');
+      this.cameras.main.shake(300, 0.02);
+    });
+
+    this.cameras.main.flash(220, 255, 0, 128);
+    this.cameras.main.shake(300, 0.02);
+  }
+
+  /**
+   * Spawna a Succubus Imperial como Chefe Suprema do Modo Infinito (10:00)
+   */
+  private spawnSuccubusBossEndless(): void {
+    this.isBossFightActive = true;
+    const bossX = this.player.x + 240;
+    const bossY = this.player.y - 140;
+
+    this.bossInstance = new SuccubusBoss(this, bossX, bossY);
+    this.bossInstance.setDepth(25);
+    this.enemiesGroup.add(this.bossInstance);
+
+    this.bossInstance.spawn(bossX, bossY, 4800, 130, 28, 1.75);
+
+    this.cameras.main.flash(300, 255, 0, 85);
+    this.cameras.main.shake(400, 0.025);
+
+    this.bossInstance.on('boss-defeated', () => {
+      this.isBossFightActive = false;
+      this.bossInstance = undefined;
+      this.killCount += 5;
+      this.player.gainUltimateCharge(100);
+
+      // Recompensa suprema: 3 Gemas Roxas e celebração de sobrevivência
+      this.spawnGemAt(bossX - 30, bossY, 'purple');
+      this.spawnGemAt(bossX, bossY, 'purple');
+      this.spawnGemAt(bossX + 30, bossY, 'purple');
+
+      this.cameras.main.flash(400, 255, 215, 0);
+      this.cameras.main.shake(400, 0.025);
+
+      const uiScene = this.scene.get('UIScene') as UIScene;
+      if (uiScene) {
+        uiScene.showWaveAlert('👑 CHEFE SUPREMA DERROTADA! A SOBREVIVÊNCIA CONTINUA... 👑', 5000);
+      }
+    });
+  }
+
+  /**
+   * Trata a derrota de Nixy exibindo a tela de Game Over e computando recordes
+   */
+  private handlePlayerDeath(): void {
+    if (this.isGameOver) return;
+    this.isGameOver = true;
+
+    this.physics.pause();
+    if (this.player?.body) {
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    }
+
+    // Efeito dramático de morte
+    this.cameras.main.shake(400, 0.02);
+    this.cameras.main.flash(200, 255, 0, 0);
+    this.player.setTint(0xff0000);
+
+    this.time.delayedCall(700, () => {
+      const uiScene = this.scene.get('UIScene') as UIScene;
+      if (uiScene) {
+        uiScene.showGameOverModal(
+          {
+            kills: this.killCount,
+            level: this.player.currentLevel,
+            timeSec: Math.floor(this.survivalTimeMs / 1000),
+            mode: this.gameMode
+          },
+          () => {
+            // Reiniciar o modo atual
+            this.scene.stop('UIScene');
+            this.scene.restart({ mode: this.gameMode });
+          },
+          () => {
+            // Retornar ao Menu Principal
+            this.scene.stop('UIScene');
+            this.scene.stop('GameScene');
+            this.scene.start('MenuScene');
+          }
+        );
+      }
+    });
   }
 
   /**

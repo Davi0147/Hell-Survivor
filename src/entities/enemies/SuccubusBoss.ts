@@ -73,15 +73,31 @@ export class SuccubusBoss extends BaseEnemy {
     });
   }
 
-  public spawn(x: number, y: number): void {
-    super.spawn(x, y, 3800, 120, 25);
-    this.setScale(1.65);
+  public override spawn(
+    x: number,
+    y: number,
+    hp: number = 3800,
+    speed: number = 120,
+    damage: number = 25,
+    customScale: number = 1.65
+  ): void {
+    super.spawn(x, y, hp, speed, damage);
+    this.setScale(customScale);
     this.bossState = 'CHASE';
     this.stateTimer = 0;
     this.dashCooldown = 4500;
     this.shootCooldown = 3500;
     this.airJumpCooldown = 13000;
     this.play('succubus-fly-south', true);
+
+    if (!this.dashLineGraphics || !this.dashLineGraphics.scene) {
+      this.dashLineGraphics = this.scene.add.graphics();
+      this.dashLineGraphics.setDepth(19);
+    }
+    if (!this.slamCircleGraphics || !this.slamCircleGraphics.scene) {
+      this.slamCircleGraphics = this.scene.add.graphics();
+      this.slamCircleGraphics.setDepth(18);
+    }
 
     this.emit('boss-spawned', this.hp, this.maxHp);
   }
@@ -447,8 +463,12 @@ export class SuccubusBoss extends BaseEnemy {
     if (this.isDead) return;
     this.isDead = true;
 
-    this.dashLineGraphics.destroy();
-    this.slamCircleGraphics.destroy();
+    if (this.dashLineGraphics && this.dashLineGraphics.scene) {
+      this.dashLineGraphics.destroy();
+    }
+    if (this.slamCircleGraphics && this.slamCircleGraphics.scene) {
+      this.slamCircleGraphics.destroy();
+    }
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) body.enable = false;

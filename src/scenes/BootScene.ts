@@ -421,7 +421,8 @@ export class BootScene extends Phaser.Scene {
     const gemConfigs = [
       { key: 'gem-green', size: 16, main: '#06d6a0', light: '#a7f3d0', dark: '#023e2c', core: '#ffffff' },
       { key: 'gem-blue',  size: 16, main: '#118ab2', light: '#bee9e8', dark: '#03045e', core: '#ffffff' },
-      { key: 'gem-red',   size: 20, main: '#ef233c', light: '#ffb4a2', dark: '#590d22', core: '#ffffff' }
+      { key: 'gem-red',   size: 20, main: '#ef233c', light: '#ffb4a2', dark: '#590d22', core: '#ffffff' },
+      { key: 'gem-purple', size: 24, main: '#b5179e', light: '#f72585', dark: '#3a0ca3', core: '#ffffff' }
     ];
 
     for (const g of gemConfigs) {
