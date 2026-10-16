@@ -77,7 +77,7 @@ export class SuccubusBoss extends BaseEnemy {
   public override spawn(
     x: number,
     y: number,
-    hp: number = 4500,
+    hp: number = 9000,
     speed: number = 125,
     damage: number = 32,
     customScale: number = 1.75
