@@ -47,3 +47,22 @@ export const DIRECTIONS_8 = [
 ] as const;
 
 export type Direction8 = typeof DIRECTIONS_8[number];
+
+/**
+ * FLAG MESTRE DO MODO DE TESTE (SANDBOX & DEBUG):
+ * - Em desenvolvimento: deixe `true` para exibir "MODO DE TESTE" diretamente no Menu Principal.
+ * - No lançamento oficial: mude para `false` para ocultar do jogador final.
+ *   (Mesmo em `false`, você ainda poderá acessá-lo adicionando `?debug=1` na URL ou digitando `DEV` no Menu Principal).
+ */
+export const ENABLE_DEV_SANDBOX: boolean = true;
+
+export function isDevSandboxEnabled(): boolean {
+  if (ENABLE_DEV_SANDBOX) return true;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debug') === '1' || params.get('sandbox') === '1') return true;
+    if (localStorage.getItem('hell_survivor_dev_unlocked') === 'true') return true;
+  } catch {}
+  return false;
+}
+

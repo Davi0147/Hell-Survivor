@@ -5,6 +5,8 @@ import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoundManager } from '../systems/SoundManager';
 import { UpgradeCard } from './UpgradeScene';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
+import { DevSandboxPanel } from '../systems/DevSandboxPanel';
+import { isDevSandboxEnabled } from '../config/balance';
 
 export class UIScene extends Phaser.Scene {
   // Sistema de Diálogos Estilo Persona 5
@@ -14,9 +16,10 @@ export class UIScene extends Phaser.Scene {
   private alertTimer?: Phaser.Time.TimerEvent;
   private alertTween?: Phaser.Tweens.Tween;
 
-  // Estado e Container de Pausa
+  // Estado e Container de Pausa / Sandbox
   public isPaused: boolean = false;
   public isChestRouletteOpen: boolean = false;
+  public sandboxPanel?: DevSandboxPanel;
   private pauseModalContainer?: Phaser.GameObjects.Container;
 
   // Vinheta de Alerta de Vida Crítica (Low HP)
@@ -444,6 +447,14 @@ export class UIScene extends Phaser.Scene {
       this.xpBarFill,
       this.xpText
     ];
+
+    // ==========================================
+    // 8. CONSOLE DE TESTE & GRAVADOR DE SESSÃO (SANDBOX / DEV MODE)
+    // ==========================================
+    const gameScene = this.scene.get('GameScene') as any;
+    if (gameScene && (gameScene.gameMode === 'sandbox' || isDevSandboxEnabled())) {
+      this.sandboxPanel = new DevSandboxPanel(this, gameScene);
+    }
   }
 
   /**
@@ -678,11 +689,14 @@ export class UIScene extends Phaser.Scene {
     g.strokeRect(cx - 5, cy - 32, 10, 8);
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
+    if (this.sandboxPanel) {
+      this.sandboxPanel.update(delta);
+    }
     if (this.isDialogueActive() || !this.isHUDVisibleState) return;
 
     const gameScene = this.scene.get('GameScene') as any;
-    if (!gameScene || !gameScene.player || !gameScene.scene.isActive()) return;
+    if (!gameScene || !gameScene.player || (!gameScene.scene.isActive() && !gameScene.scene.isPaused())) return;
 
     const p = gameScene.player;
 
@@ -861,6 +875,14 @@ export class UIScene extends Phaser.Scene {
         pG.fillStyle(0xff0055, 1);
         pG.fillRoundedRect(pX + 1.5, pY + 1.5, (pW - 3) * purifyRatio, pH - 3, 2);
       }
+    } else if (gameScene.gameMode === 'sandbox' && !gameScene.isBossFightActive) {
+      // MODO DE TESTE (SANDBOX): Oculta barras de progresso no topo pois a pílula rápida do Sandbox ocupa este espaço
+      this.endlessTimerText.setVisible(false);
+      this.endlessRecordText.setVisible(false);
+      this.bossBarGraphics.setVisible(false);
+      this.bossNameText.setVisible(false);
+      this.purifyBarGraphics.setVisible(false);
+      this.purifyLabelText.setVisible(false);
     }
 
     // ==========================================
@@ -1501,7 +1523,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   public showGameOverModal(
-    stats: { kills: number; level: number; timeSec: number; mode: 'story' | 'endless' },
+    stats: { kills: number; level: number; timeSec: number; mode: 'story' | 'endless' | 'sandbox' },
     onRetry: () => void,
     onReturnToMenu: () => void
   ): void {
@@ -1649,6 +1671,10 @@ export class UIScene extends Phaser.Scene {
   // ==========================================
   public togglePause(gameScene: any): void {
     if (this.dialogueSystem && this.dialogueSystem.isDialogueActive()) return;
+    if (this.sandboxPanel && this.sandboxPanel.isOpen) {
+      this.sandboxPanel.togglePanel();
+      return;
+    }
     if (this.isPaused) {
       this.resumeGame(gameScene);
     } else {

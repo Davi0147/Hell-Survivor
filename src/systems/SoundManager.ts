@@ -25,6 +25,9 @@ export class SoundManager {
     this.loadSavedVolumes();
     this.initAudioContext();
     this.setupAutoplayUnlock();
+    try {
+      (window as any).__hellSurvivorSoundManager = this;
+    } catch {}
   }
 
   private loadSavedVolumes(): void {

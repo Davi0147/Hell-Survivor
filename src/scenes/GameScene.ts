@@ -15,6 +15,7 @@ import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
+import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { UIScene } from './UIScene';
 
@@ -23,7 +24,13 @@ export class GameScene extends Phaser.Scene {
   private floorTile!: Phaser.GameObjects.TileSprite;
 
   // Modo de Jogo e Campanha
-  public gameMode: 'story' | 'endless' = 'story';
+  public gameMode: 'story' | 'endless' | 'sandbox' = 'story';
+  public sandboxGodMode: boolean = false;
+  public sandboxInfiniteUlt: boolean = false;
+  public sandboxInfiniteStamina: boolean = false;
+  public sandboxAutoSpawn: boolean = false;
+  public sandboxShowHitboxes: boolean = false;
+
   public chapterPurifiedSouls: number = 0;
   public readonly chapterTargetSouls: number = 900;
   public isBossFightActive: boolean = false;
@@ -73,9 +80,15 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  init(data?: { mode?: 'story' | 'endless'; isRevival?: boolean }): void {
+  init(data?: { mode?: 'story' | 'endless' | 'sandbox'; isRevival?: boolean }): void {
     this.gameMode = data?.mode ?? 'story';
     this.isRevival = data?.isRevival ?? false;
+    this.sandboxGodMode = this.gameMode === 'sandbox';
+    this.sandboxInfiniteUlt = false;
+    this.sandboxInfiniteStamina = false;
+    this.sandboxAutoSpawn = false;
+    this.sandboxShowHitboxes = false;
+
     this.chapterPurifiedSouls = 0;
     this.killCount = 0;
     this.isBossFightActive = false;
@@ -90,10 +103,17 @@ export class GameScene extends Phaser.Scene {
     this.mapItemSpawnTimer = 0;
     this.bossMinionTimer = 0;
     this.clearCombatSpeechBubbles();
+
+    DebugSessionLogger.getInstance().startNewSession(this.gameMode);
   }
 
   create(): void {
     const { width, height } = this.scale;
+
+    this.time.timeScale = 1;
+    if (this.physics?.world) {
+      this.physics.world.timeScale = 1;
+    }
 
     SoundManager.getInstance().setScene(this);
     // Inicia a música de batalha com fade-in suave
@@ -192,27 +212,16 @@ export class GameScene extends Phaser.Scene {
     this.weapons.push(this.soulBoltWeapon);
 
     // Escutar Level Up da heroína para abrir UpgradeScene
-    this.player.on('player-level-up', () => {
+    this.player.on('player-level-up', (lvl: number) => {
       if (this.isGameOver) return;
+      DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', `Nixy alcançou o Nível ${lvl}`);
       this.cameras.main.flash(220, 255, 215, 0);
       this.scene.pause();
       this.scene.launch('UpgradeScene', { player: this.player, gameScene: this });
     });
 
     // 6. Configuração de Colisão Projétil -> Inimigo
-    this.physics.add.overlap(
-      this.soulBoltWeapon.projectilesGroup,
-      this.enemiesGroup,
-      (projObj, enemyObj) => {
-        const proj = projObj as SoulBoltProjectile;
-        const enemy = enemyObj as BaseEnemy;
-        if (proj.active && enemy.active && !enemy.isDead) {
-          SoundManager.getInstance().playEnemyHit();
-          proj.onHit(enemy);
-          this.player.triggerLifeSteal(1);
-        }
-      }
-    );
+    this.registerSoulBoltOverlap(this.soulBoltWeapon);
 
     // 6.1. Configuração de Coleta de Itens do Mapa (Cálice, Ímã, Baú)
     this.physics.add.overlap(
@@ -221,6 +230,7 @@ export class GameScene extends Phaser.Scene {
       (_playerObj, itemObj) => {
         const item = itemObj as MapItem;
         if (item.active && !this.isGameOver) {
+          DebugSessionLogger.getInstance().log('ITEM', 'INFO', `Item coletado: ${item.itemType}`);
           item.collect(this.player, this);
         }
       }
@@ -233,9 +243,16 @@ export class GameScene extends Phaser.Scene {
       (_playerObj, enemyObj) => {
         const enemy = enemyObj as BaseEnemy;
         if (enemy.active && !enemy.isDead && this.playerInvulnerableTimer <= 0 && !this.isGameOver) {
+          this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
+          if (this.sandboxGodMode) {
+            DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Hit de contato bloqueado (God Mode): ${enemy.damage} dano`);
+            return;
+          }
           SoundManager.getInstance().playPlayerHurt();
           this.player.takeDamage(enemy.damage);
-          this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
+          DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Nixy recebeu ${enemy.damage} de dano de contato`, {
+            hpRestante: Math.ceil(this.player.currentHp)
+          });
           this.cameras.main.shake(120, 0.005);
           this.player.setTint(0xff3333);
           this.time.delayedCall(150, () => {
@@ -270,8 +287,11 @@ export class GameScene extends Phaser.Scene {
     this.spawnMapItem(this.player.x + Math.cos(angle1) * 450, this.player.y + Math.sin(angle1) * 450, 'chalice');
     this.spawnMapItem(this.player.x + Math.cos(angle2) * 520, this.player.y + Math.sin(angle2) * 520, 'chest');
 
-    // Spawns Iniciais de Monstros (apenas Cães Zumbis no início de ambos os modos - Fase 1)
-    if (this.gameMode === 'endless') {
+    // Spawns Iniciais de Monstros (apenas Cães Zumbis no início de História/Infinito; limpo no Sandbox)
+    if (this.gameMode === 'sandbox') {
+      // No Modo de Teste a arena começa limpa e pronta para os comandos do usuário
+      DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Arena Sandbox pronta. God Mode ativo por padrão.');
+    } else if (this.gameMode === 'endless') {
       this.spawnZombieDogAt(-220, -100);
       this.spawnZombieDogAt(220, -120);
       this.spawnZombieDogAt(-160, 160);
@@ -377,8 +397,21 @@ export class GameScene extends Phaser.Scene {
 
     // Verificar se Nixy foi derrotada
     if (this.player.currentHp <= 0) {
-      this.handlePlayerDeath();
-      return;
+      if (this.sandboxGodMode) {
+        this.player.currentHp = this.player.maxHp;
+      } else {
+        this.handlePlayerDeath();
+        return;
+      }
+    }
+
+    if (this.sandboxInfiniteUlt) {
+      this.player.ultimateCharge = this.player.maxUltimateCharge;
+    }
+
+    if (this.sandboxInfiniteStamina) {
+      this.player.currentStamina = this.player.maxStamina;
+      this.player.isStaminaExhausted = false;
     }
 
     this.survivalTimeMs += delta;
@@ -430,11 +463,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     // 5.2. Spawner Periódico de Itens de Mapa (a cada ~40s, até no máximo 4 itens simultâneos no mapa)
-    this.mapItemSpawnTimer += delta;
-    if (this.mapItemSpawnTimer >= 40000) {
-      this.mapItemSpawnTimer = 0;
-      if (this.mapItemsGroup.countActive() < 4) {
-        this.spawnRandomMapItem();
+    if (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn) {
+      this.mapItemSpawnTimer += delta;
+      if (this.mapItemSpawnTimer >= 40000) {
+        this.mapItemSpawnTimer = 0;
+        if (this.mapItemsGroup.countActive() < 4) {
+          this.spawnRandomMapItem();
+        }
       }
     }
 
@@ -456,7 +491,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // 7. Spawner Escalável Contínuo de Hordas
-    if (!this.isBossFightActive) {
+    if (!this.isBossFightActive && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
       this.spawnTimer += delta;
 
       // Intervalo de spawn diminui de 1500ms para até 450ms no Modo Infinito
@@ -1176,6 +1211,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleBossDefeated(): void {
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Succubus Imperial derrotada!');
+
+    if (this.gameMode === 'sandbox') {
+      this.isBossFightActive = false;
+      this.clearCombatSpeechBubbles();
+      const bx = this.bossInstance ? this.bossInstance.x : this.player.x;
+      const by = this.bossInstance ? this.bossInstance.y : this.player.y;
+      this.bossInstance = undefined;
+      SoundManager.getInstance().playBattleMusic(1500);
+      this.spawnGemAt(bx - 25, by, 'purple');
+      this.spawnGemAt(bx + 25, by, 'purple');
+      this.spawnMapItem(bx, by - 35, 'chest');
+      const uiScene = this.scene.get('UIScene') as UIScene;
+      if (uiScene) {
+        uiScene.showWaveAlert('BOSS SUCCUBUS DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
+      }
+      return;
+    }
+
     this.isChapterCompleted = true;
     this.clearCombatSpeechBubbles();
     SoundManager.getInstance().stopMusic(2500);
@@ -1444,4 +1498,180 @@ export class GameScene extends Phaser.Scene {
     }
     this.activeCombatBubbles = [];
   }
+
+  // ===========================================================================
+  // MÉTODOS DO MODO DE TESTE (SANDBOX & DEBUG)
+  // ===========================================================================
+
+  public registerSoulBoltOverlap(weapon: SoulBoltWeapon): void {
+    this.physics.add.overlap(
+      weapon.projectilesGroup,
+      this.enemiesGroup,
+      (projObj, enemyObj) => {
+        const proj = projObj as SoulBoltProjectile;
+        const enemy = enemyObj as BaseEnemy;
+        if (proj.active && enemy.active && !enemy.isDead) {
+          SoundManager.getInstance().playEnemyHit();
+          proj.onHit(enemy);
+          this.player.triggerLifeSteal(1);
+        }
+      }
+    );
+  }
+
+  public sandboxSpawnHorde(
+    type: 'dog' | 'elite_dog' | 'bat' | 'slime' | 'titan_cerberus' | 'matriarch',
+    count: number = 1
+  ): void {
+    DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Spawn manual de horda: ${count}x ${type}`);
+
+    if (type === 'titan_cerberus') {
+      this.spawnTitanCerberus();
+      return;
+    }
+    if (type === 'matriarch') {
+      this.spawnMatriarchSuccubus();
+      return;
+    }
+    if (type === 'bat') {
+      this.spawnBloodBatFlock(count);
+      return;
+    }
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / Math.max(1, count) + Phaser.Math.FloatBetween(-0.15, 0.15);
+      const dist = Phaser.Math.Between(220, 320);
+      const sx = this.player.x + Math.cos(angle) * dist;
+      const sy = this.player.y + Math.sin(angle) * dist;
+
+      if (type === 'dog') {
+        this.spawnZombieDogAt(sx, sy, 35, 85, 8);
+      } else if (type === 'elite_dog') {
+        this.spawnZombieDogAt(sx, sy, 180, 96, 14, true, 1.35);
+      } else if (type === 'slime') {
+        this.spawnSkullSlimeAt(sx, sy);
+      }
+    }
+  }
+
+  public sandboxSpawnBoss(withIntroDialogue: boolean): void {
+    // Se já houver uma Boss ativa, remove primeiro para evitar duplicatas ou conflito de áudio
+    if (this.bossInstance && this.bossInstance.active) {
+      this.sandboxRemoveBoss();
+    }
+
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Succubus invocada via Sandbox (Com Diálogo: ${withIntroDialogue})`);
+
+    if (withIntroDialogue) {
+      this.triggerBossEncounter();
+    } else {
+      this.isBossFightActive = true;
+      SoundManager.getInstance().playBossMusic(1800);
+      this.spawnSuccubusBoss();
+    }
+  }
+
+  public sandboxRemoveBoss(): void {
+    this.isBossFightActive = false;
+    this.clearCombatSpeechBubbles();
+
+    if (this.bossInstance) {
+      if (this.bossInstance.projectilesGroup) {
+        this.bossInstance.projectilesGroup.clear(true, true);
+      }
+      this.bossInstance.setActive(false);
+      this.bossInstance.setVisible(false);
+      this.bossInstance.destroy();
+      this.bossInstance = undefined;
+    }
+
+    // Remove também quaisquer outras instâncias de SuccubusBoss na arena
+    const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
+    for (const e of enemies) {
+      if (e instanceof SuccubusBoss && e.active) {
+        if (e.projectilesGroup) {
+          e.projectilesGroup.clear(true, true);
+        }
+        e.setActive(false);
+        e.setVisible(false);
+        e.destroy();
+      }
+    }
+
+    // Restaura a música de batalha sem conflito
+    SoundManager.getInstance().playBattleMusic(1500);
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Boss Succubus removida via Sandbox e música restaurada.');
+  }
+
+  public sandboxClearEnemies(withDrops: boolean): number {
+    let count = 0;
+    const enemies = [...(this.enemiesGroup.getChildren() as BaseEnemy[])];
+
+    for (const e of enemies) {
+      if (!e.active || e.isDead) continue;
+      if (e === this.bossInstance) continue; // Usa sandboxRemoveBoss para a Boss principal
+      count++;
+      if (withDrops) {
+        e.takeDamage(999999);
+      } else {
+        e.isDead = true;
+        if (e.body) {
+          (e.body as Phaser.Physics.Arcade.Body).enable = false;
+        }
+        e.setActive(false);
+        e.setVisible(false);
+      }
+    }
+
+    DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Limpeza de inimigos executada: ${count} monstros (${withDrops ? 'com drop' : 'sem drop'})`);
+    return count;
+  }
+
+  public sandboxRemoveWeapon(weaponClass: any): void {
+    const idx = this.weapons.findIndex((w) => w instanceof weaponClass);
+    if (idx === -1) return;
+
+    const removed = this.weapons[idx] as any;
+    if (typeof removed.destroy === 'function') {
+      removed.destroy();
+    }
+    if (removed.projectilesGroup && typeof removed.projectilesGroup.clear === 'function') {
+      removed.projectilesGroup.clear(true, true);
+    }
+    this.weapons.splice(idx, 1);
+    DebugSessionLogger.getInstance().log('WEAPON', 'INFO', `Arma removida via Sandbox: ${removed.name}`);
+  }
+
+  public sandboxSpawnGemShower(count: number = 20): void {
+    const types: GemType[] = ['green', 'blue', 'red', 'orange', 'purple'];
+    for (let i = 0; i < count; i++) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(55, 180);
+      const gx = this.player.x + Math.cos(angle) * dist;
+      const gy = this.player.y + Math.sin(angle) * dist;
+      const gType = Phaser.Math.RND.pick(types);
+      this.spawnGemAt(gx, gy, gType);
+    }
+    DebugSessionLogger.getInstance().log('ITEM', 'INFO', `Chuva de ${count} gemas de XP gerada via Sandbox.`);
+  }
+
+  public sandboxClearItemsAndGems(): void {
+    const gems = this.gemsGroup.getChildren() as SoulGem[];
+    for (const g of gems) {
+      if (g.active) {
+        g.setActive(false);
+        g.setVisible(false);
+        if (g.body) (g.body as Phaser.Physics.Arcade.Body).enable = false;
+      }
+    }
+
+    const items = [...(this.mapItemsGroup.getChildren() as MapItem[])];
+    for (const it of items) {
+      if (it.active) {
+        it.destroy();
+      }
+    }
+    DebugSessionLogger.getInstance().log('ITEM', 'INFO', 'Todos os itens e gemas do chão foram limpos via Sandbox.');
+  }
 }
+

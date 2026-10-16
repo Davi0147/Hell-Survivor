@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
+import { isDevSandboxEnabled } from '../config/balance';
 
 interface MenuItem {
   label: string;
@@ -113,7 +114,7 @@ export class MenuScene extends Phaser.Scene {
       });
     }
 
-    // 5. Configuração dos Itens de Menu
+    // 5. Configuração dos Itens de Menu (inclui MODO DE TESTE quando habilitado para desenvolvimento)
     this.menuItems = [
       {
         label: 'JOGAR HISTÓRIA',
@@ -122,7 +123,17 @@ export class MenuScene extends Phaser.Scene {
       {
         label: 'MODO INFINITO',
         action: () => this.startGame('endless')
-      },
+      }
+    ];
+
+    if (isDevSandboxEnabled()) {
+      this.menuItems.push({
+        label: 'MODO DE TESTE',
+        action: () => this.startGame('sandbox')
+      });
+    }
+
+    this.menuItems.push(
       {
         label: 'CONFIGURAÇÕES',
         action: () => this.openSettingsModal()
@@ -131,11 +142,11 @@ export class MenuScene extends Phaser.Scene {
         label: 'SAIR',
         action: () => this.openExitModal()
       }
-    ];
+    );
 
     // 6. Construção Vertical dos Botões de Texto
-    const startY = 380;
-    const spacingY = 56;
+    const startY = this.menuItems.length >= 5 ? 360 : 380;
+    const spacingY = this.menuItems.length >= 5 ? 48 : 56;
     this.textObjects = [];
 
     this.menuItems.forEach((item, index) => {
@@ -670,7 +681,7 @@ export class MenuScene extends Phaser.Scene {
     this.isModalOpen = false;
   }
 
-  private startGame(mode: 'story' | 'endless'): void {
+  private startGame(mode: 'story' | 'endless' | 'sandbox'): void {
     SoundManager.getInstance().playMenuClick();
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(160, () => {

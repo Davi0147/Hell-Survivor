@@ -1,6 +1,7 @@
 # Livro de Anotações de Desenvolvimento — Hell Survivor
 
-> Este é o caderno oficial de progresso do **Hell Survivor**. A cada etapa concluída, testada e aprovada, os itens são marcados como `[x]` e avançamos para o próximo marco.
+> **REGRA DE OURO OBRIGATÓRIA — SINCRONIZAÇÃO COM O MODO DE TESTE (SANDBOX-FIRST RULE):**
+> Tudo o que for adicionado ou alterado no jogo daqui para frente (novas armas, evoluções, bênçãos passivas, inimigos, mini-bosses, chefes, itens de mapa, biomas ou mecânicas) **DEVE OBRIGATORIAMENTE** ser integrado no mesmo instante ao **Modo de Teste (`src/systems/DevSandboxPanel.ts`)** e ao **Gravador de Sessão (`src/systems/DebugSessionLogger.ts`)**, garantindo que qualquer novidade possa ser testada em 1 clique e auditada nos relatórios exportados para a IA.
 
 ---
 
@@ -18,22 +19,33 @@
 
 ---
 
-## Fase 1: Expansão do Arsenal e Evoluções de Armas *(Em Execução — Opção A)*
+## Ferramenta Oficial: Modo de Teste (Sandbox) & Gravador de Sessão p/ IA *(Concluído — Pronto para Uso)*
+- [x] **Acesso no Menu Principal (`MODO DE TESTE`) + Chave de Lançamento Oficial:** Controlado por `ENABLE_DEV_SANDBOX` em `src/config/balance.ts`. Ao mudar para `false` no lançamento oficial, fica 100% oculto para os jogadores (mantendo backdoor secreto `?debug=1` para o desenvolvedor).
+- [x] **Barra Rápida no Topo & Atalho `[F1]`:** Exibe FPS ao vivo, contagem de inimigos, status do God Mode e botão de 1 clique `[COPIAR LOG IA]`.
+- [x] **Aba 1 (`[1] CHEATS & NIXY`):** Vida Infinita (God Mode), Ultimate Infinita, Estamina Infinita, Auto-Spawn de Hordas ON/OFF, Hitboxes Físicas ON/OFF, Velocidade do Jogo (`0.5x`, `1x`, `2x`), Level Up instantâneo, Cura e disparo imediato da Suprema.
+- [x] **Aba 2 (`[2] HORDAS & BOSS`):** Spawn individual ou em horda de todos os monstros e Mini-Bosses, remoção limpa de hordas (com ou sem drop de XP) e invocação/remoção da **Succubus Imperial** com transição musical limpa (`bgm-boss` ↔ `bgm-battle`) sem conflitos de áudio.
+- [x] **Aba 3 (`[3] ARMAS & EVOLUÇÕES`):** Equipar, subir nível (`+1 Nív`), Maximizar/Evoluir para a forma Suprema (`MAX / EVO`) ou remover qualquer uma das 6 armas do jogo, além de botão para equipar e evoluir todas de uma vez.
+- [x] **Aba 4 (`[4] BÊNÇÃOS & ITENS`):** Adicionar (`+`) ou remover (`-`) níveis de todas as 9 bênçãos passivas livremente, resetar atributos e dropar Taça de Vinho, Ímã, Baú do Abismo, Roleta Direta ou Chuva de 20 Gemas ao lado da Nixy.
+- [x] **Aba 5 (`[5] LOGS & EXPORTAR IA`):** Gravador de Voo (`DebugSessionLogger`) que intercepta erros globais, monitora quedas de FPS/anomalias e gera um relatório completo formatado em 1 clique (`[ COPIAR RELATÓRIO COMPLETO P/ IA ]` ou `[ BAIXAR LOG (.JSON) ]`).
+
+---
+
+## Fase 1: Expansão do Arsenal e Evoluções de Armas *(Implementado — Pronto para Testar no Sandbox)*
 *Foco: Rejogabilidade, variedade de builds e progressão de poder dentro da partida.*
 
 ### 1.1. Novas Armas Ativas no Catálogo de Level Up
-- [ ] **Adagas de Sangue (`BloodDaggersWeapon`):** Dispara leques velozes de adagas carmesins na direção em que a Nixy está olhando (ou mirando no inimigo frontal mais próximo). Evolui do Nível 1 ao 5 aumentando a quantidade de adagas no leque, velocidade e dano.
-- [ ] **Cadeias Abissais (`AbyssalChainsWeapon`):** Correntes espectrais que chicoteiam grupos de inimigos próximos, causando dano em área e aplicando **Grilhão Abissal (Atordoamento/Lentidão temporária)**. Evolui do Nível 1 ao 5 aumentando o alcance, número de alvos e duração do controle de grupo.
-- [ ] **Meteoro Infernal (`InfernalMeteorWeapon`):** Invoca rochas vulcânicas do céu que caem sobre áreas de alta concentração de monstros com indicador visual de impacto, causando dano massivo de explosão. Evolui do Nível 1 ao 5 reduzindo a recarga e aumentando o número de meteoros por salva.
+- [x] **Adagas de Sangue (`BloodDaggersWeapon`):** Dispara leques velozes de adagas carmesins na direção em que a Nixy está olhando (ou mirando no inimigo frontal mais próximo). Evolui do Nível 1 ao 5 aumentando a quantidade de adagas no leque, velocidade e dano.
+- [x] **Cadeias Abissais (`AbyssalChainsWeapon`):** Correntes espectrais que chicoteiam grupos de inimigos próximos, causando dano em área e aplicando **Grilhão Abissal (Atordoamento/Lentidão temporária)**. Evolui do Nível 1 ao 5 aumentando o alcance, número de alvos e duração do controle de grupo.
+- [x] **Meteoro Infernal (`InfernalMeteorWeapon`):** Invoca rochas vulcânicas do céu que caem sobre áreas de alta concentração de monstros com indicador visual de impacto, causando dano massivo de explosão. Evolui do Nível 1 ao 5 reduzindo a recarga e aumentando o número de meteoros por salva.
 
 ### 1.2. Sistema de Evolução Suprema de Armas (Weapon Fusion)
-- [ ] **Raio do Apocalipse *(Evolução do Disparo de Almas)*:** Desbloqueado ao ter *Alma Extra* (ou *Perfuração Mística*) + *Fúria Infernal*. Transforma os disparos em projéteis astrais colossais dourados/cianos de altíssima cadência e perfuração devastadora.
-- [ ] **Ceifadora do Vazio *(Evolução das Lâminas Orbitais)*:** Desbloqueada ao atingir o nível máximo de 6 Foices + *Celeridade Abissal*. Transforma as foices em um vórtice carmesim hiper-veloz com raio expandido e dano crítico amplificado.
-- [ ] **Supernova Abissal *(Evolução das Chamas do Purgatório)*:** Desbloqueada ao atingir o Nível 5 das Chamas + *Vitalidade Sangrenta*. Emite ondas duplas de fogo azul/dourado que queimam uma área colossal e restauram vida da Nixy a cada pulso.
+- [x] **Raio do Apocalipse *(Evolução do Disparo de Almas)*:** Desbloqueado ao ter *Alma Extra* (ou *Perfuração Mística*) + *Fúria Infernal*. Transforma os disparos em projéteis astrais colossais dourados/cianos de altíssima cadência e perfuração devastadora.
+- [x] **Ceifadora do Vazio *(Evolução das Lâminas Orbitais)*:** Desbloqueada ao atingir o nível máximo de 6 Foices + *Celeridade Abissal*. Transforma as foices em um vórtice carmesim hiper-veloz com raio expandido e dano crítico amplificado.
+- [x] **Supernova Abissal *(Evolução das Chamas do Purgatório)*:** Desbloqueada ao atingir o Nível 5 das Chamas + *Vitalidade Sangrenta*. Emite ondas duplas de fogo azul/dourado que queimam uma área colossal e restauram vida da Nixy a cada pulso.
 
 ### 1.3. Mecânicas Táticas de Level Up (Reroll & Skip)
-- [ ] **Botão de Re-rolar Bênçãos (`Reroll`):** Permite sortear 3 novas opções de cartas na tela de Level Up (2 cargas por partida).
-- [ ] **Botão de Pular / Canalizar Energia (`Skip`):** Permite recusar as 3 cartas em troca de uma cura imediata de emergência (+20 HP), garantindo que o jogador nunca seja forçado a pegar algo que não deseja.
+- [x] **Botão de Re-rolar Bênçãos (`Reroll`):** Permite sortear 3 novas opções de cartas na tela de Level Up (2 cargas por partida).
+- [x] **Botão de Pular / Canalizar Energia (`Skip`):** Permite recusar as 3 cartas em troca de uma cura imediata de emergência (+20 HP), garantindo que o jogador nunca seja forçado a pegar algo que não deseja.
 
 ---
 

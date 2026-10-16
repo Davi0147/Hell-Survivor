@@ -158,8 +158,13 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
     return 'north-east';
   }
 
-  public takeDamage(amount: number): void {
-    this.currentHp = Math.max(0, this.currentHp - amount);
+  public takeDamage(amount: number, bypassGodMode: boolean = false): void {
+    const gs = this.scene as any;
+    if (gs && gs.sandboxGodMode && !bypassGodMode) {
+      return;
+    }
+    const minHp = gs && gs.sandboxGodMode ? 1 : 0;
+    this.currentHp = Math.max(minHp, this.currentHp - amount);
     this.hurtTimer = 250; // Ativa a pose de taking_damage por 250ms
     if (amount > 0) {
       SoundManager.getInstance().playPlayerHurt();
