@@ -75,16 +75,9 @@ export class SoulBoltWeapon extends BaseWeapon {
         angle,
         this.projectileSpeed,
         effectiveDamage,
-        effectivePierce
+        effectivePierce,
+        this.isEvolved
       );
-
-      if (this.isEvolved) {
-        projectile.setTint(0xffe600);
-        projectile.setScale(1.38);
-      } else {
-        projectile.clearTint();
-        projectile.setScale(1.0);
-      }
     }
 
     // Efeito sonoro procedural retrô de disparo de magia espiritual
@@ -114,8 +107,8 @@ export class SoulBoltWeapon extends BaseWeapon {
   }
 
   private createMuzzleFlash(x: number, y: number): void {
-    const color = this.isEvolved ? 0xffe600 : 0x00f5d4;
-    const flash = this.scene.add.circle(x, y, this.isEvolved ? 13 : 10, color, 0.75);
+    const color = this.isEvolved ? 0x43e97b : 0xd946ef;
+    const flash = this.scene.add.circle(x, y, this.isEvolved ? 14 : 10, color, 0.75);
     flash.setDepth(15);
     this.scene.tweens.add({
       targets: flash,

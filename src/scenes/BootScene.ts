@@ -111,6 +111,8 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('altar-1');
     this.textures.remove('altar-2');
     this.textures.remove('altar-3');
+    this.textures.remove('soul-shoot');
+    this.textures.remove('apocalypse-shoot');
     this.textures.remove('game-title-logo');
     for (let i = 1; i <= 6; i++) {
       this.textures.remove(`intro-${i}`);
@@ -313,6 +315,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image('void-scythe', `assets/sprites/items/scythe.png?t=${cacheBuster}`);
     this.load.image('blood-dagger', `assets/sprites/items/Adaga.png?t=${cacheBuster}`);
     this.load.image('infernal-meteor', `assets/sprites/items/Meteoro.png?t=${cacheBuster}`);
+    this.load.image('soul-shoot', `assets/sprites/items/Soul%20Shoot.png?t=${cacheBuster}`);
+    this.load.image('apocalypse-shoot', `assets/sprites/items/Apocalypse%20Shoot.png?t=${cacheBuster}`);
 
     // Molduras de Cartas de Bênçãos (120x200px)
     this.load.image('card-base', `assets/sprites/cards/Base%20Card.png?t=${cacheBuster}`);

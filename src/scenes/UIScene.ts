@@ -1043,17 +1043,10 @@ export class UIScene extends Phaser.Scene {
       const bx = cx + Math.cos(angle) * blipDist;
       const by = cy + Math.sin(angle) * blipDist;
 
-      // Glow suave de fundo
-      g.fillStyle(0x7f0910, 0.7);
-      g.fillCircle(bx, by, 7.5);
-
-      // Círculo dourado fino
-      g.lineStyle(1.2, 0xffe600, 0.95);
-      g.strokeCircle(bx, by, 7);
-
-      // Desenho do "X" com braços nítidos em cruz diagonal
-      const xArm = 4.2;
-      g.lineStyle(2.6, 0xff1e27, 1);
+      // Desenho do "X" do Altar no minimapa (sem círculo ao redor)
+      const xArm = 4.5;
+      // Contorno escuro para máxima visibilidade contra o mapa
+      g.lineStyle(3.8, 0x000000, 0.95);
       g.beginPath();
       g.moveTo(bx - xArm, by - xArm);
       g.lineTo(bx + xArm, by + xArm);
@@ -1061,7 +1054,16 @@ export class UIScene extends Phaser.Scene {
       g.lineTo(bx - xArm, by + xArm);
       g.strokePath();
 
-      // Centro do X com ponto dourado brilhante
+      // Traço nítido do "X" em vermelho vibrante
+      g.lineStyle(2.4, 0xff1e27, 1);
+      g.beginPath();
+      g.moveTo(bx - xArm, by - xArm);
+      g.lineTo(bx + xArm, by + xArm);
+      g.moveTo(bx + xArm, by - xArm);
+      g.lineTo(bx - xArm, by + xArm);
+      g.strokePath();
+
+      // Ponto dourado no centro do X
       g.fillStyle(0xffe600, 1);
       g.fillCircle(bx, by, 1.2);
     }
@@ -1199,17 +1201,17 @@ export class UIScene extends Phaser.Scene {
     g.closePath();
     g.stroke();
 
-    // Fundo do badge [X]
-    const badgeW = 68;
-    const badgeH = 22;
+    // Fundo do badge de distância (compacto, sem [X])
+    const badgeW = 44;
+    const badgeH = 20;
     g.fillStyle(0x0e0206, 0.94);
     g.fillRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
     g.lineStyle(1.5, 0xffe600, 0.95);
     g.strokeRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
 
-    // Texto: X e Distância em metros
+    // Texto: apenas a distância em metros
     const distMeters = Math.max(1, Math.round(dist / 10));
-    this.altarIndicatorText.setText(`[X] ${distMeters}m`);
+    this.altarIndicatorText.setText(`${distMeters}m`);
     this.altarIndicatorText.setColor('#ffe600');
   }
 
