@@ -370,10 +370,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    // Se o jogo acabou ou capítulo foi concluído ou diálogo estiver ativo na tela, congela toda a ação do jogo
+    // Se o jogo acabou ou capítulo foi concluído ou diálogo/roleta de baú estiver ativo, congela toda a ação do jogo
     if (this.isGameOver || this.isChapterCompleted) return;
     const uiScene = this.scene.get('UIScene') as UIScene;
-    if (uiScene && uiScene.isDialogueActive()) return;
+    if (uiScene && (uiScene.isDialogueActive() || uiScene.isChestRouletteActive())) return;
 
     // Verificar se Nixy foi derrotada
     if (this.player.currentHp <= 0) {
@@ -668,6 +668,29 @@ export class GameScene extends Phaser.Scene {
     const x = this.player.x + Math.cos(angle) * dist;
     const y = this.player.y + Math.sin(angle) * dist;
     this.spawnMapItem(x, y);
+  }
+
+  /**
+   * Concede 1.5s de imunidade de segurança e afasta monstros ao sair da tela do Baú
+   */
+  public grantChestSafetyGrace(): void {
+    this.playerInvulnerableTimer = Math.max(this.playerInvulnerableTimer, 1500);
+
+    // Empurrão místico suave em inimigos muito próximos para não punir a heroína
+    if (this.enemiesGroup) {
+      const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
+      for (const e of enemies) {
+        if (!e.active || e.isDead) continue;
+        const dist = Math.hypot(e.x - this.player.x, e.y - this.player.y);
+        if (dist <= 140) {
+          const angle = Math.atan2(e.y - this.player.y, e.x - this.player.x);
+          const body = e.body as Phaser.Physics.Arcade.Body;
+          if (body) {
+            body.setVelocity(Math.cos(angle) * 200, Math.sin(angle) * 200);
+          }
+        }
+      }
+    }
   }
 
   private spawnEnemyRandomPerimeter(): void {

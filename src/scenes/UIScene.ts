@@ -16,6 +16,7 @@ export class UIScene extends Phaser.Scene {
 
   // Estado e Container de Pausa
   public isPaused: boolean = false;
+  public isChestRouletteOpen: boolean = false;
   private pauseModalContainer?: Phaser.GameObjects.Container;
 
   // Vinheta de Alerta de Vida Crítica (Low HP)
@@ -1049,6 +1050,10 @@ export class UIScene extends Phaser.Scene {
     return this.dialogueSystem ? this.dialogueSystem.isDialogueActive() : false;
   }
 
+  public isChestRouletteActive(): boolean {
+    return this.isChestRouletteOpen;
+  }
+
   public showChapterVictoryModal(stats: { kills: number; level: number; timeSec: number }, onReturnToMenu: () => void): void {
     this.setHUDVisible(false);
     const { width, height } = this.scale;
@@ -1228,9 +1233,11 @@ export class UIScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
-    // 1. Pausa o combate durante a roleta para segurança total da jogadora
-    if (gameScene?.physics) {
-      gameScene.physics.pause();
+    // 1. Pausa total do GameScene (física e loop de atualização para impedir spawns acumulados)
+    this.isChestRouletteOpen = true;
+    if (gameScene) {
+      if (gameScene.physics) gameScene.physics.pause();
+      if (gameScene.scene) gameScene.scene.pause();
     }
 
     const modal = this.add.container(0, 0);
@@ -1462,10 +1469,15 @@ export class UIScene extends Phaser.Scene {
         player.heal(player.maxHp);
       }
 
-      // Fecha o modal e retoma o jogo
+      // Fecha o modal e retoma o jogo com imunidade de proteção
+      this.isChestRouletteOpen = false;
       modal.destroy();
-      if (gameScene?.physics && !gameScene.isGameOver && !gameScene.isChapterCompleted) {
-        gameScene.physics.resume();
+      if (gameScene && !gameScene.isGameOver && !gameScene.isChapterCompleted) {
+        if (gameScene.scene) gameScene.scene.resume();
+        if (gameScene.physics) gameScene.physics.resume();
+        if (typeof gameScene.grantChestSafetyGrace === 'function') {
+          gameScene.grantChestSafetyGrace();
+        }
       }
     };
 
