@@ -783,7 +783,7 @@ export class GameScene extends Phaser.Scene {
     this.bossInstance.setDepth(25);
     this.enemiesGroup.add(this.bossInstance);
 
-    this.bossInstance.spawn(bossX, bossY, 24000, 135, 36, 1.85);
+    this.bossInstance.spawn(bossX, bossY, 12000, 135, 36, 1.85);
 
     this.cameras.main.flash(300, 255, 0, 85);
     this.cameras.main.shake(400, 0.025);

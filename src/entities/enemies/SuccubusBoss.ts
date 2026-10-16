@@ -15,8 +15,8 @@ type BossState =
   | 'SLAM_RECOVERY';
 
 export class SuccubusBoss extends BaseEnemy {
-  public maxHp: number = 18000;
-  public hp: number = 18000;
+  public maxHp: number = 9000;
+  public hp: number = 9000;
   public speed: number = 125;
   public damage: number = 32;
   public isBoss: boolean = true;
@@ -77,7 +77,7 @@ export class SuccubusBoss extends BaseEnemy {
   public override spawn(
     x: number,
     y: number,
-    hp: number = 18000,
+    hp: number = 9000,
     speed: number = 125,
     damage: number = 32,
     customScale: number = 1.75
