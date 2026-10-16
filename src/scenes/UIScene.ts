@@ -946,6 +946,34 @@ export class UIScene extends Phaser.Scene {
     }
 
     // ==========================================
+    // 2. BLIPS DE ITENS DE MAPA (VERDE VIBRANTE COM INDICADOR DIRECIONAL)
+    // ==========================================
+    if (gameScene.mapItemsGroup) {
+      const items = gameScene.mapItemsGroup.getChildren();
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i] as any;
+        if (!item.active || !item.visible) continue;
+
+        const dx = item.x - p.x;
+        const dy = item.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx);
+
+        // Se estiver fora do alcance do radar, fixa na borda apontando para o item
+        const isOffRadar = dist > maxWorldDist;
+        const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
+        const bx = cx + Math.cos(angle) * blipDist;
+        const by = cy + Math.sin(angle) * blipDist;
+
+        // Ponto verde esmeralda vibrante com contorno branco fino para fácil leitura
+        g.fillStyle(0x00ff66, 1);
+        g.fillCircle(bx, by, 3.8);
+        g.lineStyle(1, 0xffffff, 0.9);
+        g.strokeCircle(bx, by, 3.8);
+      }
+    }
+
+    // ==========================================
     // 3. JOGADOR (CENTRO DO RADAR COM PONTEIRO DIRECIONAL)
     // ==========================================
     // Determina o ângulo da direção atual da heroína

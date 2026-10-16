@@ -27,6 +27,10 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public extraProjectiles: number = 0;
   public extraPierce: number = 0;
 
+  // Novos Atributos Passivos de Cura e Sobrevivência
+  public hpRegenPerSec: number = 0; // Regeneração contínua de HP por segundo (até 3.0/s)
+  public lifeStealPerHit: number = 0; // Roubo de vida por acerto (até 1.5 por golpe)
+
   public isSprinting: boolean = false;
   public isMoving: boolean = false;
   public isStaminaExhausted: boolean = false;
@@ -121,6 +125,11 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
       }
     }
 
+    // Regeneração contínua de Vida (HP Regen passivo)
+    if (this.hpRegenPerSec > 0 && this.currentHp < this.maxHp && this.currentHp > 0) {
+      this.currentHp = Math.min(this.maxHp, this.currentHp + this.hpRegenPerSec * deltaSec);
+    }
+
     // Aplicação da velocidade com bônus de upgrade
     const speedMult = 1 + this.bonusSpeedPercent / 100;
     const currentSpeed = (this.isSprinting ? this.sprintSpeed : this.baseSpeed) * speedMult;
@@ -158,6 +167,14 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
 
   public heal(amount: number): void {
     this.currentHp = Math.min(this.maxHp, this.currentHp + amount);
+  }
+
+  /**
+   * Aciona roubo de vida por acerto (Life Steal)
+   */
+  public triggerLifeSteal(hits: number = 1): void {
+    if (this.lifeStealPerHit <= 0 || this.currentHp <= 0) return;
+    this.heal(this.lifeStealPerHit * hits);
   }
 
   public gainXp(amount: number): boolean {

@@ -11,6 +11,7 @@ import { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
 import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
+import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
@@ -49,7 +50,9 @@ export class GameScene extends Phaser.Scene {
   public soulBoltWeapon!: SoulBoltWeapon;
   public enemiesGroup!: Phaser.GameObjects.Group;
   public gemsGroup!: Phaser.GameObjects.Group;
+  public mapItemsGroup!: Phaser.GameObjects.Group;
   private spawnTimer: number = 0;
+  private mapItemSpawnTimer: number = 0;
   public killCount: number = 0;
   private playerInvulnerableTimer: number = 0;
 
@@ -84,6 +87,7 @@ export class GameScene extends Phaser.Scene {
     this.survivalTimeMs = 0;
     this.bossInstance = undefined;
     this.spawnTimer = 0;
+    this.mapItemSpawnTimer = 0;
     this.bossMinionTimer = 0;
     this.clearCombatSpeechBubbles();
   }
@@ -178,6 +182,11 @@ export class GameScene extends Phaser.Scene {
       runChildUpdate: false
     });
 
+    this.mapItemsGroup = this.add.group({
+      classType: MapItem,
+      runChildUpdate: false
+    });
+
     this.weapons = [];
     this.soulBoltWeapon = new SoulBoltWeapon(this, this.player);
     this.weapons.push(this.soulBoltWeapon);
@@ -200,6 +209,19 @@ export class GameScene extends Phaser.Scene {
         if (proj.active && enemy.active && !enemy.isDead) {
           SoundManager.getInstance().playEnemyHit();
           proj.onHit(enemy);
+          this.player.triggerLifeSteal(1);
+        }
+      }
+    );
+
+    // 6.1. Configuração de Coleta de Itens do Mapa (Cálice, Ímã, Baú)
+    this.physics.add.overlap(
+      this.player,
+      this.mapItemsGroup,
+      (_playerObj, itemObj) => {
+        const item = itemObj as MapItem;
+        if (item.active && !this.isGameOver) {
+          item.collect(this.player, this);
         }
       }
     );
@@ -241,6 +263,12 @@ export class GameScene extends Phaser.Scene {
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
     });
+
+    // Spawns Iniciais de Itens no Mapa (exploração e auxílio inicial)
+    const angle1 = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const angle2 = angle1 + Math.PI * 0.75;
+    this.spawnMapItem(this.player.x + Math.cos(angle1) * 450, this.player.y + Math.sin(angle1) * 450, 'chalice');
+    this.spawnMapItem(this.player.x + Math.cos(angle2) * 520, this.player.y + Math.sin(angle2) * 520, 'chest');
 
     // Spawns Iniciais de Monstros (apenas Cães Zumbis no início de ambos os modos - Fase 1)
     if (this.gameMode === 'endless') {
@@ -391,6 +419,24 @@ export class GameScene extends Phaser.Scene {
       const g = activeGems[i];
       if (g.active) {
         g.updateGem(this.player, delta);
+      }
+    }
+
+    // 5.1. Atualizar Itens Especiais de Mapa (Levitação / Bobbing)
+    const activeMapItems = this.mapItemsGroup.getChildren() as MapItem[];
+    for (let i = 0; i < activeMapItems.length; i++) {
+      const item = activeMapItems[i];
+      if (item.active) {
+        item.updateItem(delta);
+      }
+    }
+
+    // 5.2. Spawner Periódico de Itens de Mapa (a cada ~40s, até no máximo 4 itens simultâneos no mapa)
+    this.mapItemSpawnTimer += delta;
+    if (this.mapItemSpawnTimer >= 40000) {
+      this.mapItemSpawnTimer = 0;
+      if (this.mapItemsGroup.countActive() < 4) {
+        this.spawnRandomMapItem();
       }
     }
 
@@ -608,6 +654,22 @@ export class GameScene extends Phaser.Scene {
     gem.spawn(x, y, type);
   }
 
+  public spawnMapItem(x: number, y: number, type?: MapItemType): MapItem {
+    const types: MapItemType[] = ['chalice', 'magnet', 'chest'];
+    const chosenType = type ?? Phaser.Math.RND.pick(types);
+    const item = new MapItem(this, x, y, chosenType);
+    this.mapItemsGroup.add(item);
+    return item;
+  }
+
+  public spawnRandomMapItem(): void {
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const dist = Phaser.Math.Between(450, 750);
+    const x = this.player.x + Math.cos(angle) * dist;
+    const y = this.player.y + Math.sin(angle) * dist;
+    this.spawnMapItem(x, y);
+  }
+
   private spawnEnemyRandomPerimeter(): void {
     // Não spawna se a Boss estiver em campo ou durante a Ultimate
     if (this.player.isUltimateActive || this.isBossFightActive) return;
@@ -734,6 +796,8 @@ export class GameScene extends Phaser.Scene {
       this.killCount++;
       this.player.gainUltimateCharge(25);
       this.spawnGemAt(ex, ey, 'purple');
+      // Drop de item especial de auxílio (Cálice de Cura ou Ímã)
+      this.spawnMapItem(ex + 25, ey, Math.random() < 0.5 ? 'chalice' : 'magnet');
       this.cameras.main.shake(250, 0.015);
     });
 
@@ -760,9 +824,10 @@ export class GameScene extends Phaser.Scene {
     matriarch.on('boss-defeated', () => {
       this.killCount++;
       this.player.gainUltimateCharge(50);
-      // Recompensa lendária: 2 Gemas Roxas
+      // Recompensa lendária: 2 Gemas Roxas e Baú do Abismo
       this.spawnGemAt(matriarch.x - 20, matriarch.y, 'purple');
       this.spawnGemAt(matriarch.x + 20, matriarch.y, 'purple');
+      this.spawnMapItem(matriarch.x, matriarch.y - 30, 'chest');
       this.cameras.main.shake(300, 0.02);
     });
 
@@ -783,7 +848,8 @@ export class GameScene extends Phaser.Scene {
     this.bossInstance.setDepth(25);
     this.enemiesGroup.add(this.bossInstance);
 
-    this.bossInstance.spawn(bossX, bossY, 12000, 135, 36, 1.85);
+    // Vida reduzida pela metade para manter batalha justa e eletrizante
+    this.bossInstance.spawn(bossX, bossY, 6000, 135, 36, 1.85);
 
     this.cameras.main.flash(300, 255, 0, 85);
     this.cameras.main.shake(400, 0.025);
@@ -794,10 +860,11 @@ export class GameScene extends Phaser.Scene {
       this.killCount += 5;
       this.player.gainUltimateCharge(100);
 
-      // Recompensa suprema: 3 Gemas Roxas e celebração de sobrevivência
+      // Recompensa suprema: 3 Gemas Roxas, Baú de Upgrade e celebração de sobrevivência
       this.spawnGemAt(bossX - 30, bossY, 'purple');
       this.spawnGemAt(bossX, bossY, 'purple');
       this.spawnGemAt(bossX + 30, bossY, 'purple');
+      this.spawnMapItem(bossX, bossY - 40, 'chest');
 
       this.cameras.main.flash(400, 255, 215, 0);
       this.cameras.main.shake(400, 0.025);

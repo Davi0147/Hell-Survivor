@@ -104,6 +104,14 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Força a atração imediata e em alta velocidade pelo Ímã Especial do mapa
+   */
+  public forceMagnetPull(): void {
+    this.isAttracted = true;
+    this.attractSpeed = Math.max(this.attractSpeed, 380);
+  }
+
   private collect(player: BaseCharacter): void {
     // 1. Partículas de faísca da gema absorvida
     this.emitPickupSparkles();

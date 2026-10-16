@@ -93,8 +93,8 @@ export class UpgradeScene extends Phaser.Scene {
     });
   }
 
-  private getAvailableCards(): UpgradeCard[] {
-    const hasVoidScythes = this.gameScene.weapons && this.gameScene.weapons.some(
+  public static getAvailableUpgrades(player: BaseCharacter, gameScene: any): UpgradeCard[] {
+    const hasVoidScythes = gameScene.weapons && gameScene.weapons.some(
       (w: any) => w instanceof VoidScythesWeapon
     );
 
@@ -106,8 +106,8 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0x00f5d4,
         icon: '+TIRO',
         description: '+1 Projétil Simultâneo\n\nDispara mais uma esfera mística a cada rajada.',
-        apply: (player) => {
-          player.extraProjectiles += 1;
+        apply: (p) => {
+          p.extraProjectiles += 1;
         }
       },
       {
@@ -117,8 +117,8 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0x9b5de5,
         icon: 'PERF',
         description: '+1 Perfuração\n\nSeus tiros atravessam mais um monstro antes de dissipar.',
-        apply: (player) => {
-          player.extraPierce += 1;
+        apply: (p) => {
+          p.extraPierce += 1;
         }
       },
       {
@@ -128,8 +128,8 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xd90429,
         icon: 'FÚRIA',
         description: '+25% Dano Global\n\nAumenta a força destrutiva de todas as armas equipadas.',
-        apply: (player) => {
-          player.bonusDamagePercent += 25;
+        apply: (p) => {
+          p.bonusDamagePercent += 25;
         }
       },
       {
@@ -139,8 +139,8 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xffb703,
         icon: 'PASSOS',
         description: '+15% Velocidade\n\nPassos e sprint acelerados para escapar de enxames.',
-        apply: (player) => {
-          player.bonusSpeedPercent += 15;
+        apply: (p) => {
+          p.bonusSpeedPercent += 15;
         }
       },
       {
@@ -150,10 +150,10 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0x06d6a0,
         icon: 'VIGOR',
         description: '+30 Estamina Máxima\n\nCorra por mais tempo e recarregue fôlego mais rápido.',
-        apply: (player) => {
-          player.maxStamina += 30;
-          player.currentStamina = player.maxStamina;
-          player.bonusStaminaPercent += 20;
+        apply: (p) => {
+          p.maxStamina += 30;
+          p.currentStamina = p.maxStamina;
+          p.bonusStaminaPercent += 20;
         }
       },
       {
@@ -163,8 +163,8 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0x3a86ff,
         icon: 'ÍMÃ',
         description: '+50% Raio de Coleta\n\nAtrai gemas de alma caídas a distâncias muito maiores.',
-        apply: (player) => {
-          player.bonusPickupRadiusPercent += 50;
+        apply: (p) => {
+          p.bonusPickupRadiusPercent += 50;
         }
       },
       {
@@ -174,12 +174,46 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xff0054,
         icon: 'VIDA',
         description: '+25 Vida Máxima\n\nCura 40 HP na hora e expande sua resistência vital.',
-        apply: (player) => {
-          player.maxHp += 25;
-          player.heal(40);
+        apply: (p) => {
+          p.maxHp += 25;
+          p.heal(40);
         }
       }
     ];
+
+    // Novo Upgrade 1: Regeneração de Vida contínua (0.5/s até 3.0/s)
+    if (player.hpRegenPerSec < 3.0) {
+      const nextRegen = Math.min(3.0, Number((player.hpRegenPerSec + 0.5).toFixed(1)));
+      const level = Math.round(nextRegen / 0.5);
+      catalog.push({
+        id: 'hp_regen',
+        title: 'REGENERAÇÃO SOMBRIA',
+        category: `SOBREVIVÊNCIA // NÍVEL ${level}/6`,
+        badgeColor: 0x2ec4b6,
+        icon: 'REGEN',
+        description: `+0.5 HP por Segundo (${nextRegen.toFixed(1)}/3.0)\n\nCura contínua de sangue infernal regenerando suas feridas em combate.`,
+        apply: (p) => {
+          p.hpRegenPerSec = nextRegen;
+        }
+      });
+    }
+
+    // Novo Upgrade 2: Roubo de Vida por Acerto (0.5 até 1.5 HP)
+    if (player.lifeStealPerHit < 1.5) {
+      const nextSteal = Math.min(1.5, Number((player.lifeStealPerHit + 0.5).toFixed(1)));
+      const level = Math.round(nextSteal / 0.5);
+      catalog.push({
+        id: 'life_steal',
+        title: 'DRENO VITAL',
+        category: `SOBREVIVÊNCIA // NÍVEL ${level}/3`,
+        badgeColor: 0x8338ec,
+        icon: 'DRENO',
+        description: `+0.5 HP Roubado por Golpe (${nextSteal.toFixed(1)}/1.5)\n\nRouba a vitalidade dos monstros a cada acerto de suas armas.`,
+        apply: (p) => {
+          p.lifeStealPerHit = nextSteal;
+        }
+      });
+    }
 
     // Adiciona a arma "LÂMINAS ORBITAIS" ou sua evolução até 6 lâminas
     if (!hasVoidScythes) {
@@ -190,13 +224,13 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xf72585,
         icon: 'FOICE',
         description: 'Foice Mística em Órbita\n\n1 foice espectral veloz gira ao redor da Nixy retalhando monstros!',
-        apply: (player, gameScene) => {
-          const scythes = new VoidScythesWeapon(gameScene, player);
-          gameScene.weapons.push(scythes);
+        apply: (p, gs) => {
+          const scythes = new VoidScythesWeapon(gs, p);
+          gs.weapons.push(scythes);
         }
       });
     } else {
-      const scythesWeapon = this.gameScene.weapons && this.gameScene.weapons.find(
+      const scythesWeapon = gameScene.weapons && gameScene.weapons.find(
         (w: any) => w instanceof VoidScythesWeapon
       ) as VoidScythesWeapon | undefined;
 
@@ -217,7 +251,7 @@ export class UpgradeScene extends Phaser.Scene {
     }
 
     // Adiciona a arma "CHAMAS DO PURGATÓRIO" ou sua evolução até Nível 5
-    const hasHellfire = this.gameScene.weapons && this.gameScene.weapons.some(
+    const hasHellfire = gameScene.weapons && gameScene.weapons.some(
       (w: any) => w instanceof HellfireAuraWeapon
     );
 
@@ -229,13 +263,13 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xff4500,
         icon: 'CHAMAS',
         description: 'Aura Vulcânica Devoradora\n\nEmite pulsos periódicos de fogo infernal calcinando monstros em área!',
-        apply: (player, gameScene) => {
-          const hellfire = new HellfireAuraWeapon(gameScene, player);
-          gameScene.weapons.push(hellfire);
+        apply: (p, gs) => {
+          const hellfire = new HellfireAuraWeapon(gs, p);
+          gs.weapons.push(hellfire);
         }
       });
     } else {
-      const hellfireWeapon = this.gameScene.weapons && this.gameScene.weapons.find(
+      const hellfireWeapon = gameScene.weapons && gameScene.weapons.find(
         (w: any) => w instanceof HellfireAuraWeapon
       ) as HellfireAuraWeapon | undefined;
 
@@ -256,6 +290,10 @@ export class UpgradeScene extends Phaser.Scene {
     }
 
     return catalog;
+  }
+
+  private getAvailableCards(): UpgradeCard[] {
+    return UpgradeScene.getAvailableUpgrades(this.player, this.gameScene);
   }
 
   private pickRandomCards(cards: UpgradeCard[], count: number): UpgradeCard[] {

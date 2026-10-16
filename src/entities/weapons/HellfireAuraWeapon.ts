@@ -142,6 +142,7 @@ export class HellfireAuraWeapon extends BaseWeapon {
 
     if (hitCount > 0) {
       SoundManager.getInstance().playEnemyHit();
+      this.player.triggerLifeSteal(hitCount);
     }
   }
 

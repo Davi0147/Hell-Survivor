@@ -9,6 +9,7 @@ export class VoidScythesWeapon extends BaseWeapon {
   private player: BaseCharacter;
   private blades: Phaser.GameObjects.Sprite[] = [];
   private orbitAngle: number = 0;
+  private spinAngle: number = 0;
   private orbitRadius: number = 70;
   private rotationSpeed: number = 3.6; // Radianos por segundo
   private bladeCount: number = 1; // Começa rigorosamente com 1 foice
@@ -78,6 +79,7 @@ export class VoidScythesWeapon extends BaseWeapon {
   ): void {
     const deltaSec = deltaMs / 1000;
     this.orbitAngle += this.rotationSpeed * deltaSec;
+    this.spinAngle += 10 * deltaSec; // Rotação contínua e rápida sobre o próprio eixo
 
     // Reduz cooldown de dano dos inimigos atingidos recentemente
     for (const [enemy, cd] of this.enemyHitCooldowns.entries()) {
@@ -105,7 +107,8 @@ export class VoidScythesWeapon extends BaseWeapon {
 
       const blade = this.blades[i];
       blade.setPosition(bx, by);
-      blade.setRotation(angle + Math.PI / 2);
+      // Gira sobre o próprio eixo enquanto orbita a heroína
+      blade.setRotation(this.spinAngle + i * (Math.PI / 2));
 
       // Verificação de colisão com inimigos ativos
       const activeEnemies = enemies.getChildren() as BaseEnemy[];
@@ -128,6 +131,9 @@ export class VoidScythesWeapon extends BaseWeapon {
     const effectiveDamage = Math.round(this.damage * (1 + this.player.bonusDamagePercent / 100));
     enemy.takeDamage(effectiveDamage);
     SoundManager.getInstance().playEnemyHit();
+
+    // 2.1. Gatilho de Roubo de Vida passivo
+    this.player.triggerLifeSteal(1);
 
     // 3. Empurrão (Knockback) leve para afastar da heroína
     const kx = enemy.x - this.player.x;
