@@ -328,6 +328,83 @@ export class SoundManager {
   }
 
   /**
+   * Barulhinho satisfatório de clique místico / roleta ao rolar cada nome de bênção
+   */
+  public playRouletteTick(pitchMult: number = 1.0): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    // Timbre cristalino e estalado estilo slot machine retrô
+    osc.type = 'triangle';
+    const baseFreq = 1150 * pitchMult;
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, now + 0.025);
+
+    gain.gain.setValueAtTime(0.22 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGainNode || ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.04);
+  }
+
+  /**
+   * Som triunfante de prêmio / jackpot ao selecionar a bênção final
+   */
+  public playRouletteJackpot(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    // Arpeggio cintilante e alegre de prêmio (C6, E6, G6, B6, C7)
+    const notes = [1046.5, 1318.5, 1567.98, 1975.53, 2093.0];
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = idx === notes.length - 1 ? 'sine' : 'triangle';
+      const noteStart = now + idx * 0.055;
+      osc.frequency.setValueAtTime(freq, noteStart);
+
+      const noteDuration = idx === notes.length - 1 ? 0.45 : 0.14;
+      const vol = (idx === notes.length - 1 ? 0.32 : 0.20) * this.sfxVolume;
+
+      gain.gain.setValueAtTime(vol, noteStart);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteStart + noteDuration);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+
+      osc.start(noteStart);
+      osc.stop(noteStart + noteDuration + 0.01);
+    });
+
+    // Brilho de sinos ressonantes (chime shimmer)
+    const shimmerOsc = ctx.createOscillator();
+    const shimmerGain = ctx.createGain();
+    shimmerOsc.type = 'sine';
+    const shimmerStart = now + 0.28;
+    shimmerOsc.frequency.setValueAtTime(3135.96, shimmerStart);
+    shimmerOsc.frequency.exponentialRampToValueAtTime(4186.01, shimmerStart + 0.35);
+
+    shimmerGain.gain.setValueAtTime(0.15 * this.sfxVolume, shimmerStart);
+    shimmerGain.gain.exponentialRampToValueAtTime(0.001, shimmerStart + 0.40);
+
+    shimmerOsc.connect(shimmerGain);
+    shimmerGain.connect(this.sfxGainNode || ctx.destination);
+
+    shimmerOsc.start(shimmerStart);
+    shimmerOsc.stop(shimmerStart + 0.42);
+  }
+
+  /**
    * Som característico de "Voz" no início da fala de cada personagem
    */
   public playDialogueVoice(speaker: string): void {

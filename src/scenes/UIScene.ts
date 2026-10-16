@@ -1214,9 +1214,11 @@ export class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Roleta Mística do Baú do Abismo:
-   * Abre um modal gótico animado, gira através de melhorias aleatórias com desaceleração,
-   * e concede a bênção sorteada ao jogador com celebração audiovisual satisfatória.
+   * Roleta Minimalista de Bênçãos do Baú do Abismo:
+   * Sem painéis pesados, caixas ou bordas geométricas.
+   * Os nomes sobem continuamente na vertical com estalos satisfatórios (playRouletteTick),
+   * desaceleram, e revelam a bênção com fanfarra de prêmio (playRouletteJackpot),
+   * "BÊNÇÃO CONCEDIDA" no topo, descrição limpa e prompt sutil de coleta.
    */
   public showChestRoulette(
     availableCards: UpgradeCard[],
@@ -1226,7 +1228,7 @@ export class UIScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
-    // 1. Pausa o combate durante a roleta para segurança total do jogador
+    // 1. Pausa o combate durante a roleta para segurança total da jogadora
     if (gameScene?.physics) {
       gameScene.physics.pause();
     }
@@ -1234,145 +1236,93 @@ export class UIScene extends Phaser.Scene {
     const modal = this.add.container(0, 0);
     modal.setDepth(3400);
 
-    // 2. Fundo escuro com vinheta translúcida bloqueando cliques no mapa
-    const darkBackdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.82);
-    darkBackdrop.setInteractive();
-    modal.add(darkBackdrop);
+    // 2. Fundo escuro suave translúcido (sem caixas ou molduras)
+    const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78);
+    backdrop.setInteractive();
+    modal.add(backdrop);
 
-    // 3. Painel Gótico Barroco Central
-    const pW = Math.min(width - 40, 470);
-    const pH = 330;
-    const pX = width / 2;
-    const pY = height / 2;
+    const centerX = width / 2;
+    const centerY = height / 2;
 
-    const bgG = this.add.graphics();
-    // Fundo veludo carmesim profundo
-    bgG.fillStyle(0x130206, 0.98);
-    bgG.fillRoundedRect(pX - pW / 2, pY - pH / 2, pW, pH, 12);
-    bgG.fillStyle(0x22040b, 0.85);
-    bgG.fillRoundedRect(pX - pW / 2 + 5, pY - pH / 2 + 5, pW - 10, pH - 10, 10);
-
-    // Moldura ouro envelhecido barroca
-    bgG.lineStyle(2.5, 0xc59b27, 1);
-    bgG.strokeRoundedRect(pX - pW / 2, pY - pH / 2, pW, pH, 12);
-    bgG.lineStyle(1.5, 0xf3d17a, 0.8);
-    bgG.strokeRoundedRect(pX - pW / 2 + 4, pY - pH / 2 + 4, pW - 8, pH - 8, 9);
-    modal.add(bgG);
-
-    // Ícone do Baú com animação flutuante
+    // Ícone do Baú flutuante no topo
     let chestSprite: Phaser.GameObjects.Image | undefined;
     if (this.textures.exists('item-chest')) {
-      chestSprite = this.add.image(pX, pY - pH / 2 + 48, 'item-chest');
-      chestSprite.setScale(1.5);
+      chestSprite = this.add.image(centerX, centerY - 82, 'item-chest');
+      chestSprite.setScale(1.4);
       modal.add(chestSprite);
 
       this.tweens.add({
         targets: chestSprite,
-        y: chestSprite.y - 5,
-        duration: 450,
+        y: chestSprite.y - 6,
+        duration: 480,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut'
       });
     }
 
-    // Título Principal
-    const titleText = this.add.text(pX, pY - pH / 2 + (chestSprite ? 84 : 45), 'BAÚ DO ABISMO', {
+    // Texto superior de status ("BÊNÇÃO CONCEDIDA" ou "SORTEANDO BÊNÇÃO...")
+    const headerText = this.add.text(centerX, centerY - 40, 'SORTEANDO BÊNÇÃO...', {
       fontFamily: pixelFont,
-      fontSize: '17px',
+      fontSize: '11px',
       fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#000000',
-      strokeThickness: 3
+      color: '#ff4d6d',
+      letterSpacing: 2
     }).setOrigin(0.5);
-    modal.add(titleText);
+    modal.add(headerText);
 
-    // Subtítulo do Estado da Roleta
-    const statusText = this.add.text(pX, titleText.y + 20, 'SORTEANDO BÊNÇÃO...', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#ff4d6d'
-    }).setOrigin(0.5);
-    modal.add(statusText);
+    // Container dedicado onde os nomes vão subir
+    const reelContainer = this.add.container(centerX, centerY);
+    modal.add(reelContainer);
 
-    // Caixa / Slot da Roleta
-    const slotW = pW - 50;
-    const slotH = 54;
-    const slotY = statusText.y + 44;
-
-    const slotBg = this.add.graphics();
-    slotBg.fillStyle(0x070103, 1);
-    slotBg.fillRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
-    slotBg.lineStyle(2, 0xc59b27, 1);
-    slotBg.strokeRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
-    modal.add(slotBg);
-
-    // Texto da Roleta (Gira os nomes)
-    const tickerText = this.add.text(pX, slotY, '???', {
-      fontFamily: pixelFont,
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5);
-    modal.add(tickerText);
-
-    // Categoria e Descrição Reveladas
-    const categoryBadge = this.add.text(pX, slotY + 40, '', {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#00f5d4',
-      backgroundColor: '#002520aa',
-      padding: { x: 6, y: 3 }
-    }).setOrigin(0.5).setVisible(false);
-    modal.add(categoryBadge);
-
-    const descText = this.add.text(pX, slotY + 66, '', {
+    // Texto descritivo breve
+    const descText = this.add.text(centerX, centerY + 40, '', {
       fontFamily: pixelFont,
       fontSize: '10px',
       color: '#e2e8f0',
       align: 'center',
-      wordWrap: { width: slotW - 20 }
+      wordWrap: { width: Math.min(width - 60, 460) }
     }).setOrigin(0.5).setVisible(false);
     modal.add(descText);
 
-    // Botão de Coleta
-    const btnW = 200;
-    const btnH = 32;
-    const btnY = pY + pH / 2 - 30;
-
-    const btnContainer = this.add.container(pX, btnY);
-    btnContainer.setVisible(false);
-    modal.add(btnContainer);
-
-    const btnBg = this.add.graphics();
-    const drawBtn = (hover: boolean) => {
-      btnBg.clear();
-      btnBg.fillStyle(hover ? 0xc59b27 : 0x1f0d14, 1);
-      btnBg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 6);
-      btnBg.lineStyle(1.5, hover ? 0xffffff : 0xf3d17a, 1);
-      btnBg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 6);
-    };
-    drawBtn(false);
-    btnContainer.add(btnBg);
-
-    const btnLabel = this.add.text(0, 0, 'COLETAR BÊNÇÃO', {
+    // Texto minimalista de coleta (sem formas nem quadrados ao redor!)
+    const collectPrompt = this.add.text(centerX, centerY + 86, '[ COLETAR BÊNÇÃO ]', {
       fontFamily: pixelFont,
-      fontSize: '10px',
+      fontSize: '12px',
       fontStyle: 'bold',
-      color: '#ffffff',
+      color: '#f3d17a',
       stroke: '#000000',
       strokeThickness: 2
-    }).setOrigin(0.5);
-    btnContainer.add(btnLabel);
+    }).setOrigin(0.5).setVisible(false);
+    collectPrompt.setInteractive({ useHandCursor: true });
+    modal.add(collectPrompt);
 
-    const btnZone = this.add.zone(0, 0, btnW, btnH);
-    btnZone.setInteractive({ useHandCursor: true });
-    btnContainer.add(btnZone);
+    const keyHint = this.add.text(centerX, centerY + 106, '(ou pressione Espaço)', {
+      fontFamily: pixelFont,
+      fontSize: '8px',
+      color: '#64748b'
+    }).setOrigin(0.5).setVisible(false);
+    modal.add(keyHint);
 
-    // Lista de nomes para rodar na roleta
+    // Animação de pulso suave no texto de coleta
+    this.tweens.add({
+      targets: collectPrompt,
+      alpha: 0.6,
+      duration: 550,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    collectPrompt.on('pointerover', () => {
+      collectPrompt.setColor('#ffffff');
+      SoundManager.getInstance().playMenuHover();
+    });
+    collectPrompt.on('pointerout', () => {
+      collectPrompt.setColor('#f3d17a');
+    });
+
+    // Lista de nomes para a animação da roleta
     const dummyNames = [
       'LÂMINAS ORBITAIS',
       'FÚRIA INFERNAL',
@@ -1389,78 +1339,117 @@ export class UIScene extends Phaser.Scene {
     const pool = availableCards.length > 0 ? availableCards : [];
     const chosenCard = pool.length > 0 ? Phaser.Math.RND.pick(pool) : null;
 
-    // Curva de desaceleração da roleta (15 passos de giro simulando slot machine)
-    const tickDelays = [45, 50, 50, 55, 60, 70, 80, 95, 115, 140, 175, 220, 280, 360, 480];
-    let tickIndex = 0;
+    // Curva de desaceleração (14 passos progressivos simulando carretel de slot)
+    const stepDelays = [40, 45, 50, 55, 65, 75, 90, 110, 140, 180, 230, 290, 370, 480];
+    let stepIndex = 0;
+    let currentSlotText: Phaser.GameObjects.Text | null = null;
 
-    const doTick = () => {
-      if (tickIndex < tickDelays.length) {
-        const randomName = pool.length > 0
+    const rollNextName = () => {
+      const isFinal = stepIndex >= stepDelays.length;
+
+      // Nome a ser exibido neste passo
+      let displayName: string;
+      if (isFinal) {
+        displayName = chosenCard ? chosenCard.title : 'RESTAURAÇÃO TOTAL';
+      } else {
+        displayName = pool.length > 0
           ? Phaser.Math.RND.pick(pool).title
           : Phaser.Math.RND.pick(dummyNames);
-        tickerText.setText(randomName);
+      }
 
-        // Som de giro rápido
-        SoundManager.getInstance().playMenuHover();
+      // Novo texto nascendo de baixo (+28px)
+      const nextSlotText = this.add.text(0, 28, displayName, {
+        fontFamily: pixelFont,
+        fontSize: isFinal ? '18px' : '15px',
+        fontStyle: 'bold',
+        color: isFinal ? '#ffe600' : '#ffd700',
+        stroke: '#000000',
+        strokeThickness: isFinal ? 4 : 3
+      }).setOrigin(0.5);
+      nextSlotText.setAlpha(0);
+      reelContainer.add(nextSlotText);
 
-        // Leve pulso elástico no texto
-        tickerText.setScale(1.1);
+      const animDuration = isFinal ? 280 : Math.max(30, stepDelays[stepIndex] * 0.75);
+
+      // O texto atual sobe (-28px) e desaparece
+      if (currentSlotText && currentSlotText.active) {
+        const oldText = currentSlotText;
         this.tweens.add({
-          targets: tickerText,
-          scaleX: 1.0,
-          scaleY: 1.0,
-          duration: Math.max(30, tickDelays[tickIndex] - 10)
+          targets: oldText,
+          y: -28,
+          alpha: 0,
+          duration: animDuration,
+          ease: 'Quad.easeOut',
+          onComplete: () => oldText.destroy()
+        });
+      }
+
+      // O novo texto sobe para o centro (0) e ganha opacidade
+      this.tweens.add({
+        targets: nextSlotText,
+        y: 0,
+        alpha: 1,
+        duration: animDuration,
+        ease: isFinal ? 'Back.easeOut' : 'Quad.easeOut'
+      });
+
+      currentSlotText = nextSlotText;
+
+      if (!isFinal) {
+        // Toca o barulhinho satisfatório de clique místico
+        const pitchProgress = 0.95 + (stepIndex / stepDelays.length) * 0.35;
+        SoundManager.getInstance().playRouletteTick(pitchProgress);
+
+        const delay = stepDelays[stepIndex];
+        stepIndex++;
+        this.time.delayedCall(delay, rollNextName);
+      } else {
+        // FINAL: PAROU NA BÊNÇÃO!
+        // 1. Toca o som de prêmio / jackpot triunfante
+        SoundManager.getInstance().playRouletteJackpot();
+        this.cameras.main.flash(220, 255, 215, 0);
+
+        // 2. Altera o texto do topo para "BÊNÇÃO CONCEDIDA"
+        headerText.setText('BÊNÇÃO CONCEDIDA').setColor('#00f5d4');
+
+        // 3. Formata brevemente a descrição sem quebras excessivas
+        let cleanDesc: string;
+        if (chosenCard) {
+          cleanDesc = chosenCard.description
+            .replace(/\n\n/g, ' — ')
+            .replace(/\n/g, ' ');
+        } else {
+          cleanDesc = 'Sua vitalidade foi 100% regenerada pelo fogo abissal.';
+        }
+        descText.setText(cleanDesc).setVisible(true).setAlpha(0);
+        this.tweens.add({
+          targets: descText,
+          alpha: 1,
+          y: centerY + 36,
+          duration: 300,
+          ease: 'Quad.easeOut'
         });
 
-        const currentDelay = tickDelays[tickIndex];
-        tickIndex++;
-        this.time.delayedCall(currentDelay, doTick);
-      } else {
-        // Fim da roleta: Parar na bênção sorteada
-        if (chosenCard) {
-          tickerText.setText(chosenCard.title);
-          categoryBadge.setText(chosenCard.category).setVisible(true);
-          descText.setText(chosenCard.description).setVisible(true);
-        } else {
-          tickerText.setText('RESTAURAÇÃO TOTAL');
-          categoryBadge.setText('SOBREVIVÊNCIA // CURA 100%').setVisible(true);
-          descText.setText('Sua vida foi 100% regenerada pelo fogo abissal!').setVisible(true);
-        }
-
-        statusText.setText('BÊNÇÃO CONCEDIDA!').setColor('#00f5d4');
-        tickerText.setColor('#ffe600');
-
-        // Celebração audiovisual
-        SoundManager.getInstance().playLevelUp();
-        this.cameras.main.flash(260, 255, 215, 0);
-
-        // Borda dourada brilhante na caixa da roleta
-        slotBg.clear();
-        slotBg.fillStyle(0x19050b, 1);
-        slotBg.fillRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
-        slotBg.lineStyle(2.5, 0xffd700, 1);
-        slotBg.strokeRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
-
-        // Revela botão com animação pop
-        btnContainer.setVisible(true);
-        btnContainer.setScale(0.8);
+        // 4. Mostra o texto minimalista de coletar bênção
+        collectPrompt.setVisible(true).setAlpha(0);
+        keyHint.setVisible(true).setAlpha(0);
         this.tweens.add({
-          targets: btnContainer,
-          scaleX: 1,
-          scaleY: 1,
-          duration: 200,
-          ease: 'Back.easeOut'
+          targets: [collectPrompt, keyHint],
+          alpha: 1,
+          duration: 350,
+          delay: 150,
+          ease: 'Linear'
         });
       }
     };
 
-    // Inicia a rotação após breve pausa de suspense
-    this.time.delayedCall(120, doTick);
+    // Inicia o primeiro giro após breve suspense (100ms)
+    this.time.delayedCall(100, rollNextName);
 
     // Finalização e Coleta
     let collected = false;
     const finalizeCollection = () => {
-      if (collected) return;
+      if (collected || stepIndex < stepDelays.length) return;
       collected = true;
 
       window.removeEventListener('keydown', onKey);
@@ -1480,18 +1469,8 @@ export class UIScene extends Phaser.Scene {
       }
     };
 
-    btnZone.on('pointerover', () => {
-      drawBtn(true);
-      btnLabel.setColor('#000000');
-      SoundManager.getInstance().playMenuHover();
-    });
-    btnZone.on('pointerout', () => {
-      drawBtn(false);
-      btnLabel.setColor('#ffffff');
-    });
-    btnZone.on('pointerdown', finalizeCollection);
+    collectPrompt.on('pointerdown', finalizeCollection);
 
-    // Atalho de teclado para fechar (Espaço ou Enter)
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.code === 'Enter') {
         finalizeCollection();
