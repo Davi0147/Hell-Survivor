@@ -122,6 +122,10 @@ export class BootScene extends Phaser.Scene {
     }
     this.textures.remove('chat-boss');
     this.textures.remove('chat-chefe');
+    for (let i = 1; i <= 5; i++) {
+      this.textures.remove(`explosion-${i}`);
+    }
+    this.textures.remove('mummy-poison-gosma');
   }
 
   preload(): void {
@@ -341,6 +345,14 @@ export class BootScene extends Phaser.Scene {
     this.load.image('altar-invoc-active-1', `assets/sprites/items/AltarInvoc%20Ativo1.png?t=${cacheBuster}`);
     this.load.image('altar-invoc-active-2', `assets/sprites/items/AltarInvoc%20Ativo2.png?t=${cacheBuster}`);
 
+    // Sprites de Explosão Animada Oficial (200x200px)
+    for (let i = 1; i <= 5; i++) {
+      this.load.image(`explosion-${i}`, `assets/sprites/items/Explosion${i}.png?t=${cacheBuster}`);
+    }
+
+    // Sprite da Gosma Tóxica da Múmia (40x40px)
+    this.load.image('mummy-poison-gosma', `assets/sprites/items/Gosma.png?t=${cacheBuster}`);
+
     this.load.image('game-title-logo', `assets/sprites/title.png?t=${cacheBuster}`);
     this.load.image('menu-background', `assets/sprites/main_menu_background.jpg?t=${cacheBuster}`);
 
@@ -484,6 +496,23 @@ export class BootScene extends Phaser.Scene {
         repeat: -1
       });
     }
+
+    // 1.5. Registrar animação de explosão (Explosion 1 a 5)
+    if (this.anims.exists('anim-explosion')) {
+      this.anims.remove('anim-explosion');
+    }
+    this.anims.create({
+      key: 'anim-explosion',
+      frames: [
+        { key: 'explosion-1' },
+        { key: 'explosion-2' },
+        { key: 'explosion-3' },
+        { key: 'explosion-4' },
+        { key: 'explosion-5' }
+      ],
+      frameRate: 15,
+      repeat: 0
+    });
 
     // 2. Criar texturas procedurais para armas, inimigos e efeitos
     this.createSoulBoltTexture();

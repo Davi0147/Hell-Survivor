@@ -163,20 +163,22 @@ export class GameScene extends Phaser.Scene {
     // 3.3. Instancia o Altar de Invocação do Chefe (inicialmente inativo no mapa)
     this.spawnBossSummonAltar();
 
-    // Sincronizar o chão infinito e balões de combate no POST_UPDATE compensando a física e câmera (sem deslizar nem tremer)
+    // Sincronizar o chão infinito no POST_UPDATE compensando o scroll da câmera
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
       if (this.floorTile && this.cameras.main) {
         this.floorTile.tilePositionX = Math.round(this.cameras.main.scrollX / floorScale);
         this.floorTile.tilePositionY = Math.round(this.cameras.main.scrollY / floorScale);
       }
+    });
 
-      // Rastreamento pixel-perfect dos balões de combate (executa após a física mover os sprites e a câmera atualizar)
+    // Rastreamento suave e estável dos balões de combate no PRE_RENDER (elimina qualquer tremor durante movimento)
+    this.events.on(Phaser.Scenes.Events.PRE_RENDER, () => {
       for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
         const bubble = this.activeCombatBubbles[i];
         const target = bubble.target;
         const isAlive = target && target.active && !('isDead' in target && target.isDead) && !('currentHp' in target && target.currentHp <= 0);
         if (isAlive) {
-          bubble.container.setPosition(Math.round(target.x), Math.round(target.y + bubble.offsetY));
+          bubble.container.setPosition(target.x, target.y + bubble.offsetY);
         } else {
           bubble.container.destroy();
           this.activeCombatBubbles.splice(i, 1);
@@ -1836,7 +1838,7 @@ export class GameScene extends Phaser.Scene {
 
     const offsetY = isNixy ? -34 : -50;
 
-    const container = this.add.container(Math.round(target.x), Math.round(target.y + offsetY));
+    const container = this.add.container(target.x, target.y + offsetY);
     container.setDepth(1500);
     container.setAlpha(0);
 

@@ -198,30 +198,29 @@ export class InfernalMeteorWeapon extends BaseWeapon {
     SoundManager.getInstance().playMeteorImpact();
     this.scene.cameras.main.shake(95, 0.004);
 
-    // Onda de choque da cratera vulcânica
-    const shockwave = this.scene.add.graphics();
-    shockwave.setDepth(19);
-    shockwave.setBlendMode(Phaser.BlendModes.ADD);
+    // 1. Iluminação de fundo incandescente no solo (luz ambiente da detonação)
+    const blastIllum = this.scene.add.circle(x, y, blastRadius * 0.9, 0xff5500, 0.55);
+    blastIllum.setDepth(17);
+    blastIllum.setBlendMode(Phaser.BlendModes.ADD);
 
-    this.scene.tweens.addCounter({
-      from: 12,
-      to: blastRadius,
-      duration: 280,
-      ease: 'Cubic.easeOut',
-      onUpdate: (tween) => {
-        const r = tween.getValue() ?? 12;
-        const p = (r - 12) / Math.max(1, blastRadius - 12);
-        const alpha = Math.max(0, 1 - p);
+    this.scene.tweens.add({
+      targets: blastIllum,
+      scale: 1.45,
+      alpha: 0,
+      duration: 380,
+      ease: 'Quad.easeOut',
+      onComplete: () => blastIllum.destroy()
+    });
 
-        shockwave.clear();
-        shockwave.fillStyle(0xff4500, alpha * 0.48);
-        shockwave.fillCircle(x, y, r);
-        shockwave.lineStyle(3.5, 0xffd166, alpha);
-        shockwave.strokeCircle(x, y, r);
-      },
-      onComplete: () => {
-        shockwave.destroy();
-      }
+    // 2. Sprite de Explosão Oficial Animado (Explosion 1 a 5)
+    const explosionScale = (blastRadius * 2.2) / 200;
+    const explosionSprite = this.scene.add.sprite(x, y, 'explosion-1');
+    explosionSprite.setDepth(25);
+    explosionSprite.setScale(explosionScale);
+    explosionSprite.play('anim-explosion');
+
+    explosionSprite.once('animationcomplete', () => {
+      explosionSprite.destroy();
     });
 
     // Estilhaços de magma

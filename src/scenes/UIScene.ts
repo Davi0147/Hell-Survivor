@@ -1473,7 +1473,7 @@ export class UIScene extends Phaser.Scene {
    * Exibe uma notificação dramática no centro da tela (um pouco mais para cima),
    * sem fundo, com texto grande e efeito de flutuação suave.
    */
-  public showCenterAnnouncement(title: string, subtitle?: string, durationMs: number = 3800): void {
+  public showCenterAnnouncement(title: string, subtitle?: string, durationMs: number = 4600): void {
     const { width, height } = this.scale;
     const centerY = Math.round(height * 0.32);
 
@@ -1489,45 +1489,47 @@ export class UIScene extends Phaser.Scene {
     container.setAlpha(0);
     container.setScale(0.8);
 
-    // 1. Título Principal em Letra Grande, Dourada e com Contorno Forte (Sem nenhum fundo!)
-    const titleText = this.add.text(0, subtitle ? -14 : 0, title, {
+    // 1. Título Principal em Letra Bem Grande, Dourada e com Contorno Forte (Sem nenhum fundo!)
+    const titleText = this.add.text(0, subtitle ? -22 : 0, title, {
       fontFamily: 'Pixelzone, Silkscreen, monospace',
-      fontSize: '26px',
+      fontSize: '36px',
       fontStyle: 'bold',
       color: '#ffe600',
       stroke: '#000000',
-      strokeThickness: 6,
+      strokeThickness: 7,
       align: 'center',
       shadow: {
         offsetX: 0,
-        offsetY: 3,
-        color: '#ff3300',
-        blur: 10,
+        offsetY: 4,
+        color: '#ff2200',
+        blur: 14,
         stroke: true,
         fill: true
       }
     }).setOrigin(0.5);
+    titleText.setResolution(2);
     container.add(titleText);
 
-    // 2. Subtítulo Opcional em tom flamejante
+    // 2. Subtítulo em Letra Maior e Perfeitamente Legível
     if (subtitle) {
-      const subText = this.add.text(0, 18, subtitle, {
+      const subText = this.add.text(0, 26, subtitle, {
         fontFamily: 'Pixelzone, Silkscreen, monospace',
-        fontSize: '13px',
+        fontSize: '20px',
         fontStyle: 'bold',
-        color: '#ffb703',
+        color: '#ffd166',
         stroke: '#000000',
-        strokeThickness: 4,
+        strokeThickness: 5,
         align: 'center',
         shadow: {
           offsetX: 0,
-          offsetY: 2,
-          color: '#370617',
-          blur: 6,
+          offsetY: 3,
+          color: '#000000',
+          blur: 8,
           stroke: true,
           fill: true
         }
       }).setOrigin(0.5);
+      subText.setResolution(2);
       container.add(subText);
     }
 

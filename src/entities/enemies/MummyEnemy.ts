@@ -4,7 +4,7 @@ import { Nixy } from '../characters/Nixy';
 import { GemType } from '../items/SoulGem';
 import { SoundManager } from '../../systems/SoundManager';
 
-export class PoisonPuddle extends Phaser.GameObjects.Arc {
+export class PoisonPuddle extends Phaser.GameObjects.Sprite {
   public radiusPx: number;
   public lifespanMs: number;
   public maxLifespanMs: number;
@@ -15,18 +15,17 @@ export class PoisonPuddle extends Phaser.GameObjects.Arc {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    radius: number = 20,
+    radius: number = 18,
     lifespanMs: number = 6000
   ) {
-    super(scene, x, y, radius, 0, 360, false, 0x38b000, 0.75);
+    super(scene, x, y, 'mummy-poison-gosma');
     scene.add.existing(this);
     this.setDepth(4); // Fica sobre o chão e abaixo de Nixy/inimigos
     this.radiusPx = radius;
     this.lifespanMs = lifespanMs;
     this.maxLifespanMs = lifespanMs;
-
-    // Borda ácida vibrante
-    this.setStrokeStyle(1.5, 0x70e000, 0.9);
+    this.setScale(1.0);
+    this.setAlpha(0.92);
   }
 
   public updatePuddle(deltaMs: number, player: Nixy, timeNow: number): void {

@@ -302,34 +302,32 @@ export class UltimateSystem {
     // 1. Tremor de câmera contundente sincronizado
     scene.cameras.main.shake(140, 0.012);
 
-    // 2. Anéis concêntricos de choque expandindo rapidamente
-    const shockwave = scene.add.circle(x, y, 15, 0xff0055, 0.9);
-    shockwave.setDepth(25);
-    shockwave.setBlendMode(Phaser.BlendModes.ADD);
+    // 2. Iluminação de fundo carmesim no chão (luz ambiente da detonação da Suprema)
+    const ultIllum = scene.add.circle(x, y, aoeRadius * 0.95, 0xff0055, 0.62);
+    ultIllum.setDepth(17);
+    ultIllum.setBlendMode(Phaser.BlendModes.ADD);
 
     scene.tweens.add({
-      targets: shockwave,
-      radius: aoeRadius,
+      targets: ultIllum,
+      scale: 1.5,
       alpha: 0,
-      duration: 260,
+      duration: 380,
       ease: 'Quad.easeOut',
-      onComplete: () => shockwave.destroy()
+      onComplete: () => ultIllum.destroy()
     });
 
-    const shockwave2 = scene.add.circle(x, y, 8, 0xffd60a, 0.95);
-    shockwave2.setDepth(26);
-    shockwave2.setBlendMode(Phaser.BlendModes.ADD);
+    // 3. Sprite de Explosão Oficial Animado (Explosion 1 a 5)
+    const explosionScale = (aoeRadius * 2.3) / 200;
+    const explosionSprite = scene.add.sprite(x, y, 'explosion-1');
+    explosionSprite.setDepth(25);
+    explosionSprite.setScale(explosionScale);
+    explosionSprite.play('anim-explosion');
 
-    scene.tweens.add({
-      targets: shockwave2,
-      radius: aoeRadius * 0.65,
-      alpha: 0,
-      duration: 200,
-      ease: 'Quad.easeOut',
-      onComplete: () => shockwave2.destroy()
+    explosionSprite.once('animationcomplete', () => {
+      explosionSprite.destroy();
     });
 
-    // 3. Estouro central em formato de estrela / faíscas infernais
+    // 4. Estouro central em formato de faíscas infernais carmesins
     for (let i = 0; i < 14; i++) {
       const spark = scene.add.circle(x, y, Phaser.Math.Between(2, 5), 0xff2a6d, 1);
       spark.setDepth(27);
