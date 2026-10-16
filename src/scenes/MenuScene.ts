@@ -694,7 +694,11 @@ export class MenuScene extends Phaser.Scene {
     SoundManager.getInstance().playMenuClick();
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(160, () => {
-      this.scene.start('GameScene', { mode });
+      if (mode === 'story') {
+        this.scene.start('IntroScene');
+      } else {
+        this.scene.start('GameScene', { mode });
+      }
     });
   }
 }

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BootScene } from '../scenes/BootScene';
 import { MenuScene } from '../scenes/MenuScene';
+import { IntroScene } from '../scenes/IntroScene';
 import { GameScene } from '../scenes/GameScene';
 import { UIScene } from '../scenes/UIScene';
 import { UpgradeScene } from '../scenes/UpgradeScene';
@@ -24,5 +25,5 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
     }
   },
   backgroundColor: '#0d0b0e',
-  scene: [BootScene, MenuScene, GameScene, UIScene, UpgradeScene]
+  scene: [BootScene, MenuScene, IntroScene, GameScene, UIScene, UpgradeScene]
 };

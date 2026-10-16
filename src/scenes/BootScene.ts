@@ -83,8 +83,12 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('gem-red');
     this.textures.remove('gem-orange');
     this.textures.remove('gem-purple');
-    this.textures.remove('gem-gold');
     this.textures.remove('game-title-logo');
+    for (let i = 1; i <= 6; i++) {
+      this.textures.remove(`intro-${i}`);
+    }
+    this.textures.remove('chat-boss');
+    this.textures.remove('chat-chefe');
   }
 
   preload(): void {
@@ -260,6 +264,13 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm-menu', 'assets/audio/hell-survivor.mp3');
     this.load.audio('bgm-battle', 'assets/audio/eternal-shadow.mp3');
     this.load.audio('bgm-boss', 'assets/audio/orchestral-overture.mp3');
+
+    // 17. Cenas Cinematográficas da Introdução (Intro 1 a 6) e Retrato do Chefe
+    for (let i = 1; i <= 6; i++) {
+      this.load.image(`intro-${i}`, `assets/scenes/intro/Intro%20${i}.jpg?t=${cacheBuster}`);
+    }
+    this.load.image('chat-boss', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);
+    this.load.image('chat-chefe', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);
   }
 
   create(): void {

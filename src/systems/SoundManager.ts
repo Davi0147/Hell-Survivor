@@ -361,6 +361,37 @@ export class SoundManager {
 
       osc.start(now);
       osc.stop(now + 0.25);
+    } else if (sLower === 'boss' || sLower === 'chefe') {
+      // Chefe / Demônio da Administração: Tom corporativo demoníaco grave e cavernoso
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sawtooth';
+      osc2.type = 'triangle';
+
+      osc1.frequency.setValueAtTime(130, now);
+      osc1.frequency.exponentialRampToValueAtTime(85, now + 0.18);
+
+      osc2.frequency.setValueAtTime(65, now);
+      osc2.frequency.exponentialRampToValueAtTime(45, now + 0.18);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(550, now);
+
+      gain.gain.setValueAtTime(0.32 * this.sfxVolume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.23);
+      osc2.stop(now + 0.23);
     } else {
       // NPC / Outros: Blip amigável retro
       const osc = ctx.createOscillator();
@@ -818,6 +849,204 @@ export class SoundManager {
 
       osc.start(now + delay);
       osc.stop(now + delay + 0.16);
+    });
+  }
+
+  /**
+   * Estalo seco e crocante de caneta quebrando sob fúria
+   */
+  public playPenSnap(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Click agudo de plástico quebrando (Transient)
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snapOsc.type = 'sawtooth';
+    snapOsc.frequency.setValueAtTime(2400, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(600, now + 0.025);
+    snapGain.gain.setValueAtTime(0.50 * this.sfxVolume, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    snapOsc.connect(snapGain);
+    snapGain.connect(this.sfxGainNode || ctx.destination);
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.035);
+
+    // 2. Ruído / crack elástico
+    const noiseOsc = ctx.createOscillator();
+    const noiseGain = ctx.createGain();
+    noiseOsc.type = 'square';
+    noiseOsc.frequency.setValueAtTime(1400, now + 0.005);
+    noiseOsc.frequency.exponentialRampToValueAtTime(220, now + 0.04);
+    noiseGain.gain.setValueAtTime(0.35 * this.sfxVolume, now + 0.005);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+    noiseOsc.connect(noiseGain);
+    noiseGain.connect(this.sfxGainNode || ctx.destination);
+    noiseOsc.start(now + 0.005);
+    noiseOsc.stop(now + 0.05);
+  }
+
+  /**
+   * Chute violento na mesa de madeira / queda de objetos
+   */
+  public playTableKick(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Impacto grave do chute (Sub thud)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'triangle';
+    subOsc.frequency.setValueAtTime(120, now);
+    subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.28);
+    subGain.gain.setValueAtTime(0.65 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGainNode || ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.35);
+
+    // 2. Estrondo de madeira quebrando / chacoalhar de mesa
+    const woodOsc = ctx.createOscillator();
+    const woodGain = ctx.createGain();
+    woodOsc.type = 'sawtooth';
+    woodOsc.frequency.setValueAtTime(360, now + 0.02);
+    woodOsc.frequency.exponentialRampToValueAtTime(55, now + 0.22);
+    woodGain.gain.setValueAtTime(0.40 * this.sfxVolume, now + 0.02);
+    woodGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+    woodOsc.connect(woodGain);
+    woodGain.connect(this.sfxGainNode || ctx.destination);
+    woodOsc.start(now + 0.02);
+    woodOsc.stop(now + 0.26);
+  }
+
+  /**
+   * Estrondo de choque / fúria dramática para gritos de desespero e raiva
+   */
+  public playRageBoom(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Boom cinematográfico
+    const boomOsc = ctx.createOscillator();
+    const boomGain = ctx.createGain();
+    boomOsc.type = 'sine';
+    boomOsc.frequency.setValueAtTime(140, now);
+    boomOsc.frequency.exponentialRampToValueAtTime(28, now + 0.65);
+    boomGain.gain.setValueAtTime(0.55 * this.sfxVolume, now);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.70);
+    boomOsc.connect(boomGain);
+    boomGain.connect(this.sfxGainNode || ctx.destination);
+    boomOsc.start(now);
+    boomOsc.stop(now + 0.75);
+
+    // Rasgo agudo de distorção
+    const distOsc = ctx.createOscillator();
+    const distGain = ctx.createGain();
+    distOsc.type = 'sawtooth';
+    distOsc.frequency.setValueAtTime(320, now);
+    distOsc.frequency.exponentialRampToValueAtTime(75, now + 0.18);
+    distGain.gain.setValueAtTime(0.28 * this.sfxVolume, now);
+    distGain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+    distOsc.connect(distGain);
+    distGain.connect(this.sfxGainNode || ctx.destination);
+    distOsc.start(now);
+    distOsc.stop(now + 0.22);
+  }
+
+  /**
+   * Barulho de folhas de papel voando e farfalhando pelo ar
+   */
+  public playPaperRustle(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Três rajadas rápidas de farfalhar de alta frequência
+    [0, 0.06, 0.13].forEach((delay) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + delay;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1800 + Math.random() * 600, startTime);
+      osc.frequency.exponentialRampToValueAtTime(900, startTime + 0.08);
+
+      gain.gain.setValueAtTime(0.12 * this.sfxVolume, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.09);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.10);
+    });
+  }
+
+  /**
+   * Nuvem de fumaça negra / evaporação demoníaca
+   */
+  public playSmokePoof(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.exponentialRampToValueAtTime(120, now + 0.35);
+
+    gain.gain.setValueAtTime(0.35 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGainNode || ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.42);
+  }
+
+  /**
+   * Oscilação e zumbido elétrico de lâmpadas piscando
+   */
+  public playLightFlicker(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    [0, 0.05, 0.12, 0.18].forEach((delay) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + delay;
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(120, startTime);
+
+      gain.gain.setValueAtTime(0.15 * this.sfxVolume, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.035);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.04);
     });
   }
 }

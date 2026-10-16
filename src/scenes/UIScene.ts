@@ -1206,7 +1206,12 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5);
     modal.add(title);
 
-    const subtitle = this.add.text(panelX, panelY - 85, 'SUA ALMA FOI REIVINDICADA PELO ABISMO', {
+    const isStory = stats.mode === 'story';
+    const subtitleText = isStory
+      ? 'A MORTE NÃO É O FIM PARA QUEM JÁ ESTÁ NO PURGATÓRIO'
+      : 'SUA ALMA FOI REIVINDICADA PELO ABISMO';
+
+    const subtitle = this.add.text(panelX, panelY - 85, subtitleText, {
       fontFamily: pixelFont,
       fontSize: '11px',
       fontStyle: 'bold',
@@ -1240,7 +1245,7 @@ export class UIScene extends Phaser.Scene {
     const btn2X = panelX + btnW / 2 + 12;
     const btnY = panelY + 125;
 
-    // Botão 1: Tentar Novamente
+    // Botão 1: Tentar Novamente / Ressurgir
     const btn1Bg = this.add.graphics();
     const renderBtn1 = (h: boolean) => {
       btn1Bg.clear();
@@ -1252,7 +1257,8 @@ export class UIScene extends Phaser.Scene {
     renderBtn1(false);
     modal.add(btn1Bg);
 
-    const btn1Text = this.add.text(btn1X, btnY, 'TENTAR NOVAMENTE', {
+    const btn1Label = isStory ? 'RESSURGIR DAS CINZAS' : 'TENTAR NOVAMENTE';
+    const btn1Text = this.add.text(btn1X, btnY, btn1Label, {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',

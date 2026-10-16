@@ -32,6 +32,7 @@ export class GameScene extends Phaser.Scene {
   public miniBoss3mSpawned: boolean = false;
   public miniBoss6mSpawned: boolean = false;
   public boss10mSpawned: boolean = false;
+  public isRevival: boolean = false;
   private bossMinionTimer: number = 0;
 
   // Sistema de Combate e Armas
@@ -60,8 +61,9 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  init(data?: { mode?: 'story' | 'endless' }): void {
+  init(data?: { mode?: 'story' | 'endless'; isRevival?: boolean }): void {
     this.gameMode = data?.mode ?? 'story';
+    this.isRevival = data?.isRevival ?? false;
     this.chapterPurifiedSouls = 0;
     this.killCount = 0;
     this.isBossFightActive = false;
@@ -223,22 +225,64 @@ export class GameScene extends Phaser.Scene {
       this.spawnZombieDogAt(-160, 160);
       this.spawnZombieDogAt(180, 150);
     } else {
-      // No Modo História: Inicia com o diálogo de introdução com a física pausada!
+      // No Modo História: Inicia com o diálogo adaptado da fuga ou com a fala de ressurreição (estilo Hades)
       this.time.delayedCall(200, () => {
-        this.playDialogue([
-          {
-            speaker: 'nixy',
-            speakerName: 'Nixy',
-            portraitKey: 'chat-nixy',
-            text: 'O ar aqui embaixo é sufocante... As catacumbas do abismo estão infestadas de almas atormentadas.'
-          },
-          {
-            speaker: 'nixy',
-            speakerName: 'Nixy',
-            portraitKey: 'chat-nixy',
-            text: 'Preciso purificar a energia deste lugar antes que o selo da cripta se rompa de vez. Hora da colheita.'
+        let dialogueLines: DialogueLine[] = [];
+
+        if (this.isRevival) {
+          // Mecânica de Ressurreição Estilo Hades
+          const hasSeenRevival = localStorage.getItem('hell_survivor_has_revived') === 'true';
+
+          if (!hasSeenRevival) {
+            try {
+              localStorage.setItem('hell_survivor_has_revived', 'true');
+            } catch {}
+            dialogueLines = [
+              {
+                speaker: 'nixy',
+                speakerName: 'Nixy',
+                portraitKey: 'chat-nixy',
+                text: 'De volta do mundo dos mortos... É claro. Eu já estou morta, seus idiotas!'
+              },
+              {
+                speaker: 'nixy',
+                speakerName: 'Nixy',
+                portraitKey: 'chat-nixy',
+                text: 'Vocês não podem me matar duas vezes! Nem que eu tenha que morrer mil vezes, eu vou sair dessa merda!'
+              }
+            ];
+          } else {
+            dialogueLines = [
+              {
+                speaker: 'nixy',
+                speakerName: 'Nixy',
+                portraitKey: 'chat-nixy',
+                text: 'De volta das cinzas... Podem mandar quantos quiserem, o inferno não vai me segurar aqui!'
+              }
+            ];
           }
-        ], () => {
+
+          this.cameras.main.flash(350, 180, 0, 70);
+          this.cameras.main.shake(250, 0.018);
+        } else {
+          // Chegada inicial logo após chutar a mesa e fugir do escritório
+          dialogueLines = [
+            {
+              speaker: 'nixy',
+              speakerName: 'Nixy',
+              portraitKey: 'chat-nixy',
+              text: 'Argh... As catacumbas do abismo. Não me importa quantos demônios ou carrascos aquele filho da puta do Chefe mande atrás de mim...'
+            },
+            {
+              speaker: 'nixy',
+              speakerName: 'Nixy',
+              portraitKey: 'chat-nixy',
+              text: 'Eu vou sair dessa merda, nem que eu morra tentando! Hora da colheita!'
+            }
+          ];
+        }
+
+        this.playDialogue(dialogueLines, () => {
           // Os primeiros monstros surgem somente APÓS a conclusão do diálogo! (Apenas Cães na Fase 1)
           this.spawnZombieDogAt(-220, -100);
           this.spawnZombieDogAt(220, -120);
@@ -771,9 +815,9 @@ export class GameScene extends Phaser.Scene {
             mode: this.gameMode
           },
           () => {
-            // Reiniciar o modo atual
+            // Reiniciar o modo atual com mecânica de ressurreição (Hades)
             this.scene.stop('UIScene');
-            this.scene.restart({ mode: this.gameMode });
+            this.scene.restart({ mode: this.gameMode, isRevival: true });
           },
           () => {
             // Retornar ao Menu Principal
