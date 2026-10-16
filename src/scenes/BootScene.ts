@@ -12,6 +12,7 @@ export class BootScene extends Phaser.Scene {
     this.sound.removeByKey('bgm-battle');
     this.sound.removeByKey('bgm-boss');
     this.sound.removeByKey('bgm-menu');
+    this.sound.removeByKey('bgm-intro');
     this.textures.remove('menu-background');
     // Limpeza profunda de texturas e animações anteriores para permitir hot-reload sob demanda
     for (const dir of DIRECTIONS_8) {
@@ -264,6 +265,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm-menu', 'assets/audio/hell-survivor.mp3');
     this.load.audio('bgm-battle', 'assets/audio/eternal-shadow.mp3');
     this.load.audio('bgm-boss', 'assets/audio/orchestral-overture.mp3');
+    this.load.audio('bgm-intro', 'assets/audio/halloween.mp3');
 
     // 17. Cenas Cinematográficas da Introdução (Intro 1 a 6) e Retrato do Chefe
     for (let i = 1; i <= 6; i++) {

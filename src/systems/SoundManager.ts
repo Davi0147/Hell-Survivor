@@ -156,6 +156,14 @@ export class SoundManager {
   }
 
   /**
+   * Toca a música da Intro ("Halloween") bem baixinha de fundo com fade-in suave em loop
+   */
+  public playIntroMusic(fadeInMs: number = 2500): void {
+    const lowIntroVol = Phaser.Math.Clamp(this.musicVolume * 0.50, 0.02, 0.06);
+    this.playMusicTrack('bgm-intro', lowIntroVol, fadeInMs);
+  }
+
+  /**
    * Toca a música da horda normal ("Eternal Shadow") com fade-in suave
    */
   public playBattleMusic(fadeInMs: number = 2500): void {

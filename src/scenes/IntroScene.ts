@@ -19,6 +19,8 @@ export class IntroScene extends Phaser.Scene {
   // Efeitos de Luz e Partículas
   private flickerOverlay!: Phaser.GameObjects.Rectangle;
   private paperParticles!: Phaser.GameObjects.Group;
+  private blackFadeOverlay!: Phaser.GameObjects.Rectangle;
+  private skipBtnContainer!: Phaser.GameObjects.Container;
 
   // Bustos dos Personagens
   private leftBust!: Phaser.GameObjects.Image;
@@ -57,8 +59,8 @@ export class IntroScene extends Phaser.Scene {
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
     SoundManager.getInstance().setScene(this);
-    // Toca a trilha atmosférica do jogo durante a cena do escritório
-    SoundManager.getInstance().playMenuMusic(2000);
+    // Toca a trilha de Halloween bem baixinha de fundo com fade-in suave em loop
+    SoundManager.getInstance().playIntroMusic(2500);
 
     // 1. Camadas de Fundo (A e B) para transições suaves de cena
     this.bgImageA = this.add.image(width / 2, height / 2, 'intro-1').setDepth(0);
@@ -185,6 +187,8 @@ export class IntroScene extends Phaser.Scene {
     skipZone.on('pointerout', () => renderSkip(false));
     skipZone.on('pointerdown', () => this.skipIntro());
 
+    this.skipBtnContainer = skipBtn;
+
     // 7. Controles de Avanço (Clique, Espaço, Enter, ESC)
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[]) => {
       if (gameObjects.includes(skipZone)) return;
@@ -200,10 +204,27 @@ export class IntroScene extends Phaser.Scene {
     // 8. Construir a Lista Completa de Cenas e Diálogos
     this.buildIntroScript();
 
-    // 9. Iniciar Apresentação
-    this.cameras.main.fadeIn(1200, 0, 0, 0);
-    this.time.delayedCall(400, () => {
-      this.displayStep(0);
+    // 9. Overlay preto de transição (Inicia cobrindo 100% da tela)
+    this.blackFadeOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 1.0);
+    this.blackFadeOverlay.setDepth(2000);
+
+    // Ocultar balão e botão enquanto a tela está preta nos 2 segundos iniciais
+    this.boxContainer.setVisible(false);
+    this.skipBtnContainer.setVisible(false);
+
+    // Fica na escuridão por exatamente 2 segundos enquanto a música faz o fade-in suave em loop
+    this.time.delayedCall(2000, () => {
+      this.tweens.add({
+        targets: this.blackFadeOverlay,
+        alpha: 0,
+        duration: 800,
+        ease: 'Linear',
+        onComplete: () => {
+          this.boxContainer.setVisible(true);
+          this.skipBtnContainer.setVisible(true);
+          this.displayStep(0);
+        }
+      });
     });
   }
 
@@ -521,11 +542,25 @@ export class IntroScene extends Phaser.Scene {
     if (this.typeTimer) this.typeTimer.remove();
     this.isTyping = false;
 
+    // Fade out suave da música da intro
     SoundManager.getInstance().stopMusic(1000);
-    this.cameras.main.fadeOut(1000, 0, 0, 0);
 
-    this.time.delayedCall(1100, () => {
-      this.scene.start('GameScene', { mode: 'story', fromIntro: true });
+    // Oculta caixa de diálogo e botão para focar na transição escura
+    this.boxContainer.setVisible(false);
+    if (this.skipBtnContainer) this.skipBtnContainer.setVisible(false);
+
+    // A tela escurece para preto (600ms) e permanece na escuridão por exatamente 2 segundos
+    this.tweens.add({
+      targets: this.blackFadeOverlay,
+      alpha: 1,
+      duration: 600,
+      ease: 'Linear',
+      onComplete: () => {
+        // Fica preto por mais 2 segundos antes de iniciar o jogo
+        this.time.delayedCall(2000, () => {
+          this.scene.start('GameScene', { mode: 'story', fromIntro: true });
+        });
+      }
     });
   }
 
