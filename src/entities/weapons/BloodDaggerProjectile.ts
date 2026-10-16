@@ -14,10 +14,11 @@ export class BloodDaggerProjectile extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(25);
+    this.setScale(0.78);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
-      body.setCircle(6, 6, -1);
+      body.setCircle(8, 12, 12);
     }
   }
 
@@ -31,6 +32,7 @@ export class BloodDaggerProjectile extends Phaser.Physics.Arcade.Sprite {
   ): void {
     this.setPosition(startX, startY);
     this.setRotation(targetAngle);
+    this.setScale(0.78);
     this.damage = damage;
     this.pierce = pierce;
     this.lifespanMs = 1150; // Alcance médio-curto de alta velocidade
@@ -56,17 +58,32 @@ export class BloodDaggerProjectile extends Phaser.Physics.Arcade.Sprite {
     this.lifespanMs -= deltaMs;
     this.trailTimer += deltaMs;
 
-    // Rastro carmesim sutil
-    if (this.trailTimer >= 45) {
+    // Efeito vermelho leve saindo de trás da adaga ao ser lançada
+    if (this.trailTimer >= 24) {
       this.trailTimer = 0;
-      const drop = this.scene.add.circle(this.x, this.y, 2, 0xef233c, 0.65);
-      drop.setDepth(24);
+      const backX = this.x - Math.cos(this.rotation) * 11 + Phaser.Math.Between(-2, 2);
+      const backY = this.y - Math.sin(this.rotation) * 11 + Phaser.Math.Between(-2, 2);
+
+      // Feixe/fumaça carmesim leve atrás do cabo
+      const trailG = this.scene.add.graphics();
+      trailG.setDepth(24);
+      trailG.setBlendMode(Phaser.BlendModes.ADD);
+      trailG.lineStyle(3, 0xff1e42, 0.55);
+      trailG.lineBetween(
+        backX,
+        backY,
+        backX - Math.cos(this.rotation) * 10,
+        backY - Math.sin(this.rotation) * 10
+      );
+      trailG.fillStyle(0xff4d6d, 0.6);
+      trailG.fillCircle(backX, backY, 2.2);
+
       this.scene.tweens.add({
-        targets: drop,
+        targets: trailG,
         alpha: 0,
-        scale: 0.2,
-        duration: 140,
-        onComplete: () => drop.destroy()
+        duration: 165,
+        ease: 'Quad.easeOut',
+        onComplete: () => trailG.destroy()
       });
     }
 

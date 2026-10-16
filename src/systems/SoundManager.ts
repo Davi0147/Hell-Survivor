@@ -408,6 +408,178 @@ export class SoundManager {
   }
 
   /**
+   * Fanfarra estilo Cassino / Arcade Slot ao subir de nível e abrir as 3 cartas
+   */
+  public playCasinoLevelUp(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    // Arpeggio rápido de cassino (C5, E5, G5, B5, C6, E6, G6, C7)
+    const casinoNotes = [523.25, 659.25, 783.99, 987.77, 1046.5, 1318.5, 1567.98, 2093.0];
+
+    casinoNotes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = now + i * 0.042;
+      const isLast = i === casinoNotes.length - 1;
+      const dur = isLast ? 0.52 : 0.11;
+
+      osc.type = isLast ? 'triangle' : 'square';
+      osc.frequency.setValueAtTime(freq, start);
+      if (isLast) {
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.02, start + dur);
+      }
+
+      const vol = (isLast ? 0.24 : 0.12) * this.sfxVolume;
+      gain.gain.setValueAtTime(vol, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+
+      osc.start(start);
+      osc.stop(start + dur + 0.01);
+    });
+
+    // 3 cliques táteis de distribuição das 3 cartas na mesa
+    [0.06, 0.16, 0.26].forEach((delay, idx) => {
+      const flipOsc = ctx.createOscillator();
+      const flipGain = ctx.createGain();
+      const t = now + delay;
+
+      flipOsc.type = 'triangle';
+      flipOsc.frequency.setValueAtTime(900 + idx * 180, t);
+      flipOsc.frequency.exponentialRampToValueAtTime(1600 + idx * 220, t + 0.03);
+
+      flipGain.gain.setValueAtTime(0.18 * this.sfxVolume, t);
+      flipGain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+
+      flipOsc.connect(flipGain);
+      flipGain.connect(this.sfxGainNode || ctx.destination);
+
+      flipOsc.start(t);
+      flipOsc.stop(t + 0.04);
+    });
+  }
+
+  /**
+   * Som tátil e viciante ao passar o mouse sobre uma carta flutuante
+   */
+  public playCardHover(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Estalo suave de carta (snap curto)
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(740, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(1480, now + 0.035);
+
+    snapGain.gain.setValueAtTime(0.16 * this.sfxVolume, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    snapOsc.connect(snapGain);
+    snapGain.connect(this.sfxGainNode || ctx.destination);
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.045);
+
+    // 2. Brilho harmônico místico sutil (shimmer)
+    const chimeOsc = ctx.createOscillator();
+    const chimeGain = ctx.createGain();
+    chimeOsc.type = 'sine';
+    chimeOsc.frequency.setValueAtTime(1975.53, now + 0.01); // B6
+    chimeOsc.frequency.exponentialRampToValueAtTime(2637.02, now + 0.08); // E7
+
+    chimeGain.gain.setValueAtTime(0.09 * this.sfxVolume, now + 0.01);
+    chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    chimeOsc.connect(chimeGain);
+    chimeGain.connect(this.sfxGainNode || ctx.destination);
+    chimeOsc.start(now + 0.01);
+    chimeOsc.stop(now + 0.095);
+  }
+
+  /**
+   * Som explosivo de "CASH / KA-CHING!" + moedas tilintando ao escolher uma carta
+   */
+  public playCardCashSelect(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Impacto grave de explosão da carta escolhida (punch)
+    const punchOsc = ctx.createOscillator();
+    const punchGain = ctx.createGain();
+    punchOsc.type = 'sine';
+    punchOsc.frequency.setValueAtTime(190, now);
+    punchOsc.frequency.exponentialRampToValueAtTime(52, now + 0.14);
+
+    punchGain.gain.setValueAtTime(0.32 * this.sfxVolume, now);
+    punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    punchOsc.connect(punchGain);
+    punchGain.connect(this.sfxGainNode || ctx.destination);
+    punchOsc.start(now);
+    punchOsc.stop(now + 0.16);
+
+    // 2. Primeiro toque metálico do "KA-" (Sino de Caixa Registradora C7)
+    const bell1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    bell1.type = 'triangle';
+    bell1.frequency.setValueAtTime(2093.0, now + 0.02); // C7
+    gain1.gain.setValueAtTime(0.28 * this.sfxVolume, now + 0.02);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+    bell1.connect(gain1);
+    gain1.connect(this.sfxGainNode || ctx.destination);
+    bell1.start(now + 0.02);
+    bell1.stop(now + 0.12);
+
+    // 3. Segundo toque ressonante do "-CHING!" (Acorde de Ouro: E7 + G7 + C8)
+    const chingFreqs = [2637.02, 3135.96, 4186.01];
+    chingFreqs.forEach((f, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = now + 0.085 + idx * 0.012;
+      osc.type = idx === 2 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(f, start);
+
+      const vol = (idx === 0 ? 0.28 : 0.18) * this.sfxVolume;
+      gain.gain.setValueAtTime(vol, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.52);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.54);
+    });
+
+    // 4. Chuva de moedas / partículas cintilantes (6 tilintares rápidos)
+    for (let i = 0; i < 6; i++) {
+      const coinOsc = ctx.createOscillator();
+      const coinGain = ctx.createGain();
+      const t = now + 0.14 + i * 0.045;
+      const freq = 2400 + (i % 3) * 550 + i * 160;
+
+      coinOsc.type = 'sine';
+      coinOsc.frequency.setValueAtTime(freq, t);
+      coinOsc.frequency.setValueAtTime(freq * 1.25, t + 0.02);
+
+      coinGain.gain.setValueAtTime(0.12 * this.sfxVolume, t);
+      coinGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+
+      coinOsc.connect(coinGain);
+      coinGain.connect(this.sfxGainNode || ctx.destination);
+      coinOsc.start(t);
+      coinOsc.stop(t + 0.065);
+    }
+  }
+
+  /**
    * Som característico de "Voz" no início da fala de cada personagem
    */
   public playDialogueVoice(speaker: string): void {

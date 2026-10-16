@@ -68,6 +68,15 @@
   - Pilota a Nixy de forma autônoma: kiting inteligente em 360°, atração para itens e gemas, corrida tática (Sprint) ao ser cercada e disparo automático de Ultimate.
   - Resolve a tela de upgrades escolhendo automaticamente sinergias e evoluções de armas.
   - Grava histórico de runs e reinicia testes automaticamente.
+- [x] **Novo Sistema de Cartas Arcanas (`UpgradeScene` & Fonte `Pixelzone`):**
+  - Molduras oficiais em pixel-art (`120x200px` escaladas: *Gold, Mystic, Fire, Inferno, Green, Ice, Obsidian, Base*) atribuídas de acordo com o elemento e raridade de cada bênção/arma.
+  - Tipografia oficial `Pixelzone.ttf` com trava geométrica anti-vazamento (`SAFE_INNER_WIDTH = 134px`), garantindo que Raridade e Nome fiquem na janela superior e a descrição na janela inferior sem invadir os ossos da moldura.
+  - Palavras-chave multicoloridas na descrição: **Armas/Habilidades** em Roxo (`#9b5de5`), **Dano** em Vermelho (`#ff3333`), **Vida/Cura/Regen** em Verde (`#2ecc71`), **Velocidade/Controle** em Azul Ciano (`#38bdf8`) e **Utilidade/Projéteis** em Dourado (`#fbbf24`).
+  - Flutuação contínua em onda senoidal, brilho traseiro concêntrico ao passar o mouse (`Back-Glow`), queda das duas cartas recusadas para baixo e explosão de 40+ partículas e ondas de choque na carta escolhida.
+  - Efeitos sonoros estilo Cassino / Arcade (`playCasinoLevelUp`, `playCardHover` e som de caixa registradora/moedas `playCardCashSelect`).
+- [x] **Sprites Oficiais e Rastros de Adaga e Meteoro:**
+  - `Adaga.png` integrada em `BloodDaggerProjectile` com rastro carmesim leve saindo detrás do cabo durante o voo.
+  - `Meteoro.png` integrado em `InfernalMeteorWeapon` com rotação em queda e labaredas/cauda de fogo saindo detrás da rocha.
 
 ---
 

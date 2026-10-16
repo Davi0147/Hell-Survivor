@@ -98,6 +98,16 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('item-magnet');
     this.textures.remove('item-chest');
     this.textures.remove('void-scythe');
+    this.textures.remove('blood-dagger');
+    this.textures.remove('infernal-meteor');
+    this.textures.remove('card-base');
+    this.textures.remove('card-fire');
+    this.textures.remove('card-gold');
+    this.textures.remove('card-green');
+    this.textures.remove('card-ice');
+    this.textures.remove('card-inferno');
+    this.textures.remove('card-mystic');
+    this.textures.remove('card-obsidian');
     this.textures.remove('game-title-logo');
     for (let i = 1; i <= 6; i++) {
       this.textures.remove(`intro-${i}`);
@@ -110,6 +120,11 @@ export class BootScene extends Phaser.Scene {
     const { width, height } = this.scale;
     // Timestamp dinâmico garante que o navegador NUNCA sirva imagens em cache antigo
     const cacheBuster = Date.now();
+
+    // Garante carregamento da fonte Pixelzone na memória do navegador
+    if (typeof document !== 'undefined' && (document as any).fonts) {
+      (document as any).fonts.load("24px 'Pixelzone'").catch(() => {});
+    }
 
     // Barra de carregamento
     const progressBox = this.add.graphics();
@@ -293,6 +308,19 @@ export class BootScene extends Phaser.Scene {
     this.load.image('item-magnet', `assets/sprites/items/magnet.png?t=${cacheBuster}`);
     this.load.image('item-chest', `assets/sprites/items/chest.png?t=${cacheBuster}`);
     this.load.image('void-scythe', `assets/sprites/items/scythe.png?t=${cacheBuster}`);
+    this.load.image('blood-dagger', `assets/sprites/items/Adaga.png?t=${cacheBuster}`);
+    this.load.image('infernal-meteor', `assets/sprites/items/Meteoro.png?t=${cacheBuster}`);
+
+    // Molduras de Cartas de Bênçãos (120x200px)
+    this.load.image('card-base', `assets/sprites/cards/Base%20Card.png?t=${cacheBuster}`);
+    this.load.image('card-fire', `assets/sprites/cards/Fire%20Card.png?t=${cacheBuster}`);
+    this.load.image('card-gold', `assets/sprites/cards/Gold%20Card.png?t=${cacheBuster}`);
+    this.load.image('card-green', `assets/sprites/cards/Green%20Card.png?t=${cacheBuster}`);
+    this.load.image('card-ice', `assets/sprites/cards/Ice%20Card.png?t=${cacheBuster}`);
+    this.load.image('card-inferno', `assets/sprites/cards/Inferno%20Card.png?t=${cacheBuster}`);
+    this.load.image('card-mystic', `assets/sprites/cards/Mystic%20Card.png?t=${cacheBuster}`);
+    this.load.image('card-obsidian', `assets/sprites/cards/Obsidian%20Card.png?t=${cacheBuster}`);
+
     this.load.image('game-title-logo', `assets/sprites/title.png?t=${cacheBuster}`);
     this.load.image('menu-background', `assets/sprites/main_menu_background.jpg?t=${cacheBuster}`);
 

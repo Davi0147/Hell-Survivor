@@ -11,6 +11,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: 'Pixelzone';
+      src: url('/assets/fonts/Pixelzone.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: block;
+    }
     * {
       box-sizing: border-box;
       margin: 0;
@@ -42,6 +49,9 @@
     }
   </style>
   <!-- Pré-carregador de fontes para garantir renderização perfeita antes do primeiro frame do canvas -->
+  <div style="font-family: 'Pixelzone', monospace; position: absolute; left: -9999px; visibility: hidden;" aria-hidden="true">
+    COMUM RARO ÉPICO MÍSTICO SUPREMO FOICE ADAGAS METEORO DANO VIDA VOCÊ RECEBE 0123456789 +%
+  </div>
   <div style="font-family: 'Silkscreen', monospace; font-weight: bold; position: absolute; left: -9999px; visibility: hidden;" aria-hidden="true">
     JOGAR HISTÓRIA MODO INFINITO CONFIGURAÇÕES SAIR NIXY CHEFE 0123456789
   </div>
@@ -64,7 +74,7 @@
     pointer-events: none;
     z-index: 99999;
     letter-spacing: 0.5px;
-  ">Build v0.5.5 - Sandbox & Debug Mode</div>
+  ">Build v0.6.0 - Arcane Cards & VFX</div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

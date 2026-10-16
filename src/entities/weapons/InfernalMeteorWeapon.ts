@@ -86,19 +86,31 @@ export class InfernalMeteorWeapon extends BaseWeapon {
     targetY: number,
     enemies: Phaser.GameObjects.Group
   ): void {
-    const fallDuration = 350;
-    const startX = targetX + 90;
-    const startY = targetY - 190;
+    const fallDuration = 360;
+    const startX = targetX + 95;
+    const startY = targetY - 195;
     const blastRadius = this.range;
 
     // 1. Sombra/Mira rúnica no chão anunciando a queda do meteoro
     const indicator = this.scene.add.graphics();
     indicator.setDepth(17);
 
-    // 2. Rocha incandescente caindo na diagonal
-    const meteor = this.scene.add.graphics();
-    meteor.setDepth(120);
-    meteor.setBlendMode(Phaser.BlendModes.ADD);
+    // 2. Cauda de fogo leve saindo detrás do meteoro
+    const fireTail = this.scene.add.graphics();
+    fireTail.setDepth(119);
+    fireTail.setBlendMode(Phaser.BlendModes.ADD);
+
+    // 3. Sprite oficial do Meteoro (Meteoro.png)
+    const hasTexture = this.scene.textures.exists('infernal-meteor');
+    const meteorSprite = hasTexture
+      ? this.scene.add.image(startX, startY, 'infernal-meteor')
+      : undefined;
+    if (meteorSprite) {
+      meteorSprite.setDepth(121);
+      meteorSprite.setScale(1.05);
+    }
+
+    let lastFlameStep = -1;
 
     this.scene.tweens.addCounter({
       from: 0,
@@ -119,22 +131,59 @@ export class InfernalMeteorWeapon extends BaseWeapon {
         const mx = startX + (targetX - startX) * t;
         const my = startY + (targetY - startY) * t;
 
-        meteor.clear();
-        // Cauda de magma
-        meteor.lineStyle(10, 0xff3300, 0.55);
-        meteor.lineBetween(mx, my, mx + 22, my - 46);
-        meteor.lineStyle(5, 0xffba08, 0.85);
-        meteor.lineBetween(mx, my, mx + 14, my - 28);
+        if (meteorSprite && meteorSprite.active) {
+          meteorSprite.setPosition(mx, my);
+          meteorSprite.setRotation(t * Math.PI * 1.4);
+          meteorSprite.setScale(0.95 + t * 0.25);
+        }
 
-        // Núcleo da rocha vulcânica
-        meteor.fillStyle(0xff4500, 0.95);
-        meteor.fillCircle(mx, my, 10);
-        meteor.fillStyle(0xffffff, 0.95);
-        meteor.fillCircle(mx, my, 5);
+        // Cauda de chamas suaves atrás da rocha (vetor inverso da queda: +X, -Y)
+        fireTail.clear();
+        fireTail.lineStyle(12, 0xff3300, 0.38);
+        fireTail.lineBetween(mx + 4, my - 8, mx + 26, my - 52);
+        fireTail.lineStyle(6, 0xff8800, 0.62);
+        fireTail.lineBetween(mx + 3, my - 6, mx + 18, my - 36);
+        fireTail.lineStyle(3, 0xffe600, 0.85);
+        fireTail.lineBetween(mx + 2, my - 4, mx + 11, my - 22);
+
+        if (!meteorSprite) {
+          fireTail.fillStyle(0xff4500, 0.95);
+          fireTail.fillCircle(mx, my, 10);
+        }
+
+        // Labaredas leves de fogo saindo atrás do meteoro durante o trajeto
+        const flameStep = Math.floor(t * 10);
+        if (flameStep > lastFlameStep) {
+          lastFlameStep = flameStep;
+          const fx = mx + 7 + Phaser.Math.Between(-5, 5);
+          const fy = my - 13 + Phaser.Math.Between(-5, 5);
+          const flameColor = Phaser.Math.RND.pick([0xff3300, 0xff6d00, 0xffbe0b]);
+          const flamePuff = this.scene.add.circle(
+            fx,
+            fy,
+            Phaser.Math.Between(3, 6),
+            flameColor,
+            0.72
+          );
+          flamePuff.setDepth(118);
+          flamePuff.setBlendMode(Phaser.BlendModes.ADD);
+
+          this.scene.tweens.add({
+            targets: flamePuff,
+            x: fx + Phaser.Math.Between(6, 16),
+            y: fy - Phaser.Math.Between(12, 26),
+            alpha: 0,
+            scale: 0.15,
+            duration: 185,
+            ease: 'Quad.easeOut',
+            onComplete: () => flamePuff.destroy()
+          });
+        }
       },
       onComplete: () => {
         indicator.destroy();
-        meteor.destroy();
+        fireTail.destroy();
+        if (meteorSprite) meteorSprite.destroy();
         this.detonateMeteor(targetX, targetY, blastRadius, enemies);
       }
     });

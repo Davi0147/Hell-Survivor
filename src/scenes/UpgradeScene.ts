@@ -8,6 +8,11 @@ import { AbyssalChainsWeapon } from '../entities/weapons/AbyssalChainsWeapon';
 import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
 import { SoundManager } from '../systems/SoundManager';
 
+export interface RichTextSegment {
+  text: string;
+  color: string;
+}
+
 export interface UpgradeCard {
   id: string;
   title: string;
@@ -16,9 +21,27 @@ export interface UpgradeCard {
   description: string;
   icon: string;
   isEvolution?: boolean;
+  // Novos campos visuais das Cartas Arcanas (120x200px)
+  cardSpriteKey?: string;
+  rarityLabel?: string;
+  rarityColor?: string;
+  cardName?: string;
+  cardNameColor?: string;
+  levelLabel?: string;
+  glowColor?: number;
+  richLines?: RichTextSegment[][];
   apply: (player: BaseCharacter, gameScene: any) => void;
   isAvailable?: (player: BaseCharacter, gameScene: any) => boolean;
 }
+
+// Paleta semântica padronizada para leitura imediata nas cartas
+const C_WHITE   = '#ffffff';
+const C_WEAPON  = '#9b5de5'; // Roxo místico para nomes de armas/habilidades (idêntico ao exemplo FOICE)
+const C_DAMAGE  = '#ff3333'; // Vermelho vivo para informações de Dano / Ataque
+const C_LIFE    = '#2ecc71'; // Verde esmeralda para Vida / Cura / Regeneração / Roubo de Vida
+const C_SPEED   = '#38bdf8'; // Azul ciano para Velocidade / Estamina / Cadência / Controle
+const C_UTILITY = '#fbbf24'; // Dourado para Quantidades / Projéteis / Alcance / Perfuração
+const C_EVO     = '#ffe600'; // Ouro radiante para Evoluções Supremas
 
 export class UpgradeScene extends Phaser.Scene {
   private player!: BaseCharacter;
@@ -29,6 +52,9 @@ export class UpgradeScene extends Phaser.Scene {
   private rerollText?: Phaser.GameObjects.Text;
   private rerollBg?: Phaser.GameObjects.Graphics;
   private isClosing: boolean = false;
+
+  private readonly cardFont = "'Pixelzone', 'Silkscreen', monospace";
+  private readonly uiFont = "'Silkscreen', 'Press Start 2P', monospace";
 
   constructor() {
     super('UpgradeScene');
@@ -41,59 +67,56 @@ export class UpgradeScene extends Phaser.Scene {
     this.currentCardIds = [];
     this.isClosing = false;
 
-    // Toca fanfarra mágica de Level Up
-    SoundManager.getInstance().playLevelUp();
+    // Toca fanfarra viciante estilo Cassino / Arcade Slot ao abrir as cartas
+    SoundManager.getInstance().playCasinoLevelUp();
 
     const { width, height } = this.scale;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
-    // 1. Overlay sombrio de fundo com faixas angulares Persona 5
+    // 1. Overlay sombrio de fundo com vinheta dramática
     const overlay = this.add.graphics();
-    overlay.fillStyle(0x0a0205, 0.88);
+    overlay.fillStyle(0x060205, 0.86);
     overlay.fillRect(0, 0, width, height);
 
-    // Faixas estilizadas de quadrinhos no fundo
-    overlay.fillStyle(0x20050e, 0.45);
+    // Faixas diagonais sutis no fundo
+    overlay.fillStyle(0x1c040d, 0.4);
     overlay.beginPath();
-    overlay.moveTo(0, height * 0.2);
-    overlay.lineTo(width, height * 0.1);
-    overlay.lineTo(width, height * 0.4);
-    overlay.lineTo(0, height * 0.5);
+    overlay.moveTo(0, height * 0.18);
+    overlay.lineTo(width, height * 0.08);
+    overlay.lineTo(width, height * 0.36);
+    overlay.lineTo(0, height * 0.46);
     overlay.closePath();
     overlay.fill();
 
     overlay.beginPath();
-    overlay.moveTo(0, height * 0.65);
-    overlay.lineTo(width, height * 0.55);
-    overlay.lineTo(width, height * 0.85);
-    overlay.lineTo(0, height * 0.95);
+    overlay.moveTo(0, height * 0.64);
+    overlay.lineTo(width, height * 0.54);
+    overlay.lineTo(width, height * 0.84);
+    overlay.lineTo(0, height * 0.94);
     overlay.closePath();
     overlay.fill();
 
     // 2. Banner de Título Superior
-    const titleY = 58;
+    const titleY = 46;
     const titleBox = this.add.graphics();
-    titleBox.fillStyle(0x000000, 0.95);
-    titleBox.fillRect(width / 2 - 280, titleY - 22, 560, 44);
+    titleBox.fillStyle(0x080206, 0.95);
+    titleBox.fillRoundedRect(width / 2 - 270, titleY - 20, 540, 40, 6);
     titleBox.lineStyle(2, 0xc59b27, 1);
-    titleBox.strokeRect(width / 2 - 280, titleY - 22, 560, 44);
-    titleBox.lineStyle(1, 0xffffff, 0.8);
-    titleBox.strokeRect(width / 2 - 277, titleY - 19, 554, 38);
+    titleBox.strokeRoundedRect(width / 2 - 270, titleY - 20, 540, 40, 6);
 
-    this.add.text(width / 2, titleY, 'LEVEL UP! // ESCOLHA UMA BÊNÇÃO', {
-      fontFamily: pixelFont,
-      fontSize: '15px',
+    this.add.text(width / 2, titleY, 'LEVEL UP! // ESCOLHA SUA CARTA', {
+      fontFamily: this.uiFont,
+      fontSize: '14px',
       fontStyle: 'bold',
       color: '#f3d17a',
       stroke: '#2b0914',
       strokeThickness: 3
     }).setOrigin(0.5);
 
-    // 3. Renderização Inicial das 3 Cartas
+    // 3. Renderização das 3 Cartas Flutuantes
     this.dealCards(false);
 
     // 4. Barra Tática Inferior: Botões de Re-rolar (Reroll) e Pular/Canalizar (Skip)
-    this.createTacticalFooter(width, height, pixelFont);
+    this.createTacticalFooter(width, height, this.uiFont);
 
     // 5. Atalhos de Teclado (R para Re-rolar, Espaço para Canalizar/Skip)
     if (this.input.keyboard) {
@@ -109,7 +132,6 @@ export class UpgradeScene extends Phaser.Scene {
   private dealCards(isReroll: boolean): void {
     const { width, height } = this.scale;
 
-    // Remove cartas anteriores caso seja um Reroll
     for (const c of this.cardContainers) {
       c.destroy();
     }
@@ -119,25 +141,27 @@ export class UpgradeScene extends Phaser.Scene {
     const chosenCards = this.pickRandomCards(availableCards, 3, isReroll ? this.currentCardIds : []);
     this.currentCardIds = chosenCards.map((c) => c.id);
 
-    const cardW = 260;
-    const cardH = 350;
-    const spacing = 36;
+    // Cada carta 120x200 escalada em 2.2x = 264x440
+    const cardScale = 2.2;
+    const cardW = Math.round(120 * cardScale); // 264px
+    const cardH = Math.round(200 * cardScale); // 440px
+    const spacing = 52;
     const totalW = chosenCards.length * cardW + (chosenCards.length - 1) * spacing;
     const startX = width / 2 - totalW / 2 + cardW / 2;
-    const cardY = height / 2 + 6;
+    const cardY = Math.round(height / 2 + 2);
 
     chosenCards.forEach((card, index) => {
-      const cx = startX + index * (cardW + spacing);
-      this.createCard(cx, cardY, cardW, cardH, card, index);
+      const cx = Math.round(startX + index * (cardW + spacing));
+      this.createCard(cx, cardY, cardW, cardH, cardScale, card, index);
     });
   }
 
   private createTacticalFooter(width: number, height: number, pixelFont: string): void {
-    const footerY = height - 42;
+    const footerY = height - 36;
 
     // --- BOTÃO 1: RE-ROLAR BÊNÇÃOS ---
     const rerollW = 270;
-    const rerollH = 36;
+    const rerollH = 34;
     const rerollX = width / 2 - 155;
 
     this.rerollBtnContainer = this.add.container(rerollX, footerY);
@@ -161,7 +185,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     this.rerollBtnContainer.on('pointerover', () => {
       if (this.player.rerollsRemaining <= 0 || this.isClosing) return;
-      SoundManager.getInstance().playMenuHover();
+      SoundManager.getInstance().playCardHover();
       this.updateRerollButtonVisual(true);
     });
 
@@ -175,7 +199,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     // --- BOTÃO 2: PULAR / CANALIZAR ALMAS (+20 HP) ---
     const skipW = 270;
-    const skipH = 36;
+    const skipH = 34;
     const skipX = width / 2 + 155;
 
     const skipContainer = this.add.container(skipX, footerY);
@@ -206,7 +230,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     skipContainer.on('pointerover', () => {
       if (this.isClosing) return;
-      SoundManager.getInstance().playMenuHover();
+      SoundManager.getInstance().playCardHover();
       drawSkipBg(true);
       skipText.setColor('#ffffff');
     });
@@ -224,7 +248,7 @@ export class UpgradeScene extends Phaser.Scene {
   private updateRerollButtonVisual(hover: boolean): void {
     if (!this.rerollBg || !this.rerollText) return;
     const rerollW = 270;
-    const rerollH = 36;
+    const rerollH = 34;
     const hasCharges = this.player.rerollsRemaining > 0;
 
     this.rerollBg.clear();
@@ -233,7 +257,7 @@ export class UpgradeScene extends Phaser.Scene {
       this.rerollBg.fillRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
       this.rerollBg.lineStyle(1.5, hover ? 0xffffff : 0x00f5d4, 1);
       this.rerollBg.strokeRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
-      this.rerollText.setText(`[R] RE-ROLAR BÊNÇÃOS (${this.player.rerollsRemaining})`);
+      this.rerollText.setText(`[R] RE-ROLAR CARTAS (${this.player.rerollsRemaining})`);
       this.rerollText.setColor(hover ? '#ffffff' : '#00f5d4');
     } else {
       this.rerollBg.fillStyle(0x111115, 0.75);
@@ -248,7 +272,7 @@ export class UpgradeScene extends Phaser.Scene {
   private handleReroll(): void {
     if (this.isClosing || this.player.rerollsRemaining <= 0) return;
     this.player.rerollsRemaining--;
-    SoundManager.getInstance().playRouletteTick(1.18);
+    SoundManager.getInstance().playCasinoLevelUp();
     this.updateRerollButtonVisual(false);
     this.dealCards(true);
   }
@@ -270,6 +294,7 @@ export class UpgradeScene extends Phaser.Scene {
 
   public static getAvailableUpgrades(player: BaseCharacter, gameScene: any): UpgradeCard[] {
     const weapons: any[] = gameScene.weapons || [];
+    const dmgMult = 1 + (player.bonusDamagePercent || 0) / 100;
 
     const soulBoltWeapon = weapons.find((w) => w instanceof SoulBoltWeapon) as SoulBoltWeapon | undefined;
     const scythesWeapon = weapons.find((w) => w instanceof VoidScythesWeapon) as VoidScythesWeapon | undefined;
@@ -285,7 +310,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: 'BÊNÇÃO DE TIRO',
         badgeColor: 0x00f5d4,
         icon: '+TIRO',
+        cardSpriteKey: 'card-mystic',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'ALMA EXTRA',
+        cardNameColor: C_UTILITY,
+        levelLabel: `ATUAL: +${player.extraProjectiles}`,
+        glowColor: 0xa855f7,
         description: '+1 Projétil Simultâneo\n\nDispara mais uma esfera ou lâmina a cada rajada.',
+        richLines: [
+          [{ text: 'ADICIONA ', color: C_WHITE }, { text: '+1 PROJÉTIL', color: C_UTILITY }],
+          [{ text: 'EM TODAS AS RAJADAS', color: C_WHITE }],
+          [{ text: 'DE ', color: C_WHITE }, { text: 'DISPAROS E ADAGAS', color: C_WEAPON }]
+        ],
         apply: (p) => {
           p.extraProjectiles += 1;
         }
@@ -296,7 +333,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: 'BÊNÇÃO DE TIRO',
         badgeColor: 0x9b5de5,
         icon: 'PERF',
+        cardSpriteKey: 'card-obsidian',
+        rarityLabel: 'INCOMUM',
+        rarityColor: '#c084fc',
+        cardName: 'PERFURAÇÃO',
+        cardNameColor: C_WEAPON,
+        levelLabel: `ATUAL: +${player.extraPierce}`,
+        glowColor: 0x9b5de5,
         description: '+1 Perfuração\n\nSeus tiros e adagas atravessam mais um monstro.',
+        richLines: [
+          [{ text: 'CONCEDE ', color: C_WHITE }, { text: '+1 PERFURAÇÃO', color: C_UTILITY }],
+          [{ text: 'PARA ATRAVESSAR MAIS', color: C_WHITE }],
+          [{ text: 'INIMIGOS COM ', color: C_WHITE }, { text: 'TIROS', color: C_WEAPON }]
+        ],
         apply: (p) => {
           p.extraPierce += 1;
         }
@@ -307,7 +356,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: 'ATRIBUTO PASSIVO',
         badgeColor: 0xd90429,
         icon: 'FÚRIA',
+        cardSpriteKey: 'card-fire',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'FÚRIA',
+        cardNameColor: C_DAMAGE,
+        levelLabel: `BÔNUS: +${player.bonusDamagePercent + 25}%`,
+        glowColor: 0xff4500,
         description: '+25% Dano Global\n\nAumenta a força destrutiva de todas as armas equipadas.',
+        richLines: [
+          [{ text: 'AUMENTA EM ', color: C_WHITE }, { text: '+25% O DANO', color: C_DAMAGE }],
+          [{ text: 'DE TODAS AS SUAS', color: C_WHITE }],
+          [{ text: 'ARMAS EQUIPADAS', color: C_WEAPON }]
+        ],
         apply: (p) => {
           p.bonusDamagePercent += 25;
         }
@@ -318,7 +379,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: 'MOBILIDADE',
         badgeColor: 0xffb703,
         icon: 'PASSOS',
+        cardSpriteKey: 'card-ice',
+        rarityLabel: 'COMUM',
+        rarityColor: '#38bdf8',
+        cardName: 'CELERIDADE',
+        cardNameColor: C_SPEED,
+        levelLabel: `BÔNUS: +${player.bonusSpeedPercent + 15}%`,
+        glowColor: 0x38bdf8,
         description: '+15% Velocidade\n\nPassos e sprint acelerados para escapar de enxames.',
+        richLines: [
+          [{ text: 'GANHE ', color: C_WHITE }, { text: '+15% VELOCIDADE', color: C_SPEED }],
+          [{ text: 'DE MOVIMENTO E CORRIDA', color: C_WHITE }],
+          [{ text: 'CONTRA A HORDA', color: C_WHITE }]
+        ],
         apply: (p) => {
           p.bonusSpeedPercent += 15;
         }
@@ -329,7 +402,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: 'RESISTÊNCIA',
         badgeColor: 0x06d6a0,
         icon: 'VIGOR',
+        cardSpriteKey: 'card-base',
+        rarityLabel: 'COMUM',
+        rarityColor: '#e2e8f0',
+        cardName: 'VIGOR',
+        cardNameColor: C_SPEED,
+        levelLabel: `ESTAMINA: ${player.maxStamina + 30}`,
+        glowColor: 0xa855f7,
         description: '+30 Estamina Máxima\n\nCorra por mais tempo e recarregue fôlego mais rápido.',
+        richLines: [
+          [{ text: 'RECEBA ', color: C_WHITE }, { text: '+30 ESTAMINA', color: C_SPEED }],
+          [{ text: 'E ', color: C_WHITE }, { text: '+20% RECARGA', color: C_SPEED }, { text: ' DE', color: C_WHITE }],
+          [{ text: 'FÔLEGO NO SPRINT', color: C_WHITE }]
+        ],
         apply: (p) => {
           p.maxStamina += 30;
           p.currentStamina = p.maxStamina;
@@ -342,7 +427,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: 'UTILIDADE',
         badgeColor: 0x3a86ff,
         icon: 'ÍMÃ',
+        cardSpriteKey: 'card-ice',
+        rarityLabel: 'INCOMUM',
+        rarityColor: '#38bdf8',
+        cardName: 'ÍMÃ ASTRAL',
+        cardNameColor: C_UTILITY,
+        levelLabel: `RAIO: +${player.bonusPickupRadiusPercent + 50}%`,
+        glowColor: 0x38bdf8,
         description: '+50% Raio de Coleta\n\nAtrai gemas de alma caídas a distâncias muito maiores.',
+        richLines: [
+          [{ text: 'AMPLIA ', color: C_WHITE }, { text: '+50% DO RAIO', color: C_UTILITY }],
+          [{ text: 'PARA ATRAIR ', color: C_WHITE }, { text: 'GEMAS DE XP', color: C_SPEED }],
+          [{ text: 'A LONGA DISTÂNCIA', color: C_WHITE }]
+        ],
         apply: (p) => {
           p.bonusPickupRadiusPercent += 50;
         }
@@ -353,7 +450,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: 'SOBREVIVÊNCIA',
         badgeColor: 0xff0054,
         icon: 'VIDA',
+        cardSpriteKey: 'card-green',
+        rarityLabel: 'INCOMUM',
+        rarityColor: '#4ade80',
+        cardName: 'VITALIDADE',
+        cardNameColor: C_LIFE,
+        levelLabel: `HP MÁX: ${player.maxHp + 25}`,
+        glowColor: 0x2ecc71,
         description: '+25 Vida Máxima\n\nCura 40 HP na hora e expande sua resistência vital.',
+        richLines: [
+          [{ text: 'CONCEDE ', color: C_WHITE }, { text: '+25 VIDA MÁX', color: C_LIFE }],
+          [{ text: 'E RESTAURA ', color: C_WHITE }, { text: '40 DE VIDA', color: C_LIFE }],
+          [{ text: 'IMEDIATAMENTE', color: C_WHITE }]
+        ],
         apply: (p) => {
           p.maxHp += 25;
           p.heal(40);
@@ -371,7 +480,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: `SOBREVIVÊNCIA // NÍVEL ${level}/4`,
         badgeColor: 0x2ec4b6,
         icon: 'REGEN',
+        cardSpriteKey: 'card-green',
+        rarityLabel: 'RARO',
+        rarityColor: '#4ade80',
+        cardName: 'REGENERAÇÃO',
+        cardNameColor: C_LIFE,
+        levelLabel: `NÍVEL ${level}/4`,
+        glowColor: 0x10b981,
         description: `+0.2 HP por Segundo (${nextRegen.toFixed(1)}/0.8)\n\nCura contínua de sangue infernal restaurando sua vitalidade.`,
+        richLines: [
+          [{ text: 'REGENERA ', color: C_WHITE }, { text: '+0.2 VIDA/SEG', color: C_LIFE }],
+          [{ text: 'DE FORMA CONTÍNUA', color: C_WHITE }],
+          [{ text: 'TOTAL: ', color: C_WHITE }, { text: `${nextRegen.toFixed(1)} HP/SEG`, color: C_LIFE }]
+        ],
         apply: (p) => {
           p.hpRegenPerSec = nextRegen;
         }
@@ -388,7 +509,19 @@ export class UpgradeScene extends Phaser.Scene {
         category: `SOBREVIVÊNCIA // NÍVEL ${level}/3`,
         badgeColor: 0x8338ec,
         icon: 'DRENO',
+        cardSpriteKey: 'card-inferno',
+        rarityLabel: 'ÉPICO',
+        rarityColor: '#ff4d6d',
+        cardName: 'DRENO VITAL',
+        cardNameColor: C_LIFE,
+        levelLabel: `NÍVEL ${level}/3`,
+        glowColor: 0xef233c,
         description: `+0.1 HP Roubado por Golpe (${nextSteal.toFixed(1)}/0.3)\n\nRouba pequenas doses de vitalidade a cada acerto de suas armas.`,
+        richLines: [
+          [{ text: 'ROUBA ', color: C_WHITE }, { text: '+0.1 DE VIDA', color: C_LIFE }],
+          [{ text: 'POR CADA GOLPE DAS', color: C_WHITE }],
+          [{ text: 'ARMAS ', color: C_WEAPON }, { text: `(${nextSteal.toFixed(1)} HP/HIT)`, color: C_LIFE }]
+        ],
         apply: (p) => {
           p.lifeStealPerHit = nextSteal;
         }
@@ -399,28 +532,54 @@ export class UpgradeScene extends Phaser.Scene {
     // ARMAS ATIVAS E SUAS MELHORIAS (NÍVEL 1 A 5/6)
     // =========================================================================
 
-    // 1. LÂMINAS ORBITAIS (Void Scythes)
+    // 1. LÂMINAS ORBITAIS (Void Scythes / Foice)
     if (!scythesWeapon) {
+      const scytheDmg = Math.round(28 * dmgMult);
       catalog.unshift({
         id: 'void_scythes',
         title: 'LÂMINAS ORBITAIS',
         category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0xf72585,
         icon: 'FOICE',
-        description: 'Foice Mística em Órbita\n\n1 foice espectral veloz gira ao redor da Nixy retalhando monstros!',
+        cardSpriteKey: 'card-gold',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'FOICE',
+        cardNameColor: C_WEAPON,
+        levelLabel: 'NOVA ARMA',
+        glowColor: 0xfacc15,
+        description: `Foice Mística em Órbita\n\nVocê recebe uma foice que gira ao redor causando ${scytheDmg} de dano!`,
+        richLines: [
+          [{ text: 'VOCÊ RECEBE UMA ', color: C_WHITE }, { text: 'FOICE', color: C_WEAPON }],
+          [{ text: 'QUE GIRA AO REDOR', color: C_WHITE }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${scytheDmg} DE DANO`, color: C_DAMAGE }]
+        ],
         apply: (p, gs) => {
           gs.weapons.push(new VoidScythesWeapon(gs, p));
         }
       });
     } else if (!scythesWeapon.isMaxBlades()) {
       const nextBlades = scythesWeapon.getBladeCount() + 1;
+      const scytheDmg = Math.round(28 * dmgMult);
       catalog.unshift({
         id: 'void_scythes_upgrade',
         title: 'LÂMINAS ORBITAIS',
         category: `MELHORIA // ${nextBlades} LÂMINAS`,
         badgeColor: 0xf72585,
         icon: 'FOICE',
-        description: `+1 Lâmina em Órbita (${nextBlades}/6)\n\nAdiciona mais uma foice mística veloz girando ao redor da Nixy!`,
+        cardSpriteKey: 'card-mystic',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'FOICE +1',
+        cardNameColor: C_WEAPON,
+        levelLabel: `${nextBlades}/6 FOICES`,
+        glowColor: 0x9b5de5,
+        description: `+1 Lâmina em Órbita (${nextBlades}/6)\n\nAdiciona mais uma foice girando e causando ${scytheDmg} de dano!`,
+        richLines: [
+          [{ text: 'ADICIONA ', color: C_WHITE }, { text: '+1 FOICE', color: C_WEAPON }],
+          [{ text: 'EM ÓRBITA ', color: C_WHITE }, { text: `(${nextBlades}/6)`, color: C_UTILITY }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${scytheDmg} DE DANO`, color: C_DAMAGE }]
+        ],
         apply: () => {
           scythesWeapon.addBlade();
         }
@@ -429,26 +588,52 @@ export class UpgradeScene extends Phaser.Scene {
 
     // 2. CHAMAS DO PURGATÓRIO (Hellfire Aura)
     if (!hellfireWeapon) {
+      const fireDmg = Math.round(22 * dmgMult);
       catalog.unshift({
         id: 'hellfire_aura',
         title: 'CHAMAS DO PURGATÓRIO',
         category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0xff4500,
         icon: 'CHAMAS',
+        cardSpriteKey: 'card-fire',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'CHAMAS',
+        cardNameColor: C_WEAPON,
+        levelLabel: 'NOVA ARMA',
+        glowColor: 0xff4500,
         description: 'Aura Vulcânica Devoradora\n\nEmite pulsos periódicos de fogo infernal calcinando monstros em área!',
+        richLines: [
+          [{ text: 'LIBERA ', color: C_WHITE }, { text: 'AURA DE FOGO', color: C_WEAPON }],
+          [{ text: 'QUE QUEIMA EM ÁREA', color: C_WHITE }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${fireDmg} DE DANO`, color: C_DAMAGE }]
+        ],
         apply: (p, gs) => {
           gs.weapons.push(new HellfireAuraWeapon(gs, p));
         }
       });
     } else if (!hellfireWeapon.isMaxLevel()) {
       const nextLvl = hellfireWeapon.getLevel() + 1;
+      const nextDmg = Math.round((22 + (nextLvl - 1) * 7) * dmgMult);
       catalog.unshift({
         id: 'hellfire_aura_upgrade',
         title: 'CHAMAS DO PURGATÓRIO',
         category: `MELHORIA // NÍVEL ${nextLvl}/5`,
         badgeColor: 0xff4500,
         icon: 'CHAMAS',
+        cardSpriteKey: 'card-fire',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'CHAMAS',
+        cardNameColor: C_WEAPON,
+        levelLabel: `NÍVEL ${nextLvl}/5`,
+        glowColor: 0xff4500,
         description: `+Raio e Dano Ígneo (Nív ${nextLvl}/5)\n\nExpande o raio da onda de chamas e intensifica o calor das cinzas!`,
+        richLines: [
+          [{ text: 'EXPANDE A ', color: C_WHITE }, { text: 'AURA DE FOGO', color: C_WEAPON }],
+          [{ text: 'EM ', color: C_WHITE }, { text: '+18 RAIO', color: C_UTILITY }, { text: ' E CAUSA', color: C_WHITE }],
+          [{ text: `${nextDmg} DE DANO`, color: C_DAMAGE }, { text: ' EM ÁREA', color: C_WHITE }]
+        ],
         apply: () => {
           hellfireWeapon.upgrade();
         }
@@ -457,26 +642,53 @@ export class UpgradeScene extends Phaser.Scene {
 
     // 3. ADAGAS DE SANGUE (Blood Daggers)
     if (!daggersWeapon) {
+      const dagDmg = Math.round(15 * dmgMult);
       catalog.unshift({
         id: 'blood_daggers',
         title: 'ADAGAS DE SANGUE',
         category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0xef233c,
         icon: 'ADAGAS',
+        cardSpriteKey: 'card-inferno',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'ADAGAS',
+        cardNameColor: C_WEAPON,
+        levelLabel: 'NOVA ARMA',
+        glowColor: 0xef233c,
         description: 'Leque Carmesim Frontal\n\nArremessa 3 adagas afiadas em alta velocidade na direção do olhar!',
+        richLines: [
+          [{ text: 'LANÇA ', color: C_WHITE }, { text: '3 ADAGAS', color: C_WEAPON }],
+          [{ text: 'VELOZES À FRENTE', color: C_WHITE }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${dagDmg} DE DANO`, color: C_DAMAGE }]
+        ],
         apply: (p, gs) => {
           gs.weapons.push(new BloodDaggersWeapon(gs, p));
         }
       });
     } else if (!daggersWeapon.isMaxLevel()) {
       const nextLvl = daggersWeapon.getLevel() + 1;
+      const nextCount = 3 + (nextLvl - 1);
+      const nextDmg = Math.round((15 + (nextLvl - 1) * 4) * dmgMult);
       catalog.unshift({
         id: 'blood_daggers_upgrade',
         title: 'ADAGAS DE SANGUE',
         category: `MELHORIA // NÍVEL ${nextLvl}/5`,
         badgeColor: 0xef233c,
         icon: 'ADAGAS',
+        cardSpriteKey: 'card-inferno',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'ADAGAS',
+        cardNameColor: C_WEAPON,
+        levelLabel: `NÍVEL ${nextLvl}/5`,
+        glowColor: 0xef233c,
         description: `+1 Adaga no Leque e +Dano (Nív ${nextLvl}/5)\n\nAmplia a rajada carmesim e reduz o tempo entre arremessos!`,
+        richLines: [
+          [{ text: 'DISPARA ', color: C_WHITE }, { text: `${nextCount} ADAGAS`, color: C_WEAPON }],
+          [{ text: 'NO LEQUE CAUSANDO', color: C_WHITE }],
+          [{ text: `${nextDmg} DE DANO`, color: C_DAMAGE }, { text: ' CADA', color: C_WHITE }]
+        ],
         apply: () => {
           daggersWeapon.upgrade();
         }
@@ -485,26 +697,52 @@ export class UpgradeScene extends Phaser.Scene {
 
     // 4. CADEIAS ABISSAIS (Abyssal Chains)
     if (!chainsWeapon) {
+      const chainDmg = Math.round(19 * dmgMult);
       catalog.unshift({
         id: 'abyssal_chains',
         title: 'CADEIAS ABISSAIS',
         category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0x9d4edd,
         icon: 'GRILHÃO',
+        cardSpriteKey: 'card-obsidian',
+        rarityLabel: 'ÉPICO',
+        rarityColor: '#c084fc',
+        cardName: 'GRILHÃO',
+        cardNameColor: C_WEAPON,
+        levelLabel: 'NOVA ARMA',
+        glowColor: 0x9d4edd,
         description: 'Correntes de Controle de Grupo\n\nChicoteia e prende grupos de inimigos próximos com grilhões sombrios!',
+        richLines: [
+          [{ text: 'INVOCA ', color: C_WHITE }, { text: 'CORRENTES', color: C_WEAPON }],
+          [{ text: 'QUE APLICAM ', color: C_WHITE }, { text: 'LENTIDÃO', color: C_SPEED }],
+          [{ text: 'E CAUSAM ', color: C_WHITE }, { text: `${chainDmg} DE DANO`, color: C_DAMAGE }]
+        ],
         apply: (p, gs) => {
           gs.weapons.push(new AbyssalChainsWeapon(gs, p));
         }
       });
     } else if (!chainsWeapon.isMaxLevel()) {
       const nextLvl = chainsWeapon.getLevel() + 1;
+      const nextDmg = Math.round((19 + (nextLvl - 1) * 6) * dmgMult);
       catalog.unshift({
         id: 'abyssal_chains_upgrade',
         title: 'CADEIAS ABISSAIS',
         category: `MELHORIA // NÍVEL ${nextLvl}/5`,
         badgeColor: 0x9d4edd,
         icon: 'GRILHÃO',
+        cardSpriteKey: 'card-obsidian',
+        rarityLabel: 'ÉPICO',
+        rarityColor: '#c084fc',
+        cardName: 'GRILHÃO',
+        cardNameColor: C_WEAPON,
+        levelLabel: `NÍVEL ${nextLvl}/5`,
+        glowColor: 0x9d4edd,
         description: `+1 Alvo, +Alcance e +Paralisia (Nív ${nextLvl}/5)\n\nEncadeia mais monstros e prolonga o tempo do grilhão!`,
+        richLines: [
+          [{ text: 'PRENDE ', color: C_WHITE }, { text: '+1 ALVO', color: C_UTILITY }, { text: ' COM', color: C_WHITE }],
+          [{ text: 'CORRENTES', color: C_WEAPON }, { text: ' CAUSANDO', color: C_WHITE }],
+          [{ text: `${nextDmg} DE DANO`, color: C_DAMAGE }, { text: ' E ', color: C_WHITE }, { text: 'PARALISIA', color: C_SPEED }]
+        ],
         apply: () => {
           chainsWeapon.upgrade();
         }
@@ -513,26 +751,52 @@ export class UpgradeScene extends Phaser.Scene {
 
     // 5. METEORO INFERNAL (Infernal Meteor)
     if (!meteorWeapon) {
+      const metDmg = Math.round(46 * dmgMult);
       catalog.unshift({
         id: 'infernal_meteor',
         title: 'METEORO INFERNAL',
         category: 'NOVA ARMA // NÍVEL 1',
         badgeColor: 0xff7b00,
         icon: 'METEORO',
+        cardSpriteKey: 'card-fire',
+        rarityLabel: 'ÉPICO',
+        rarityColor: '#ff7b00',
+        cardName: 'METEORO',
+        cardNameColor: C_WEAPON,
+        levelLabel: 'NOVA ARMA',
+        glowColor: 0xff7b00,
         description: 'Bombardeio Vulcânico Celeste\n\nInvoca rochas incandescentes do céu que explodem sobre a horda!',
+        richLines: [
+          [{ text: 'INVOCA UM ', color: C_WHITE }, { text: 'METEORO', color: C_WEAPON }],
+          [{ text: 'EXPLOSIVO DO CÉU', color: C_WHITE }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${metDmg} DE DANO`, color: C_DAMAGE }]
+        ],
         apply: (p, gs) => {
           gs.weapons.push(new InfernalMeteorWeapon(gs, p));
         }
       });
     } else if (!meteorWeapon.isMaxLevel()) {
       const nextLvl = meteorWeapon.getLevel() + 1;
+      const nextDmg = Math.round((46 + (nextLvl - 1) * 10) * dmgMult);
       catalog.unshift({
         id: 'infernal_meteor_upgrade',
         title: 'METEORO INFERNAL',
         category: `MELHORIA // NÍVEL ${nextLvl}/5`,
         badgeColor: 0xff7b00,
         icon: 'METEORO',
+        cardSpriteKey: 'card-fire',
+        rarityLabel: 'ÉPICO',
+        rarityColor: '#ff7b00',
+        cardName: 'METEORO',
+        cardNameColor: C_WEAPON,
+        levelLabel: `NÍVEL ${nextLvl}/5`,
+        glowColor: 0xff7b00,
         description: `+Dano Explosivo e +Meteoros (Nív ${nextLvl}/5)\n\nAumenta o poder da cratera e a cadência do bombardeio!`,
+        richLines: [
+          [{ text: 'FORTALECE O ', color: C_WHITE }, { text: 'METEORO', color: C_WEAPON }],
+          [{ text: 'EM ', color: C_WHITE }, { text: '+ÁREA', color: C_UTILITY }, { text: ' CAUSANDO', color: C_WHITE }],
+          [{ text: `${nextDmg} DE DANO`, color: C_DAMAGE }, { text: ' EM ÁREA', color: C_WHITE }]
+        ],
         apply: () => {
           meteorWeapon.upgrade();
         }
@@ -543,13 +807,14 @@ export class UpgradeScene extends Phaser.Scene {
     // EVOLUÇÕES SUPREMAS DE ARMAS (WEAPON FUSION / ASCENSÃO)
     // =========================================================================
 
-    // Evolução 1: RAIO DO APOCALIPSE (Disparo de Almas + Alma Extra/Perfuração + Fúria Infernal)
+    // Evolução 1: RAIO DO APOCALIPSE
     if (
       soulBoltWeapon &&
       !soulBoltWeapon.isEvolved &&
       (player.extraProjectiles >= 1 || player.extraPierce >= 1) &&
       player.bonusDamagePercent >= 25
     ) {
+      const evoDmg = Math.round(45 * dmgMult);
       catalog.unshift({
         id: 'evo_soul_bolt',
         title: 'RAIO DO APOCALIPSE',
@@ -557,20 +822,33 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xffba08,
         icon: 'ASCENSÃO',
         isEvolution: true,
+        cardSpriteKey: 'card-gold',
+        rarityLabel: 'SUPREMO',
+        rarityColor: C_EVO,
+        cardName: 'APOCALIPSE',
+        cardNameColor: C_EVO,
+        levelLabel: 'ARMA EVOLUÍDA',
+        glowColor: 0xffe600,
         description: 'Disparo de Almas + Fúria Infernal\n\nTransforma seus disparos em raios astrais dourados de alta cadência e perfuração massiva!',
+        richLines: [
+          [{ text: 'EVOLUI PARA ', color: C_WHITE }, { text: 'RAIO ASTRAL', color: C_WEAPON }],
+          [{ text: 'DE ALTA CADÊNCIA COM', color: C_WHITE }],
+          [{ text: `${evoDmg} DE DANO`, color: C_DAMAGE }, { text: ' E ', color: C_WHITE }, { text: '+PERFURAÇÃO', color: C_UTILITY }]
+        ],
         apply: () => {
           soulBoltWeapon.evolve();
         }
       });
     }
 
-    // Evolução 2: CEIFADORA DO VAZIO (6 Lâminas Orbitais + Celeridade Abissal)
+    // Evolução 2: CEIFADORA DO VAZIO
     if (
       scythesWeapon &&
       scythesWeapon.isMaxBlades() &&
       !scythesWeapon.isEvolved &&
       player.bonusSpeedPercent >= 15
     ) {
+      const evoDmg = Math.round(52 * dmgMult);
       catalog.unshift({
         id: 'evo_void_scythes',
         title: 'CEIFADORA DO VAZIO',
@@ -578,20 +856,33 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xffba08,
         icon: 'ASCENSÃO',
         isEvolution: true,
+        cardSpriteKey: 'card-gold',
+        rarityLabel: 'SUPREMO',
+        rarityColor: C_EVO,
+        cardName: 'CEIFADORA',
+        cardNameColor: C_EVO,
+        levelLabel: 'ARMA EVOLUÍDA',
+        glowColor: 0xffe600,
         description: '6 Lâminas Orbitais + Celeridade Abissal\n\nFunde as 6 foices em um vórtice carmesim hiper-veloz de raio expandido e corte letal!',
+        richLines: [
+          [{ text: 'FUNDE AS ', color: C_WHITE }, { text: '6 FOICES', color: C_WEAPON }],
+          [{ text: 'EM UM VÓRTice VELOZ', color: C_SPEED }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${evoDmg} DE DANO`, color: C_DAMAGE }]
+        ],
         apply: () => {
           scythesWeapon.evolve();
         }
       });
     }
 
-    // Evolução 3: SUPERNOVA ABISSAL (Chamas do Purgatório Nív 5 + Vitalidade Sangrenta)
+    // Evolução 3: SUPERNOVA ABISSAL
     if (
       hellfireWeapon &&
       hellfireWeapon.isMaxLevel() &&
       !hellfireWeapon.isEvolved &&
       player.maxHp > 100
     ) {
+      const evoDmg = Math.round(72 * dmgMult);
       catalog.unshift({
         id: 'evo_hellfire_aura',
         title: 'SUPERNOVA ABISSAL',
@@ -599,7 +890,19 @@ export class UpgradeScene extends Phaser.Scene {
         badgeColor: 0xffba08,
         icon: 'ASCENSÃO',
         isEvolution: true,
+        cardSpriteKey: 'card-gold',
+        rarityLabel: 'SUPREMO',
+        rarityColor: C_EVO,
+        cardName: 'SUPERNOVA',
+        cardNameColor: C_EVO,
+        levelLabel: 'ARMA EVOLUÍDA',
+        glowColor: 0xffe600,
         description: 'Chamas Nív 5 + Vitalidade Sangrenta\n\nEmite ondas estrelares azuis e douradas que incineram uma área colossal e curam a Nixy!',
+        richLines: [
+          [{ text: 'CRIA UMA ', color: C_WHITE }, { text: 'SUPERNOVA', color: C_WEAPON }],
+          [{ text: 'QUE CAUSA ', color: C_WHITE }, { text: `${evoDmg} DE DANO`, color: C_DAMAGE }],
+          [{ text: 'E ', color: C_WHITE }, { text: 'CURA +3 VIDA', color: C_LIFE }, { text: '/PULSO', color: C_WHITE }]
+        ],
         apply: () => {
           hellfireWeapon.evolve();
         }
@@ -614,7 +917,6 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   private pickRandomCards(cards: UpgradeCard[], count: number, excludeIds: string[] = []): UpgradeCard[] {
-    // Se houver uma Evolução Suprema disponível, garante que ao menos 1 apareça na mão!
     const evolutions = cards.filter((c) => c.isEvolution && !excludeIds.includes(c.id));
     const regularPool = cards.filter((c) => !c.isEvolution && !excludeIds.includes(c.id));
     const fallbackPool = cards.filter((c) => !c.isEvolution);
@@ -630,185 +932,265 @@ export class UpgradeScene extends Phaser.Scene {
     return shuffled.slice(0, count);
   }
 
+  /**
+   * Constrói uma carta usando as molduras em pixel-art (120x200px escaladas)
+   * com a fonte Pixelzone, brilho traseiro, flutuação e explosão de cash ao clicar.
+   */
   private createCard(
     x: number,
     y: number,
     w: number,
     h: number,
+    cardScale: number,
     card: UpgradeCard,
     index: number
   ): void {
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+    // Container raiz posicionado na coluna da carta
+    const rootContainer = this.add.container(x, y + 70);
+    rootContainer.setAlpha(0);
+    rootContainer.setScale(0.75);
+    this.cardContainers.push(rootContainer);
 
-    const container = this.add.container(x, y + 40);
-    container.setAlpha(0);
-    this.cardContainers.push(container);
+    // Sub-container interno dedicado à flutuação contínua
+    const floatContainer = this.add.container(0, 0);
+    rootContainer.add(floatContainer);
 
-    // Animação de entrada suave com delay cascata
+    // Animação de entrada estilo cassino (cascata elástica)
     this.tweens.add({
-      targets: container,
+      targets: rootContainer,
       y: y,
       alpha: 1,
-      duration: 240,
-      delay: index * 80,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 300,
+      delay: index * 90,
       ease: 'Back.easeOut'
     });
 
+    // Tween infinito de levitação / flutuação suave
+    const floatTween = this.tweens.add({
+      targets: floatContainer,
+      y: -8,
+      duration: 1300 + index * 190,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    const glowColor = card.glowColor ?? card.badgeColor ?? 0xfacc15;
     const isEvo = card.isEvolution === true;
-    const bg = this.add.graphics();
-    const drawCardBg = (hover: boolean) => {
-      bg.clear();
 
-      // Fundo principal (dourado imperial escuro se for Evolução Suprema)
-      if (isEvo) {
-        bg.fillStyle(hover ? 0x3b1d06 : 0x241004, 0.98);
-      } else {
-        bg.fillStyle(hover ? 0x22050f : 0x110207, 0.96);
+    // 1. Brilho de Fundo (Back-Glow Aura) atrás do sprite da carta
+    const backGlow = this.add.graphics();
+    backGlow.setBlendMode(Phaser.BlendModes.ADD);
+
+    const drawBackGlow = (hover: boolean) => {
+      backGlow.clear();
+      if (!hover && !isEvo) {
+        // Sombra suave + aura discreta em repouso
+        backGlow.fillStyle(glowColor, 0.12);
+        backGlow.fillRoundedRect(-w / 2 - 4, -h / 2 - 4, w + 8, h + 8, 18);
+        return;
       }
-      bg.fillRoundedRect(-w / 2, -h / 2, w, h, 10);
 
-      // Borda Chanfrada Externa
-      const borderColor = isEvo ? 0xffe600 : hover ? 0xffffff : 0xc59b27;
-      bg.lineStyle(hover || isEvo ? 3 : 2, borderColor, 1);
-      bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
+      // Brilho intenso em camadas concêntricas ao passar o mouse (ou em Evoluções)
+      const baseAlpha = hover ? 0.34 : 0.2;
+      backGlow.fillStyle(glowColor, baseAlpha * 0.45);
+      backGlow.fillRoundedRect(-w / 2 - 22, -h / 2 - 22, w + 44, h + 44, 28);
 
-      // Filete Interno Dourado
-      bg.lineStyle(1, hover ? 0xf3d17a : 0x7a5b18, 0.8);
-      bg.strokeRoundedRect(-w / 2 + 4, -h / 2 + 4, w - 8, h - 8, 8);
+      backGlow.fillStyle(glowColor, baseAlpha * 0.75);
+      backGlow.fillRoundedRect(-w / 2 - 12, -h / 2 - 12, w + 24, h + 24, 22);
 
-      // Tag de Categoria
-      bg.fillStyle(card.badgeColor, hover ? 1 : 0.9);
-      bg.fillRoundedRect(-w / 2 + 16, -h / 2 + 16, w - 32, 24, 4);
+      backGlow.lineStyle(3, 0xffffff, hover ? 0.85 : 0.4);
+      backGlow.strokeRoundedRect(-w / 2 - 4, -h / 2 - 4, w + 8, h + 8, 14);
     };
-    drawCardBg(false);
-    container.add(bg);
+    drawBackGlow(false);
+    floatContainer.add(backGlow);
 
-    // Texto da Categoria
-    const categoryText = this.add.text(0, -h / 2 + 28, card.category, {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: isEvo ? '#1a0500' : '#ffffff',
-      stroke: isEvo ? '#ffe600' : '#000000',
-      strokeThickness: isEvo ? 1 : 2
-    }).setOrigin(0.5);
-    container.add(categoryText);
+    // 2. Sprite da Moldura da Carta (120x200px escalada por cardScale = 2.2 -> 264x440)
+    const spriteKey = card.cardSpriteKey && this.textures.exists(card.cardSpriteKey)
+      ? card.cardSpriteKey
+      : 'card-base';
 
-    // Insígnia / Brasão da Carta (Badge estilizado gótico)
-    const iconBox = this.add.graphics();
-    iconBox.fillStyle(0x0a0105, 0.92);
-    iconBox.fillRoundedRect(-48, -h / 2 + 58, 96, 42, 8);
-    iconBox.lineStyle(2, card.badgeColor, 0.95);
-    iconBox.strokeRoundedRect(-48, -h / 2 + 58, 96, 42, 8);
-    iconBox.lineStyle(1, 0xffffff, 0.35);
-    iconBox.strokeRoundedRect(-45, -h / 2 + 61, 90, 36, 6);
-    container.add(iconBox);
+    if (this.textures.exists(spriteKey)) {
+      const cardSprite = this.add.image(0, 0, spriteKey);
+      cardSprite.setScale(cardScale);
+      floatContainer.add(cardSprite);
+    } else {
+      // Fallback caso alguma textura ainda não tenha carregado
+      const fallbackBg = this.add.graphics();
+      fallbackBg.fillStyle(0x16061c, 0.96);
+      fallbackBg.fillRoundedRect(-w / 2, -h / 2, w, h, 12);
+      fallbackBg.lineStyle(3, glowColor, 1);
+      fallbackBg.strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
+      floatContainer.add(fallbackBg);
+    }
 
-    const iconText = this.add.text(0, -h / 2 + 79, card.icon, {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: isEvo ? '#ffe600' : '#ffffff',
+    // Largura interna estritamente segura (evita invadir as colunas de ossos e correntes laterais)
+    // Na imagem 120x200, o vão livre vai de X=25 até X=95 (70px * 2.2 = 154px -> usamos 134px com folga)
+    const SAFE_INNER_WIDTH = 134;
+
+    // =========================================================================
+    // JANELA SUPERIOR DA CARTA (Y entre -114px e +8px)
+    // Contém: RARIDADE no topo + NOME DA CARTA no centro + NÍVEL discreto abaixo
+    // =========================================================================
+    const rarityStr = (card.rarityLabel || 'RARO').toUpperCase();
+    const rarityCol = card.rarityColor || '#facc15';
+
+    const rarityText = this.add.text(0, -96, rarityStr, {
+      fontFamily: this.cardFont,
+      fontSize: '26px',
+      color: rarityCol,
       stroke: '#000000',
-      strokeThickness: 3
+      strokeThickness: 4,
+      align: 'center'
     }).setOrigin(0.5);
-    container.add(iconText);
+    rarityText.setResolution(2);
+    if (rarityText.width > SAFE_INNER_WIDTH) {
+      rarityText.setScale(SAFE_INNER_WIDTH / rarityText.width);
+    }
+    floatContainer.add(rarityText);
 
-    // Título da Carta
-    const titleText = this.add.text(0, -h / 2 + 138, card.title, {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: isEvo ? '#ffe600' : '#ffffff',
-      align: 'center',
-      wordWrap: { width: w - 30 }
+    const cardTitleStr = (card.cardName || card.icon || card.title).toUpperCase();
+    const cardTitleCol = card.cardNameColor || C_WEAPON;
+
+    const nameText = this.add.text(0, -46, cardTitleStr, {
+      fontFamily: this.cardFont,
+      fontSize: '32px',
+      color: cardTitleCol,
+      stroke: '#000000',
+      strokeThickness: 4,
+      align: 'center'
     }).setOrigin(0.5);
-    container.add(titleText);
+    nameText.setResolution(2);
+    if (nameText.width > SAFE_INNER_WIDTH) {
+      nameText.setScale(SAFE_INNER_WIDTH / nameText.width);
+    }
+    floatContainer.add(nameText);
 
-    // Divisória Dourada
-    const divider = this.add.graphics();
-    divider.lineStyle(1, 0xc59b27, 0.8);
-    divider.lineBetween(-w / 2 + 25, -h / 2 + 165, w / 2 - 25, -h / 2 + 165);
-    container.add(divider);
+    if (card.levelLabel) {
+      const lvlText = this.add.text(0, -8, card.levelLabel.toUpperCase(), {
+        fontFamily: this.cardFont,
+        fontSize: '16px',
+        color: '#cbd5e1',
+        stroke: '#000000',
+        strokeThickness: 3,
+        align: 'center'
+      }).setOrigin(0.5);
+      lvlText.setResolution(2);
+      if (lvlText.width > SAFE_INNER_WIDTH) {
+        lvlText.setScale(SAFE_INNER_WIDTH / lvlText.width);
+      }
+      floatContainer.add(lvlText);
+    }
 
-    // Descrição
-    const descText = this.add.text(0, -h / 2 + 228, card.description, {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#e2d4c9',
-      align: 'center',
-      lineSpacing: 5,
-      wordWrap: { width: w - 36 }
-    }).setOrigin(0.5);
-    container.add(descText);
+    // =========================================================================
+    // JANELA INFERIOR DA CARTA (Y entre +62px e +156px, centro em Y = +109px)
+    // Contém: Descrição em linhas com palavras-chave coloridas (Dano, Arma, Vida, etc.)
+    // =========================================================================
+    const richLines: RichTextSegment[][] = card.richLines || [
+      [{ text: card.description.toUpperCase(), color: C_WHITE }]
+    ];
 
-    // Botão de Selecionar Inferior
-    const btnBg = this.add.graphics();
-    const drawBtn = (hover: boolean) => {
-      btnBg.clear();
-      btnBg.fillStyle(hover ? 0xc59b27 : isEvo ? 0x6b3e00 : 0x2b0610, 1);
-      btnBg.fillRoundedRect(-w / 2 + 20, h / 2 - 48, w - 40, 32, 6);
-      btnBg.lineStyle(1.5, hover ? 0xffffff : 0xf3d17a, 1);
-      btnBg.strokeRoundedRect(-w / 2 + 20, h / 2 - 48, w - 40, 32, 6);
-    };
-    drawBtn(false);
-    container.add(btnBg);
+    this.renderRichDescriptionBox(floatContainer, richLines, 109, SAFE_INNER_WIDTH, 92);
 
-    const btnText = this.add.text(0, h / 2 - 32, isEvo ? 'ASCENDER ARMA' : 'ESCOLHER', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#f3d17a'
-    }).setOrigin(0.5);
-    container.add(btnText);
-
-    // Interatividade da Carta
+    // =========================================================================
+    // INTERATIVIDADE: HOVER (BRILHO + FLUTUAÇÃO) & CLICK (CASH + EXPLOSÃO)
+    // =========================================================================
     const hitArea = new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h);
-    container.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+    rootContainer.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+    if (rootContainer.input) {
+      rootContainer.input.cursor = 'pointer';
+    }
 
-    container.on('pointerover', () => {
+    rootContainer.on('pointerover', () => {
       if (this.isClosing) return;
-      SoundManager.getInstance().playMenuHover();
-      drawCardBg(true);
-      drawBtn(true);
-      btnText.setColor('#000000');
-      titleText.setColor('#f3d17a');
+      SoundManager.getInstance().playCardHover();
+      drawBackGlow(true);
+      rootContainer.setDepth(50);
+
       this.tweens.add({
-        targets: container,
-        scaleX: 1.04,
-        scaleY: 1.04,
-        duration: 120,
-        ease: 'Quad.easeOut'
+        targets: rootContainer,
+        scaleX: 1.09,
+        scaleY: 1.09,
+        y: y - 12,
+        duration: 150,
+        ease: 'Back.easeOut'
       });
     });
 
-    container.on('pointerout', () => {
-      drawCardBg(false);
-      drawBtn(false);
-      btnText.setColor('#f3d17a');
-      titleText.setColor(isEvo ? '#ffe600' : '#ffffff');
+    rootContainer.on('pointerout', () => {
+      if (this.isClosing) return;
+      drawBackGlow(false);
+      rootContainer.setDepth(10);
+
       this.tweens.add({
-        targets: container,
+        targets: rootContainer,
         scaleX: 1.0,
         scaleY: 1.0,
-        duration: 120,
+        y: y,
+        duration: 160,
         ease: 'Quad.easeOut'
       });
     });
 
-    container.on('pointerdown', () => {
+    rootContainer.on('pointerdown', () => {
       if (this.isClosing) return;
       this.isClosing = true;
-      SoundManager.getInstance().playMenuClick();
-      // 1. Aplica o upgrade
+
+      // 1. Som viciante de Cash / Prêmio ("KA-CHING!")
+      SoundManager.getInstance().playCardCashSelect();
+
+      // 2. Aplica o benefício da carta na heroína Nixy
       card.apply(this.player, this.gameScene);
 
-      // 2. Feedback visual de flash branco
-      bg.fillStyle(0xffffff, 1);
-      bg.fillRoundedRect(-w / 2, -h / 2, w, h, 10);
+      // 3. As outras duas cartas não escolhidas descem para baixo da tela!
+      this.cardContainers.forEach((otherContainer, otherIdx) => {
+        if (otherIdx !== index) {
+          this.tweens.killTweensOf(otherContainer);
+          this.tweens.add({
+            targets: otherContainer,
+            y: y + 520,
+            alpha: 0,
+            rotation: otherIdx < index ? -0.18 : 0.18,
+            scaleX: 0.85,
+            scaleY: 0.85,
+            duration: 360,
+            ease: 'Back.easeIn'
+          });
+        }
+      });
 
-      this.time.delayedCall(120, () => {
-        // 3. Fecha a tela de upgrade e despausa o jogo
+      // 4. A carta escolhida brilha, infla e EXPLODE em partículas!
+      floatTween.stop();
+      this.tweens.killTweensOf(rootContainer);
+      rootContainer.setDepth(100);
+
+      // Flash intenso e expansão antes da explosão
+      this.tweens.add({
+        targets: rootContainer,
+        scaleX: 1.24,
+        scaleY: 1.24,
+        duration: 130,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          // Dispara explosão de partículas douradas e da cor da carta
+          this.spawnCardExplosionParticles(rootContainer.x, rootContainer.y, glowColor);
+
+          // Desintegra a carta em um clarão
+          this.tweens.add({
+            targets: rootContainer,
+            scaleX: 1.62,
+            scaleY: 1.62,
+            alpha: 0,
+            duration: 230,
+            ease: 'Cubic.easeOut'
+          });
+        }
+      });
+
+      // 5. Fecha a cena após a celebração de partículas e retoma a partida
+      this.time.delayedCall(520, () => {
         this.scene.stop('UpgradeScene');
         this.gameScene.scene.resume();
         this.gameScene.physics.resume();
@@ -817,5 +1199,123 @@ export class UpgradeScene extends Phaser.Scene {
         }
       });
     });
+  }
+
+  /**
+   * Renderiza linhas de descrição multicoloridas perfeitamente centralizadas e contidas
+   * dentro da janela inferior da moldura da carta, impedindo qualquer vazamento.
+   */
+  private renderRichDescriptionBox(
+    parent: Phaser.GameObjects.Container,
+    lines: RichTextSegment[][],
+    centerY: number,
+    maxWidth: number,
+    maxHeight: number
+  ): void {
+    const boxContainer = this.add.container(0, centerY);
+    parent.add(boxContainer);
+
+    const lineSpacing = 24;
+    const totalH = (lines.length - 1) * lineSpacing;
+    const startY = -totalH / 2;
+
+    lines.forEach((segments, lineIdx) => {
+      const lineContainer = this.add.container(0, startY + lineIdx * lineSpacing);
+      boxContainer.add(lineContainer);
+
+      const textObjs: Phaser.GameObjects.Text[] = [];
+      let totalLineW = 0;
+
+      for (const seg of segments) {
+        const t = this.add.text(0, 0, seg.text.toUpperCase(), {
+          fontFamily: this.cardFont,
+          fontSize: '21px',
+          color: seg.color,
+          stroke: '#000000',
+          strokeThickness: 3.5
+        }).setOrigin(0, 0.5);
+        t.setResolution(2);
+        textObjs.push(t);
+        lineContainer.add(t);
+        totalLineW += t.width;
+      }
+
+      // Posiciona cada segmento lado a lado centralizando a linha inteira em X = 0
+      let curX = -totalLineW / 2;
+      for (const t of textObjs) {
+        t.setX(Math.round(curX));
+        curX += t.width;
+      }
+
+      // Garantia absoluta contra vazamento horizontal nos ossos laterais
+      if (totalLineW > maxWidth) {
+        const scaleFit = maxWidth / totalLineW;
+        lineContainer.setScale(scaleFit);
+      }
+    });
+
+    // Garantia absoluta contra vazamento vertical
+    const estimatedBoxH = lines.length * lineSpacing;
+    if (estimatedBoxH > maxHeight) {
+      boxContainer.setScale(maxHeight / estimatedBoxH);
+    }
+  }
+
+  /**
+   * Cria a explosão satisfatória de partículas, moedas e ondas de choque quando a carta é escolhida
+   */
+  private spawnCardExplosionParticles(cx: number, cy: number, themeColor: number): void {
+    this.cameras.main.shake(140, 0.006);
+
+    // 1. Onda de choque expansiva
+    const ring = this.add.graphics();
+    ring.setDepth(120);
+    ring.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.tweens.addCounter({
+      from: 20,
+      to: 240,
+      duration: 340,
+      ease: 'Cubic.easeOut',
+      onUpdate: (tw) => {
+        const r = tw.getValue() ?? 20;
+        const alpha = Math.max(0, 1 - (r - 20) / 220);
+        ring.clear();
+        ring.lineStyle(5, 0xffe600, alpha);
+        ring.strokeCircle(cx, cy, r);
+        ring.lineStyle(3, themeColor, alpha * 0.8);
+        ring.strokeCircle(cx, cy, r * 0.78);
+      },
+      onComplete: () => ring.destroy()
+    });
+
+    // 2. Explosão de 40 partículas (faíscas douradas, cristais e fragmentos da cor da carta)
+    const palette = [themeColor, 0xffe600, 0xffffff, 0x00f5d4, 0xff4d6d];
+    for (let i = 0; i < 40; i++) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const speedDist = Phaser.Math.Between(70, 260);
+      const startX = cx + Phaser.Math.Between(-50, 50);
+      const startY = cy + Phaser.Math.Between(-80, 80);
+      const color = Phaser.Math.RND.pick(palette);
+      const size = Phaser.Math.Between(3, 8);
+
+      const spark = this.add.rectangle(startX, startY, size, size, color, 1);
+      spark.setDepth(125);
+      spark.setBlendMode(Phaser.BlendModes.ADD);
+      spark.setRotation(Phaser.Math.FloatBetween(0, Math.PI));
+
+      this.tweens.add({
+        targets: spark,
+        x: startX + Math.cos(angle) * speedDist,
+        y: startY + Math.sin(angle) * speedDist,
+        rotation: spark.rotation + Phaser.Math.FloatBetween(2, 6),
+        scaleX: 0.1,
+        scaleY: 0.1,
+        alpha: 0,
+        duration: Phaser.Math.Between(240, 420),
+        ease: 'Cubic.easeOut',
+        onComplete: () => spark.destroy()
+      });
+    }
   }
 }
