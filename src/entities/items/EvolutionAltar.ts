@@ -87,42 +87,28 @@ export class EvolutionAltar extends Phaser.GameObjects.Container {
   private drawZone(isPlayerInside: boolean): void {
     this.zoneGraphics.clear();
 
-    const pulse = Math.sin(this.pulseTimer * 0.005) * 0.08;
-
-    // 1. Preenchimento suave do solo dentro da zona (sem poluição visual)
-    this.zoneGraphics.fillStyle(0x380509, (isPlayerInside ? 0.16 : 0.05) + pulse);
-    this.zoneGraphics.fillCircle(0, 0, this.captureRadius);
-
-    // 2. Trilho de fundo (círculo guia escuro)
-    this.zoneGraphics.lineStyle(2, 0x420910, isPlayerInside ? 0.6 : 0.35);
+    // 1. Trilho de fundo fino e estático (sem piscar nem preencher o chão)
+    this.zoneGraphics.lineStyle(2, 0x3d0b12, isPlayerInside ? 0.65 : 0.35);
     this.zoneGraphics.strokeCircle(0, 0, this.captureRadius);
 
-    // 3. Linha circular vermelha progressiva que vai se completando até formar o círculo (100%)
+    // 2. Linha circular vermelha progressiva que vai se completando até formar o círculo (100%)
     if (this.progress > 0) {
       const startAngle = -Math.PI / 2; // Começa no topo (12 horas)
       const fraction = Math.min(1, Math.max(0, this.progress / 100));
       const endAngle = startAngle + fraction * (Math.PI * 2);
 
       // Brilho exterior suave da linha vermelha
-      this.zoneGraphics.lineStyle(5, 0xff002b, isPlayerInside ? 0.4 : 0.2);
+      this.zoneGraphics.lineStyle(5, 0xff002b, isPlayerInside ? 0.35 : 0.18);
       this.zoneGraphics.beginPath();
       this.zoneGraphics.arc(0, 0, this.captureRadius, startAngle, endAngle, false);
       this.zoneGraphics.strokePath();
 
-      // Linha vermelha viva sólida
+      // Linha vermelha viva sólida (sem bola na ponta)
       const redColor = this.currentStage === 3 ? 0xff1e27 : this.currentStage === 2 ? 0xff3344 : 0xe6192e;
-      this.zoneGraphics.lineStyle(3, redColor, isPlayerInside ? 1 : 0.75);
+      this.zoneGraphics.lineStyle(3, redColor, isPlayerInside ? 1 : 0.8);
       this.zoneGraphics.beginPath();
       this.zoneGraphics.arc(0, 0, this.captureRadius, startAngle, endAngle, false);
       this.zoneGraphics.strokePath();
-
-      // Ponto de avanço luminoso no topo do arco até fechar 100%
-      if (fraction < 1) {
-        const tipX = Math.cos(endAngle) * this.captureRadius;
-        const tipY = Math.sin(endAngle) * this.captureRadius;
-        this.zoneGraphics.fillStyle(0xffe600, isPlayerInside ? 1 : 0.75);
-        this.zoneGraphics.fillCircle(tipX, tipY, 3);
-      }
     }
   }
 
