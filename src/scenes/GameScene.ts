@@ -12,6 +12,8 @@ import { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
 import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
+import { CorruptedSoulItem } from '../entities/items/CorruptedSoulItem';
+import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import { BossSummonAltar } from '../entities/items/BossSummonAltar';
@@ -48,6 +50,7 @@ export class GameScene extends Phaser.Scene {
   public miniBoss6mSpawned: boolean = false;
   public boss10mSpawned: boolean = false;
   public isRevival: boolean = false;
+  public hasRevivalUsed: boolean = false;
   private bossMinionTimer: number = 0;
 
   // Sistema de Balões de Fala Dinâmicos em Combate
@@ -63,6 +66,7 @@ export class GameScene extends Phaser.Scene {
   public soulBoltWeapon!: SoulBoltWeapon;
   public enemiesGroup!: Phaser.GameObjects.Group;
   public gemsGroup!: Phaser.GameObjects.Group;
+  public soulsGroup!: Phaser.GameObjects.Group;
   public mapItemsGroup!: Phaser.GameObjects.Group;
   public altarInstance: EvolutionAltar | null = null;
   public bossSummonAltar: BossSummonAltar | null = null;
@@ -95,6 +99,8 @@ export class GameScene extends Phaser.Scene {
   init(data?: { mode?: 'story' | 'endless' | 'sandbox'; isRevival?: boolean }): void {
     this.gameMode = data?.mode ?? 'story';
     this.isRevival = data?.isRevival ?? false;
+    this.hasRevivalUsed = false;
+    MetaProgressManager.getInstance().resetRunSouls();
     this.sandboxGodMode = this.gameMode === 'sandbox';
     this.sandboxInfiniteUlt = false;
     this.sandboxInfiniteStamina = false;
@@ -240,6 +246,11 @@ export class GameScene extends Phaser.Scene {
       runChildUpdate: false
     });
 
+    this.soulsGroup = this.add.group({
+      classType: CorruptedSoulItem,
+      runChildUpdate: false
+    });
+
     this.mapItemsGroup = this.add.group({
       classType: MapItem,
       runChildUpdate: false
@@ -278,6 +289,18 @@ export class GameScene extends Phaser.Scene {
         const gem = gemObj as SoulGem;
         if (gem.active && !this.isGameOver) {
           gem.collect(this.player);
+        }
+      }
+    );
+
+    // 6.3. Configuração de Coleta de Almas Corrompidas
+    this.physics.add.overlap(
+      this.player,
+      this.soulsGroup,
+      (_playerObj, soulObj) => {
+        const soul = soulObj as CorruptedSoulItem;
+        if (soul.active && !this.isGameOver) {
+          soul.collect(this.player);
         }
       }
     );
@@ -468,8 +491,13 @@ export class GameScene extends Phaser.Scene {
       if (this.sandboxGodMode) {
         this.player.currentHp = this.player.maxHp;
       } else {
-        this.handlePlayerDeath();
-        return;
+        const hasExtraRevival = MetaProgressManager.getInstance().getModifiers().hasExtraRevival;
+        if (hasExtraRevival && !this.hasRevivalUsed) {
+          this.triggerDemonRevival();
+        } else {
+          this.handlePlayerDeath();
+          return;
+        }
       }
     }
 
@@ -537,6 +565,21 @@ export class GameScene extends Phaser.Scene {
         g.setVisible(inView);
         if (g.isAttracted || inView) {
           g.updateGem(this.player, delta);
+        }
+      }
+    }
+
+    // 5.1. Atualizar Almas Corrompidas no Chão (Culling + Atração Magnética e Coleta)
+    if (this.soulsGroup) {
+      const activeSouls = this.soulsGroup.getChildren() as CorruptedSoulItem[];
+      for (let i = 0; i < activeSouls.length; i++) {
+        const s = activeSouls[i];
+        if (s.active) {
+          const inView = s.x >= cLeft && s.x <= cRight && s.y >= cTop && s.y <= cBottom;
+          s.setVisible(inView);
+          if (s.isAttracted || inView) {
+            s.updateSoul(this.player, delta);
+          }
         }
       }
     }
@@ -733,6 +776,13 @@ export class GameScene extends Phaser.Scene {
           gemType = Math.random() < 0.1 ? 'blue' : 'green';
         }
         this.spawnGemAt(ex, ey, gemType);
+
+        // Drop de Almas Corrompidas: Elites garantem 2 a 3; comuns têm 4% de chance
+        if (dog?.isElite) {
+          this.spawnSoulItem(ex, ey, Phaser.Math.Between(2, 3));
+        } else if (Math.random() < 0.04) {
+          this.spawnSoulItem(ex, ey, 1);
+        }
       });
     }
 
@@ -762,6 +812,11 @@ export class GameScene extends Phaser.Scene {
         // Skull Slime tem chance de gema azul (70%) e vermelha (30%)
         const gemType: GemType = Math.random() < 0.3 ? 'red' : 'blue';
         this.spawnGemAt(ex, ey, gemType);
+
+        // Drop de Almas Corrompidas (8% de chance de 1 a 2 almas)
+        if (Math.random() < 0.08) {
+          this.spawnSoulItem(ex, ey, Phaser.Math.Between(1, 2));
+        }
       });
     }
 
@@ -793,6 +848,11 @@ export class GameScene extends Phaser.Scene {
         // 95% gema verde, 5% azul
         const gemType: GemType = Math.random() < 0.05 ? 'blue' : 'green';
         this.spawnGemAt(ex, ey, gemType);
+
+        // Drop de Almas Corrompidas (3% de chance de 1 alma)
+        if (Math.random() < 0.03) {
+          this.spawnSoulItem(ex, ey, 1);
+        }
       });
     }
 
@@ -845,6 +905,11 @@ export class GameScene extends Phaser.Scene {
         this.addPurificationPoints(4);
         const gemType: GemType = Math.random() < 0.35 ? 'blue' : 'green';
         this.spawnGemAt(ex, ey, gemType);
+
+        // Drop de Almas Corrompidas (25% de chance de 1 a 3 almas)
+        if (Math.random() < 0.25) {
+          this.spawnSoulItem(ex, ey, Phaser.Math.Between(1, 3));
+        }
       });
     }
 
@@ -887,6 +952,54 @@ export class GameScene extends Phaser.Scene {
     }
 
     gem.spawn(x, y, type);
+  }
+
+  public spawnSoulItem(x: number, y: number, value: number = 1): void {
+    const clamped = this.clampToArena(x, y, 60);
+    let soul = this.soulsGroup.getChildren().find(
+      (child) => !child.active
+    ) as CorruptedSoulItem | undefined;
+
+    if (!soul) {
+      soul = new CorruptedSoulItem(this, clamped.x, clamped.y);
+      this.soulsGroup.add(soul);
+    }
+
+    soul.spawn(clamped.x, clamped.y, value);
+  }
+
+  private triggerDemonRevival(): void {
+    this.hasRevivalUsed = true;
+    this.player.currentHp = Math.max(1, Math.round(this.player.maxHp * 0.5));
+    this.playerInvulnerableTimer = 3500;
+
+    SoundManager.getInstance().playLevelUp();
+    this.cameras.main.flash(350, 192, 132, 252);
+    this.cameras.main.shake(350, 0.02);
+
+    // Efeito de onda de choque mística que repele monstros próximos
+    if (this.enemiesGroup) {
+      const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
+      for (const enemy of enemies) {
+        if (enemy.active && !enemy.isDead) {
+          const dx = enemy.x - this.player.x;
+          const dy = enemy.y - this.player.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 260) {
+            enemy.takeDamage(40);
+            const body = enemy.body as Phaser.Physics.Arcade.Body;
+            if (body && dist > 0) {
+              body.setVelocity((dx / dist) * 350, (dy / dist) * 350);
+            }
+          }
+        }
+      }
+    }
+
+    const uiScene = this.scene.get('UIScene') as UIScene;
+    if (uiScene) {
+      uiScene.showWaveAlert('PACTO DEMONÍACO ATIVADO!\nNIXY RESSUSCITOU COM 50% DE VIDA!', 3000);
+    }
   }
 
   public spawnMapItem(x: number, y: number, type?: MapItemType): MapItem {
@@ -1164,6 +1277,8 @@ export class GameScene extends Phaser.Scene {
       this.killCount++;
       this.player.gainUltimateCharge(25);
       this.spawnGemAt(ex, ey, 'purple');
+      // Drop garantido de 10 a 15 Almas Corrompidas
+      this.spawnSoulItem(ex, ey, Phaser.Math.Between(10, 15));
       // Drop de item especial de auxílio (Cálice de Cura ou Ímã)
       this.spawnMapItem(ex + 25, ey, Math.random() < 0.5 ? 'chalice' : 'magnet');
       this.cameras.main.shake(250, 0.015);
@@ -1192,9 +1307,10 @@ export class GameScene extends Phaser.Scene {
     matriarch.on('boss-defeated', () => {
       this.killCount++;
       this.player.gainUltimateCharge(50);
-      // Recompensa lendária: 2 Gemas Roxas e Baú do Abismo
+      // Recompensa lendária: 2 Gemas Roxas, 15-20 Almas e Baú do Abismo
       this.spawnGemAt(matriarch.x - 20, matriarch.y, 'purple');
       this.spawnGemAt(matriarch.x + 20, matriarch.y, 'purple');
+      this.spawnSoulItem(matriarch.x, matriarch.y, Phaser.Math.Between(15, 20));
       this.spawnMapItem(matriarch.x, matriarch.y - 30, 'chest');
       this.cameras.main.shake(300, 0.02);
     });
@@ -1227,10 +1343,11 @@ export class GameScene extends Phaser.Scene {
       this.killCount += 5;
       this.player.gainUltimateCharge(100);
 
-      // Recompensa suprema: 3 Gemas Roxas, Baú de Upgrade e celebração de sobrevivência
+      // Recompensa suprema: 3 Gemas Roxas, 60-80 Almas, Baú de Upgrade e celebração de sobrevivência
       this.spawnGemAt(bossX - 30, bossY, 'purple');
       this.spawnGemAt(bossX, bossY, 'purple');
       this.spawnGemAt(bossX + 30, bossY, 'purple');
+      this.spawnSoulItem(bossX, bossY, Phaser.Math.Between(60, 80));
       this.spawnMapItem(bossX, bossY - 40, 'chest');
 
       this.cameras.main.flash(400, 255, 215, 0);
@@ -1251,6 +1368,14 @@ export class GameScene extends Phaser.Scene {
     this.isGameOver = true;
     SoundManager.getInstance().stopMusic(1200);
     SoundManager.getInstance().playGameOver();
+
+    // Finaliza economia de almas e recordes
+    const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
+    MetaProgressManager.getInstance().recordRun(
+      Math.floor(this.survivalTimeMs / 1000),
+      this.killCount,
+      false
+    );
 
     this.physics.pause();
     this.clearCombatSpeechBubbles();
@@ -1286,7 +1411,8 @@ export class GameScene extends Phaser.Scene {
             kills: this.killCount,
             level: this.player.currentLevel,
             timeSec: Math.floor(this.survivalTimeMs / 1000),
-            mode: this.gameMode
+            mode: this.gameMode,
+            soulsEarned
           },
           () => {
             // Reiniciar o modo atual com mecânica de ressurreição (Hades)
@@ -1696,6 +1822,7 @@ export class GameScene extends Phaser.Scene {
       SoundManager.getInstance().playBattleMusic(1500);
       this.spawnGemAt(bx - 25, by, 'purple');
       this.spawnGemAt(bx + 25, by, 'purple');
+      this.spawnSoulItem(bx, by, Phaser.Math.Between(60, 80));
       this.spawnMapItem(bx, by - 35, 'chest');
       const uiScene = this.scene.get('UIScene') as UIScene;
       if (uiScene) {
@@ -1703,6 +1830,9 @@ export class GameScene extends Phaser.Scene {
       }
       return;
     }
+
+    // Recompensa suprema de almas corrompidas do capítulo (60 a 80 almas)
+    MetaProgressManager.getInstance().collectRunSoul(Phaser.Math.Between(60, 80));
 
     this.isChapterCompleted = true;
     this.clearCombatSpeechBubbles();
@@ -1744,13 +1874,21 @@ export class GameScene extends Phaser.Scene {
     this.isChapterCompleted = true;
     this.physics.pause();
 
+    const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
+    MetaProgressManager.getInstance().recordRun(
+      Math.floor(this.survivalTimeMs / 1000),
+      this.killCount,
+      true
+    );
+
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene) {
       uiScene.showChapterVictoryModal(
         {
           kills: this.killCount,
           level: this.player.currentLevel,
-          timeSec: Math.floor(this.survivalTimeMs / 1000)
+          timeSec: Math.floor(this.survivalTimeMs / 1000),
+          soulsEarned
         },
         () => {
           this.scene.stop('UIScene');

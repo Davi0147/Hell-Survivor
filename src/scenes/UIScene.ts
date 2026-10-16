@@ -7,6 +7,7 @@ import { UpgradeCard } from './UpgradeScene';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { DevSandboxPanel } from '../systems/DevSandboxPanel';
 import { isDevSandboxEnabled } from '../config/balance';
+import { MetaProgressManager } from '../systems/MetaProgressManager';
 
 export class UIScene extends Phaser.Scene {
   // Sistema de Diálogos Estilo Persona 5
@@ -59,10 +60,12 @@ export class UIScene extends Phaser.Scene {
   private portraitBaseY: number = 0;
   private portraitSize: number = 340;
 
-  // Painel Superior Direito (Abates e Arma)
+  // Painel Superior Direito (Abates, Almas e Arma)
   private killsPanelGraphics!: Phaser.GameObjects.Graphics;
   private killsText!: Phaser.GameObjects.Text;
   private weaponInfoText!: Phaser.GameObjects.Text;
+  private soulsIcon!: Phaser.GameObjects.Image;
+  private soulsText!: Phaser.GameObjects.Text;
 
   // Controles
   private controlsText!: Phaser.GameObjects.Text;
@@ -275,7 +278,7 @@ export class UIScene extends Phaser.Scene {
     // ==========================================
     const margin = 20;
     const killsPanelW = 250;
-    const killsPanelH = 68;
+    const killsPanelH = 92;
     const killsPanelX = width - killsPanelW - margin;
     const killsPanelY = 20;
 
@@ -301,6 +304,16 @@ export class UIScene extends Phaser.Scene {
       fontSize: '10px',
       color: '#00f5d4',
       stroke: '#003530',
+      strokeThickness: 2
+    });
+
+    this.soulsIcon = this.add.image(killsPanelX + 26, killsPanelY + 68, 'item-soul').setScale(0.55);
+    this.soulsText = this.add.text(killsPanelX + 44, killsPanelY + 62, '0 ALMAS', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#c084fc',
+      stroke: '#240046',
       strokeThickness: 2
     });
 
@@ -441,6 +454,8 @@ export class UIScene extends Phaser.Scene {
       this.killsPanelGraphics,
       this.killsText,
       this.weaponInfoText,
+      this.soulsIcon,
+      this.soulsText,
       this.purifyBarGraphics,
       this.purifyLabelText,
       this.bossBarGraphics,
@@ -780,10 +795,12 @@ export class UIScene extends Phaser.Scene {
       this.portraitImage.clearTint();
     }
 
-    // Atualizar Abates
+    // Atualizar Abates e Almas Corrompidas
     if (typeof gameScene.killCount === 'number') {
       this.killsText.setText(`ABATES: ${gameScene.killCount}`);
     }
+    const runSouls = MetaProgressManager.getInstance().runSoulsCollected;
+    this.soulsText.setText(`${runSouls} ALMAS`);
 
     // Atualizar Barra Superior de Experiência (XP)
     const { width, height } = this.scale;
@@ -1305,7 +1322,7 @@ export class UIScene extends Phaser.Scene {
     return this.isChestRouletteOpen;
   }
 
-  public showChapterVictoryModal(stats: { kills: number; level: number; timeSec: number }, onReturnToMenu: () => void): void {
+  public showChapterVictoryModal(stats: { kills: number; level: number; timeSec: number; soulsEarned?: number }, onReturnToMenu: () => void): void {
     this.setHUDVisible(false);
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
@@ -1351,8 +1368,9 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5);
     modal.add(subtitle);
 
+    const soulsInfo = typeof stats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${stats.soulsEarned}` : '';
     const statsText = this.add.text(panelX, panelY, 
-      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Rosalin (DERROTADA)`, {
+      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Rosalin (DERROTADA)${soulsInfo}`, {
       fontFamily: pixelFont,
       fontSize: '12px',
       color: '#e0aaff',
@@ -1859,7 +1877,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   public showGameOverModal(
-    stats: { kills: number; level: number; timeSec: number; mode: 'story' | 'endless' | 'sandbox' },
+    stats: { kills: number; level: number; timeSec: number; mode: 'story' | 'endless' | 'sandbox'; soulsEarned?: number },
     onRetry: () => void,
     onReturnToMenu: () => void
   ): void {
@@ -1923,10 +1941,11 @@ export class UIScene extends Phaser.Scene {
     const formattedTime = this.formatTime(stats.timeSec);
     const bestText = stats.mode === 'endless' ? `\nRecorde Pessoal: ${this.formatTime(this.bestRecordSec)}` : '';
     const newRecordNotice = isNewRecord ? '\nNOVO RECORDE PESSOAL ALCANÇADO!\n' : '\n';
+    const soulsNotice = typeof stats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${stats.soulsEarned}` : '';
 
     const statsText = this.add.text(panelX, panelY - 5,
       `Tempo Sobrevivido: ${formattedTime}${bestText}${newRecordNotice}` +
-      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: LVL ${stats.level}`, {
+      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: LVL ${stats.level}${soulsNotice}`, {
       fontFamily: pixelFont,
       fontSize: '12px',
       color: isNewRecord ? '#ffd60a' : '#ffffff',

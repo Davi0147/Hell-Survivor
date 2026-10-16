@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from './BaseCharacter';
 import { BALANCE } from '../../config/balance';
+import { MetaProgressManager } from '../../systems/MetaProgressManager';
 
 export class Nixy extends BaseCharacter {
   private trailTimer: number = 0;
@@ -20,7 +21,33 @@ export class Nixy extends BaseCharacter {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'nixy-idle-south', BALANCE.NIXY);
+    this.applyMetaProgressBlessings();
     this.play('nixy-idle-south');
+  }
+
+  public applyMetaProgressBlessings(): void {
+    const meta = MetaProgressManager.getInstance();
+    const mods = meta.getModifiers();
+    if (mods.bonusMaxHp > 0) {
+      this.maxHp += mods.bonusMaxHp;
+      this.currentHp = this.maxHp;
+    }
+    if (mods.bonusDamagePercent > 0) {
+      this.bonusDamagePercent += mods.bonusDamagePercent;
+    }
+    if (mods.bonusPickupRadiusMultiplier > 1) {
+      this.bonusPickupRadiusPercent += (mods.bonusPickupRadiusMultiplier - 1) * 100;
+    }
+    if (mods.bonusSpeedMultiplier > 1) {
+      this.bonusSpeedPercent += (mods.bonusSpeedMultiplier - 1) * 100;
+    }
+    if (mods.bonusMaxStamina > 0) {
+      this.maxStamina += mods.bonusMaxStamina;
+      this.currentStamina = this.maxStamina;
+    }
+    if (mods.rerollsAvailable > 0) {
+      this.rerollsRemaining = 2 + mods.rerollsAvailable;
+    }
   }
 
   public applyAcidRoot(durationMs: number = 1000): void {

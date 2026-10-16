@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
 import { isDevSandboxEnabled } from '../config/balance';
+import { MetaProgressManager, BLESSINGS_CATALOG, BlessingId } from '../systems/MetaProgressManager';
 
 interface MenuItem {
   label: string;
@@ -13,6 +14,7 @@ export class MenuScene extends Phaser.Scene {
   private textObjects: Phaser.GameObjects.Text[] = [];
   private leftIndicator?: Phaser.GameObjects.Text;
   private rightIndicator?: Phaser.GameObjects.Text;
+  private menuSoulsText?: Phaser.GameObjects.Text;
   private isModalOpen: boolean = false;
   private modalContainer?: Phaser.GameObjects.Container;
 
@@ -114,6 +116,19 @@ export class MenuScene extends Phaser.Scene {
       });
     }
 
+    // 4.1. Contador de Almas Corrompidas no Topo Direito do Menu
+    const soulsX = width - 150;
+    const soulsY = 32;
+    this.add.image(soulsX - 22, soulsY, 'item-soul').setScale(0.65).setDepth(20);
+    this.menuSoulsText = this.add.text(soulsX, soulsY - 7, `${MetaProgressManager.getInstance().getSouls()} ALMAS`, {
+      fontFamily: pixelFont,
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: '#c084fc',
+      stroke: '#240046',
+      strokeThickness: 3
+    }).setDepth(20);
+
     // 5. Configuração dos Itens de Menu (inclui MODO DE TESTE quando habilitado para desenvolvimento)
     this.menuItems = [
       {
@@ -123,6 +138,10 @@ export class MenuScene extends Phaser.Scene {
       {
         label: 'MODO INFINITO',
         action: () => this.startGame('endless')
+      },
+      {
+        label: 'ALTAR DE BÊNÇÃOS',
+        action: () => this.openBlessingsModal()
       }
     ];
 
@@ -145,8 +164,8 @@ export class MenuScene extends Phaser.Scene {
     );
 
     // 6. Construção Vertical dos Botões de Texto
-    const startY = this.menuItems.length >= 5 ? 360 : 380;
-    const spacingY = this.menuItems.length >= 5 ? 48 : 56;
+    const startY = this.menuItems.length >= 6 ? 340 : this.menuItems.length >= 5 ? 360 : 380;
+    const spacingY = this.menuItems.length >= 6 ? 46 : this.menuItems.length >= 5 ? 48 : 56;
     this.textObjects = [];
 
     this.menuItems.forEach((item, index) => {
@@ -318,6 +337,437 @@ export class MenuScene extends Phaser.Scene {
       if (this.isModalOpen) {
         this.closeModal();
       }
+    });
+  }
+
+  private updateMenuSoulsDisplay(): void {
+    if (this.menuSoulsText) {
+      this.menuSoulsText.setText(`${MetaProgressManager.getInstance().getSouls()} ALMAS`);
+    }
+  }
+
+  /**
+   * Modal Interativo do Altar de Bênçãos (Loja Permanente de Meta-Progressão)
+   */
+  private openBlessingsModal(): void {
+    if (this.isModalOpen) return;
+    this.isModalOpen = true;
+
+    const { width, height } = this.scale;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    this.modalContainer = this.add.container(0, 0);
+    this.modalContainer.setDepth(100);
+
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
+    overlay.setInteractive();
+    this.modalContainer.add(overlay);
+
+    const panelW = 940;
+    const panelH = 590;
+    const panelX = width / 2;
+    const panelY = height / 2;
+
+    const panelG = this.add.graphics();
+    panelG.fillStyle(0x130309, 0.98);
+    panelG.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+
+    panelG.lineStyle(3, 0xc59b27, 0.95);
+    panelG.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+
+    panelG.lineStyle(1.5, 0x9d4edd, 0.65);
+    panelG.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 10);
+    this.modalContainer.add(panelG);
+
+    // Título do Altar
+    const title = this.add.text(panelX, panelY - panelH / 2 + 36, 'ALTAR DE BÊNÇÃOS ABISSAIS', {
+      fontFamily: pixelFont,
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#ffd60a',
+      stroke: '#300207',
+      strokeThickness: 4
+    }).setOrigin(0.5);
+    this.modalContainer.add(title);
+
+    // Container dinâmico para os cards das bênçãos e saldo (permite re-renderizar em compras ou refunds)
+    const contentContainer = this.add.container(0, 0);
+    this.modalContainer.add(contentContainer);
+
+    const renderContent = () => {
+      contentContainer.removeAll(true);
+      const meta = MetaProgressManager.getInstance();
+      const currentSouls = meta.getSouls();
+      const totalSpent = meta.getTotalSpentSouls();
+
+      // Saldo de Almas Corrompidas
+      const balanceY = panelY - panelH / 2 + 70;
+      const soulIcon = this.add.image(panelX - 165, balanceY, 'item-soul').setScale(0.65);
+      contentContainer.add(soulIcon);
+
+      const balanceText = this.add.text(
+        panelX - 145,
+        balanceY - 8,
+        `${currentSouls} ALMAS DISPONÍVEIS   |   TOTAL INVESTIDO: ${totalSpent}`,
+        {
+          fontFamily: pixelFont,
+          fontSize: '11px',
+          fontStyle: 'bold',
+          color: '#c084fc',
+          stroke: '#1b002c',
+          strokeThickness: 2
+        }
+      );
+      contentContainer.add(balanceText);
+
+      // Divisória ornamental
+      const div = this.add.graphics();
+      div.lineStyle(1.5, 0xc59b27, 0.35);
+      div.lineBetween(panelX - 440, balanceY + 18, panelX + 440, balanceY + 18);
+      contentContainer.add(div);
+
+      // Grade 2 colunas x 3 linhas
+      const blessingIds: BlessingId[] = ['vitality', 'might', 'magnetism', 'agility', 'reroll', 'revival'];
+      const cardW = 428;
+      const cardH = 96;
+      const startCardY = panelY - 110;
+      const rowSpacing = 110;
+
+      blessingIds.forEach((bId, idx) => {
+        const config = BLESSINGS_CATALOG[bId];
+        const curLevel = meta.getBlessingLevel(bId);
+        const cost = meta.getBlessingCost(bId);
+        const isMax = curLevel >= config.maxLevel;
+        const canAfford = cost !== null && currentSouls >= cost;
+
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const cardX = col === 0 ? panelX - cardW / 2 - 12 : panelX + cardW / 2 + 12;
+        const cardY = startCardY + row * rowSpacing;
+
+        // Fundo do Card
+        const cardG = this.add.graphics();
+        cardG.fillStyle(0x190510, 0.95);
+        cardG.fillRoundedRect(cardX - cardW / 2, cardY - cardH / 2, cardW, cardH, 8);
+        cardG.lineStyle(1.5, isMax ? 0x00f5d4 : canAfford ? 0xc59b27 : 0x5a2335, 0.9);
+        cardG.strokeRoundedRect(cardX - cardW / 2, cardY - cardH / 2, cardW, cardH, 8);
+        contentContainer.add(cardG);
+
+        // Nome da Bênção
+        const nameTxt = this.add.text(cardX - cardW / 2 + 14, cardY - cardH / 2 + 10, config.name, {
+          fontFamily: pixelFont,
+          fontSize: '12px',
+          fontStyle: 'bold',
+          color: isMax ? '#00f5d4' : '#ffd60a'
+        });
+        contentContainer.add(nameTxt);
+
+        // Bônus descritivo
+        const bonusTxt = this.add.text(cardX + cardW / 2 - 14, cardY - cardH / 2 + 11, config.statBonusPerLevel, {
+          fontFamily: pixelFont,
+          fontSize: '9px',
+          color: '#e0aaff'
+        }).setOrigin(1, 0);
+        contentContainer.add(bonusTxt);
+
+        // Descrição detalhada
+        const descTxt = this.add.text(cardX - cardW / 2 + 14, cardY - cardH / 2 + 28, config.description, {
+          fontFamily: pixelFont,
+          fontSize: '9px',
+          color: '#c7b39b',
+          wordWrap: { width: 290 }
+        });
+        contentContainer.add(descTxt);
+
+        // Pips de nível
+        let pipsStr = '';
+        for (let l = 1; l <= config.maxLevel; l++) {
+          pipsStr += l <= curLevel ? '● ' : '○ ';
+        }
+        const pipsTxt = this.add.text(
+          cardX - cardW / 2 + 14,
+          cardY + cardH / 2 - 18,
+          `NÍV ${curLevel}/${config.maxLevel}   [ ${pipsStr.trim()} ]`,
+          {
+            fontFamily: pixelFont,
+            fontSize: '9px',
+            color: isMax ? '#00f5d4' : '#f3d17a'
+          }
+        );
+        contentContainer.add(pipsTxt);
+
+        // Botão de Upgrade / Status
+        const btnBuyW = 100;
+        const btnBuyH = 34;
+        const btnBuyX = cardX + cardW / 2 - btnBuyW / 2 - 12;
+        const btnBuyY = cardY + 12;
+
+        if (isMax) {
+          const maxBadge = this.add.text(btnBuyX, btnBuyY, 'MAX', {
+            fontFamily: pixelFont,
+            fontSize: '11px',
+            fontStyle: 'bold',
+            color: '#00f5d4'
+          }).setOrigin(0.5);
+          contentContainer.add(maxBadge);
+        } else {
+          // Custo em Almas
+          const costRowY = cardY - 14;
+          const soulSmall = this.add.image(btnBuyX - 26, costRowY, 'item-soul').setScale(0.45);
+          contentContainer.add(soulSmall);
+
+          const costTxt = this.add.text(btnBuyX - 12, costRowY - 6, `${cost}`, {
+            fontFamily: pixelFont,
+            fontSize: '11px',
+            fontStyle: 'bold',
+            color: canAfford ? '#c084fc' : '#ff5577'
+          });
+          contentContainer.add(costTxt);
+
+          // Botão Evoluir
+          const buyBtnG = this.add.graphics();
+          const renderBuyBtn = (hover: boolean) => {
+            buyBtnG.clear();
+            buyBtnG.fillStyle(canAfford ? (hover ? 0x9d4edd : 0x5a189a) : 0x2b0d18, 1);
+            buyBtnG.fillRoundedRect(btnBuyX - btnBuyW / 2, btnBuyY - btnBuyH / 2, btnBuyW, btnBuyH, 6);
+            buyBtnG.lineStyle(1.5, canAfford ? (hover ? 0xffffff : 0xc084fc) : 0x553344, 1);
+            buyBtnG.strokeRoundedRect(btnBuyX - btnBuyW / 2, btnBuyY - btnBuyH / 2, btnBuyW, btnBuyH, 6);
+          };
+          renderBuyBtn(false);
+          contentContainer.add(buyBtnG);
+
+          const buyLabel = this.add.text(btnBuyX, btnBuyY, 'UPGRADE', {
+            fontFamily: pixelFont,
+            fontSize: '10px',
+            fontStyle: 'bold',
+            color: canAfford ? '#ffffff' : '#888888'
+          }).setOrigin(0.5);
+          contentContainer.add(buyLabel);
+
+          if (canAfford) {
+            const buyZone = this.add.zone(btnBuyX, btnBuyY, btnBuyW, btnBuyH).setInteractive({ useHandCursor: true });
+            contentContainer.add(buyZone);
+
+            buyZone.on('pointerover', () => {
+              renderBuyBtn(true);
+              SoundManager.getInstance().playMenuHover();
+            });
+            buyZone.on('pointerout', () => renderBuyBtn(false));
+            buyZone.on('pointerdown', () => {
+              const ok = meta.upgradeBlessing(bId);
+              if (ok) {
+                SoundManager.getInstance().playLevelUp();
+                this.updateMenuSoulsDisplay();
+                renderContent();
+              }
+            });
+          }
+        }
+      });
+
+      // Botões Inferiores
+      const bottomY = panelY + panelH / 2 - 40;
+
+      // Botão Reembolso (70%)
+      const refundBtnW = 280;
+      const refundBtnH = 38;
+      const refundBtnX = panelX - 160;
+      const hasSpent = totalSpent > 0;
+
+      const refundBtnG = this.add.graphics();
+      const renderRefundBtn = (hover: boolean) => {
+        refundBtnG.clear();
+        refundBtnG.fillStyle(hasSpent ? (hover ? 0xa0001a : 0x59000d) : 0x22050b, 1);
+        refundBtnG.fillRoundedRect(refundBtnX - refundBtnW / 2, bottomY - refundBtnH / 2, refundBtnW, refundBtnH, 6);
+        refundBtnG.lineStyle(1.5, hasSpent ? (hover ? 0xffffff : 0xff4500) : 0x44222a, 1);
+        refundBtnG.strokeRoundedRect(refundBtnX - refundBtnW / 2, bottomY - refundBtnH / 2, refundBtnW, refundBtnH, 6);
+      };
+      renderRefundBtn(false);
+      contentContainer.add(refundBtnG);
+
+      const refundLabel = this.add.text(refundBtnX, bottomY, 'REEMBOLSAR (70%)', {
+        fontFamily: pixelFont,
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: hasSpent ? '#ffc2d1' : '#66444c'
+      }).setOrigin(0.5);
+      contentContainer.add(refundLabel);
+
+      if (hasSpent) {
+        const refundZone = this.add.zone(refundBtnX, bottomY, refundBtnW, refundBtnH).setInteractive({ useHandCursor: true });
+        contentContainer.add(refundZone);
+
+        refundZone.on('pointerover', () => {
+          renderRefundBtn(true);
+          SoundManager.getInstance().playMenuHover();
+        });
+        refundZone.on('pointerout', () => renderRefundBtn(false));
+        refundZone.on('pointerdown', () => {
+          SoundManager.getInstance().playMenuClick();
+          this.openRefundConfirmationModal(renderContent);
+        });
+      }
+
+      // Botão Fechar
+      const closeBtnW = 240;
+      const closeBtnH = 38;
+      const closeBtnX = panelX + 160;
+
+      const closeBtnG = this.add.graphics();
+      const renderCloseBtn = (hover: boolean) => {
+        closeBtnG.clear();
+        closeBtnG.fillStyle(hover ? 0xff4500 : 0x3d0a15, 1);
+        closeBtnG.fillRoundedRect(closeBtnX - closeBtnW / 2, bottomY - closeBtnH / 2, closeBtnW, closeBtnH, 6);
+        closeBtnG.lineStyle(1.5, hover ? 0xffffff : 0xc59b27, 1);
+        closeBtnG.strokeRoundedRect(closeBtnX - closeBtnW / 2, bottomY - closeBtnH / 2, closeBtnW, closeBtnH, 6);
+      };
+      renderCloseBtn(false);
+      contentContainer.add(closeBtnG);
+
+      const closeLabel = this.add.text(closeBtnX, bottomY, 'VOLTAR AO MENU', {
+        fontFamily: pixelFont,
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      contentContainer.add(closeLabel);
+
+      const closeZone = this.add.zone(closeBtnX, bottomY, closeBtnW, closeBtnH).setInteractive({ useHandCursor: true });
+      contentContainer.add(closeZone);
+
+      closeZone.on('pointerover', () => {
+        renderCloseBtn(true);
+        SoundManager.getInstance().playMenuHover();
+      });
+      closeZone.on('pointerout', () => renderCloseBtn(false));
+      closeZone.on('pointerdown', () => {
+        SoundManager.getInstance().playMenuClick();
+        this.updateMenuSoulsDisplay();
+        this.closeModal();
+      });
+    };
+
+    renderContent();
+  }
+
+  private openRefundConfirmationModal(onRefundSuccess: () => void): void {
+    const { width, height } = this.scale;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+    const meta = MetaProgressManager.getInstance();
+    const totalSpent = meta.getTotalSpentSouls();
+    const refunded = Math.floor(totalSpent * 0.70);
+    const lost = totalSpent - refunded;
+
+    const confirmContainer = this.add.container(0, 0);
+    confirmContainer.setDepth(150);
+
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.88);
+    overlay.setInteractive();
+    confirmContainer.add(overlay);
+
+    const panelW = 560;
+    const panelH = 320;
+    const panelX = width / 2;
+    const panelY = height / 2;
+
+    const panelG = this.add.graphics();
+    panelG.fillStyle(0x1a030a, 0.98);
+    panelG.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 12);
+    panelG.lineStyle(3, 0xff0055, 1);
+    panelG.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 12);
+    confirmContainer.add(panelG);
+
+    const title = this.add.text(panelX, panelY - 105, 'SACRIFÍCIO AO ABISMO', {
+      fontFamily: pixelFont,
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ff0055'
+    }).setOrigin(0.5);
+    confirmContainer.add(title);
+
+    const warningText = this.add.text(
+      panelX,
+      panelY - 20,
+      `Você investiu ${totalSpent} almas no total.\n\n` +
+      `O Altar restituirá 70% (+${refunded} almas).\n` +
+      `Os 30% restantes (${lost} almas) serão consumidos pelo fogo infernal.\n\n` +
+      `Tem certeza que deseja redefinir todas as bênçãos?`,
+      {
+        fontFamily: pixelFont,
+        fontSize: '11px',
+        color: '#ffffff',
+        align: 'center',
+        lineSpacing: 6
+      }
+    ).setOrigin(0.5);
+    confirmContainer.add(warningText);
+
+    // Botões
+    const btnW = 210;
+    const btnH = 38;
+    const btnY = panelY + 95;
+    const btn1X = panelX - btnW / 2 - 12;
+    const btn2X = panelX + btnW / 2 + 12;
+
+    // Confirmar
+    const b1G = this.add.graphics();
+    const renderB1 = (h: boolean) => {
+      b1G.clear();
+      b1G.fillStyle(h ? 0xff0055 : 0x720012, 1);
+      b1G.fillRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 6);
+      b1G.lineStyle(1.5, h ? 0xffffff : 0xff4500, 1);
+      b1G.strokeRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 6);
+    };
+    renderB1(false);
+    confirmContainer.add(b1G);
+
+    const b1Txt = this.add.text(btn1X, btnY, 'SIM, REEMBOLSAR', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    confirmContainer.add(b1Txt);
+
+    const z1 = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
+    confirmContainer.add(z1);
+    z1.on('pointerover', () => { renderB1(true); SoundManager.getInstance().playMenuHover(); });
+    z1.on('pointerout', () => renderB1(false));
+    z1.on('pointerdown', () => {
+      meta.refundBlessings();
+      SoundManager.getInstance().playLevelUp();
+      this.updateMenuSoulsDisplay();
+      confirmContainer.destroy();
+      onRefundSuccess();
+    });
+
+    // Cancelar
+    const b2G = this.add.graphics();
+    const renderB2 = (h: boolean) => {
+      b2G.clear();
+      b2G.fillStyle(h ? 0x444444 : 0x222222, 1);
+      b2G.fillRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 6);
+      b2G.lineStyle(1.5, h ? 0xffffff : 0x888888, 1);
+      b2G.strokeRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 6);
+    };
+    renderB2(false);
+    confirmContainer.add(b2G);
+
+    const b2Txt = this.add.text(btn2X, btnY, 'CANCELAR', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    confirmContainer.add(b2Txt);
+
+    const z2 = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
+    confirmContainer.add(z2);
+    z2.on('pointerover', () => { renderB2(true); SoundManager.getInstance().playMenuHover(); });
+    z2.on('pointerout', () => renderB2(false));
+    z2.on('pointerdown', () => {
+      SoundManager.getInstance().playMenuClick();
+      confirmContainer.destroy();
     });
   }
 

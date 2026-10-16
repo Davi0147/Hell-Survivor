@@ -74,7 +74,7 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
       }
 
       case 'magnet': {
-        // Ímã: atrai todos os XPs espalhados no mapa até o jogador
+        // Ímã: atrai todos os XPs e almas espalhados no mapa até o jogador
         SoundManager.getInstance().playLevelUp();
         this.scene.cameras.main.flash(220, 0, 220, 255);
         if (gameScene.gemsGroup) {
@@ -86,6 +86,14 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
               pulledCount++;
             }
           }
+          if (gameScene.soulsGroup) {
+            const souls = gameScene.soulsGroup.getChildren();
+            for (const s of souls) {
+              if (s.active && typeof (s as any).isAttracted !== 'undefined') {
+                (s as any).isAttracted = true;
+              }
+            }
+          }
           if (uiScene) {
             uiScene.showWaveAlert(`ÍMÃ DE ALMAS ATIVADO!\n${pulledCount} GEMAS ATRAÍDAS!`, 2500);
           }
@@ -94,6 +102,12 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
       }
 
       case 'chest': {
+        // Drop garantido de 10 a 20 Almas Corrompidas ao abrir o Baú
+        if (typeof gameScene.spawnSoulItem === 'function') {
+          const soulsDrop = Phaser.Math.Between(10, 20);
+          gameScene.spawnSoulItem(this.x, this.y, soulsDrop);
+        }
+
         // Baú do Abismo: aciona a roleta animada no centro da tela
         const availableCards = UpgradeScene.getAvailableUpgrades(player, gameScene);
         if (uiScene && typeof uiScene.showChestRoulette === 'function') {

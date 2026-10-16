@@ -100,6 +100,7 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('item-chalice');
     this.textures.remove('item-magnet');
     this.textures.remove('item-chest');
+    this.textures.remove('item-soul');
     this.textures.remove('void-scythe');
     this.textures.remove('blood-dagger');
     this.textures.remove('infernal-meteor');
@@ -327,6 +328,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('item-chalice', `assets/sprites/items/chalice.png?t=${cacheBuster}`);
     this.load.image('item-magnet', `assets/sprites/items/magnet.png?t=${cacheBuster}`);
     this.load.image('item-chest', `assets/sprites/items/chest.png?t=${cacheBuster}`);
+    this.load.image('item-soul', `assets/sprites/items/Soul.png?t=${cacheBuster}`);
     this.load.image('void-scythe', `assets/sprites/items/scythe.png?t=${cacheBuster}`);
     this.load.image('blood-dagger', `assets/sprites/items/Adaga.png?t=${cacheBuster}`);
     this.load.image('infernal-meteor', `assets/sprites/items/Meteoro.png?t=${cacheBuster}`);
