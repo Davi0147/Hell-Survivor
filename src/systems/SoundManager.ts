@@ -1150,4 +1150,133 @@ export class SoundManager {
       osc.stop(startTime + 0.04);
     });
   }
+
+  /**
+   * Arremesso veloz e cortante das Adagas de Sangue
+   */
+  public playBloodDaggerThrow(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Sibilo metálico agudo cortando o vento
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1600, now);
+    osc.frequency.exponentialRampToValueAtTime(420, now + 0.075);
+
+    gain.gain.setValueAtTime(0.16 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGainNode || ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.085);
+  }
+
+  /**
+   * Chicoteio metálico e eco espectral das Cadeias Abissais
+   */
+  public playAbyssalChainsWhip(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Tilintar de elos de ferro + chicote grave
+    [0, 0.035, 0.07].forEach((delay, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = now + delay;
+
+      osc.type = idx === 0 ? 'sawtooth' : 'square';
+      osc.frequency.setValueAtTime(980 + idx * 320, start);
+      osc.frequency.exponentialRampToValueAtTime(220, start + 0.09);
+
+      gain.gain.setValueAtTime(0.14 * this.sfxVolume, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.10);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.11);
+    });
+  }
+
+  /**
+   * Impacto explosivo e grave do Meteoro Infernal
+   */
+  public playMeteorImpact(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Estrondo sísmico sub-grave
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(150, now);
+    subOsc.frequency.exponentialRampToValueAtTime(28, now + 0.34);
+
+    subGain.gain.setValueAtTime(0.32 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGainNode || ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.38);
+
+    // Estalo vulcânico de rocha partindo
+    const crackOsc = ctx.createOscillator();
+    const crackFilter = ctx.createBiquadFilter();
+    const crackGain = ctx.createGain();
+    crackOsc.type = 'sawtooth';
+    crackOsc.frequency.setValueAtTime(340, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(55, now + 0.22);
+
+    crackFilter.type = 'lowpass';
+    crackFilter.frequency.setValueAtTime(900, now);
+    crackFilter.frequency.exponentialRampToValueAtTime(140, now + 0.22);
+
+    crackGain.gain.setValueAtTime(0.22 * this.sfxVolume, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+    crackOsc.connect(crackFilter);
+    crackFilter.connect(crackGain);
+    crackGain.connect(this.sfxGainNode || ctx.destination);
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.25);
+  }
+
+  /**
+   * Fanfarra lendária de Evolução Suprema de Arma (Weapon Fusion)
+   */
+  public playWeaponEvolve(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98]; // C5, E5, G5, C6, E6, G6
+
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = now + i * 0.055;
+
+      osc.type = i >= 4 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+
+      gain.gain.setValueAtTime(0.22 * this.sfxVolume, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.48);
+    });
+  }
 }
+

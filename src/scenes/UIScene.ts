@@ -1332,6 +1332,9 @@ export class UIScene extends Phaser.Scene {
     // Lista de nomes para a animação da roleta
     const dummyNames = [
       'LÂMINAS ORBITAIS',
+      'ADAGAS DE SANGUE',
+      'CADEIAS ABISSAIS',
+      'METEORO INFERNAL',
       'FÚRIA INFERNAL',
       'PULMÕES DO DEMÔNIO',
       'ALMA EXTRA',
@@ -1344,7 +1347,13 @@ export class UIScene extends Phaser.Scene {
     ];
 
     const pool = availableCards.length > 0 ? availableCards : [];
-    const chosenCard = pool.length > 0 ? Phaser.Math.RND.pick(pool) : null;
+    const evoCards = pool.filter((c) => c.isEvolution);
+    const chosenCard =
+      evoCards.length > 0
+        ? Phaser.Math.RND.pick(evoCards)
+        : pool.length > 0
+          ? Phaser.Math.RND.pick(pool)
+          : null;
 
     // Curva de desaceleração (14 passos progressivos simulando carretel de slot)
     const stepDelays = [40, 45, 50, 55, 65, 75, 90, 110, 140, 180, 230, 290, 370, 480];

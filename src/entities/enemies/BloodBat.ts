@@ -53,6 +53,8 @@ export class BloodBat extends BaseEnemy {
       }
     }
 
+    const stunMult = this.updateStunState(deltaMs);
+
     // Vetor direto até o jogador
     const dx = targetX - this.x;
     const dy = targetY - this.y;
@@ -68,8 +70,8 @@ export class BloodBat extends BaseEnemy {
       const perpY = nx;
       const wave = Math.sin(this.flightTime * 0.007 + this.waveSeed) * 0.35;
 
-      const finalVx = (nx + perpX * wave) * this.speed;
-      const finalVy = (ny + perpY * wave) * this.speed;
+      const finalVx = (nx + perpX * wave) * this.speed * stunMult;
+      const finalVy = (ny + perpY * wave) * this.speed * stunMult;
       this.setVelocity(finalVx, finalVy);
 
       // Determinar direção cardinal

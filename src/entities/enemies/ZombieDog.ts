@@ -57,14 +57,16 @@ export class ZombieDog extends BaseEnemy {
       }
     }
 
+    const stunMult = this.updateStunState(deltaMs, this.isElite ? 0xff4455 : undefined);
+
     // Vetor de perseguição até o jogador
     const dx = targetX - this.x;
     const dy = targetY - this.y;
     const dist = Math.hypot(dx, dy);
 
     if (dist > 8) {
-      const vx = (dx / dist) * this.speed;
-      const vy = (dy / dist) * this.speed;
+      const vx = (dx / dist) * this.speed * stunMult;
+      const vy = (dy / dist) * this.speed * stunMult;
       this.setVelocity(vx, vy);
 
       // Determinar direção cardinal predominante (east, west, north, south)

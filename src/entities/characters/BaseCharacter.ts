@@ -30,6 +30,7 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   // Novos Atributos Passivos de Cura e Sobrevivência (Balanceados)
   public hpRegenPerSec: number = 0; // Regeneração contínua de HP por segundo (até 0.8/s)
   public lifeStealPerHit: number = 0; // Roubo de vida por acerto (até 0.3 por golpe)
+  public rerollsRemaining: number = 2; // Cargas de Re-rolar Bênçãos por partida
 
   public isSprinting: boolean = false;
   public isMoving: boolean = false;

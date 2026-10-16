@@ -5,6 +5,7 @@ import { BaseEnemy } from '../enemies/BaseEnemy';
 import { SoundManager } from '../../systems/SoundManager';
 
 export class HellfireAuraWeapon extends BaseWeapon {
+  public isEvolved: boolean = false;
   private player: BaseCharacter;
   private level: number = 1;
   private maxLevel: number = 5;
@@ -27,6 +28,20 @@ export class HellfireAuraWeapon extends BaseWeapon {
 
   public fire(_originX: number, _originY: number, _target: BaseEnemy): void {
     // Operada através de updateWeapon() com pulso omnidirecional em área
+  }
+
+  /**
+   * Evolução Suprema: transforma as Chamas do Purgatório Nív 5 na Supernova Abissal
+   */
+  public evolve(): void {
+    if (this.isEvolved) return;
+    this.isEvolved = true;
+    this.name = 'Supernova Abissal';
+    this.damage = 78;
+    this.range = 215;
+    this.pulseCooldownMs = 820;
+    this.cooldownMs = 820;
+    SoundManager.getInstance().playWeaponEvolve();
   }
 
   public updateWeapon(
@@ -57,11 +72,12 @@ export class HellfireAuraWeapon extends BaseWeapon {
     fireRing.setBlendMode(Phaser.BlendModes.ADD);
 
     const targetRadius = this.range;
+    const isSupernova = this.isEvolved;
 
     this.scene.tweens.addCounter({
       from: 14,
       to: targetRadius,
-      duration: 320,
+      duration: isSupernova ? 380 : 320,
       ease: 'Quad.easeOut',
       onUpdate: (tween) => {
         const r = tween.getValue() ?? 14;
@@ -69,17 +85,17 @@ export class HellfireAuraWeapon extends BaseWeapon {
         const alpha = Math.max(0, 1 - progress);
 
         fireRing.clear();
-        // Preenchimento de brasa quente
-        fireRing.fillStyle(0xff3300, alpha * 0.35);
+        // Preenchimento de brasa quente ou plasma astral
+        fireRing.fillStyle(isSupernova ? 0x00b4d8 : 0xff3300, alpha * 0.35);
         fireRing.fillCircle(originX, originY, r);
 
         // Borda de fogo brilhante incandescente
-        fireRing.lineStyle(3 + (1 - progress) * 3, 0xffa200, alpha * 0.95);
+        fireRing.lineStyle(3 + (1 - progress) * 3, isSupernova ? 0xffe600 : 0xffa200, alpha * 0.95);
         fireRing.strokeCircle(originX, originY, r);
 
-        // Anel interno de calor branco
-        fireRing.lineStyle(1.5, 0xffffff, alpha * 0.7);
-        fireRing.strokeCircle(originX, originY, Math.max(6, r - 4));
+        // Anel interno de calor branco/ciano
+        fireRing.lineStyle(1.5, isSupernova ? 0x00f5d4 : 0xffffff, alpha * 0.75);
+        fireRing.strokeCircle(originX, originY, Math.max(6, r - 6));
       },
       onComplete: () => {
         fireRing.destroy();
@@ -87,12 +103,16 @@ export class HellfireAuraWeapon extends BaseWeapon {
     });
 
     // 3. Faíscas de cinzas e brasas saltando para fora
-    for (let i = 0; i < 6; i++) {
+    const sparkColors = isSupernova
+      ? [0x00f5d4, 0xffe600, 0x9b5de5, 0xffffff]
+      : [0xff2200, 0xff5500, 0xff9900, 0xffd000];
+
+    for (let i = 0; i < (isSupernova ? 10 : 6); i++) {
       const spark = this.scene.add.circle(
         originX,
         originY,
         Phaser.Math.Between(2, 4),
-        Phaser.Math.RND.pick([0xff2200, 0xff5500, 0xff9900, 0xffd000]),
+        Phaser.Math.RND.pick(sparkColors),
         0.9
       );
       spark.setDepth(19);
@@ -128,8 +148,8 @@ export class HellfireAuraWeapon extends BaseWeapon {
       if (dist <= targetRadius) {
         enemy.takeDamage(effectiveDamage);
 
-        // Flash de queimação laranja no monstro
-        enemy.setTint(0xff6600);
+        // Flash de queimação laranja/ciano no monstro
+        enemy.setTint(isSupernova ? 0x00f5d4 : 0xff6600);
         this.scene.time.delayedCall(120, () => {
           if (enemy.active && !enemy.isDead) {
             enemy.clearTint();
@@ -143,6 +163,10 @@ export class HellfireAuraWeapon extends BaseWeapon {
     if (hitCount > 0) {
       SoundManager.getInstance().playEnemyHit();
       this.player.triggerLifeSteal(hitCount);
+      if (isSupernova) {
+        // Supernova Abissal restaura +1.2 HP da Nixy sempre que um pulso incinera inimigos
+        this.player.heal(1.2);
+      }
     }
   }
 

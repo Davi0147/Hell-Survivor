@@ -67,6 +67,8 @@ export class SkullSlime extends BaseEnemy {
       }
     }
 
+    const stunMult = this.updateStunState(deltaMs, this.slimeState === 'TELEGRAPH' ? 0x70e000 : undefined);
+
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy);
@@ -82,8 +84,8 @@ export class SkullSlime extends BaseEnemy {
       case 'CHASE': {
         // Movimentação lenta e tanque em direção à heroína
         if (dist > 8) {
-          const vx = (dx / dist) * this.BASE_SPEED;
-          const vy = (dy / dist) * this.BASE_SPEED;
+          const vx = (dx / dist) * this.BASE_SPEED * stunMult;
+          const vy = (dy / dist) * this.BASE_SPEED * stunMult;
           this.setVelocity(vx, vy);
 
           const absX = Math.abs(dx);

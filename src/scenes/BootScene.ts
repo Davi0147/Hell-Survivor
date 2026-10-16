@@ -393,6 +393,7 @@ export class BootScene extends Phaser.Scene {
     this.createGemTextures();
     this.createScytheTexture();
     this.createDarkOrbTexture();
+    this.createBloodDaggerTexture();
 
     // 3. Registrar animações da Nixy para as 8 direções
     for (const dir of DIRECTIONS_8) {
@@ -709,4 +710,48 @@ export class BootScene extends Phaser.Scene {
 
     this.textures.addCanvas('dark-orb', canvas);
   }
+
+  private createBloodDaggerTexture(): void {
+    if (this.textures.exists('blood-dagger')) return;
+
+    const w = 24;
+    const h = 10;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Lâmina pontiaguda apontando para a direita (0 rad)
+    // Cabo escuro + pomo dourado
+    ctx.fillStyle = '#2b0914';
+    ctx.fillRect(1, 3, 5, 4);
+    ctx.fillStyle = '#c59b27';
+    ctx.fillRect(0, 3, 2, 4);
+
+    // Guarda-mão dourado/rubi
+    ctx.fillStyle = '#f3d17a';
+    ctx.fillRect(6, 1, 2, 8);
+
+    // Lâmina carmesim afiada
+    ctx.fillStyle = '#ef233c';
+    ctx.beginPath();
+    ctx.moveTo(8, 2);
+    ctx.lineTo(23, 5);
+    ctx.lineTo(8, 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Fio superior brilhante branco-rosado
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(8, 3);
+    ctx.lineTo(22, 5);
+    ctx.lineTo(8, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    this.textures.addCanvas('blood-dagger', canvas);
+  }
 }
+

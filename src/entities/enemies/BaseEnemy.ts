@@ -7,6 +7,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   public speed: number = 75;
   public damage: number = 10;
   public isDead: boolean = false;
+  public stunTimer: number = 0;
 
   protected hitFlashTimer: number = 0;
 
@@ -30,6 +31,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
     this.speed = speed;
     this.damage = damage;
     this.isDead = false;
+    this.stunTimer = 0;
     this.clearTint();
     this.setActive(true);
     this.setVisible(true);
@@ -38,6 +40,36 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
     if (body) {
       body.enable = true;
     }
+  }
+
+  public applyStun(durationMs: number): void {
+    if (this.isDead || !this.active) return;
+    const isBoss = (this as any).isBoss === true;
+    const effectiveDuration = isBoss ? durationMs * 0.35 : durationMs;
+    this.stunTimer = Math.max(this.stunTimer, effectiveDuration);
+    if (this.hitFlashTimer <= 0 && !isBoss) {
+      this.setTint(0x9d4edd);
+    }
+  }
+
+  protected updateStunState(deltaMs: number, defaultTint?: number): number {
+    if (this.stunTimer > 0) {
+      this.stunTimer -= deltaMs;
+      if (this.stunTimer <= 0) {
+        this.stunTimer = 0;
+        if (this.hitFlashTimer <= 0) {
+          if (defaultTint !== undefined) {
+            this.setTint(defaultTint);
+          } else {
+            this.clearTint();
+          }
+        }
+      } else if (this.hitFlashTimer <= 0 && !(this as any).isBoss) {
+        this.setTint(0x9d4edd);
+      }
+      return (this as any).isBoss ? 0.65 : 0.15;
+    }
+    return 1.0;
   }
 
   public takeDamage(amount: number): void {
@@ -71,14 +103,16 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
       }
     }
 
+    const stunMult = this.updateStunState(deltaMs);
+
     // Perseguição ao alvo
     const dx = targetX - this.x;
     const dy = targetY - this.y;
     const dist = Math.hypot(dx, dy);
 
     if (dist > 5) {
-      const vx = (dx / dist) * this.speed;
-      const vy = (dy / dist) * this.speed;
+      const vx = (dx / dist) * this.speed * stunMult;
+      const vy = (dy / dist) * this.speed * stunMult;
       this.setVelocity(vx, vy);
 
       // Virar o sprite para a direção do movimento

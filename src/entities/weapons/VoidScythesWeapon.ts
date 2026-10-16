@@ -6,6 +6,7 @@ import { DamageTextSystem } from '../../systems/DamageTextSystem';
 import { SoundManager } from '../../systems/SoundManager';
 
 export class VoidScythesWeapon extends BaseWeapon {
+  public isEvolved: boolean = false;
   private player: BaseCharacter;
   private blades: Phaser.GameObjects.Sprite[] = [];
   private orbitAngle: number = 0;
@@ -33,6 +34,21 @@ export class VoidScythesWeapon extends BaseWeapon {
 
   public fire(_originX: number, _originY: number, _target: BaseEnemy): void {
     // VoidScythes opera continuamente em órbita através de updateWeapon()
+  }
+
+  /**
+   * Evolução Suprema: transforma as 6 Lâminas Orbitais na Ceifadora do Vazio
+   */
+  public evolve(): void {
+    if (this.isEvolved) return;
+    this.isEvolved = true;
+    this.name = 'Ceifadora do Vazio';
+    this.damage = 22;
+    this.rotationSpeed = 6.2;
+    this.orbitRadius = 90;
+    this.bladeCount = 6;
+    this.createBlades();
+    SoundManager.getInstance().playWeaponEvolve();
   }
 
   /**
@@ -66,7 +82,10 @@ export class VoidScythesWeapon extends BaseWeapon {
     for (let i = 0; i < totalBlades; i++) {
       const blade = this.scene.add.sprite(this.player.x, this.player.y, 'void-scythe');
       blade.setDepth(24); // Voando logo abaixo da heroína (20) e acima dos inimigos (8)
-      blade.setScale(1.1);
+      blade.setScale(this.isEvolved ? 1.32 : 1.1);
+      if (this.isEvolved) {
+        blade.setTint(0xff2a85);
+      }
       this.blades.push(blade);
     }
   }
@@ -79,7 +98,7 @@ export class VoidScythesWeapon extends BaseWeapon {
   ): void {
     const deltaSec = deltaMs / 1000;
     this.orbitAngle += this.rotationSpeed * deltaSec;
-    this.spinAngle += 10 * deltaSec; // Rotação contínua e rápida sobre o próprio eixo
+    this.spinAngle += (this.isEvolved ? 16 : 10) * deltaSec; // Rotação contínua e rápida sobre o próprio eixo
 
     // Reduz cooldown de dano dos inimigos atingidos recentemente
     for (const [enemy, cd] of this.enemyHitCooldowns.entries()) {
@@ -98,6 +117,7 @@ export class VoidScythesWeapon extends BaseWeapon {
 
     const total = this.blades.length;
     const step = (Math.PI * 2) / total;
+    const hitRadius = this.isEvolved ? 32 : 26;
 
     // Atualiza posição e rotação das lâminas em órbita
     for (let i = 0; i < total; i++) {
@@ -116,7 +136,7 @@ export class VoidScythesWeapon extends BaseWeapon {
         if (!enemy.active || enemy.isDead) continue;
 
         const dist = Math.hypot(enemy.x - bx, enemy.y - by);
-        if (dist <= 26 && !this.enemyHitCooldowns.has(enemy)) {
+        if (dist <= hitRadius && !this.enemyHitCooldowns.has(enemy)) {
           this.hitEnemy(enemy, bx, by);
         }
       }
@@ -124,8 +144,8 @@ export class VoidScythesWeapon extends BaseWeapon {
   }
 
   private hitEnemy(enemy: BaseEnemy, hitX: number, hitY: number): void {
-    // 1. Aplica tempo de imunidade específico para esta arma (260ms)
-    this.enemyHitCooldowns.set(enemy, 260);
+    // 1. Aplica tempo de imunidade específico para esta arma (260ms normal / 155ms evoluída)
+    this.enemyHitCooldowns.set(enemy, this.isEvolved ? 155 : 260);
 
     // 2. Cálculo de Dano com bônus da personagem
     const effectiveDamage = Math.round(this.damage * (1 + this.player.bonusDamagePercent / 100));

@@ -167,7 +167,8 @@ export class SuccubusBoss extends BaseEnemy {
   // =========================================================================
   // ESTADO 1: CHASE (PERSEGUIÇÃO FLUIDA)
   // =========================================================================
-  private chasePlayer(player: Nixy, _deltaMs: number): void {
+  private chasePlayer(player: Nixy, deltaMs: number): void {
+    const stunMult = this.updateStunState(deltaMs);
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy);
@@ -177,8 +178,8 @@ export class SuccubusBoss extends BaseEnemy {
       const body = this.body as Phaser.Physics.Arcade.Body;
       if (body) {
         body.setVelocity(
-          Math.cos(angle) * this.speed,
-          Math.sin(angle) * this.speed
+          Math.cos(angle) * this.speed * stunMult,
+          Math.sin(angle) * this.speed * stunMult
         );
       }
       this.updateFacingAnimation(angle);

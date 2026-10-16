@@ -404,12 +404,10 @@ export class GameScene extends Phaser.Scene {
 
     // 4. Atualizar Todas as Armas Ativas
     for (const weapon of this.weapons) {
-      if (weapon instanceof SoulBoltWeapon) {
-        weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
-      } else if (weapon instanceof VoidScythesWeapon) {
-        weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
-      } else if (weapon instanceof HellfireAuraWeapon) {
-        weapon.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
+      if (typeof (weapon as any).updateWeapon === 'function') {
+        (weapon as any).updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
+      } else {
+        weapon.update(delta, this.player.x, this.player.y, this.enemiesGroup);
       }
     }
 

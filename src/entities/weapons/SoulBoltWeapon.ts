@@ -9,6 +9,7 @@ import { BaseCharacter } from '../characters/BaseCharacter';
 
 export class SoulBoltWeapon extends BaseWeapon {
   public projectilesGroup: Phaser.GameObjects.Group;
+  public isEvolved: boolean = false;
   private player?: BaseCharacter;
 
   constructor(scene: Phaser.Scene, player?: BaseCharacter) {
@@ -33,11 +34,25 @@ export class SoulBoltWeapon extends BaseWeapon {
     });
   }
 
+  /**
+   * Evolução Suprema: transforma o Disparo de Almas no Raio do Apocalipse
+   */
+  public evolve(): void {
+    if (this.isEvolved) return;
+    this.isEvolved = true;
+    this.name = 'Raio do Apocalipse';
+    this.damage = 46;
+    this.cooldownMs = 520;
+    this.projectileSpeed = 580;
+    this.pierce = 3;
+    SoundManager.getInstance().playWeaponEvolve();
+  }
+
   public fire(originX: number, originY: number, target: BaseEnemy): void {
     const baseAngle = Math.atan2(target.y - originY, target.x - originX);
     const extraCount = this.player ? this.player.extraProjectiles : 0;
-    const count = this.projectileCount + extraCount;
-    const spreadStep = 0.18; // Leve leque de dispersão angular quando houver múltiplos tiros
+    const count = this.projectileCount + extraCount + (this.isEvolved ? 1 : 0);
+    const spreadStep = this.isEvolved ? 0.14 : 0.18;
     const startAngle = baseAngle - ((count - 1) * spreadStep) / 2;
 
     const damageBonus = this.player ? this.player.bonusDamagePercent : 0;
@@ -62,6 +77,14 @@ export class SoulBoltWeapon extends BaseWeapon {
         effectiveDamage,
         effectivePierce
       );
+
+      if (this.isEvolved) {
+        projectile.setTint(0xffe600);
+        projectile.setScale(1.38);
+      } else {
+        projectile.clearTint();
+        projectile.setScale(1.0);
+      }
     }
 
     // Efeito sonoro procedural retrô de disparo de magia espiritual
@@ -91,11 +114,12 @@ export class SoulBoltWeapon extends BaseWeapon {
   }
 
   private createMuzzleFlash(x: number, y: number): void {
-    const flash = this.scene.add.circle(x, y, 10, 0x00f5d4, 0.7);
+    const color = this.isEvolved ? 0xffe600 : 0x00f5d4;
+    const flash = this.scene.add.circle(x, y, this.isEvolved ? 13 : 10, color, 0.75);
     flash.setDepth(15);
     this.scene.tweens.add({
       targets: flash,
-      radius: 18,
+      radius: this.isEvolved ? 22 : 18,
       alpha: 0,
       duration: 120,
       ease: 'Power1',
