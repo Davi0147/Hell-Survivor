@@ -4,14 +4,13 @@ import { SoundManager } from '../../systems/SoundManager';
 
 export class EvolutionAltar extends Phaser.GameObjects.Container {
   public progress: number = 0; // 0 a 100%
-  public readonly captureRadius: number = 92;
+  // 50% da área máxima anterior (Area = π * 92² = 8464π -> 50% = 4232π -> Raio = √4232 ≈ 65px)
+  public readonly captureRadius: number = 65;
   public isCompleted: boolean = false;
   public isDestroyed: boolean = false;
 
   private altarSprite: Phaser.GameObjects.Image;
   private zoneGraphics: Phaser.GameObjects.Graphics;
-  private progressGauge: Phaser.GameObjects.Graphics;
-  private progressText: Phaser.GameObjects.Text;
   private pulseTimer: number = 0;
   private particleTimer: number = 0;
   private currentStage: number = 1;
@@ -30,23 +29,6 @@ export class EvolutionAltar extends Phaser.GameObjects.Container {
     this.altarSprite.setScale(0.65);
     this.add(this.altarSprite);
 
-    // 3. Barra / Indicador de Progresso em Arco
-    this.progressGauge = scene.add.graphics();
-    this.add(this.progressGauge);
-
-    // 4. Texto Flutuante de Progresso
-    const font = "'Pixelzone', 'Silkscreen', monospace";
-    this.progressText = scene.add.text(0, -68, 'ALTAR DE ASCENSÃO: 0%', {
-      fontFamily: font,
-      fontSize: '18px',
-      color: '#cbd5e1',
-      stroke: '#000000',
-      strokeThickness: 3.5,
-      align: 'center'
-    }).setOrigin(0.5);
-    this.progressText.setResolution(2);
-    this.add(this.progressText);
-
     this.drawZone(false);
   }
 
@@ -62,11 +44,9 @@ export class EvolutionAltar extends Phaser.GameObjects.Container {
     // Se o jogador está dentro da zona, carrega em ~6.5 segundos (0 a 100%)
     if (isPlayerInside) {
       this.progress = Math.min(100, this.progress + (deltaMs / 1000) * 15.5);
-      this.progressText.setColor('#ffe600');
     } else {
       // Se saiu, perde progresso gradualmente (-8% por segundo)
       this.progress = Math.max(0, this.progress - (deltaMs / 1000) * 8.0);
-      this.progressText.setColor('#94a3b8');
     }
 
     // Atualiza sprite do altar de acordo com a porcentagem:
@@ -88,11 +68,8 @@ export class EvolutionAltar extends Phaser.GameObjects.Container {
       }
     }
 
-    // Desenha área rúnica com pulso visual
+    // Desenha área rúnica com a linha circular vermelha se completando
     this.drawZone(isPlayerInside);
-    this.drawGauge();
-
-    this.progressText.setText(`ALTAR ARCANO: ${Math.floor(this.progress)}%`);
 
     // Partículas místicas subindo enquanto o jogador está capturando
     if (isPlayerInside && this.particleTimer >= 130) {
@@ -110,43 +87,42 @@ export class EvolutionAltar extends Phaser.GameObjects.Container {
   private drawZone(isPlayerInside: boolean): void {
     this.zoneGraphics.clear();
 
-    const pulse = Math.sin(this.pulseTimer * 0.005) * 0.15;
-    const alpha = (isPlayerInside ? 0.35 : 0.15) + pulse;
+    const pulse = Math.sin(this.pulseTimer * 0.005) * 0.08;
 
-    const baseColor = this.currentStage === 3 ? 0xff3b3b : this.currentStage === 2 ? 0xff9900 : 0x00f5d4;
-
-    // Preenchimento suave do solo dentro da zona
-    this.zoneGraphics.fillStyle(baseColor, alpha * 0.35);
+    // 1. Preenchimento suave do solo dentro da zona (sem poluição visual)
+    this.zoneGraphics.fillStyle(0x380509, (isPlayerInside ? 0.16 : 0.05) + pulse);
     this.zoneGraphics.fillCircle(0, 0, this.captureRadius);
 
-    // Borda rúnica externa tracejada
-    this.zoneGraphics.lineStyle(2, baseColor, isPlayerInside ? 0.9 : 0.45);
+    // 2. Trilho de fundo (círculo guia escuro)
+    this.zoneGraphics.lineStyle(2, 0x420910, isPlayerInside ? 0.6 : 0.35);
     this.zoneGraphics.strokeCircle(0, 0, this.captureRadius);
 
-    // Círculo menor interno
-    this.zoneGraphics.lineStyle(1, 0xffffff, isPlayerInside ? 0.6 : 0.25);
-    this.zoneGraphics.strokeCircle(0, 0, this.captureRadius * 0.55);
-  }
+    // 3. Linha circular vermelha progressiva que vai se completando até formar o círculo (100%)
+    if (this.progress > 0) {
+      const startAngle = -Math.PI / 2; // Começa no topo (12 horas)
+      const fraction = Math.min(1, Math.max(0, this.progress / 100));
+      const endAngle = startAngle + fraction * (Math.PI * 2);
 
-  private drawGauge(): void {
-    this.progressGauge.clear();
+      // Brilho exterior suave da linha vermelha
+      this.zoneGraphics.lineStyle(5, 0xff002b, isPlayerInside ? 0.4 : 0.2);
+      this.zoneGraphics.beginPath();
+      this.zoneGraphics.arc(0, 0, this.captureRadius, startAngle, endAngle, false);
+      this.zoneGraphics.strokePath();
 
-    const gaugeY = -52;
-    const gaugeW = 86;
-    const gaugeH = 7;
+      // Linha vermelha viva sólida
+      const redColor = this.currentStage === 3 ? 0xff1e27 : this.currentStage === 2 ? 0xff3344 : 0xe6192e;
+      this.zoneGraphics.lineStyle(3, redColor, isPlayerInside ? 1 : 0.75);
+      this.zoneGraphics.beginPath();
+      this.zoneGraphics.arc(0, 0, this.captureRadius, startAngle, endAngle, false);
+      this.zoneGraphics.strokePath();
 
-    // Fundo da barra
-    this.progressGauge.fillStyle(0x06060c, 0.88);
-    this.progressGauge.fillRoundedRect(-gaugeW / 2, gaugeY, gaugeW, gaugeH, 3);
-    this.progressGauge.lineStyle(1.5, 0x334155, 0.9);
-    this.progressGauge.strokeRoundedRect(-gaugeW / 2, gaugeY, gaugeW, gaugeH, 3);
-
-    // Barra de preenchimento (cor transita de azul para dourado/vermelho fogo)
-    const fillW = Math.max(0, (gaugeW - 2) * (this.progress / 100));
-    if (fillW > 0) {
-      const fillColor = this.currentStage === 3 ? 0xff2200 : this.currentStage === 2 ? 0xffaa00 : 0x00f5d4;
-      this.progressGauge.fillStyle(fillColor, 1);
-      this.progressGauge.fillRoundedRect(-gaugeW / 2 + 1, gaugeY + 1, fillW, gaugeH - 2, 2);
+      // Ponto de avanço luminoso no topo do arco até fechar 100%
+      if (fraction < 1) {
+        const tipX = Math.cos(endAngle) * this.captureRadius;
+        const tipY = Math.sin(endAngle) * this.captureRadius;
+        this.zoneGraphics.fillStyle(0xffe600, isPlayerInside ? 1 : 0.75);
+        this.zoneGraphics.fillCircle(tipX, tipY, 3);
+      }
     }
   }
 
