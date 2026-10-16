@@ -66,7 +66,7 @@ export abstract class BaseWeapon {
     const children = enemies.getChildren() as BaseEnemy[];
     for (let i = 0; i < children.length; i++) {
       const enemy = children[i];
-      if (!enemy.active || enemy.isDead) continue;
+      if (!enemy.active || enemy.isDead || (enemy as any).isInvulnerable) continue;
 
       // Dispara exclusivamente se o monstro estiver visível dentro da tela
       if (worldView && worldView.width > 0) {

@@ -1384,7 +1384,7 @@ export class GameScene extends Phaser.Scene {
 
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene) {
-      uiScene.showCenterAnnouncement('O ALTAR DE INVOCAÇÃO FOI ATIVADO!', 'ROSALIN AGUARDA NO PENTAGRAMA — SIGA O INDICADOR');
+      uiScene.showCenterAnnouncement('O ALTAR DE INVOCAÇÃO FOI INVOCADO!', 'SIGA O MARCADOR PARA O CONFRONTO CONTRA ROSALIN');
     }
     DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Invocação ativado! Hordas pausadas, guiando Nixy ao confronto.');
   }
@@ -1421,10 +1421,10 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(350, 255, 60, 60);
     this.cameras.main.shake(250, 0.02);
 
-    // 4. Spawna Rosalin materializando sobre o pentagrama do altar SEM banter imediato
-    this.spawnSuccubusBoss(false);
+    // 4. Spawna Rosalin materializando sobre o pentagrama do altar em modo INTRO (invulnerável e estática)
+    this.spawnSuccubusBoss(false, true);
 
-    // 5. Inicia diálogo pré-boss (a Rosalin já está sobre o altar!)
+    // 5. Inicia diálogo pré-boss (a Rosalin já está sobre o altar, sem levar dano!)
     this.time.delayedCall(300, () => {
       this.triggerBossDialogueOnly();
     });
@@ -1632,14 +1632,16 @@ export class GameScene extends Phaser.Scene {
       ], () => {
         this.clearCombatSpeechBubbles();
         if (!this.bossInstance || !this.bossInstance.active) {
-          this.spawnSuccubusBoss(true);
+          this.spawnSuccubusBoss(true, false);
         } else {
+          // Ativa Rosalin para o combate: ela agora se move, pode levar dano e ataca!
+          this.bossInstance.startCombat();
           this.startBossCombatBanter();
         }
       });
   }
 
-  private spawnSuccubusBoss(startBanterImmediate: boolean = true): void {
+  private spawnSuccubusBoss(startBanterImmediate: boolean = true, isCinematicIntro: boolean = false): void {
     let bossX = this.player.x + 220;
     let bossY = this.player.y - 140;
 
@@ -1651,7 +1653,7 @@ export class GameScene extends Phaser.Scene {
     this.bossInstance = new SuccubusBoss(this, bossX, bossY);
     this.bossInstance.setDepth(22);
     this.enemiesGroup.add(this.bossInstance);
-    this.bossInstance.spawn(bossX, bossY);
+    this.bossInstance.spawn(bossX, bossY, 9000, 125, 32, 1.75, isCinematicIntro);
 
     this.cameras.main.flash(260, 255, 0, 85);
     this.cameras.main.shake(300, 0.022);
@@ -1812,7 +1814,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Exibe um balão de fala estilo quadrinhos sobre a cabeça de Nixy ou Succubus no calor do combate
+   * Exibe a fala de combate limpa sobre a cabeça da heroína ou de Rosalin sem caixa/fundo ou nome
    */
   private showCombatSpeechBubble(
     target: any,
@@ -1824,7 +1826,7 @@ export class GameScene extends Phaser.Scene {
     if ('isDead' in target && target.isDead) return;
     if ('currentHp' in target && target.currentHp <= 0) return;
 
-    // Remove balão anterior do mesmo alvo, se existir, para não sobrepor
+    // Remove fala anterior do mesmo alvo, se existir
     for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
       if (this.activeCombatBubbles[i].target === target) {
         this.activeCombatBubbles[i].container.destroy();
@@ -1832,85 +1834,42 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-    const offsetY = isNixy ? -38 : -54;
+    const offsetY = isNixy ? -34 : -50;
 
     const container = this.add.container(Math.round(target.x), Math.round(target.y + offsetY));
     container.setDepth(1500);
+    container.setAlpha(0);
 
-    const nameText = this.add.text(0, 0, isNixy ? 'NIXY' : 'SUCCUBUS', {
-      fontFamily: pixelFont,
-      fontSize: '7px',
+    // Texto limpo da fala com a cor do personagem e contorno preto de alta legibilidade (sem caixa de fundo e sem nome em cima!)
+    const phraseColor = isNixy ? '#ff758f' : '#c084fc';
+    const bodyText = this.add.text(0, 0, text, {
+      fontFamily: 'Pixelzone, Silkscreen, monospace',
+      fontSize: '11px',
       fontStyle: 'bold',
-      color: isNixy ? '#ffbe0b' : '#ff3388',
+      color: phraseColor,
       align: 'center',
       stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    nameText.setResolution(2);
-
-    const bodyText = this.add.text(0, 0, text, {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      color: isNixy ? '#fff5f8' : '#ffeef8',
-      align: 'center',
-      stroke: isNixy ? '#180106' : '#14001c',
-      strokeThickness: 2.5,
-      wordWrap: { width: 145 }
+      strokeThickness: 3.5,
+      wordWrap: { width: 180 },
+      shadow: {
+        offsetX: 0,
+        offsetY: 2,
+        color: '#000000',
+        blur: 4,
+        stroke: true,
+        fill: true
+      }
     }).setOrigin(0.5);
     bodyText.setResolution(2);
     enableCensoredTextHighlight(bodyText, '#ffd700');
 
-    const padX = 8;
-    const padY = 5;
-    const contentW = Math.max(Math.ceil(nameText.width), Math.ceil(bodyText.width));
-    const bubbleW = Math.max(56, contentW + padX * 2);
-    const bubbleH = Math.ceil(nameText.height + bodyText.height + 4) + padY * 2;
-    const halfW = Math.round(bubbleW / 2);
-    const pointerH = 5;
-    const totalH = bubbleH + pointerH;
+    container.add(bodyText);
 
-    nameText.setPosition(0, Math.round(-totalH + padY + nameText.height / 2));
-    bodyText.setPosition(0, Math.round(-totalH + padY + nameText.height + 3 + bodyText.height / 2));
-
-    const bgG = this.add.graphics();
-    const bgColor = isNixy ? 0x1f030a : 0x180122;
-    const borderColor = isNixy ? 0xd4af37 : 0xff2a85;
-
-    // Sombra suave do balão
-    bgG.fillStyle(0x000000, 0.6);
-    bgG.fillRoundedRect(-halfW + 2, -totalH + 2, bubbleW, bubbleH, 4);
-
-    // Fundo preenchido
-    bgG.fillStyle(bgColor, 0.94);
-    bgG.fillRoundedRect(-halfW, -totalH, bubbleW, bubbleH, 4);
-
-    // Triângulo apontador inferior
-    bgG.beginPath();
-    bgG.moveTo(-4, -pointerH);
-    bgG.lineTo(4, -pointerH);
-    bgG.lineTo(0, 0);
-    bgG.closePath();
-    bgG.fill();
-
-    // Borda estilizada
-    bgG.lineStyle(1.5, borderColor, 1);
-    bgG.strokeRoundedRect(-halfW, -totalH, bubbleW, bubbleH, 4);
-    bgG.beginPath();
-    bgG.moveTo(-4, -pointerH);
-    bgG.lineTo(0, 0);
-    bgG.lineTo(4, -pointerH);
-    bgG.stroke();
-
-    container.add([bgG, nameText, bodyText]);
-
-    // Animação de entrada suave por alpha sem alteração de escala (evita artefatos de amostragem e borrão)
-    container.setScale(1.0);
-    container.setAlpha(0);
+    // Animação de entrada suave
     this.tweens.add({
       targets: container,
       alpha: 1,
-      duration: 120,
+      duration: 150,
       ease: 'Linear'
     });
 
@@ -1920,14 +1879,14 @@ export class GameScene extends Phaser.Scene {
       offsetY
     });
 
-    // Fade-out antes de desaparecer
-    const fadeDelay = Math.max(100, durationMs - 200);
+    // Fade-out suave antes de desaparecer
+    const fadeDelay = Math.max(100, durationMs - 250);
     const fadeTimer = this.time.delayedCall(fadeDelay, () => {
       if (container.active) {
         this.tweens.add({
           targets: container,
           alpha: 0,
-          duration: 180,
+          duration: 220,
           onComplete: () => {
             container.destroy();
             const idx = this.activeCombatBubbles.findIndex(b => b.container === container);

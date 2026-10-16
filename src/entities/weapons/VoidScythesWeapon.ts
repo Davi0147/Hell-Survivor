@@ -133,7 +133,7 @@ export class VoidScythesWeapon extends BaseWeapon {
       // Verificação de colisão com inimigos ativos
       const activeEnemies = enemies.getChildren() as BaseEnemy[];
       for (const enemy of activeEnemies) {
-        if (!enemy.active || enemy.isDead) continue;
+        if (!enemy.active || enemy.isDead || (enemy as any).isInvulnerable) continue;
 
         const dist = Math.hypot(enemy.x - bx, enemy.y - by);
         if (dist <= hitRadius && !this.enemyHitCooldowns.has(enemy)) {

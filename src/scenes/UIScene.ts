@@ -1470,12 +1470,12 @@ export class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Exibe uma notificação dramática no centro exato da tela que surge e desaparece.
-   * Utilizada quando o Altar de Invocação é ativado.
+   * Exibe uma notificação dramática no centro da tela (um pouco mais para cima),
+   * sem fundo, com texto grande e efeito de flutuação suave.
    */
   public showCenterAnnouncement(title: string, subtitle?: string, durationMs: number = 3800): void {
     const { width, height } = this.scale;
-    const centerY = height / 2 - 25;
+    const centerY = Math.round(height * 0.32);
 
     // Remove qualquer anúncio anterior se ainda estiver na tela
     const existing = this.children.getByName('center-announcement-container');
@@ -1487,44 +1487,46 @@ export class UIScene extends Phaser.Scene {
     container.setName('center-announcement-container');
     container.setDepth(999);
     container.setAlpha(0);
-    container.setScale(0.75);
+    container.setScale(0.8);
 
-    // 1. Placa/faixa cinematográfica escura com bordas douradas e carmesins
-    const bannerBg = this.add.graphics();
-    const bW = 620;
-    const bH = subtitle ? 78 : 52;
-    bannerBg.fillStyle(0x0a0307, 0.94);
-    bannerBg.fillRoundedRect(-bW / 2, -bH / 2, bW, bH, 8);
-    bannerBg.lineStyle(2, 0xffba08, 1);
-    bannerBg.strokeRoundedRect(-bW / 2, -bH / 2, bW, bH, 8);
-
-    // Efeito de filete carmesim interno
-    bannerBg.lineStyle(1, 0xef233c, 0.75);
-    bannerBg.strokeRoundedRect(-bW / 2 + 3, -bH / 2 + 3, bW - 6, bH - 6, 6);
-    container.add(bannerBg);
-
-    // 2. Título Principal em Dourado/Flamejante
+    // 1. Título Principal em Letra Grande, Dourada e com Contorno Forte (Sem nenhum fundo!)
     const titleText = this.add.text(0, subtitle ? -14 : 0, title, {
       fontFamily: 'Pixelzone, Silkscreen, monospace',
-      fontSize: '18px',
+      fontSize: '26px',
       fontStyle: 'bold',
       color: '#ffe600',
-      stroke: '#370617',
-      strokeThickness: 4,
-      align: 'center'
+      stroke: '#000000',
+      strokeThickness: 6,
+      align: 'center',
+      shadow: {
+        offsetX: 0,
+        offsetY: 3,
+        color: '#ff3300',
+        blur: 10,
+        stroke: true,
+        fill: true
+      }
     }).setOrigin(0.5);
     container.add(titleText);
 
-    // 3. Subtítulo Opcional
+    // 2. Subtítulo Opcional em tom flamejante
     if (subtitle) {
-      const subText = this.add.text(0, 16, subtitle, {
+      const subText = this.add.text(0, 18, subtitle, {
         fontFamily: 'Pixelzone, Silkscreen, monospace',
-        fontSize: '11px',
+        fontSize: '13px',
         fontStyle: 'bold',
-        color: '#ffccd5',
-        stroke: '#1f0009',
-        strokeThickness: 3,
-        align: 'center'
+        color: '#ffb703',
+        stroke: '#000000',
+        strokeThickness: 4,
+        align: 'center',
+        shadow: {
+          offsetX: 0,
+          offsetY: 2,
+          color: '#370617',
+          blur: 6,
+          stroke: true,
+          fill: true
+        }
       }).setOrigin(0.5);
       container.add(subText);
     }
@@ -1532,37 +1534,37 @@ export class UIScene extends Phaser.Scene {
     // Toca som dramático de anúncio
     SoundManager.getInstance().playWeaponEvolve();
 
-    // Animação de entrada fluida (Bounce in)
+    // 3. Animação de entrada fluida (Bounce in)
     this.tweens.add({
       targets: container,
       alpha: 1,
       scaleX: 1,
       scaleY: 1,
-      duration: 320,
+      duration: 280,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Pulso suave no banner
+        // Efeito contínuo de flutuação suave (onda senoidal para cima e para baixo)
         this.tweens.add({
           targets: container,
-          scaleX: 1.025,
-          scaleY: 1.025,
-          duration: 900,
+          y: centerY - 10,
+          duration: 1200,
           yoyo: true,
-          repeat: 2,
+          repeat: -1,
           ease: 'Sine.easeInOut'
         });
       }
     });
 
-    // Animação de saída (Fade out e destruição)
+    // 4. Animação de saída (Fade out e subida suave antes de destruir)
     this.time.delayedCall(durationMs, () => {
       if (container.scene) {
         this.tweens.add({
           targets: container,
           alpha: 0,
-          scaleX: 0.9,
-          scaleY: 0.9,
-          duration: 380,
+          y: container.y - 20,
+          scaleX: 0.95,
+          scaleY: 0.95,
+          duration: 450,
           ease: 'Power2.easeIn',
           onComplete: () => {
             container.destroy();

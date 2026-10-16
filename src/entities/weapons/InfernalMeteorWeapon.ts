@@ -61,7 +61,7 @@ export class InfernalMeteorWeapon extends BaseWeapon {
     count: number
   ): { x: number; y: number }[] {
     const activeEnemies = (enemies.getChildren() as BaseEnemy[]).filter(
-      (e) => e.active && !e.isDead && Math.hypot(e.x - originX, e.y - originY) <= 270
+      (e) => e.active && !e.isDead && !(e as any).isInvulnerable && Math.hypot(e.x - originX, e.y - originY) <= 270
     );
 
     if (activeEnemies.length === 0) return [];
@@ -257,7 +257,7 @@ export class InfernalMeteorWeapon extends BaseWeapon {
     let hits = 0;
 
     for (const enemy of activeEnemies) {
-      if (!enemy.active || enemy.isDead) continue;
+      if (!enemy.active || enemy.isDead || (enemy as any).isInvulnerable) continue;
       const dist = Math.hypot(enemy.x - x, enemy.y - y);
       if (dist <= blastRadius) {
         enemy.takeDamage(effectiveDamage);

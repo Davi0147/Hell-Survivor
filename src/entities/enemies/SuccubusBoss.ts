@@ -6,6 +6,7 @@ import { DamageTextSystem } from '../../systems/DamageTextSystem';
 import { SoundManager } from '../../systems/SoundManager';
 
 type BossState =
+  | 'INTRO'
   | 'CHASE'
   | 'TELEGRAPH_DASH'
   | 'DASHING'
@@ -20,6 +21,7 @@ export class SuccubusBoss extends BaseEnemy {
   public speed: number = 125;
   public damage: number = 32;
   public isBoss: boolean = true;
+  public isInvulnerable: boolean = false;
 
   private bossState: BossState = 'CHASE';
   private stateTimer: number = 0;
@@ -80,16 +82,24 @@ export class SuccubusBoss extends BaseEnemy {
     hp: number = 9000,
     speed: number = 125,
     damage: number = 32,
-    customScale: number = 1.75
+    customScale: number = 1.75,
+    isCinematicIntro: boolean = false
   ): void {
     super.spawn(x, y, hp, speed, damage);
     this.setScale(customScale);
-    this.bossState = 'CHASE';
+    this.bossState = isCinematicIntro ? 'INTRO' : 'CHASE';
+    this.isInvulnerable = isCinematicIntro;
     this.stateTimer = 0;
     this.dashCooldown = 4500;
     this.shootCooldown = 3500;
     this.airJumpCooldown = 13000;
     this.play('succubus-fly-south', true);
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.enable = !isCinematicIntro;
+      body.setVelocity(0, 0);
+    }
 
     if (!this.dashLineGraphics || !this.dashLineGraphics.scene) {
       this.dashLineGraphics = this.scene.add.graphics();
@@ -100,11 +110,35 @@ export class SuccubusBoss extends BaseEnemy {
       this.slamCircleGraphics.setDepth(18);
     }
 
+    if (!isCinematicIntro) {
+      this.emit('boss-spawned', this.hp, this.maxHp);
+    }
+  }
+
+  /**
+   * Ativa Rosalin para o combate real após o término do diálogo introdutório
+   */
+  public startCombat(): void {
+    this.isInvulnerable = false;
+    this.bossState = 'CHASE';
+    this.clearTint();
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.enable = true;
+    }
     this.emit('boss-spawned', this.hp, this.maxHp);
   }
 
   public updateBoss(player: Nixy, deltaMs: number): void {
     if (this.isDead || !this.active) return;
+
+    if (this.bossState === 'INTRO' || this.isInvulnerable) {
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      if (body) {
+        body.setVelocity(0, 0);
+      }
+      return;
+    }
 
     // Atualiza projéteis disparados
     const projs = this.projectilesGroup.getChildren() as DarkOrbProjectile[];
@@ -459,7 +493,7 @@ export class SuccubusBoss extends BaseEnemy {
   // GESTÃO DE DANO E MORTE DA CHEFE COM RESISTÊNCIA PROPORCIONAL
   // =========================================================================
   public override takeDamage(amount: number): void {
-    if (this.isDead || !this.active) return;
+    if (this.isDead || !this.active || this.isInvulnerable || this.bossState === 'INTRO') return;
 
     let finalDamage = amount;
 

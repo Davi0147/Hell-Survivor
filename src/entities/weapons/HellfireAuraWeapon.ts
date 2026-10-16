@@ -143,7 +143,7 @@ export class HellfireAuraWeapon extends BaseWeapon {
     let hitCount = 0;
 
     for (const enemy of activeEnemies) {
-      if (!enemy.active || enemy.isDead) continue;
+      if (!enemy.active || enemy.isDead || (enemy as any).isInvulnerable) continue;
 
       const dist = Math.hypot(enemy.x - originX, enemy.y - originY);
       if (dist <= targetRadius) {

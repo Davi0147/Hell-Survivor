@@ -73,7 +73,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   public takeDamage(amount: number): void {
-    if (this.isDead || !this.active) return;
+    if (this.isDead || !this.active || (this as any).isInvulnerable) return;
 
     this.hp -= amount;
 
