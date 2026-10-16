@@ -20,6 +20,17 @@ export class UltimateSystem {
     const { width, height } = scene.scale;
     const cameras = scene.cameras.main;
 
+    // Oculta a HUD da UIScene durante a exibição da animação cinematográfica da Suprema
+    const uiScene = scene.scene.get('UIScene') as any;
+    if (uiScene && typeof uiScene.setHUDVisible === 'function') {
+      uiScene.setHUDVisible(false);
+    }
+
+    // Purifica o campo de batalha dissipando quaisquer poças de veneno/gosma ativas
+    if ((scene as any).clearAllPoisonPuddles) {
+      (scene as any).clearAllPoisonPuddles();
+    }
+
     // =========================================================================
     // ETAPA 1: ANIME CUT-IN CINEMATOGRÁFICO (PERSONA 5 COMIC NOIR)
     // =========================================================================
@@ -33,18 +44,19 @@ export class UltimateSystem {
     cutInContainer.add(darkBackdrop);
 
     // 2. Banner de Cut-In Oficial da Nixy (300x70px escalado em 3.15x para largura de ~945px)
-    const bannerY = height / 2 - 25;
+    // Posicionado mais para cima (y = 38% da tela) para equilíbrio visual perfeito
+    const bannerY = Math.round(height * 0.38);
     const bannerScale = 3.15;
     const cutInSprite = scene.add.sprite(width / 2, bannerY, 'nixy-ult-cutin-1');
     cutInSprite.setScale(bannerScale);
     cutInContainer.add(cutInSprite);
 
-    // 3. Tipografia de Impacto: "ETERNAL DESPAIR" posicionada abaixo do banner oficial
+    // 3. Tipografia de Impacto: "ETERNAL DESPAIR" (FONTE MAIOR: 50px, mais para cima, logo abaixo da moldura)
     const pixelFont = "'Pixelzone', 'Silkscreen', 'Press Start 2P', monospace";
 
-    const titleText = scene.add.text(width / 2, bannerY + 130, 'ETERNAL DESPAIR', {
+    const titleText = scene.add.text(width / 2, bannerY + 115, 'ETERNAL DESPAIR', {
       fontFamily: pixelFont,
-      fontSize: '32px',
+      fontSize: '50px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#4a0e17',
@@ -52,28 +64,28 @@ export class UltimateSystem {
       align: 'center',
       shadow: {
         offsetX: 0,
-        offsetY: 3,
+        offsetY: 4,
         color: '#ff0055',
-        blur: 14,
+        blur: 16,
         stroke: true,
         fill: true
       }
     }).setOrigin(0.5);
     titleText.setResolution(2);
 
-    const subText = scene.add.text(width / 2, bannerY + 166, 'SUPREME PURIFICATION', {
+    const subText = scene.add.text(width / 2, bannerY + 158, 'SUPREME PURIFICATION', {
       fontFamily: pixelFont,
-      fontSize: '14px',
+      fontSize: '16px',
       fontStyle: 'bold',
       color: '#ffd166',
       stroke: '#000000',
-      strokeThickness: 4,
+      strokeThickness: 5,
       align: 'center',
       shadow: {
         offsetX: 0,
         offsetY: 2,
         color: '#000000',
-        blur: 6,
+        blur: 8,
         stroke: true,
         fill: true
       }
@@ -128,6 +140,10 @@ export class UltimateSystem {
                 ease: 'Quad.easeIn',
                 onComplete: () => {
                   cutInContainer.destroy();
+                  // Restaura a visualização da HUD limpa após a saída da animação
+                  if (uiScene && typeof uiScene.setHUDVisible === 'function') {
+                    uiScene.setHUDVisible(true);
+                  }
                 }
               });
             });
@@ -382,6 +398,27 @@ export class UltimateSystem {
       if (dist <= aoeRadius) {
         e.takeDamage(damage);
         hitCount++;
+      }
+    }
+
+    // Dissipa poças de veneno/gosma atingidas pela detonação da Suprema
+    const gameScene = scene as any;
+    if (gameScene.poisonPuddles) {
+      for (let i = gameScene.poisonPuddles.length - 1; i >= 0; i--) {
+        const p = gameScene.poisonPuddles[i];
+        if (p && p.active) {
+          const d = Math.hypot(p.x - x, p.y - y);
+          if (d <= aoeRadius + 30) {
+            scene.tweens.add({
+              targets: p,
+              alpha: 0,
+              scale: 0.1,
+              duration: 220,
+              onComplete: () => p.destroy()
+            });
+            gameScene.poisonPuddles.splice(i, 1);
+          }
+        }
       }
     }
 

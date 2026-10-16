@@ -91,22 +91,13 @@ export class MummyEnemy extends BaseEnemy {
     this.customDrop = customDrop;
     this.zigzagTimer = Math.random() * 1000;
     this.puddleTimer = 0;
+    this.puddles = [];
     this.setScale(1.05);
     this.clearTint();
     this.play('mummy-idle-south', true);
   }
 
   public updateMummy(player: Nixy, deltaMs: number, timeNow: number): void {
-    // Atualiza poças de veneno ativas
-    for (let i = this.puddles.length - 1; i >= 0; i--) {
-      const p = this.puddles[i];
-      if (p.active) {
-        p.updatePuddle(deltaMs, player, timeNow);
-      } else {
-        this.puddles.splice(i, 1);
-      }
-    }
-
     if (this.isDead || !this.active) return;
 
     // Efeito de stun / hit flash
@@ -187,6 +178,30 @@ export class MummyEnemy extends BaseEnemy {
 
     const puddle = new PoisonPuddle(this.scene, this.x, this.y + 14, 18, 6500);
     this.puddles.push(puddle);
+    if ((this.scene as any).registerPoisonPuddle) {
+      (this.scene as any).registerPoisonPuddle(puddle);
+    }
+  }
+
+  /**
+   * Remove e dissolve suavemente todas as poças geradas por esta múmia ao morrer
+   */
+  public clearAllPuddles(): void {
+    for (const p of this.puddles) {
+      if (p && p.active) {
+        this.scene.tweens.add({
+          targets: p,
+          alpha: 0,
+          scale: 0.1,
+          duration: 350,
+          ease: 'Power2',
+          onComplete: () => {
+            p.destroy();
+          }
+        });
+      }
+    }
+    this.puddles = [];
   }
 
   /**
@@ -205,12 +220,7 @@ export class MummyEnemy extends BaseEnemy {
     super.takeDamage(amount);
 
     if (this.isDead) {
-      // Quando a múmia morre, seu rastro existente permanece por exatos 5 segundos e se extingue
-      for (const p of this.puddles) {
-        if (p.active) {
-          p.lifespanMs = Math.min(p.lifespanMs, 5000);
-        }
-      }
+      this.clearAllPuddles();
     }
   }
 }

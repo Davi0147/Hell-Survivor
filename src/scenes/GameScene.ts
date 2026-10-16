@@ -73,6 +73,7 @@ export class GameScene extends Phaser.Scene {
   private mapItemSpawnTimer: number = 0;
   public killCount: number = 0;
   private playerInvulnerableTimer: number = 0;
+  public poisonPuddles: any[] = [];
 
   // Teclas de controle
   private keyW!: Phaser.Input.Keyboard.Key;
@@ -574,6 +575,16 @@ export class GameScene extends Phaser.Scene {
     // 5.4. Atualizar Altar de Invocação do Chefe
     if (this.bossSummonAltar && this.bossSummonAltar.active) {
       this.bossSummonAltar.updateAltar(this.player, delta);
+    }
+
+    // 5.5. Atualizar Poças de Veneno da Múmia no Chão (desacoplado do ciclo de vida dos inimigos)
+    for (let i = this.poisonPuddles.length - 1; i >= 0; i--) {
+      const p = this.poisonPuddles[i];
+      if (p && p.active) {
+        p.updatePuddle(delta, this.player, this.time.now);
+      } else {
+        this.poisonPuddles.splice(i, 1);
+      }
     }
 
     // 6. Atualizar Inimigos Ativos (Culling + IA de Cada Espécie)
@@ -1917,6 +1928,26 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.activeCombatBubbles = [];
+  }
+
+  public registerPoisonPuddle(puddle: any): void {
+    this.poisonPuddles.push(puddle);
+  }
+
+  public clearAllPoisonPuddles(): void {
+    for (const p of this.poisonPuddles) {
+      if (p && p.active) {
+        this.tweens.add({
+          targets: p,
+          alpha: 0,
+          scale: 0.1,
+          duration: 280,
+          ease: 'Power2',
+          onComplete: () => p.destroy()
+        });
+      }
+    }
+    this.poisonPuddles = [];
   }
 
   // ===========================================================================
