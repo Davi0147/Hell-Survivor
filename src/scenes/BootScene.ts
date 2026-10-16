@@ -86,6 +86,9 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('floor-tile');
     this.textures.remove('nixy-portrait-idle');
     this.textures.remove('nixy-portrait-damage');
+    this.textures.remove('nixy-ult-cutin-1');
+    this.textures.remove('nixy-ult-cutin-2');
+    this.textures.remove('nixy-ult-cutin-3');
     this.textures.remove('chat-succubus');
     this.textures.remove('chat-nixy');
 
@@ -235,6 +238,11 @@ export class BootScene extends Phaser.Scene {
     // 9. Carregar retratos de UI da Nixy (novas versões atualizadas: Idle UI e Damage UI)
     this.load.image('nixy-portrait-idle', `assets/sprites/nixy/UI/Idle UI.png?t=${cacheBuster}`);
     this.load.image('nixy-portrait-damage', `assets/sprites/nixy/UI/Damage UI.png?t=${cacheBuster}`);
+
+    // 9.1. Carregar sprites da Animação Oficial da Suprema / Cut-In da Nixy (300x70px)
+    this.load.image('nixy-ult-cutin-1', `assets/sprites/nixy/Ult%20Animation/UltNixy1.png?t=${cacheBuster}`);
+    this.load.image('nixy-ult-cutin-2', `assets/sprites/nixy/Ult%20Animation/UltNixy2.png?t=${cacheBuster}`);
+    this.load.image('nixy-ult-cutin-3', `assets/sprites/nixy/Ult%20Animation/UltNixy3.png?t=${cacheBuster}`);
 
     // 10. Carregar sprites da Succubus (Idle nos 8 ângulos)
     for (const dir of DIRECTIONS_8) {

@@ -32,83 +32,105 @@ export class UltimateSystem {
     const darkBackdrop = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
     cutInContainer.add(darkBackdrop);
 
-    // 2. Faixa angular cortando a tela (inclinação -6 graus)
-    const stripH = 160;
-    const stripY = height / 2 - 10;
-    const stripGraphics = scene.add.graphics();
+    // 2. Banner de Cut-In Oficial da Nixy (300x70px escalado em 3.15x para largura de ~945px)
+    const bannerY = height / 2 - 25;
+    const bannerScale = 3.15;
+    const cutInSprite = scene.add.sprite(width / 2, bannerY, 'nixy-ult-cutin-1');
+    cutInSprite.setScale(bannerScale);
+    cutInContainer.add(cutInSprite);
 
-    // Desenha o polígono chanfrado de quadrinhos
-    stripGraphics.fillStyle(0x720012, 0.95);
-    stripGraphics.beginPath();
-    stripGraphics.moveTo(-50, stripY - stripH / 2 - 25);
-    stripGraphics.lineTo(width + 50, stripY - stripH / 2 + 15);
-    stripGraphics.lineTo(width + 50, stripY + stripH / 2 + 35);
-    stripGraphics.lineTo(-50, stripY + stripH / 2 - 5);
-    stripGraphics.closePath();
-    stripGraphics.fill();
+    // 3. Tipografia de Impacto: "ETERNAL DESPAIR" posicionada abaixo do banner oficial
+    const pixelFont = "'Pixelzone', 'Silkscreen', 'Press Start 2P', monospace";
 
-    // Borda preta e branca grossa de quadrinhos
-    stripGraphics.lineStyle(6, 0xffffff, 1);
-    stripGraphics.stroke();
-    stripGraphics.lineStyle(2, 0x000000, 1);
-    stripGraphics.stroke();
-
-    cutInContainer.add(stripGraphics);
-
-    // 3. Close-up dramático nos olhos/rosto da Nixy
-    const portrait = scene.add.image(width / 2 - 110, stripY, 'nixy-portrait-idle');
-    portrait.setDisplaySize(240, 240);
-    portrait.setTint(0xff3355);
-    cutInContainer.add(portrait);
-
-    // 4. Tipografia de Impacto: "ETERNAL DESPAIR"
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-
-    const titleText = scene.add.text(width / 2 + 10, stripY - 22, 'ETERNAL DESPAIR', {
+    const titleText = scene.add.text(width / 2, bannerY + 130, 'ETERNAL DESPAIR', {
       fontFamily: pixelFont,
-      fontSize: '34px',
+      fontSize: '32px',
       fontStyle: 'bold',
       color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 8
-    }).setOrigin(0, 0.5);
-    titleText.setAngle(-2);
-
-    const subText = scene.add.text(width / 2 + 15, stripY + 24, 'SUPREME PURIFICATION', {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
       stroke: '#4a0e17',
-      strokeThickness: 4
-    }).setOrigin(0, 0.5);
-    subText.setAngle(-2);
+      strokeThickness: 8,
+      align: 'center',
+      shadow: {
+        offsetX: 0,
+        offsetY: 3,
+        color: '#ff0055',
+        blur: 14,
+        stroke: true,
+        fill: true
+      }
+    }).setOrigin(0.5);
+    titleText.setResolution(2);
+
+    const subText = scene.add.text(width / 2, bannerY + 166, 'SUPREME PURIFICATION', {
+      fontFamily: pixelFont,
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffd166',
+      stroke: '#000000',
+      strokeThickness: 4,
+      align: 'center',
+      shadow: {
+        offsetX: 0,
+        offsetY: 2,
+        color: '#000000',
+        blur: 6,
+        stroke: true,
+        fill: true
+      }
+    }).setOrigin(0.5);
+    subText.setResolution(2);
 
     cutInContainer.add(titleText);
     cutInContainer.add(subText);
 
-    // Animação de entrada do Cut-In: Slide lateral rápido + Shake
+    // 4. Sequência Animada dos 3 Frames:
+    // Frame 1 (0ms): Olhos fechados, concentração profunda
+    // Frame 2 (160ms): Olhos se abrem com brilho carmesim
+    // Frame 3 (360ms): Liberação total com cruzes roxas nos olhos e linhas de ação!
     cutInContainer.setX(-width);
+
     scene.tweens.add({
       targets: cutInContainer,
       x: 0,
-      duration: 180,
+      duration: 160,
       ease: 'Back.easeOut',
       onComplete: () => {
-        cameras.shake(200, 0.015);
-        cameras.flash(120, 255, 255, 255);
+        // Transição para o Frame 2: Os olhos da Nixy se abrem
+        scene.time.delayedCall(160, () => {
+          if (!cutInSprite.scene) return;
+          cutInSprite.setTexture('nixy-ult-cutin-2');
+          cameras.shake(100, 0.006);
 
-        // Hit-stop de 480ms e depois saída cortada
-        scene.time.delayedCall(480, () => {
-          scene.tweens.add({
-            targets: cutInContainer,
-            x: width * 1.2,
-            alpha: 0,
-            duration: 160,
-            ease: 'Quad.easeIn',
-            onComplete: () => {
-              cutInContainer.destroy();
-            }
+          // Transição para o Frame 3: Poder supremo liberado!
+          scene.time.delayedCall(200, () => {
+            if (!cutInSprite.scene) return;
+            cutInSprite.setTexture('nixy-ult-cutin-3');
+            cameras.shake(250, 0.018);
+            cameras.flash(140, 255, 255, 255);
+
+            // Pulso da tipografia acompanhando o pico de energia
+            scene.tweens.add({
+              targets: [titleText, subText],
+              scaleX: 1.12,
+              scaleY: 1.12,
+              duration: 100,
+              yoyo: true,
+              ease: 'Quad.easeInOut'
+            });
+
+            // Hit-stop de 420ms no ápice do Frame 3 e depois saída em corte veloz
+            scene.time.delayedCall(420, () => {
+              scene.tweens.add({
+                targets: cutInContainer,
+                x: width * 1.25,
+                alpha: 0,
+                duration: 160,
+                ease: 'Quad.easeIn',
+                onComplete: () => {
+                  cutInContainer.destroy();
+                }
+              });
+            });
           });
         });
       }
