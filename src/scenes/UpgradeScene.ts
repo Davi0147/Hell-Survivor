@@ -181,34 +181,34 @@ export class UpgradeScene extends Phaser.Scene {
       }
     ];
 
-    // Novo Upgrade 1: Regeneração de Vida contínua (0.5/s até 3.0/s)
-    if (player.hpRegenPerSec < 3.0) {
-      const nextRegen = Math.min(3.0, Number((player.hpRegenPerSec + 0.5).toFixed(1)));
-      const level = Math.round(nextRegen / 0.5);
+    // Novo Upgrade 1: Regeneração de Vida contínua (0.2/s até 0.8/s - Balanceado)
+    if (player.hpRegenPerSec < 0.8) {
+      const nextRegen = Math.min(0.8, Number((player.hpRegenPerSec + 0.2).toFixed(1)));
+      const level = Math.round(nextRegen / 0.2);
       catalog.push({
         id: 'hp_regen',
         title: 'REGENERAÇÃO SOMBRIA',
-        category: `SOBREVIVÊNCIA // NÍVEL ${level}/6`,
+        category: `SOBREVIVÊNCIA // NÍVEL ${level}/4`,
         badgeColor: 0x2ec4b6,
         icon: 'REGEN',
-        description: `+0.5 HP por Segundo (${nextRegen.toFixed(1)}/3.0)\n\nCura contínua de sangue infernal regenerando suas feridas em combate.`,
+        description: `+0.2 HP por Segundo (${nextRegen.toFixed(1)}/0.8)\n\nCura contínua de sangue infernal restaurando sua vitalidade aos poucos.`,
         apply: (p) => {
           p.hpRegenPerSec = nextRegen;
         }
       });
     }
 
-    // Novo Upgrade 2: Roubo de Vida por Acerto (0.5 até 1.5 HP)
-    if (player.lifeStealPerHit < 1.5) {
-      const nextSteal = Math.min(1.5, Number((player.lifeStealPerHit + 0.5).toFixed(1)));
-      const level = Math.round(nextSteal / 0.5);
+    // Novo Upgrade 2: Roubo de Vida por Acerto (0.1 até 0.3 HP - Balanceado)
+    if (player.lifeStealPerHit < 0.3) {
+      const nextSteal = Math.min(0.3, Number((player.lifeStealPerHit + 0.1).toFixed(1)));
+      const level = Math.round(nextSteal / 0.1);
       catalog.push({
         id: 'life_steal',
         title: 'DRENO VITAL',
         category: `SOBREVIVÊNCIA // NÍVEL ${level}/3`,
         badgeColor: 0x8338ec,
         icon: 'DRENO',
-        description: `+0.5 HP Roubado por Golpe (${nextSteal.toFixed(1)}/1.5)\n\nRouba a vitalidade dos monstros a cada acerto de suas armas.`,
+        description: `+0.1 HP Roubado por Golpe (${nextSteal.toFixed(1)}/0.3)\n\nRouba pequenas doses de vitalidade a cada acerto de suas armas.`,
         apply: (p) => {
           p.lifeStealPerHit = nextSteal;
         }

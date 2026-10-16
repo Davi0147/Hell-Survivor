@@ -27,9 +27,9 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public extraProjectiles: number = 0;
   public extraPierce: number = 0;
 
-  // Novos Atributos Passivos de Cura e Sobrevivência
-  public hpRegenPerSec: number = 0; // Regeneração contínua de HP por segundo (até 3.0/s)
-  public lifeStealPerHit: number = 0; // Roubo de vida por acerto (até 1.5 por golpe)
+  // Novos Atributos Passivos de Cura e Sobrevivência (Balanceados)
+  public hpRegenPerSec: number = 0; // Regeneração contínua de HP por segundo (até 0.8/s)
+  public lifeStealPerHit: number = 0; // Roubo de vida por acerto (até 0.3 por golpe)
 
   public isSprinting: boolean = false;
   public isMoving: boolean = false;
@@ -199,7 +199,8 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public gainUltimateCharge(amount: number): boolean {
     if (this.isUltimateActive) return false;
     const prev = this.ultimateCharge;
-    this.ultimateCharge = Phaser.Math.Clamp(this.ultimateCharge + amount, 0, this.maxUltimateCharge);
+    // Demora 3x mais para carregar tudo (aumento equilibrado do tempo de recarga)
+    this.ultimateCharge = Phaser.Math.Clamp(this.ultimateCharge + (amount / 3), 0, this.maxUltimateCharge);
     if (prev < this.maxUltimateCharge && this.ultimateCharge >= this.maxUltimateCharge) {
       this.emit('ultimate-ready');
       return true;

@@ -3,12 +3,16 @@ import { DialogueSystem, DialogueLine } from '../systems/DialogueSystem';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
 import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoundManager } from '../systems/SoundManager';
+import { UpgradeCard } from './UpgradeScene';
+import { BaseCharacter } from '../entities/characters/BaseCharacter';
 
 export class UIScene extends Phaser.Scene {
   // Sistema de Diálogos Estilo Persona 5
   private dialogueSystem!: DialogueSystem;
   private hudElements: any[] = [];
   private isHUDVisibleState: boolean = true;
+  private alertTimer?: Phaser.Time.TimerEvent;
+  private alertTween?: Phaser.Tweens.Tween;
 
   // Estado e Container de Pausa
   public isPaused: boolean = false;
@@ -434,7 +438,6 @@ export class UIScene extends Phaser.Scene {
       this.bossNameText,
       this.endlessTimerText,
       this.endlessRecordText,
-      this.waveAlertBanner,
       this.controlsText,
       this.xpBarBg,
       this.xpBarFill,
@@ -1025,6 +1028,7 @@ export class UIScene extends Phaser.Scene {
       if (this.staminaBarFill) this.staminaBarFill.clear();
       if (this.purifyBarGraphics) this.purifyBarGraphics.clear();
       if (this.bossBarGraphics) this.bossBarGraphics.clear();
+      if (this.waveAlertBanner) this.waveAlertBanner.setVisible(false);
     }
   }
 
@@ -1167,24 +1171,333 @@ export class UIScene extends Phaser.Scene {
     return false;
   }
 
-  public showWaveAlert(message: string, durationMs: number = 3500): void {
+  public showWaveAlert(message: string, durationMs: number = 3000): void {
     if (!this.waveAlertBanner) return;
+
+    if (this.alertTimer) {
+      this.alertTimer.remove(false);
+      this.alertTimer = undefined;
+    }
+    if (this.alertTween) {
+      this.alertTween.stop();
+      this.alertTween = undefined;
+    }
+
     this.waveAlertBanner.setText(message);
+    this.waveAlertBanner.setAlpha(1);
+    this.waveAlertBanner.setScale(1.15);
     this.waveAlertBanner.setVisible(true);
-    this.waveAlertBanner.setScale(1.2);
-    this.tweens.add({
+
+    this.alertTween = this.tweens.add({
       targets: this.waveAlertBanner,
       scaleX: 1.0,
       scaleY: 1.0,
-      duration: 250,
+      duration: 220,
       ease: 'Back.easeOut'
     });
 
-    this.time.delayedCall(durationMs, () => {
+    this.alertTimer = this.time.delayedCall(durationMs, () => {
       if (this.waveAlertBanner) {
-        this.waveAlertBanner.setVisible(false);
+        this.alertTween = this.tweens.add({
+          targets: this.waveAlertBanner,
+          alpha: 0,
+          duration: 350,
+          ease: 'Linear',
+          onComplete: () => {
+            if (this.waveAlertBanner) {
+              this.waveAlertBanner.setVisible(false);
+            }
+          }
+        });
       }
     });
+  }
+
+  /**
+   * Roleta Mística do Baú do Abismo:
+   * Abre um modal gótico animado, gira através de melhorias aleatórias com desaceleração,
+   * e concede a bênção sorteada ao jogador com celebração audiovisual satisfatória.
+   */
+  public showChestRoulette(
+    availableCards: UpgradeCard[],
+    player: BaseCharacter,
+    gameScene: any
+  ): void {
+    const { width, height } = this.scale;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    // 1. Pausa o combate durante a roleta para segurança total do jogador
+    if (gameScene?.physics) {
+      gameScene.physics.pause();
+    }
+
+    const modal = this.add.container(0, 0);
+    modal.setDepth(3400);
+
+    // 2. Fundo escuro com vinheta translúcida bloqueando cliques no mapa
+    const darkBackdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.82);
+    darkBackdrop.setInteractive();
+    modal.add(darkBackdrop);
+
+    // 3. Painel Gótico Barroco Central
+    const pW = Math.min(width - 40, 470);
+    const pH = 330;
+    const pX = width / 2;
+    const pY = height / 2;
+
+    const bgG = this.add.graphics();
+    // Fundo veludo carmesim profundo
+    bgG.fillStyle(0x130206, 0.98);
+    bgG.fillRoundedRect(pX - pW / 2, pY - pH / 2, pW, pH, 12);
+    bgG.fillStyle(0x22040b, 0.85);
+    bgG.fillRoundedRect(pX - pW / 2 + 5, pY - pH / 2 + 5, pW - 10, pH - 10, 10);
+
+    // Moldura ouro envelhecido barroca
+    bgG.lineStyle(2.5, 0xc59b27, 1);
+    bgG.strokeRoundedRect(pX - pW / 2, pY - pH / 2, pW, pH, 12);
+    bgG.lineStyle(1.5, 0xf3d17a, 0.8);
+    bgG.strokeRoundedRect(pX - pW / 2 + 4, pY - pH / 2 + 4, pW - 8, pH - 8, 9);
+    modal.add(bgG);
+
+    // Ícone do Baú com animação flutuante
+    let chestSprite: Phaser.GameObjects.Image | undefined;
+    if (this.textures.exists('item-chest')) {
+      chestSprite = this.add.image(pX, pY - pH / 2 + 48, 'item-chest');
+      chestSprite.setScale(1.5);
+      modal.add(chestSprite);
+
+      this.tweens.add({
+        targets: chestSprite,
+        y: chestSprite.y - 5,
+        duration: 450,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
+
+    // Título Principal
+    const titleText = this.add.text(pX, pY - pH / 2 + (chestSprite ? 84 : 45), 'BAÚ DO ABISMO', {
+      fontFamily: pixelFont,
+      fontSize: '17px',
+      fontStyle: 'bold',
+      color: '#f3d17a',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5);
+    modal.add(titleText);
+
+    // Subtítulo do Estado da Roleta
+    const statusText = this.add.text(pX, titleText.y + 20, 'SORTEANDO BÊNÇÃO...', {
+      fontFamily: pixelFont,
+      fontSize: '10px',
+      color: '#ff4d6d'
+    }).setOrigin(0.5);
+    modal.add(statusText);
+
+    // Caixa / Slot da Roleta
+    const slotW = pW - 50;
+    const slotH = 54;
+    const slotY = statusText.y + 44;
+
+    const slotBg = this.add.graphics();
+    slotBg.fillStyle(0x070103, 1);
+    slotBg.fillRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
+    slotBg.lineStyle(2, 0xc59b27, 1);
+    slotBg.strokeRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
+    modal.add(slotBg);
+
+    // Texto da Roleta (Gira os nomes)
+    const tickerText = this.add.text(pX, slotY, '???', {
+      fontFamily: pixelFont,
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5);
+    modal.add(tickerText);
+
+    // Categoria e Descrição Reveladas
+    const categoryBadge = this.add.text(pX, slotY + 40, '', {
+      fontFamily: pixelFont,
+      fontSize: '9px',
+      fontStyle: 'bold',
+      color: '#00f5d4',
+      backgroundColor: '#002520aa',
+      padding: { x: 6, y: 3 }
+    }).setOrigin(0.5).setVisible(false);
+    modal.add(categoryBadge);
+
+    const descText = this.add.text(pX, slotY + 66, '', {
+      fontFamily: pixelFont,
+      fontSize: '10px',
+      color: '#e2e8f0',
+      align: 'center',
+      wordWrap: { width: slotW - 20 }
+    }).setOrigin(0.5).setVisible(false);
+    modal.add(descText);
+
+    // Botão de Coleta
+    const btnW = 200;
+    const btnH = 32;
+    const btnY = pY + pH / 2 - 30;
+
+    const btnContainer = this.add.container(pX, btnY);
+    btnContainer.setVisible(false);
+    modal.add(btnContainer);
+
+    const btnBg = this.add.graphics();
+    const drawBtn = (hover: boolean) => {
+      btnBg.clear();
+      btnBg.fillStyle(hover ? 0xc59b27 : 0x1f0d14, 1);
+      btnBg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 6);
+      btnBg.lineStyle(1.5, hover ? 0xffffff : 0xf3d17a, 1);
+      btnBg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 6);
+    };
+    drawBtn(false);
+    btnContainer.add(btnBg);
+
+    const btnLabel = this.add.text(0, 0, 'COLETAR BÊNÇÃO', {
+      fontFamily: pixelFont,
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    btnContainer.add(btnLabel);
+
+    const btnZone = this.add.zone(0, 0, btnW, btnH);
+    btnZone.setInteractive({ useHandCursor: true });
+    btnContainer.add(btnZone);
+
+    // Lista de nomes para rodar na roleta
+    const dummyNames = [
+      'LÂMINAS ORBITAIS',
+      'FÚRIA INFERNAL',
+      'PULMÕES DO DEMÔNIO',
+      'ALMA EXTRA',
+      'PERFURAÇÃO MÍSTICA',
+      'CELERIDADE ABISSAL',
+      'ÍMÃ DE ALMAS',
+      'VITALIDADE SANGRENTA',
+      'DRENO VITAL',
+      'REGENERAÇÃO SOMBRIA'
+    ];
+
+    const pool = availableCards.length > 0 ? availableCards : [];
+    const chosenCard = pool.length > 0 ? Phaser.Math.RND.pick(pool) : null;
+
+    // Curva de desaceleração da roleta (15 passos de giro simulando slot machine)
+    const tickDelays = [45, 50, 50, 55, 60, 70, 80, 95, 115, 140, 175, 220, 280, 360, 480];
+    let tickIndex = 0;
+
+    const doTick = () => {
+      if (tickIndex < tickDelays.length) {
+        const randomName = pool.length > 0
+          ? Phaser.Math.RND.pick(pool).title
+          : Phaser.Math.RND.pick(dummyNames);
+        tickerText.setText(randomName);
+
+        // Som de giro rápido
+        SoundManager.getInstance().playMenuHover();
+
+        // Leve pulso elástico no texto
+        tickerText.setScale(1.1);
+        this.tweens.add({
+          targets: tickerText,
+          scaleX: 1.0,
+          scaleY: 1.0,
+          duration: Math.max(30, tickDelays[tickIndex] - 10)
+        });
+
+        const currentDelay = tickDelays[tickIndex];
+        tickIndex++;
+        this.time.delayedCall(currentDelay, doTick);
+      } else {
+        // Fim da roleta: Parar na bênção sorteada
+        if (chosenCard) {
+          tickerText.setText(chosenCard.title);
+          categoryBadge.setText(chosenCard.category).setVisible(true);
+          descText.setText(chosenCard.description).setVisible(true);
+        } else {
+          tickerText.setText('RESTAURAÇÃO TOTAL');
+          categoryBadge.setText('SOBREVIVÊNCIA // CURA 100%').setVisible(true);
+          descText.setText('Sua vida foi 100% regenerada pelo fogo abissal!').setVisible(true);
+        }
+
+        statusText.setText('BÊNÇÃO CONCEDIDA!').setColor('#00f5d4');
+        tickerText.setColor('#ffe600');
+
+        // Celebração audiovisual
+        SoundManager.getInstance().playLevelUp();
+        this.cameras.main.flash(260, 255, 215, 0);
+
+        // Borda dourada brilhante na caixa da roleta
+        slotBg.clear();
+        slotBg.fillStyle(0x19050b, 1);
+        slotBg.fillRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
+        slotBg.lineStyle(2.5, 0xffd700, 1);
+        slotBg.strokeRoundedRect(pX - slotW / 2, slotY - slotH / 2, slotW, slotH, 8);
+
+        // Revela botão com animação pop
+        btnContainer.setVisible(true);
+        btnContainer.setScale(0.8);
+        this.tweens.add({
+          targets: btnContainer,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 200,
+          ease: 'Back.easeOut'
+        });
+      }
+    };
+
+    // Inicia a rotação após breve pausa de suspense
+    this.time.delayedCall(120, doTick);
+
+    // Finalização e Coleta
+    let collected = false;
+    const finalizeCollection = () => {
+      if (collected) return;
+      collected = true;
+
+      window.removeEventListener('keydown', onKey);
+      SoundManager.getInstance().playMenuClick();
+
+      // Aplica a bênção
+      if (chosenCard) {
+        chosenCard.apply(player, gameScene);
+      } else {
+        player.heal(player.maxHp);
+      }
+
+      // Fecha o modal e retoma o jogo
+      modal.destroy();
+      if (gameScene?.physics && !gameScene.isGameOver && !gameScene.isChapterCompleted) {
+        gameScene.physics.resume();
+      }
+    };
+
+    btnZone.on('pointerover', () => {
+      drawBtn(true);
+      btnLabel.setColor('#000000');
+      SoundManager.getInstance().playMenuHover();
+    });
+    btnZone.on('pointerout', () => {
+      drawBtn(false);
+      btnLabel.setColor('#ffffff');
+    });
+    btnZone.on('pointerdown', finalizeCollection);
+
+    // Atalho de teclado para fechar (Espaço ou Enter)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        finalizeCollection();
+      }
+    };
+    window.addEventListener('keydown', onKey);
   }
 
   public showGameOverModal(

@@ -94,24 +94,17 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
       }
 
       case 'chest': {
-        // Baú: concede um upgrade aleatório diretamente ao jogador
-        SoundManager.getInstance().playLevelUp();
-        this.scene.cameras.main.flash(300, 255, 215, 0);
-
+        // Baú do Abismo: aciona a roleta animada no centro da tela
         const availableCards = UpgradeScene.getAvailableUpgrades(player, gameScene);
-
-        if (availableCards.length > 0) {
-          const randomCard = Phaser.Math.RND.pick(availableCards);
-          randomCard.apply(player, gameScene);
-          if (uiScene) {
-            uiScene.showWaveAlert(`BAÚ DO ABISMO ABERTO!\nBÊNÇÃO: ${randomCard.title}!`, 3500);
-          }
+        if (uiScene && typeof uiScene.showChestRoulette === 'function') {
+          uiScene.showChestRoulette(availableCards, player, gameScene);
         } else {
-          // Se todos os upgrades possíveis estiverem no máximo, cura 100%
-          player.heal(player.maxHp);
-          player.gainXp(100);
-          if (uiScene) {
-            uiScene.showWaveAlert(`BAÚ DO ABISMO ABERTO!\nVIDA TOTALMENTE RESTAURADA!`, 2500);
+          // Fallback seguro caso a UIScene não esteja acoplada
+          if (availableCards.length > 0) {
+            const randomCard = Phaser.Math.RND.pick(availableCards);
+            randomCard.apply(player, gameScene);
+          } else {
+            player.heal(player.maxHp);
           }
         }
         break;
