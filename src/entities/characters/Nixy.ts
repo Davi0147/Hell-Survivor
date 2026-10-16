@@ -10,6 +10,14 @@ export class Nixy extends BaseCharacter {
   public isRooted: boolean = false;
   private rootTimer: number = 0;
 
+  // Estado de Lentidão (Rastro Tóxico da Múmia)
+  public speedDebuffMultiplier: number = 1.0;
+  private slowTimer: number = 0;
+
+  // Estado de Knockback (Impacto da Múmia)
+  private knockbackTimer: number = 0;
+  private knockbackVelocity: { x: number; y: number } = { x: 0, y: 0 };
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'nixy-idle-south', BALANCE.NIXY);
     this.play('nixy-idle-south');
@@ -25,12 +33,58 @@ export class Nixy extends BaseCharacter {
     }
   }
 
+  public applySlow(multiplier: number = 0.60, durationMs: number = 600): void {
+    this.speedDebuffMultiplier = Math.min(this.speedDebuffMultiplier, multiplier);
+    this.slowTimer = Math.max(this.slowTimer, durationMs);
+    if (!this.isRooted) {
+      this.setTint(0x70e000); // Verde tóxico do lodo
+    }
+  }
+
+  public applyKnockback(vx: number, vy: number, durationMs: number = 220): void {
+    this.knockbackVelocity = { x: vx, y: vy };
+    this.knockbackTimer = durationMs;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(vx, vy);
+    }
+    this.camerasShake(durationMs);
+  }
+
+  private camerasShake(durationMs: number): void {
+    try {
+      this.scene.cameras.main.shake(durationMs, 0.008);
+    } catch {}
+  }
+
   public updateNixy(
     dx: number,
     dy: number,
     isSprintRequested: boolean,
     deltaMs: number
   ): void {
+    // Gerenciamento de Knockback
+    if (this.knockbackTimer > 0) {
+      this.knockbackTimer -= deltaMs;
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      if (body) {
+        body.setVelocity(this.knockbackVelocity.x, this.knockbackVelocity.y);
+      }
+      this.updateAnimation();
+      return;
+    }
+
+    // Gerenciamento de Lentidão (Rastro da Múmia)
+    if (this.slowTimer > 0) {
+      this.slowTimer -= deltaMs;
+      if (this.slowTimer <= 0) {
+        this.speedDebuffMultiplier = 1.0;
+        if (!this.isRooted && this.hurtTimer <= 0) {
+          this.clearTint();
+        }
+      }
+    }
+
     // Gerenciamento de Prisão Ácida
     if (this.isRooted) {
       this.rootTimer -= deltaMs;

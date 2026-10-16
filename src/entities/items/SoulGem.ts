@@ -72,6 +72,30 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Adiciona XP cumulativo e eleva a categoria visual da gema (Fusão Anti-Lag Vampire Survivors)
+   */
+  public addBonusXp(bonus: number): void {
+    this.xpValue += bonus;
+    if (this.xpValue >= 500) {
+      this.gemType = 'gold';
+      this.setTexture('gem-gold');
+      this.setScale(0.95);
+    } else if (this.xpValue >= 250) {
+      this.gemType = 'purple';
+      this.setTexture('gem-purple');
+      this.setScale(0.85);
+    } else if (this.xpValue >= 100) {
+      this.gemType = 'red';
+      this.setTexture('gem-red');
+      this.setScale(0.75);
+    } else if (this.xpValue >= 20) {
+      this.gemType = 'blue';
+      this.setTexture('gem-blue');
+      this.setScale(0.65);
+    }
+  }
+
   public updateGem(player: BaseCharacter, deltaMs: number): void {
     if (!this.active) return;
 
@@ -79,26 +103,26 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy);
 
-    // 1. Verificação de Atração por Ímã (Pickup Radius)
+    // 1. Verificação de Atração por Ímã (Pickup Radius com multiplicadores de Bênçãos)
     if (!this.isAttracted) {
       // Efeito sutil de flutuação no ar
       this.bobTimer += deltaMs * 0.005;
       this.y = this.baseY + Math.sin(this.bobTimer) * 3;
 
-      if (dist <= player.pickupRadius) {
+      if (dist <= player.effectivePickupRadius) {
         this.isAttracted = true;
       }
     } else {
-      // 2. Movimento Acelerado em Direção ao Jogador (Atração Magnética Suave)
-      this.attractSpeed += deltaMs * 1.1; // Acelera enquanto se aproxima
+      // 2. Movimento Acelerado em Direção ao Jogador (Atração Magnética Suave e Precisa)
+      this.attractSpeed += deltaMs * 1.25; // Acelera enquanto se aproxima
       const angle = Math.atan2(dy, dx);
       const moveStep = this.attractSpeed * (deltaMs / 1000);
 
       this.x += Math.cos(angle) * moveStep;
       this.y += Math.sin(angle) * moveStep;
 
-      // 3. Absorção / Coleta ao alcançar o corpo da heroína
-      if (dist <= 22) {
+      // 3. Absorção / Coleta ao alcançar o corpo da heroína (com tolerância ao moveStep para não ultrapassar)
+      if (dist <= Math.max(28, moveStep * 1.5)) {
         this.collect(player);
       }
     }
@@ -109,10 +133,10 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
    */
   public forceMagnetPull(): void {
     this.isAttracted = true;
-    this.attractSpeed = Math.max(this.attractSpeed, 380);
+    this.attractSpeed = Math.max(this.attractSpeed, 420);
   }
 
-  private collect(player: BaseCharacter): void {
+  public collect(player: BaseCharacter): void {
     // 1. Partículas de faísca da gema absorvida
     this.emitPickupSparkles();
 

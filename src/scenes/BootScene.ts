@@ -71,6 +71,16 @@ export class BootScene extends Phaser.Scene {
       for (let i = 0; i < 5; i++) {
         this.textures.remove(`blood-bat-fly-${dir}-${i}`);
       }
+
+      if (this.anims.exists(`mummy-walk-${dir}`)) this.anims.remove(`mummy-walk-${dir}`);
+      for (let i = 0; i < 9; i++) {
+        this.textures.remove(`mummy-walk-${dir}-${i}`);
+      }
+    }
+
+    for (const dir of DIRECTIONS_8) {
+      if (this.anims.exists(`mummy-idle-${dir}`)) this.anims.remove(`mummy-idle-${dir}`);
+      this.textures.remove(`mummy-idle-${dir}`);
     }
 
     this.textures.remove('floor-tile');
@@ -255,6 +265,23 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
+    // 14.1. Carregar sprites da Múmia (Idle nos 8 ângulos e caminhada em 4 eixos x 9 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(
+        `mummy-idle-${dir}`,
+        `assets/sprites/enemies/Mummy/Idle/rotations/${dir}.png?t=${cacheBuster}`
+      );
+    }
+    const MUMMY_DIRS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of MUMMY_DIRS) {
+      for (let i = 0; i < 9; i++) {
+        this.load.image(
+          `mummy-walk-${dir}-${i}`,
+          `assets/sprites/enemies/Mummy/Idle/animations/The_character_lurches_forward_with_a_stiff-legged/${dir}/frame_00${i}.png?t=${cacheBuster}`
+        );
+      }
+    }
+
     // 15. Carregar sprites oficiais das Gemas de Alma criadas pelo usuário (40x40px)
     this.load.image('gem-green', `assets/sprites/items/gem-green.png?t=${cacheBuster}`);
     this.load.image('gem-blue', `assets/sprites/items/gem-blue.png?t=${cacheBuster}`);
@@ -381,6 +408,30 @@ export class BootScene extends Phaser.Scene {
       this.anims.create({
         key: `blood-bat-idle-${dir}`,
         frames: [{ key: `blood-bat-idle-${dir}` }],
+        frameRate: 1,
+        repeat: -1
+      });
+    }
+
+    // Registrar animações da Múmia (9 frames de caminhada arrastada e 8 direções de idle)
+    const MUMMY_CARDINALS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of MUMMY_CARDINALS) {
+      const mummyFrames = [];
+      for (let i = 0; i < 9; i++) {
+        mummyFrames.push({ key: `mummy-walk-${dir}-${i}` });
+      }
+      this.anims.create({
+        key: `mummy-walk-${dir}`,
+        frames: mummyFrames,
+        frameRate: 9,
+        repeat: -1
+      });
+    }
+
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({
+        key: `mummy-idle-${dir}`,
+        frames: [{ key: `mummy-idle-${dir}` }],
         frameRate: 1,
         repeat: -1
       });

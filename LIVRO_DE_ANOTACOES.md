@@ -40,13 +40,34 @@
 - [x] **Meteoro Infernal (`InfernalMeteorWeapon`):** Invoca rochas vulcânicas do céu que caem sobre áreas de alta concentração de monstros com indicador visual de impacto, causando dano massivo de explosão. Evolui do Nível 1 ao 5 reduzindo a recarga e aumentando o número de meteoros por salva.
 
 ### 1.2. Sistema de Evolução Suprema de Armas (Weapon Fusion)
-- [x] **Raio do Apocalipse *(Evolução do Disparo de Almas)*:** Desbloqueado ao ter *Alma Extra* (ou *Perfuração Mística*) + *Fúria Infernal*. Transforma os disparos em projéteis astrais colossais dourados/cianos de altíssima cadência e perfuração devastadora.
-- [x] **Ceifadora do Vazio *(Evolução das Lâminas Orbitais)*:** Desbloqueada ao atingir o nível máximo de 6 Foices + *Celeridade Abissal*. Transforma as foices em um vórtice carmesim hiper-veloz com raio expandido e dano crítico amplificado.
-- [x] **Supernova Abissal *(Evolução das Chamas do Purgatório)*:** Desbloqueada ao atingir o Nível 5 das Chamas + *Vitalidade Sangrenta*. Emite ondas duplas de fogo azul/dourado que queimam uma área colossal e restauram vida da Nixy a cada pulso.
+- [x] **Raio do Apocalipse *(Evolução do Disparo de Almas)*:** Desbloqueado com Disparo Nvl 5 + *Alma Extra* ou *Perfuração Mística* + *Fúria Infernal*. Transforma os disparos em projéteis astrais colossais dourados/cianos de altíssima cadência e perfuração devastadora.
+- [x] **Ceifadora do Vazio *(Evolução das Lâminas Orbitais)*:** Desbloqueada com 6 Foices Orbitais + *Celeridade Abissal*. Transforma as foices em um vórtice carmesim hiper-veloz com raio expandido e dano crítico amplificado.
+- [x] **Supernova Abissal *(Evolução das Chamas do Purgatório)*:** Desbloqueada com Chamas Nvl 5 + *Vitalidade Sangrenta*. Emite ondas duplas de fogo azul/dourado que queimam uma área colossal e restauram vida da Nixy a cada pulso.
 
 ### 1.3. Mecânicas Táticas de Level Up (Reroll & Skip)
 - [x] **Botão de Re-rolar Bênçãos (`Reroll`):** Permite sortear 3 novas opções de cartas na tela de Level Up (2 cargas por partida).
 - [x] **Botão de Pular / Canalizar Energia (`Skip`):** Permite recusar as 3 cartas em troca de uma cura imediata de emergência (+20 HP), garantindo que o jogador nunca seja forçado a pegar algo que não deseja.
+
+---
+
+## Otimizações de Engine, Balanceamento Contínuo & Agente IA *(Concluído)*
+- [x] **Resolução do Congelamento no Nível 15 & Gemas Travadas:** Fila de Level Up sequencial desacoplada (`pendingLevelUps`), atração magnética unificada usando `effectivePickupRadius` e colisão física Arcade Overlap de coleta imediata.
+- [x] **Otimização de Performance (Viewport Culling & Limites Rígidos):**
+  - Teto máximo de 120 monstros ativos e 150 gemas no mapa.
+  - Culling de câmera (`worldView` + margem de 100px) tornando entidades fora da tela invisíveis (`visible = false`).
+  - Fusão inteligente de gemas excedentes (estilo *Vampire Survivors*), concentrando XP em gemas próximas de tiers superiores sem gerar lag.
+- [x] **Escalonamento Progressivo de Inimigos (Anti-AFK Balance):** Aumento gradual de Vida (+12%/min) e Dano (+8%/min) dos monstros com base no tempo de sobrevivência, garantindo desafio contínuo mesmo com builds perfeitas.
+- [x] **Novo Inimigo — Múmia do Abismo (`MummyEnemy`):**
+  - Animação de caminhada em 4 direções e rotação ociosa em 8 ângulos.
+  - Movimentação ondulatória em zigue-zague na direção da Nixy.
+  - Emite poças verdes de veneno tóxico que causam lentidão (-40% velocidade) e dano contínuo.
+  - Poças duram 5 segundos após a morte da múmia e depois evaporam.
+  - Golpe de contato físico causa dano e knockback para trás na heroína.
+- [x] **Agente de Testes Autônomo (Bot IA — `AutoPlayTestAgent`):**
+  - Ativado por atalho **`[F3]`** ou pela Aba 5 do Modo de Teste (`DevSandboxPanel`).
+  - Pilota a Nixy de forma autônoma: kiting inteligente em 360°, atração para itens e gemas, corrida tática (Sprint) ao ser cercada e disparo automático de Ultimate.
+  - Resolve a tela de upgrades escolhendo automaticamente sinergias e evoluções de armas.
+  - Grava histórico de runs e reinicia testes automaticamente.
 
 ---
 
@@ -58,8 +79,9 @@
 
 ---
 
-## Fase 3: Novos Inimigos e Dinâmica de Enxame *(Pendente)*
+## Fase 3: Novos Inimigos e Dinâmica de Enxame *(Em Andamento)*
 *Foco: Desafio tático e variedade de ameaças.*
+- [x] **Inimigo Ofensivo com Rastro de Controle — Múmia do Abismo** (Zigue-zague, Poças de Lentidão, Dano Contínuo e Knockback).
 - [ ] **Inimigo Artilheiro — Cultista Arcano:** Dispara projéteis mágicos à distância, exigindo movimentação lateral e uso estratégico do Sprint.
 - [ ] **Inimigo Tanque — Brutamonte das Profundezas:** Demônio pesado com alta vida e resistência a empurrão (knockback) que protege a linha de frente da horda.
 - [ ] **Eventos Dinâmicos de Horda:** Cerco circular de inimigos e ondas de emboscada rápida em minutos específicos.

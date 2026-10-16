@@ -4,6 +4,7 @@ import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { ZombieDog } from '../entities/enemies/ZombieDog';
 import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
+import { MummyEnemy } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
@@ -17,6 +18,8 @@ import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
+import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
+import { PERFORMANCE_LIMITS, getEnemyScaling } from '../config/balance';
 import { UIScene } from './UIScene';
 
 export class GameScene extends Phaser.Scene {
@@ -187,18 +190,29 @@ export class GameScene extends Phaser.Scene {
           }
         }
       });
+
+      keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F3).on('down', () => {
+        const active = AutoPlayTestAgent.getInstance().toggle();
+        const uiScene = this.scene.get('UIScene') as any;
+        if (uiScene && typeof uiScene.showWaveAlert === 'function') {
+          uiScene.showWaveAlert(
+            active ? 'BOT IA: TESTE AUTÔNOMO ATIVADO [F3]' : 'BOT IA: CONTROLE MANUAL RESTAURADO [F3]',
+            2500
+          );
+        }
+      });
     }
 
-    // 5. Inicialização de Grupos, Armas e Gemas de Alma
+    // 5. Inicialização de Grupos, Armas e Gemas de Alma (com Limites de Performance Rigorosos)
     this.enemiesGroup = this.add.group({
       classType: BaseEnemy,
-      maxSize: 300,
+      maxSize: PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES,
       runChildUpdate: false
     });
 
     this.gemsGroup = this.add.group({
       classType: SoulGem,
-      maxSize: 400,
+      maxSize: PERFORMANCE_LIMITS.MAX_ACTIVE_GEMS,
       runChildUpdate: false
     });
 
@@ -211,13 +225,9 @@ export class GameScene extends Phaser.Scene {
     this.soulBoltWeapon = new SoulBoltWeapon(this, this.player);
     this.weapons.push(this.soulBoltWeapon);
 
-    // Escutar Level Up da heroína para abrir UpgradeScene
-    this.player.on('player-level-up', (lvl: number) => {
-      if (this.isGameOver) return;
-      DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', `Nixy alcançou o Nível ${lvl}`);
-      this.cameras.main.flash(220, 255, 215, 0);
-      this.scene.pause();
-      this.scene.launch('UpgradeScene', { player: this.player, gameScene: this });
+    // Escutar Level Up da heroína com Fila Segura Anti-Crash
+    this.player.on('player-level-up', () => {
+      this.checkAndOpenUpgradeScene();
     });
 
     // 6. Configuração de Colisão Projétil -> Inimigo
@@ -236,7 +246,19 @@ export class GameScene extends Phaser.Scene {
       }
     );
 
-    // 7. Configuração de Colisão Inimigo -> Nixy (Dano de contato)
+    // 6.2. Configuração de Coleta de Gemas de Alma (Garante 100% de absorção por contato)
+    this.physics.add.overlap(
+      this.player,
+      this.gemsGroup,
+      (_playerObj, gemObj) => {
+        const gem = gemObj as SoulGem;
+        if (gem.active && !this.isGameOver) {
+          gem.collect(this.player);
+        }
+      }
+    );
+
+    // 7. Configuração de Colisão Inimigo -> Nixy (Dano de contato e Knockback)
     this.physics.add.overlap(
       this.player,
       this.enemiesGroup,
@@ -246,10 +268,16 @@ export class GameScene extends Phaser.Scene {
           this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
           if (this.sandboxGodMode) {
             DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Hit de contato bloqueado (God Mode): ${enemy.damage} dano`);
+            if (enemy instanceof MummyEnemy) {
+              enemy.onPlayerCollide(this.player);
+            }
             return;
           }
           SoundManager.getInstance().playPlayerHurt();
           this.player.takeDamage(enemy.damage);
+          if (enemy instanceof MummyEnemy) {
+            enemy.onPlayerCollide(this.player);
+          }
           DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Nixy recebeu ${enemy.damage} de dano de contato`, {
             hpRestante: Math.ceil(this.player.currentHp)
           });
@@ -366,6 +394,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Abre a tela de upgrades a partir da fila segura de níveis pendentes
+   */
+  public checkAndOpenUpgradeScene(): void {
+    if (this.isGameOver || this.isChapterCompleted) return;
+    if (this.player.pendingLevelUps <= 0) return;
+    if (this.scene.isActive('UpgradeScene')) return;
+
+    this.player.pendingLevelUps--;
+    DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', `Nixy alcançou o Nível ${this.player.currentLevel} (Níveis na Fila: ${this.player.pendingLevelUps})`);
+    this.cameras.main.flash(220, 255, 215, 0);
+    this.physics.pause();
+    this.scene.pause();
+    this.scene.launch('UpgradeScene', { player: this.player, gameScene: this });
+  }
+
+  /**
    * Dispara um diálogo na UIScene (1:1 com a tela) pausando a física da arena
    */
   public playDialogue(lines: DialogueLine[], onComplete: () => void): void {
@@ -416,16 +460,23 @@ export class GameScene extends Phaser.Scene {
 
     this.survivalTimeMs += delta;
 
-    // 1. Leitura dos vetores de entrada (Input)
+    // 1. Leitura dos vetores de entrada (Input manual ou Agente Autônomo de Teste)
     let dx = 0;
     let dy = 0;
+    let isSprintRequested = false;
 
-    if (this.keyA?.isDown || this.keyLeft?.isDown) dx -= 1;
-    if (this.keyD?.isDown || this.keyRight?.isDown) dx += 1;
-    if (this.keyW?.isDown || this.keyUp?.isDown) dy -= 1;
-    if (this.keyS?.isDown || this.keyDown?.isDown) dy += 1;
-
-    const isSprintRequested = Boolean(this.keyShift?.isDown || this.keySpace?.isDown);
+    if (AutoPlayTestAgent.getInstance().isEnabled) {
+      const aiInput = AutoPlayTestAgent.getInstance().updateAgent(this, delta);
+      dx = aiInput.dx;
+      dy = aiInput.dy;
+      isSprintRequested = aiInput.isSprint;
+    } else {
+      if (this.keyA?.isDown || this.keyLeft?.isDown) dx -= 1;
+      if (this.keyD?.isDown || this.keyRight?.isDown) dx += 1;
+      if (this.keyW?.isDown || this.keyUp?.isDown) dy -= 1;
+      if (this.keyS?.isDown || this.keyDown?.isDown) dy += 1;
+      isSprintRequested = Boolean(this.keyShift?.isDown || this.keySpace?.isDown);
+    }
 
     // 2. Atualizar lógica e animações da Nixy
     this.player.updateNixy(dx, dy, isSprintRequested, delta);
@@ -444,21 +495,38 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 5. Atualizar Gemas de Alma no Chão (Atração Magnética e Coleta)
+    // Limites de Câmera para Otimização de Renderização (Viewport Culling)
+    const cam = this.cameras.main;
+    const worldView = cam.worldView;
+    const margin = PERFORMANCE_LIMITS.VIEWPORT_CULLING_MARGIN;
+    const cLeft = worldView.x - margin;
+    const cRight = worldView.right + margin;
+    const cTop = worldView.y - margin;
+    const cBottom = worldView.bottom + margin;
+
+    // 5. Atualizar Gemas de Alma no Chão (Culling + Atração Magnética e Coleta)
     const activeGems = this.gemsGroup.getChildren() as SoulGem[];
     for (let i = 0; i < activeGems.length; i++) {
       const g = activeGems[i];
       if (g.active) {
-        g.updateGem(this.player, delta);
+        const inView = g.x >= cLeft && g.x <= cRight && g.y >= cTop && g.y <= cBottom;
+        g.setVisible(inView);
+        if (g.isAttracted || inView) {
+          g.updateGem(this.player, delta);
+        }
       }
     }
 
-    // 5.1. Atualizar Itens Especiais de Mapa (Levitação / Bobbing)
+    // 5.1. Atualizar Itens Especiais de Mapa (Culling + Levitação)
     const activeMapItems = this.mapItemsGroup.getChildren() as MapItem[];
     for (let i = 0; i < activeMapItems.length; i++) {
       const item = activeMapItems[i];
       if (item.active) {
-        item.updateItem(delta);
+        const inView = item.x >= cLeft && item.x <= cRight && item.y >= cTop && item.y <= cBottom;
+        item.setVisible(inView);
+        if (inView) {
+          item.updateItem(delta);
+        }
       }
     }
 
@@ -473,15 +541,20 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 6. Atualizar Inimigos Ativos, Skull Slimes, Blood Bats e IA da Boss Succubus
+    // 6. Atualizar Inimigos Ativos (Culling + IA de Cada Espécie)
     const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
       if (e.active) {
+        const inView = e.x >= cLeft && e.x <= cRight && e.y >= cTop && e.y <= cBottom;
+        e.setVisible(inView);
+
         if (e instanceof SuccubusBoss) {
           e.updateBoss(this.player, delta);
         } else if (e instanceof SkullSlime) {
           e.updateSlime(this.player, delta);
+        } else if (e instanceof MummyEnemy) {
+          e.updateMummy(this.player, delta, this.time.now);
         } else if (e instanceof BloodBat) {
           e.updateBat(this.player.x, this.player.y, delta);
         } else {
@@ -674,7 +747,61 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private spawnMummyAt(
+    x: number,
+    y: number,
+    hp: number = 130,
+    speed: number = 58,
+    damage: number = 14
+  ): void {
+    let enemy = this.enemiesGroup.getChildren().find(
+      (child) => !child.active && child instanceof MummyEnemy
+    ) as MummyEnemy | undefined;
+
+    if (!enemy) {
+      enemy = new MummyEnemy(this, x, y);
+      enemy.setDepth(6);
+      this.enemiesGroup.add(enemy);
+
+      enemy.on('enemy-killed', (ex: number, ey: number) => {
+        this.killCount++;
+        SoundManager.getInstance().playEnemyDeath();
+        this.player.gainUltimateCharge(4.5);
+        this.addPurificationPoints(4);
+        const gemType: GemType = Math.random() < 0.35 ? 'blue' : 'green';
+        this.spawnGemAt(ex, ey, gemType);
+      });
+    }
+
+    enemy.spawn(x, y, hp, speed, damage);
+  }
+
   private spawnGemAt(x: number, y: number, type: GemType): void {
+    let gemXpValue = 5;
+    if (type === 'blue') gemXpValue = 20;
+    else if (type === 'red' || type === 'orange') gemXpValue = 100;
+    else if (type === 'purple') gemXpValue = 250;
+    else if (type === 'gold') gemXpValue = 500;
+
+    // Fusão inteligente (Vampire Survivors style) se exceder o limite de gemas no mapa
+    const activeGems = (this.gemsGroup.getChildren() as SoulGem[]).filter((g) => g.active);
+    if (activeGems.length >= PERFORMANCE_LIMITS.MAX_ACTIVE_GEMS) {
+      // Encontra a gema ativa mais próxima do ponto de spawn e funde o XP nela
+      let closestGem: SoulGem | undefined;
+      let closestDist = Infinity;
+      for (const g of activeGems) {
+        const d = Math.hypot(g.x - x, g.y - y);
+        if (d < closestDist) {
+          closestDist = d;
+          closestGem = g;
+        }
+      }
+      if (closestGem) {
+        closestGem.addBonusXp(gemXpValue);
+        return;
+      }
+    }
+
     let gem = this.gemsGroup.getChildren().find(
       (child) => !child.active
     ) as SoulGem | undefined;
@@ -730,16 +857,19 @@ export class GameScene extends Phaser.Scene {
     // Não spawna se a Boss estiver em campo ou durante a Ultimate
     if (this.player.isUltimateActive || this.isBossFightActive) return;
 
-    const minutes = this.survivalTimeMs / 60000;
+    // Limite de Inimigos Vivos para manter 60 FPS
+    if (this.enemiesGroup.countActive() >= PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES) return;
+
     const elapsedSec = Math.floor(this.survivalTimeMs / 1000);
+    const scaling = getEnemyScaling(this.survivalTimeMs, this.gameMode === 'endless');
     const purifyRatio = this.gameMode === 'story'
       ? this.chapterPurifiedSouls / this.chapterTargetSouls
       : 0;
 
     // Determinar Fase Atual da Horda:
     // Fase 1: Somente Cães Zumbis (Até 25% da barra ou 90s)
-    // Fase 2: Cães Zumbis + Morcegos de Sangue (De 25% a 60% da barra ou 90s-210s)
-    // Fase 3: Cães Zumbis + Morcegos de Sangue + Skull Slimes (A partir de 60% da barra ou >210s)
+    // Fase 2: Cães Zumbis + Morcegos de Sangue + Múmias (De 25% a 60% da barra ou 90s-210s)
+    // Fase 3: Todos os Inimigos + Skull Slimes (A partir de 60% da barra ou >210s)
     let phase: 1 | 2 | 3 = 1;
     if (this.gameMode === 'story') {
       if (purifyRatio >= 0.60 || elapsedSec >= 210) {
@@ -770,8 +900,8 @@ export class GameScene extends Phaser.Scene {
         } else {
           // Na Fase 3 o bando cresce consideravelmente (muitos morcegos frágeis)
           flockSize = this.gameMode === 'endless'
-            ? Math.min(14, Math.floor(6 + minutes * 1.5))
-            : Phaser.Math.Between(6, 9);
+            ? Math.min(12, Math.floor(6 + scaling.minutes * 1.2))
+            : Phaser.Math.Between(5, 8);
         }
         this.spawnBloodBatFlock(flockSize);
       }
@@ -783,9 +913,8 @@ export class GameScene extends Phaser.Scene {
         (e) => e.active && e instanceof SkullSlime
       ).length;
 
-      // Limite rígido de slimes vivos simultaneamente para evitar superlotação de veneno/root
       const maxSlimes = this.gameMode === 'endless'
-        ? (minutes >= 5 ? 3 : 2)
+        ? (scaling.minutes >= 5 ? 3 : 2)
         : (purifyRatio >= 0.85 ? 2 : 1);
 
       const slimeChance = this.gameMode === 'endless' ? 0.25 : 0.20;
@@ -797,18 +926,36 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 3. ZOMBIE DOGS: Presentes em todas as fases, aumento mediano constante compondo a linha de frente
+    // 3. MÚMIAS DO ABISMO (Zigue-zague com rastro verde tóxico e knockback)
+    if (phase >= 2) {
+      const activeMummies = (this.enemiesGroup.getChildren() as BaseEnemy[]).filter(
+        (e) => e.active && e instanceof MummyEnemy
+      ).length;
+      const maxMummies = phase === 3 ? 4 : 2;
+      const mummyChance = phase === 3 ? 0.30 : 0.20;
+
+      if (activeMummies < maxMummies && Math.random() < mummyChance) {
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const dist = Phaser.Math.Between(320, 440);
+        const hp = Math.floor(130 * scaling.hpMultiplier);
+        const speed = Math.floor(58 * scaling.speedMultiplier);
+        const dmg = Math.floor(14 * scaling.damageMultiplier);
+        this.spawnMummyAt(this.player.x + Math.cos(angle) * dist, this.player.y + Math.sin(angle) * dist, hp, speed, dmg);
+      }
+    }
+
+    // 4. ZOMBIE DOGS: Presentes em todas as fases com escalonamento de atributos
     let dogCount: number;
     if (phase === 1) {
       dogCount = Phaser.Math.Between(2, 3);
     } else if (phase === 2) {
       dogCount = this.gameMode === 'endless'
-        ? Math.min(5, Math.floor(3 + minutes * 0.8))
+        ? Math.min(5, Math.floor(3 + scaling.minutes * 0.7))
         : Phaser.Math.Between(3, 4);
     } else {
       dogCount = this.gameMode === 'endless'
-        ? Math.min(7, Math.floor(4 + minutes * 1.0))
-        : Phaser.Math.Between(4, 6);
+        ? Math.min(6, Math.floor(4 + scaling.minutes * 0.8))
+        : Phaser.Math.Between(3, 5);
     }
 
     for (let i = 0; i < dogCount; i++) {
@@ -817,16 +964,16 @@ export class GameScene extends Phaser.Scene {
       const spawnX = this.player.x + Math.cos(angle) * dist;
       const spawnY = this.player.y + Math.sin(angle) * dist;
 
-      const isElite = this.gameMode === 'endless' && minutes >= 2 && Math.random() < 0.12;
+      const isElite = this.gameMode === 'endless' && scaling.minutes >= 2 && Math.random() < 0.12;
       if (isElite) {
-        const eliteHp = Math.floor(140 + minutes * 40);
-        const eliteSpeed = Math.floor(90 + minutes * 4);
-        const eliteDmg = Math.floor(12 + minutes * 2);
+        const eliteHp = Math.floor(140 * scaling.hpMultiplier);
+        const eliteSpeed = Math.floor(90 * scaling.speedMultiplier);
+        const eliteDmg = Math.floor(12 * scaling.damageMultiplier);
         this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
       } else {
-        const hp = Math.floor(35 + (this.gameMode === 'endless' ? minutes * 15 : 0));
-        const speed = Math.floor(85 + (this.gameMode === 'endless' ? minutes * 3 : 0));
-        const dmg = Math.floor(8 + (this.gameMode === 'endless' ? minutes * 1 : 0));
+        const hp = Math.floor(35 * scaling.hpMultiplier);
+        const speed = Math.floor(85 * scaling.speedMultiplier);
+        const dmg = Math.floor(8 * scaling.damageMultiplier);
         this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
       }
     }
@@ -951,6 +1098,21 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(200, 255, 0, 0);
     this.player.setTint(0xff0000);
 
+    // Registro da run no Agente de Testes Autônomo (Bot IA)
+    if (AutoPlayTestAgent.getInstance().isEnabled) {
+      AutoPlayTestAgent.getInstance().recordRun({
+        runId: 0,
+        timestamp: new Date().toLocaleTimeString(),
+        gameMode: this.gameMode,
+        survivalTimeSec: Math.floor(this.survivalTimeMs / 1000),
+        levelReached: this.player.currentLevel,
+        kills: this.killCount,
+        hpRemaining: 0,
+        equippedWeapons: this.weapons.map((w: any) => w.name || 'Arma'),
+        deathCause: 'Dano fatal de monstros'
+      });
+    }
+
     this.time.delayedCall(700, () => {
       const uiScene = this.scene.get('UIScene') as UIScene;
       if (uiScene) {
@@ -973,6 +1135,14 @@ export class GameScene extends Phaser.Scene {
             this.scene.start('MenuScene');
           }
         );
+
+        if (AutoPlayTestAgent.getInstance().isEnabled) {
+          // Se o Bot IA estiver jogando sozinho para testes contínuos, reinicia após 1.5s
+          this.time.delayedCall(1500, () => {
+            this.scene.stop('UIScene');
+            this.scene.restart({ mode: this.gameMode, isRevival: true });
+          });
+        }
       }
     });
   }
@@ -1520,7 +1690,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   public sandboxSpawnHorde(
-    type: 'dog' | 'elite_dog' | 'bat' | 'slime' | 'titan_cerberus' | 'matriarch',
+    type: 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'titan_cerberus' | 'matriarch',
     count: number = 1
   ): void {
     DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Spawn manual de horda: ${count}x ${type}`);
@@ -1550,6 +1720,8 @@ export class GameScene extends Phaser.Scene {
         this.spawnZombieDogAt(sx, sy, 180, 96, 14, true, 1.35);
       } else if (type === 'slime') {
         this.spawnSkullSlimeAt(sx, sy);
+      } else if (type === 'mummy') {
+        this.spawnMummyAt(sx, sy, 130, 58, 14);
       }
     }
   }

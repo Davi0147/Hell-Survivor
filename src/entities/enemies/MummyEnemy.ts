@@ -1,0 +1,217 @@
+import Phaser from 'phaser';
+import { BaseEnemy } from './BaseEnemy';
+import { Nixy } from '../characters/Nixy';
+import { GemType } from '../items/SoulGem';
+import { SoundManager } from '../../systems/SoundManager';
+
+export class PoisonPuddle extends Phaser.GameObjects.Arc {
+  public radiusPx: number;
+  public lifespanMs: number;
+  public maxLifespanMs: number;
+  public damagePerTick: number = 4;
+  public lastDamageTime: number = 0;
+
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    radius: number = 20,
+    lifespanMs: number = 6000
+  ) {
+    super(scene, x, y, radius, 0, 360, false, 0x38b000, 0.75);
+    scene.add.existing(this);
+    this.setDepth(4); // Fica sobre o chão e abaixo de Nixy/inimigos
+    this.radiusPx = radius;
+    this.lifespanMs = lifespanMs;
+    this.maxLifespanMs = lifespanMs;
+
+    // Borda ácida vibrante
+    this.setStrokeStyle(1.5, 0x70e000, 0.9);
+  }
+
+  public updatePuddle(deltaMs: number, player: Nixy, timeNow: number): void {
+    if (!this.active) return;
+    this.lifespanMs -= deltaMs;
+
+    if (this.lifespanMs <= 0) {
+      this.destroy();
+      return;
+    }
+
+    // Fade out nos últimos 1.5s de vida
+    const fadeRatio = Math.min(1, this.lifespanMs / 1500);
+    this.setAlpha(0.75 * fadeRatio);
+
+    // Efeito sutil de borbulhamento
+    const pulse = 1 + Math.sin(timeNow * 0.008 + this.x) * 0.08;
+    this.setScale(pulse, pulse);
+
+    // Detecção de colisão com a heroína
+    const dist = Math.hypot(player.x - this.x, player.y - this.y);
+    if (dist <= this.radiusPx + 14 && player.currentHp > 0) {
+      // 1. Aplica Lentidão (Slow de 40%)
+      player.applySlow(0.60, 450);
+
+      // 2. Dano contínuo de veneno a cada 450ms
+      if (timeNow - this.lastDamageTime >= 450) {
+        this.lastDamageTime = timeNow;
+        SoundManager.getInstance().playPlayerHurt();
+        player.takeDamage(this.damagePerTick);
+      }
+    }
+  }
+}
+
+export class MummyEnemy extends BaseEnemy {
+  private currentDir: 'east' | 'west' | 'north' | 'south' = 'south';
+  private zigzagTimer: number = 0;
+  private puddleTimer: number = 0;
+  private readonly PUDDLE_INTERVAL_MS = 220;
+  public puddles: PoisonPuddle[] = [];
+  public customDrop?: GemType;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, 'mummy-idle-south');
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setSize(30, 38);
+      body.setOffset(17, 22);
+    }
+  }
+
+  public override spawn(
+    x: number,
+    y: number,
+    hp: number = 130,
+    speed: number = 58,
+    damage: number = 14,
+    customDrop?: GemType
+  ): void {
+    super.spawn(x, y, hp, speed, damage);
+    this.customDrop = customDrop;
+    this.zigzagTimer = Math.random() * 1000;
+    this.puddleTimer = 0;
+    this.setScale(1.05);
+    this.clearTint();
+    this.play('mummy-idle-south', true);
+  }
+
+  public updateMummy(player: Nixy, deltaMs: number, timeNow: number): void {
+    // Atualiza poças de veneno ativas
+    for (let i = this.puddles.length - 1; i >= 0; i--) {
+      const p = this.puddles[i];
+      if (p.active) {
+        p.updatePuddle(deltaMs, player, timeNow);
+      } else {
+        this.puddles.splice(i, 1);
+      }
+    }
+
+    if (this.isDead || !this.active) return;
+
+    // Efeito de stun / hit flash
+    if (this.hitFlashTimer > 0) {
+      this.hitFlashTimer -= deltaMs;
+      if (this.hitFlashTimer <= 0) {
+        this.clearTint();
+      }
+    }
+
+    const stunMult = this.updateStunState(deltaMs);
+
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 8) {
+      this.zigzagTimer += deltaMs;
+
+      // Movimentação em zigue-zague sinoidal na direção da heroína
+      const dirX = dx / dist;
+      const dirY = dy / dist;
+
+      // Vetor perpendicular para o desvio lateral
+      const perpX = -dirY;
+      const perpY = dirX;
+
+      // Frequência e amplitude do zigue-zague
+      const zigzagFactor = Math.sin(this.zigzagTimer * 0.005) * 0.9;
+      let moveX = dirX + perpX * zigzagFactor;
+      let moveY = dirY + perpY * zigzagFactor;
+      const moveLen = Math.hypot(moveX, moveY);
+      if (moveLen > 0.001) {
+        moveX /= moveLen;
+        moveY /= moveLen;
+      }
+
+      const vx = moveX * this.speed * stunMult;
+      const vy = moveY * this.speed * stunMult;
+      this.setVelocity(vx, vy);
+
+      // Direção da animação
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      let targetDir: 'east' | 'west' | 'north' | 'south' = 'south';
+
+      if (absX > absY) {
+        targetDir = dx > 0 ? 'east' : 'west';
+      } else {
+        targetDir = dy > 0 ? 'south' : 'north';
+      }
+
+      if (this.currentDir !== targetDir || !this.anims.isPlaying) {
+        this.currentDir = targetDir;
+        this.play(`mummy-walk-${targetDir}`, true);
+      }
+
+      // 2. Deixar rastro verde periódico (Poison Puddle)
+      this.puddleTimer += deltaMs;
+      if (this.puddleTimer >= this.PUDDLE_INTERVAL_MS && dist > 20) {
+        this.puddleTimer = 0;
+        this.dropPoisonPuddle();
+      }
+    } else {
+      this.setVelocity(0, 0);
+      this.play(`mummy-idle-${this.currentDir}`, true);
+    }
+  }
+
+  private dropPoisonPuddle(): void {
+    // Limita máximo de 18 poças ativas simultâneas por múmia para proteger a performance
+    if (this.puddles.length >= 18) {
+      const oldest = this.puddles.shift();
+      if (oldest && oldest.active) {
+        oldest.destroy();
+      }
+    }
+
+    const puddle = new PoisonPuddle(this.scene, this.x, this.y + 14, 18, 6500);
+    this.puddles.push(puddle);
+  }
+
+  /**
+   * Aciona o ataque de contato e empurra a heroína para trás (Knockback)
+   */
+  public onPlayerCollide(player: Nixy): void {
+    const kAngle = Math.atan2(player.y - this.y, player.x - this.x);
+    const knockbackForce = 290;
+    const kx = Math.cos(kAngle) * knockbackForce;
+    const ky = Math.sin(kAngle) * knockbackForce;
+
+    player.applyKnockback(kx, ky, 240);
+  }
+
+  public override takeDamage(amount: number): void {
+    super.takeDamage(amount);
+
+    if (this.isDead) {
+      // Quando a múmia morre, seu rastro existente permanece por exatos 5 segundos e se extingue
+      for (const p of this.puddles) {
+        if (p.active) {
+          p.lifespanMs = Math.min(p.lifespanMs, 5000);
+        }
+      }
+    }
+  }
+}

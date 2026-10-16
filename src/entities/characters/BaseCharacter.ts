@@ -18,6 +18,7 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public currentLevel: number = 1;
   public currentXp: number = 0;
   public xpToNextLevel: number = 20;
+  public pendingLevelUps: number = 0; // Fila de níveis pendentes para escolha de cartas sem travar
 
   // Modificadores de Upgrades (Cartas de Level Up)
   public bonusDamagePercent: number = 0;
@@ -131,8 +132,8 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
       this.currentHp = Math.min(this.maxHp, this.currentHp + this.hpRegenPerSec * deltaSec);
     }
 
-    // Aplicação da velocidade com bônus de upgrade
-    const speedMult = 1 + this.bonusSpeedPercent / 100;
+    // Aplicação da velocidade com bônus de upgrade e debuffs (como lentidão do rastro da Múmia)
+    const speedMult = (1 + this.bonusSpeedPercent / 100) * (this as any).speedDebuffMultiplier || (1 + this.bonusSpeedPercent / 100);
     const currentSpeed = (this.isSprinting ? this.sprintSpeed : this.baseSpeed) * speedMult;
     body.setVelocity(nx * currentSpeed, ny * currentSpeed);
 
@@ -191,7 +192,11 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
       this.currentXp -= this.xpToNextLevel;
       this.currentLevel++;
       this.xpToNextLevel = Math.floor(20 * Math.pow(this.currentLevel, 1.25));
+      this.pendingLevelUps++;
       leveledUp = true;
+    }
+
+    if (leveledUp) {
       this.emit('player-level-up', this.currentLevel);
     }
 

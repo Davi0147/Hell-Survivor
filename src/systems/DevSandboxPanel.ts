@@ -8,6 +8,7 @@ import { BloodDaggersWeapon } from '../entities/weapons/BloodDaggersWeapon';
 import { AbyssalChainsWeapon } from '../entities/weapons/AbyssalChainsWeapon';
 import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
 import { UpgradeScene } from '../scenes/UpgradeScene';
+import { AutoPlayTestAgent } from './AutoPlayTestAgent';
 
 type SandboxTab = 'CHEATS' | 'SPAWNER' | 'WEAPONS' | 'UPGRADES' | 'LOGS';
 
@@ -527,6 +528,15 @@ export class DevSandboxPanel {
         }
       },
       {
+        label: 'SPAWNAR +10 MÚMIAS DO ABISMO (ZIGZAG/VENENO)',
+        color: 0x064e3b,
+        border: 0x10b981,
+        action: () => {
+          gs.sandboxSpawnHorde('mummy', 10);
+          this.showToast('+10 MÚMIAS DO ABISMO INVOCADAS!', '#10b981');
+        }
+      },
+      {
         label: 'INVOCAR MINI-BOSS: TITÃ CERBERUS',
         color: 0x7c2d12,
         border: 0xfb923c,
@@ -549,9 +559,9 @@ export class DevSandboxPanel {
     mobButtons.forEach((b, i) => {
       this.createActionButton(
         x,
-        y + 30 + i * 48,
+        y + 26 + i * 44,
         colW,
-        38,
+        34,
         b.label,
         b.color,
         b.border,
@@ -1189,7 +1199,7 @@ export class DevSandboxPanel {
 
     // Visor de Eventos Recentes da Sessão
     const logBoxY = y + 100;
-    const logBoxH = 225;
+    const logBoxH = 165;
     const logBg = this.uiScene.add.graphics();
     logBg.fillStyle(0x05070c, 0.96);
     logBg.fillRoundedRect(x, logBoxY, w, logBoxH, 6);
@@ -1208,8 +1218,54 @@ export class DevSandboxPanel {
 
     this.refreshLiveLogDisplay();
 
+    // Linha de Controle do Agente de Testes Autônomo (Bot IA)
+    const botAgent = AutoPlayTestAgent.getInstance();
+    const isBotActive = botAgent.isEnabled;
+    const botY = y + 276;
+    const btnBotW = Math.floor(w * 0.68);
+    const btnRunW = w - btnBotW - 12;
+
+    this.createActionButton(
+      x,
+      botY,
+      btnBotW,
+      40,
+      `BOT DE TESTE AUTÔNOMO (IA): ${isBotActive ? 'ATIVADO (JOGANDO SOZINHO)' : 'DESATIVADO (CLIQUE OU [F3])'}`,
+      isBotActive ? 0x064e3b : 0x1e293b,
+      isBotActive ? 0x10b981 : 0x64748b,
+      isBotActive ? '#6ee7b7' : '#cbd5e1',
+      () => {
+        const active = botAgent.toggle();
+        this.showToast(
+          active ? 'BOT DE TESTE AUTÔNOMO ATIVADO (F3)!' : 'BOT DE TESTE DESATIVADO!',
+          active ? '#10b981' : '#f87171'
+        );
+        this.reRenderCurrentTab();
+      }
+    );
+
+    this.createActionButton(
+      x + btnBotW + 12,
+      botY,
+      btnRunW,
+      40,
+      `RUNS DO BOT (${botAgent.getRunHistory().length})`,
+      0x1e1b4b,
+      0x818cf8,
+      '#c7d2fe',
+      () => {
+        const runs = botAgent.getRunHistory();
+        if (runs.length === 0) {
+          this.showToast('NENHUMA RUN COMPLETA REGISTRADA PELO BOT AINDA.', '#94a3b8');
+        } else {
+          const last = runs[runs.length - 1];
+          this.showToast(`RUN #${last.runId}: ${last.survivalTimeSec}s | NVL ${last.levelReached} | ${last.kills} KILLS`, '#38bdf8');
+        }
+      }
+    );
+
     // Botões de Exportação
-    const btnY = y + 338;
+    const btnY = y + 328;
     const btnW1 = Math.floor(w * 0.48);
     const btnW2 = Math.floor(w * 0.28);
     const btnW3 = w - btnW1 - btnW2 - 20;
@@ -1355,6 +1411,16 @@ export class DevSandboxPanel {
         if (e.active && e.body) {
           const b = e.body as Phaser.Physics.Arcade.Body;
           g.strokeRect(b.x, b.y, b.width, b.height);
+        }
+      }
+    }
+
+    // Poças de Veneno da Múmia (Verde Tóxico)
+    if (this.gameScene.poisonPuddles && this.gameScene.poisonPuddles.length > 0) {
+      g.lineStyle(1.2, 0x10b981, 0.85);
+      for (const puddle of this.gameScene.poisonPuddles) {
+        if (puddle && puddle.active) {
+          g.strokeCircle(puddle.x, puddle.y, 40);
         }
       }
     }

@@ -261,6 +261,10 @@ export class UpgradeScene extends Phaser.Scene {
     this.time.delayedCall(100, () => {
       this.scene.stop('UpgradeScene');
       this.gameScene.scene.resume();
+      this.gameScene.physics.resume();
+      if (typeof this.gameScene.checkAndOpenUpgradeScene === 'function') {
+        this.gameScene.checkAndOpenUpgradeScene();
+      }
     });
   }
 
@@ -807,6 +811,10 @@ export class UpgradeScene extends Phaser.Scene {
         // 3. Fecha a tela de upgrade e despausa o jogo
         this.scene.stop('UpgradeScene');
         this.gameScene.scene.resume();
+        this.gameScene.physics.resume();
+        if (typeof this.gameScene.checkAndOpenUpgradeScene === 'function') {
+          this.gameScene.checkAndOpenUpgradeScene();
+        }
       });
     });
   }
