@@ -77,6 +77,21 @@ export class SoulBoltProjectile extends Phaser.Physics.Arcade.Sprite {
     this.lifespanMs -= deltaMs;
     this.trailTimer += deltaMs;
 
+    // Viewport Culling / Despawn imediato ao sair da tela para poupar CPU e física
+    const cam = this.scene.cameras?.main;
+    if (cam) {
+      const margin = 280;
+      if (
+        this.x < cam.worldView.x - margin ||
+        this.x > cam.worldView.right + margin ||
+        this.y < cam.worldView.y - margin ||
+        this.y > cam.worldView.bottom + margin
+      ) {
+        this.deactivate();
+        return;
+      }
+    }
+
     // Rastro visual suave atrás do projétil
     if (this.trailTimer >= 30) {
       this.trailTimer = 0;

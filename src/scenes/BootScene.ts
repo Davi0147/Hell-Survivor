@@ -111,6 +111,9 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('altar-1');
     this.textures.remove('altar-2');
     this.textures.remove('altar-3');
+    this.textures.remove('altar-invoc-inactive');
+    this.textures.remove('altar-invoc-active-1');
+    this.textures.remove('altar-invoc-active-2');
     this.textures.remove('soul-shoot');
     this.textures.remove('apocalypse-shoot');
     this.textures.remove('game-title-logo');
@@ -332,6 +335,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image('altar-1', `assets/sprites/items/Altar%201.png?t=${cacheBuster}`);
     this.load.image('altar-2', `assets/sprites/items/Altar%202.png?t=${cacheBuster}`);
     this.load.image('altar-3', `assets/sprites/items/Altar%203.png?t=${cacheBuster}`);
+
+    // Sprites do Altar de Invocação do Chefe (200x200px)
+    this.load.image('altar-invoc-inactive', `assets/sprites/items/AltarInvoc.png?t=${cacheBuster}`);
+    this.load.image('altar-invoc-active-1', `assets/sprites/items/AltarInvoc%20Ativo1.png?t=${cacheBuster}`);
+    this.load.image('altar-invoc-active-2', `assets/sprites/items/AltarInvoc%20Ativo2.png?t=${cacheBuster}`);
 
     this.load.image('game-title-logo', `assets/sprites/title.png?t=${cacheBuster}`);
     this.load.image('menu-background', `assets/sprites/main_menu_background.jpg?t=${cacheBuster}`);

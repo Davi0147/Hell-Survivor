@@ -1069,6 +1069,46 @@ export class UIScene extends Phaser.Scene {
     }
 
     // ==========================================
+    // 2.2. BLIP DO ALTAR DE INVOCAÇÃO DO CHEFE NO MINIMAPA
+    // ==========================================
+    if (gameScene.bossSummonAltar && !gameScene.bossSummonAltar.isCompleted) {
+      const bAltar = gameScene.bossSummonAltar;
+      const dx = bAltar.x - p.x;
+      const dy = bAltar.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+
+      const isOffRadar = dist > maxWorldDist;
+      const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
+      const bx = cx + Math.cos(angle) * blipDist;
+      const by = cy + Math.sin(angle) * blipDist;
+
+      if (bAltar.isActive) {
+        // Altar Ativo: Chamas incandescentes pulsantes no radar (alaranjado/ouro)
+        const pulse = Math.sin(this.time.now * 0.008) * 1.5;
+        g.fillStyle(0xff2200, 0.7);
+        g.fillCircle(bx, by, 7.5 + pulse);
+
+        // Losango de chamas
+        g.fillStyle(0xff9900, 1);
+        g.fillTriangle(bx, by - 6 - pulse, bx - 4, by, bx + 4, by);
+        g.fillTriangle(bx, by + 6 + pulse, bx - 4, by, bx + 4, by);
+
+        // Núcleo dourado ardente
+        g.fillStyle(0xffe600, 1);
+        g.fillCircle(bx, by, 2.2);
+      } else {
+        // Altar Inativo: Pedra ancestral escura com runa sutil
+        g.fillStyle(0x0e0206, 0.85);
+        g.fillCircle(bx, by, 4.5);
+        g.lineStyle(1.2, 0x665566, 0.8);
+        g.strokeCircle(bx, by, 4.5);
+        g.fillStyle(0xaa3344, 0.9);
+        g.fillCircle(bx, by, 1.5);
+      }
+    }
+
+    // ==========================================
     // 3. JOGADOR (CENTRO DO RADAR COM PONTEIRO DIRECIONAL)
     // ==========================================
     // Determina o ângulo da direção atual da heroína
@@ -1116,8 +1156,19 @@ export class UIScene extends Phaser.Scene {
   private updateAltarOffscreenIndicator(p: any, gameScene: any): void {
     if (!this.altarIndicatorContainer) return;
 
-    const altar = gameScene.altarInstance;
-    if (!altar || !altar.active || altar.isDestroyed) {
+    // Prioridade máxima: se o Altar de Invocação do Chefe despertou
+    let targetAltar: any = null;
+    let isBossAltar = false;
+
+    if (gameScene.bossSummonAltar && gameScene.bossSummonAltar.isActive && !gameScene.bossSummonAltar.isBossSpawned) {
+      targetAltar = gameScene.bossSummonAltar;
+      isBossAltar = true;
+    } else if (gameScene.altarInstance && gameScene.altarInstance.active && !gameScene.altarInstance.isDestroyed) {
+      targetAltar = gameScene.altarInstance;
+      isBossAltar = false;
+    }
+
+    if (!targetAltar) {
       this.altarIndicatorContainer.setVisible(false);
       return;
     }
@@ -1131,10 +1182,10 @@ export class UIScene extends Phaser.Scene {
     // Verifica se o Altar está dentro da visão visível da câmera (com folga de 30px)
     const margin = 30;
     const isAltarOnScreen =
-      altar.x >= cam.worldView.x + margin &&
-      altar.x <= cam.worldView.right - margin &&
-      altar.y >= cam.worldView.y + margin &&
-      altar.y <= cam.worldView.bottom - margin;
+      targetAltar.x >= cam.worldView.x + margin &&
+      targetAltar.x <= cam.worldView.right - margin &&
+      targetAltar.y >= cam.worldView.y + margin &&
+      targetAltar.y <= cam.worldView.bottom - margin;
 
     if (isAltarOnScreen) {
       this.altarIndicatorContainer.setVisible(false);
@@ -1148,8 +1199,8 @@ export class UIScene extends Phaser.Scene {
     const scX = width / 2;
     const scY = height / 2;
 
-    const dx = altar.x - p.x;
-    const dy = altar.y - p.y;
+    const dx = targetAltar.x - p.x;
+    const dy = targetAltar.y - p.y;
     const dist = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
 
@@ -1171,7 +1222,7 @@ export class UIScene extends Phaser.Scene {
 
     this.altarIndicatorContainer.setPosition(Math.round(edgeX), Math.round(edgeY));
 
-    // Desenha o marcador de borda com seta e badge [X]
+    // Desenha o marcador de borda com seta e badge
     const g = this.altarIndicatorGraphics;
     g.clear();
 
@@ -1185,7 +1236,7 @@ export class UIScene extends Phaser.Scene {
     const wingX2 = -Math.cos(perpAngle) * 7.5;
     const wingY2 = -Math.sin(perpAngle) * 7.5;
 
-    g.fillStyle(0x18040a, 0.95);
+    g.fillStyle(isBossAltar ? 0x28040d : 0x18040a, 0.95);
     g.beginPath();
     g.moveTo(tipX, tipY);
     g.lineTo(wingX1, wingY1);
@@ -1193,7 +1244,8 @@ export class UIScene extends Phaser.Scene {
     g.closePath();
     g.fill();
 
-    g.lineStyle(2, 0xff002b, 1);
+    const arrowStroke = isBossAltar ? 0xff4500 : 0xff002b;
+    g.lineStyle(2, arrowStroke, 1);
     g.beginPath();
     g.moveTo(tipX, tipY);
     g.lineTo(wingX1, wingY1);
@@ -1202,17 +1254,17 @@ export class UIScene extends Phaser.Scene {
     g.stroke();
 
     // Fundo do badge de distância (compacto, sem [X])
-    const badgeW = 44;
+    const badgeW = isBossAltar ? 48 : 44;
     const badgeH = 20;
-    g.fillStyle(0x0e0206, 0.94);
+    g.fillStyle(isBossAltar ? 0x1a0509 : 0x0e0206, 0.94);
     g.fillRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
-    g.lineStyle(1.5, 0xffe600, 0.95);
+    g.lineStyle(1.5, isBossAltar ? 0xff7700 : 0xffe600, 0.95);
     g.strokeRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
 
     // Texto: apenas a distância em metros
     const distMeters = Math.max(1, Math.round(dist / 10));
     this.altarIndicatorText.setText(`${distMeters}m`);
-    this.altarIndicatorText.setColor('#ffe600');
+    this.altarIndicatorText.setColor(isBossAltar ? '#ffaa00' : '#ffe600');
   }
 
   public setHUDVisible(visible: boolean): void {

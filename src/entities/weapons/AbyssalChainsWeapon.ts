@@ -177,7 +177,7 @@ export class AbyssalChainsWeapon extends BaseWeapon {
   }
 
   public isMaxLevel(): boolean {
-    return this.level >= this.maxLevel;
+    return this.isEvolved || this.level >= this.maxLevel;
   }
 
   public isEvolved: boolean = false;
@@ -185,6 +185,7 @@ export class AbyssalChainsWeapon extends BaseWeapon {
   public evolve(): void {
     if (this.isEvolved) return;
     this.isEvolved = true;
+    this.level = this.maxLevel;
     this.name = 'Grilhões do Tartarus';
     this.damage = 54;
     this.targetCount = 8;

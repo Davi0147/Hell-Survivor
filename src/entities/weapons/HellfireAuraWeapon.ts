@@ -36,6 +36,7 @@ export class HellfireAuraWeapon extends BaseWeapon {
   public evolve(): void {
     if (this.isEvolved) return;
     this.isEvolved = true;
+    this.level = this.maxLevel;
     this.name = 'Supernova Abissal';
     this.damage = 78;
     this.range = 215;
@@ -188,6 +189,6 @@ export class HellfireAuraWeapon extends BaseWeapon {
   }
 
   public isMaxLevel(): boolean {
-    return this.level >= this.maxLevel;
+    return this.isEvolved || this.level >= this.maxLevel;
   }
 }

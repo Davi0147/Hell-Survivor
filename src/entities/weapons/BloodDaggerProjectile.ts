@@ -58,6 +58,21 @@ export class BloodDaggerProjectile extends Phaser.Physics.Arcade.Sprite {
     this.lifespanMs -= deltaMs;
     this.trailTimer += deltaMs;
 
+    // Viewport Despawn imediato se sair da visão da câmera
+    const cam = this.scene.cameras?.main;
+    if (cam) {
+      const margin = 280;
+      if (
+        this.x < cam.worldView.x - margin ||
+        this.x > cam.worldView.right + margin ||
+        this.y < cam.worldView.y - margin ||
+        this.y > cam.worldView.bottom + margin
+      ) {
+        this.deactivate();
+        return;
+      }
+    }
+
     // Efeito vermelho leve saindo de trás da adaga ao ser lançada
     if (this.trailTimer >= 24) {
       this.trailTimer = 0;

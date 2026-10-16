@@ -59,6 +59,21 @@ export const PERFORMANCE_LIMITS = {
 };
 
 /**
+ * CONFIGURAÇÃO DA ARENA DELIMITADA (MAPA FINITO GIGANTE):
+ * Define os limites espaciais da arena infernal (6400 x 6400 px),
+ * impedindo que o jogador e inimigos fujam para o infinito.
+ */
+export const ARENA_CONFIG = {
+  MIN_X: -3200,
+  MIN_Y: -3200,
+  MAX_X: 3200,
+  MAX_Y: 3200,
+  get WIDTH() { return this.MAX_X - this.MIN_X; },
+  get HEIGHT() { return this.MAX_Y - this.MIN_Y; },
+  SPAWN_MARGIN: 180 // Margem interna para evitar spawn na parede
+};
+
+/**
  * ESCALONAMENTO PROGRESSIVO DE HORDAS (TEMPO DE SOBREVIVÊNCIA):
  * Aumenta gradualmente a vida e o dano dos inimigos conforme a partida avança,
  * garantindo que builds fortes continuem sendo desafiadas e impedindo AFK infinito.

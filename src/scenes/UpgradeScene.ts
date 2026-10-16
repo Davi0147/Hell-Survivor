@@ -593,7 +593,7 @@ export class UpgradeScene extends Phaser.Scene {
           gs.weapons.push(new VoidScythesWeapon(gs, p));
         }
       });
-    } else if (!scythesWeapon.isMaxBlades()) {
+    } else if (!scythesWeapon.isEvolved && !scythesWeapon.isMaxBlades()) {
       const nextBlades = scythesWeapon.getBladeCount() + 1;
       const scytheDmg = Math.round(28 * dmgMult);
       catalog.unshift({
@@ -647,7 +647,7 @@ export class UpgradeScene extends Phaser.Scene {
           gs.weapons.push(new HellfireAuraWeapon(gs, p));
         }
       });
-    } else if (!hellfireWeapon.isMaxLevel()) {
+    } else if (!hellfireWeapon.isEvolved && !hellfireWeapon.isMaxLevel()) {
       const nextLvl = hellfireWeapon.getLevel() + 1;
       const nextDmg = Math.round((22 + (nextLvl - 1) * 7) * dmgMult);
       catalog.unshift({
@@ -701,7 +701,7 @@ export class UpgradeScene extends Phaser.Scene {
           gs.weapons.push(new BloodDaggersWeapon(gs, p));
         }
       });
-    } else if (!daggersWeapon.isMaxLevel()) {
+    } else if (!daggersWeapon.isEvolved && !daggersWeapon.isMaxLevel()) {
       const nextLvl = daggersWeapon.getLevel() + 1;
       const nextCount = 3 + (nextLvl - 1);
       const nextDmg = Math.round((15 + (nextLvl - 1) * 4) * dmgMult);
@@ -756,7 +756,7 @@ export class UpgradeScene extends Phaser.Scene {
           gs.weapons.push(new AbyssalChainsWeapon(gs, p));
         }
       });
-    } else if (!chainsWeapon.isMaxLevel()) {
+    } else if (!chainsWeapon.isEvolved && !chainsWeapon.isMaxLevel()) {
       const nextLvl = chainsWeapon.getLevel() + 1;
       const nextDmg = Math.round((19 + (nextLvl - 1) * 6) * dmgMult);
       catalog.unshift({
@@ -810,7 +810,7 @@ export class UpgradeScene extends Phaser.Scene {
           gs.weapons.push(new InfernalMeteorWeapon(gs, p));
         }
       });
-    } else if (!meteorWeapon.isMaxLevel()) {
+    } else if (!meteorWeapon.isEvolved && !meteorWeapon.isMaxLevel()) {
       const nextLvl = meteorWeapon.getLevel() + 1;
       const nextDmg = Math.round((46 + (nextLvl - 1) * 10) * dmgMult);
       catalog.unshift({

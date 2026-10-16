@@ -14,6 +14,7 @@ import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
+import { BossSummonAltar } from '../entities/items/BossSummonAltar';
 import { UpgradeScene } from './UpgradeScene';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
@@ -21,7 +22,7 @@ import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, getEnemyScaling } from '../config/balance';
+import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG } from '../config/balance';
 import { UIScene } from './UIScene';
 
 export class GameScene extends Phaser.Scene {
@@ -64,6 +65,8 @@ export class GameScene extends Phaser.Scene {
   public gemsGroup!: Phaser.GameObjects.Group;
   public mapItemsGroup!: Phaser.GameObjects.Group;
   public altarInstance: EvolutionAltar | null = null;
+  public bossSummonAltar: BossSummonAltar | null = null;
+  public isHordeSpawningPaused: boolean = false;
   private altarSpawnTimer: number = 0;
   private readonly ALTAR_SPAWN_INTERVAL: number = 75000;
   private spawnTimer: number = 0;
@@ -108,6 +111,8 @@ export class GameScene extends Phaser.Scene {
     this.survivalTimeMs = 0;
     this.bossInstance = undefined;
     this.altarInstance = null;
+    this.bossSummonAltar = null;
+    this.isHordeSpawningPaused = false;
     this.altarSpawnTimer = 0;
     this.spawnTimer = 0;
     this.mapItemSpawnTimer = 0;
@@ -146,6 +151,17 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.cameras.main.setZoom(2);
     this.cameras.main.setRoundPixels(true);
+
+    // 3.1. Configuração dos Limites Rígidos da Arena e Câmera (6400 x 6400 px)
+    this.physics.world.setBounds(ARENA_CONFIG.MIN_X, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.WIDTH, ARENA_CONFIG.HEIGHT);
+    this.cameras.main.setBounds(ARENA_CONFIG.MIN_X, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.WIDTH, ARENA_CONFIG.HEIGHT);
+    this.player.setCollideWorldBounds(true);
+
+    // 3.2. Desenha o abismo e as fendas rúnicas de contenção nas bordas da arena
+    this.drawArenaBorders();
+
+    // 3.3. Instancia o Altar de Invocação do Chefe (inicialmente inativo no mapa)
+    this.spawnBossSummonAltar();
 
     // Sincronizar o chão infinito e balões de combate no POST_UPDATE compensando a física e câmera (sem deslizar nem tremer)
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
@@ -555,6 +571,11 @@ export class GameScene extends Phaser.Scene {
       this.updateAltarSpawning(delta);
     }
 
+    // 5.4. Atualizar Altar de Invocação do Chefe
+    if (this.bossSummonAltar && this.bossSummonAltar.active) {
+      this.bossSummonAltar.updateAltar(this.player, delta);
+    }
+
     // 6. Atualizar Inimigos Ativos (Culling + IA de Cada Espécie)
     const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
     for (let i = 0; i < enemies.length; i++) {
@@ -578,7 +599,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     // 7. Spawner Escalável Contínuo de Hordas
-    if (!this.isBossFightActive && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
+    // Se o Altar de Invocação despertou (isHordeSpawningPaused) ou a Boss está ativa, não spawna novas levas da horda
+    if (!this.isBossFightActive && !this.isHordeSpawningPaused && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
       this.spawnTimer += delta;
 
       // Intervalo de spawn diminui de 1500ms para até 450ms no Modo Infinito
@@ -604,6 +626,11 @@ export class GameScene extends Phaser.Scene {
           this.spawnTitanCerberus();
         }
 
+        // 5:00 (300s): Altar de Invocação desperta no Modo Infinito
+        if (!this.bossSummonAltar?.isActive && elapsedSec >= 300 && !this.boss10mSpawned) {
+          this.activateBossSummonAltar();
+        }
+
         // 6:00 (360s): Matriarca Succubus Mini-Boss
         if (!this.miniBoss6mSpawned && elapsedSec >= 360) {
           this.miniBoss6mSpawned = true;
@@ -623,12 +650,19 @@ export class GameScene extends Phaser.Scene {
         }
       }
     } else if (this.bossInstance && this.bossInstance.active && !this.bossInstance.isDead) {
-      // Durante o confronto contra a Boss, invoca reforços a cada 8s para manter a arena dinâmica
+      // Durante o confronto contra a Boss, ela invoca reforços periodicamente para auxiliá-la
       this.bossMinionTimer += delta;
-      if (this.bossMinionTimer >= 8000) {
+      if (this.bossMinionTimer >= 8500) {
         this.bossMinionTimer = 0;
-        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        this.spawnZombieDogAt(this.player.x + Math.cos(angle) * 360, this.player.y + Math.sin(angle) * 360);
+        this.showCombatSpeechBubble(this.bossInstance, 'Lacaios, devorem essa vadia!', 2000, false);
+        SoundManager.getInstance().playEnemyDeath();
+
+        // Invoca 2 Cães Zumbis e 3 Morcegos de Sangue nos arredores do confronto
+        for (let i = 0; i < 2; i++) {
+          const a = Phaser.Math.FloatBetween(0, Math.PI * 2);
+          const p = this.clampToArena(this.bossInstance.x + Math.cos(a) * 150, this.bossInstance.y + Math.sin(a) * 150);
+          this.spawnZombieDogAt(p.x, p.y, 45, 95, 10);
+        }
         this.spawnBloodBatFlock(3);
       }
     }
@@ -642,7 +676,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gameMode !== 'story' || this.isBossFightActive || this.isChapterCompleted) return;
     this.chapterPurifiedSouls += points;
     if (this.chapterPurifiedSouls >= this.chapterTargetSouls) {
-      this.triggerBossEncounter();
+      this.activateBossSummonAltar();
     }
   }
 
@@ -656,6 +690,10 @@ export class GameScene extends Phaser.Scene {
     eliteScale: number = 1.0,
     customDrop?: GemType
   ): void {
+    const clamped = this.clampToArena(x, y);
+    x = clamped.x;
+    y = clamped.y;
+
     let enemy = this.enemiesGroup.getChildren().find(
       (child) => !child.active && child instanceof ZombieDog && !(child as any).isSpecialMiniBoss
     ) as ZombieDog | undefined;
@@ -691,6 +729,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnSkullSlimeAt(x: number, y: number): void {
+    const clamped = this.clampToArena(x, y);
+    x = clamped.x;
+    y = clamped.y;
+
     let enemy = this.enemiesGroup.getChildren().find(
       (child) => !child.active && child instanceof SkullSlime
     ) as SkullSlime | undefined;
@@ -718,6 +760,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnBloodBatAt(x: number, y: number): void {
+    const clamped = this.clampToArena(x, y);
+    x = clamped.x;
+    y = clamped.y;
+
     let enemy = this.enemiesGroup.getChildren().find(
       (child) => !child.active && child instanceof BloodBat
     ) as BloodBat | undefined;
@@ -768,6 +814,10 @@ export class GameScene extends Phaser.Scene {
     speed: number = 58,
     damage: number = 14
   ): void {
+    const clamped = this.clampToArena(x, y);
+    x = clamped.x;
+    y = clamped.y;
+
     let enemy = this.enemiesGroup.getChildren().find(
       (child) => !child.active && child instanceof MummyEnemy
     ) as MummyEnemy | undefined;
@@ -829,6 +879,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   public spawnMapItem(x: number, y: number, type?: MapItemType): MapItem {
+    const clamped = this.clampToArena(x, y, 160);
+    x = clamped.x;
+    y = clamped.y;
     const types: MapItemType[] = ['chalice', 'magnet', 'chest'];
     const chosenType = type ?? Phaser.Math.RND.pick(types);
     const item = new MapItem(this, x, y, chosenType);
@@ -887,6 +940,10 @@ export class GameScene extends Phaser.Scene {
       spawnX = this.player.x + Math.cos(angle) * dist;
       spawnY = this.player.y + Math.sin(angle) * dist;
     }
+
+    const clamped = this.clampToArena(spawnX, spawnY, 200);
+    spawnX = clamped.x;
+    spawnY = clamped.y;
 
     this.altarInstance = new EvolutionAltar(this, spawnX, spawnY);
     this.altarInstance.on('altar-completed', (altar: EvolutionAltar) => {
@@ -1245,9 +1302,100 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Inicia o confronto épico contra a Boss Succubus
+   * Limita qualquer coordenada x, y dentro dos limites da Arena Gigante
    */
-  private triggerBossEncounter(): void {
+  public clampToArena(x: number, y: number, margin: number = ARENA_CONFIG.SPAWN_MARGIN): { x: number; y: number } {
+    return {
+      x: Phaser.Math.Clamp(x, ARENA_CONFIG.MIN_X + margin, ARENA_CONFIG.MAX_X - margin),
+      y: Phaser.Math.Clamp(y, ARENA_CONFIG.MIN_Y + margin, ARENA_CONFIG.MAX_Y - margin)
+    };
+  }
+
+  /**
+   * Desenha os limites visuais e o abismo ao redor da Arena Gigante (6400 x 6400 px)
+   */
+  private drawArenaBorders(): void {
+    const g = this.add.graphics();
+    g.setDepth(-40);
+
+    const minX = ARENA_CONFIG.MIN_X;
+    const minY = ARENA_CONFIG.MIN_Y;
+    const maxX = ARENA_CONFIG.MAX_X;
+    const maxY = ARENA_CONFIG.MAX_Y;
+    const w = ARENA_CONFIG.WIDTH;
+    const h = ARENA_CONFIG.HEIGHT;
+    const voidPadding = 2400;
+
+    // 1. O Vazio do Abismo que circunda a arena (preto profundo absoluto)
+    g.fillStyle(0x050104, 1);
+    g.fillRect(minX - voidPadding, minY - voidPadding, w + voidPadding * 2, voidPadding);
+    g.fillRect(minX - voidPadding, maxY, w + voidPadding * 2, voidPadding);
+    g.fillRect(minX - voidPadding, minY, voidPadding, h);
+    g.fillRect(maxX, minY, voidPadding, h);
+
+    // 2. Fenda de Fogo e Rocha vulcânica delimitando o perímetro
+    g.lineStyle(16, 0x1a0509, 0.95);
+    g.strokeRect(minX, minY, w, h);
+
+    g.lineStyle(6, 0xd90429, 0.85);
+    g.strokeRect(minX, minY, w, h);
+
+    g.lineStyle(2, 0xffba08, 0.95);
+    g.strokeRect(minX, minY, w, h);
+
+    // 3. Pilares rúnicos distribuídos ao longo da fronteira da arena
+    const pilarDist = 400;
+    for (let x = minX; x <= maxX; x += pilarDist) {
+      this.drawBorderRune(g, x, minY);
+      this.drawBorderRune(g, x, maxY);
+    }
+    for (let y = minY; y <= maxY; y += pilarDist) {
+      this.drawBorderRune(g, minX, y);
+      this.drawBorderRune(g, maxX, y);
+    }
+  }
+
+  private drawBorderRune(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
+    g.fillStyle(0x28040d, 1);
+    g.fillCircle(x, y, 10);
+    g.lineStyle(2, 0xffba08, 0.9);
+    g.strokeCircle(x, y, 10);
+    g.fillStyle(0xff1e27, 1);
+    g.fillCircle(x, y, 4);
+  }
+
+  /**
+   * Instancia o Altar de Invocação do Chefe no mapa (inicialmente inativo)
+   */
+  private spawnBossSummonAltar(): void {
+    const altarX = 1450;
+    const altarY = -1200;
+    this.bossSummonAltar = new BossSummonAltar(this, altarX, altarY);
+    this.bossSummonAltar.on('boss-summon-triggered', () => {
+      this.handleBossSummonTriggered();
+    });
+  }
+
+  /**
+   * Desperta o Altar de Invocação e interrompe o nascimento de novas hordas normais
+   */
+  public activateBossSummonAltar(): void {
+    if (!this.bossSummonAltar || this.bossSummonAltar.isActive) return;
+    this.bossSummonAltar.activate();
+    this.isHordeSpawningPaused = true;
+
+    const uiScene = this.scene.get('UIScene') as UIScene;
+    if (uiScene) {
+      uiScene.showWaveAlert('O ALTAR DE INVOCAÇÃO DESPERTOU! DIRIA-SE AO ALTAR PARA O CONFRONTO!', 5000);
+    }
+    DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Invocação ativado! Hordas pausadas, guiando Nixy ao confronto.');
+  }
+
+  /**
+   * Acionado quando Nixy chega ao Altar de Invocação Ativo
+   */
+  private handleBossSummonTriggered(): void {
+    if (this.isBossFightActive) return;
     this.isBossFightActive = true;
     SoundManager.getInstance().playBossMusic(2200);
 
@@ -1259,11 +1407,40 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    this.cameras.main.flash(260, 255, 255, 255);
-    this.cameras.main.shake(200, 0.015);
+    // 2. Posiciona Nixy em frente ao Altar olhando para cima
+    if (this.bossSummonAltar) {
+      const pBody = this.player.body as Phaser.Physics.Arcade.Body;
+      if (pBody) {
+        pBody.setVelocity(0, 0);
+      }
+      this.player.currentDirection = 'north';
+      this.player.play('nixy-idle-north');
+    }
 
-    // 2. Diálogo Pré-Boss (Persona 5 style) com a Succubus
+    this.cameras.main.flash(350, 255, 60, 60);
+    this.cameras.main.shake(250, 0.02);
+
+    // 3. Spawna a Boss Succubus materializando sobre o pentagrama do altar
+    this.spawnSuccubusBoss();
+
+    // 4. Inicia diálogo pré-boss (a Succubus já está sobre o altar!)
     this.time.delayedCall(300, () => {
+      this.triggerBossDialogueOnly();
+    });
+  }
+
+  /**
+   * Inicia o confronto épico contra a Boss Succubus
+   */
+  private triggerBossEncounter(): void {
+    if (this.bossSummonAltar && !this.bossSummonAltar.isActive) {
+      this.activateBossSummonAltar();
+      return;
+    }
+    this.handleBossSummonTriggered();
+  }
+
+  private triggerBossDialogueOnly(): void {
       this.playDialogue([
         {
           speaker: 'succubus',
@@ -1452,14 +1629,22 @@ export class GameScene extends Phaser.Scene {
           text: 'ENTÃO CAI DENTRO, SUA DESGRAÇADA!'
         }
       ], () => {
-        this.spawnSuccubusBoss();
+        if (!this.bossInstance || !this.bossInstance.active) {
+          this.spawnSuccubusBoss();
+        } else {
+          this.startBossCombatBanter();
+        }
       });
-    });
   }
 
   private spawnSuccubusBoss(): void {
-    const bossX = this.player.x + 220;
-    const bossY = this.player.y - 140;
+    let bossX = this.player.x + 220;
+    let bossY = this.player.y - 140;
+
+    if (this.bossSummonAltar && this.bossSummonAltar.isActive) {
+      bossX = this.bossSummonAltar.x;
+      bossY = this.bossSummonAltar.y - 15;
+    }
 
     this.bossInstance = new SuccubusBoss(this, bossX, bossY);
     this.bossInstance.setDepth(22);
@@ -1473,6 +1658,9 @@ export class GameScene extends Phaser.Scene {
     this.startBossCombatBanter();
 
     this.bossInstance.on('boss-defeated', () => {
+      if (this.bossSummonAltar) {
+        this.bossSummonAltar.complete();
+      }
       this.handleBossDefeated();
     });
   }

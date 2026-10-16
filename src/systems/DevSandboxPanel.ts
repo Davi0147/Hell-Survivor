@@ -1165,6 +1165,29 @@ export class DevSandboxPanel {
         }
       },
       {
+        label: 'TELEPORTAR AO ALTAR DE INVOCAÇÃO DO CHEFE',
+        color: 0x450a0a,
+        border: 0xff4500,
+        action: () => {
+          if (gs.bossSummonAltar) {
+            this.togglePanel(false);
+            p.setPosition(gs.bossSummonAltar.x, gs.bossSummonAltar.y + 130);
+            if (p.body) p.body.setVelocity(0, 0);
+            this.showToast('TELEPORTADO AO ALTAR DE INVOCAÇÃO!', '#ff4500');
+          }
+        }
+      },
+      {
+        label: 'ATIVAR ALTAR DE INVOCAÇÃO AGORA (DESPERTAR CHEFE)',
+        color: 0x7c2d12,
+        border: 0xffaa00,
+        action: () => {
+          this.togglePanel(false);
+          gs.activateBossSummonAltar();
+          this.showToast('ALTAR DE INVOCAÇÃO ATIVADO!', '#ffaa00');
+        }
+      },
+      {
         label: 'ABRIR ROLETA DO BAÚ DIRETAMENTE AGORA',
         color: 0x713f12,
         border: 0xffe600,
