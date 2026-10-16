@@ -27,6 +27,7 @@
 - [x] **Aba 3 (`[3] ARMAS & EVOLUÇÕES`):** Equipar, subir nível (`+1 Nív`), Maximizar/Evoluir para a forma Suprema (`MAX / EVO`) ou remover qualquer uma das 6 armas do jogo, além de botão para equipar e evoluir todas de uma vez.
 - [x] **Aba 4 (`[4] BÊNÇÃOS & ITENS`):** Adicionar (`+`) ou remover (`-`) níveis de todas as 9 bênçãos passivas livremente, resetar atributos e dropar Taça de Vinho, Ímã, Baú do Abismo, Roleta Direta ou Chuva de 20 Gemas ao lado da Nixy.
 - [x] **Aba 5 (`[5] LOGS & EXPORTAR IA`):** Gravador de Voo (`DebugSessionLogger`) que intercepta erros globais, monitora quedas de FPS/anomalias e gera um relatório completo formatado em 1 clique (`[ COPIAR RELATÓRIO COMPLETO P/ IA ]` ou `[ BAIXAR LOG (.JSON) ]`).
+- [x] **Inicializador Rápido e Limpador de Cache (`INICIAR_JOGO.bat` / `JOGAR.bat`):** Script em lote (.bat) de 1 clique que limpa o cache interno do Vite (`node_modules\.vite`), libera portas residuais, abre automaticamente a página no navegador padrão e roda o servidor com `--force` para carregar sempre a versão mais recente.
 
 ---
 
