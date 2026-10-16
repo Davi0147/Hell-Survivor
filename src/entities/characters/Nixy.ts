@@ -21,6 +21,8 @@ export class Nixy extends BaseCharacter {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'nixy-idle-south', BALANCE.NIXY);
+    this.characterId = 'nixy';
+    this.characterName = 'NIXY';
     this.applyMetaProgressBlessings();
     this.play('nixy-idle-south');
   }

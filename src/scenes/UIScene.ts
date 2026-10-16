@@ -26,7 +26,9 @@ export class UIScene extends Phaser.Scene {
   // Vinheta de Alerta de Vida Crítica (Low HP)
   private lowHpVignetteGraphics!: Phaser.GameObjects.Graphics;
 
-  // Painel de Status Barroco Vampírico (Canto Inferior Direito)
+  // Painel de Status Demônico (Canto Inferior Direito)
+  private statusHudImage!: Phaser.GameObjects.Image;
+  private charNameImage!: Phaser.GameObjects.Image;
   private baroquePanelGraphics!: Phaser.GameObjects.Graphics;
   private ultGaugeBg!: Phaser.GameObjects.Image;
   private vialGraphics!: Phaser.GameObjects.Graphics;
@@ -153,24 +155,49 @@ export class UIScene extends Phaser.Scene {
     this.portraitImage.setDepth(150);
 
     // ==========================================
-    // 2. PAINEL BARROCO VAMPÍRICO (MOVIDO MAIS PARA A DIREITA)
+    // 2. PAINEL DE STATUS DEMÔNICO (STATUS HUD & NOME DO PERSONAGEM)
     // ==========================================
-    // A borda direita do painel fica elegantemente atrás do sprite da Nixy
-    this.panelW = 440;
-    this.panelH = 116;
-    this.panelX = width - this.portraitSize - this.panelW + 185;
-    this.panelY = height - this.panelH - 22;
+    const hudScale = 1.6;
+    this.panelW = Math.round(280 * hudScale); // 448
+    this.panelH = Math.round(131 * hudScale); // 210
 
-    this.barsX = this.panelX + 88;
-    this.barsW = 328;
-    this.hpBarY = this.panelY + 46;
-    this.stBarY = this.panelY + 76;
-    this.vialX = this.panelX + 44;
-    this.vialY = this.panelY + 64;
+    const hudBottom = height - 14;
+    this.panelX = width - this.portraitSize - this.panelW + 225;
+    this.panelY = hudBottom - this.panelH;
 
-    // Desenho estático do painel e decorações de filigrana dourada (Depth 30)
+    const hudCenterX = this.panelX + this.panelW / 2;
+    const hudCenterY = this.panelY + this.panelH / 2;
+
+    // Sprite de fundo e moldura de pedra demoníaca com lava (Depth 30)
+    this.statusHudImage = this.add.image(hudCenterX, hudCenterY, 'ui-status-hud');
+    this.statusHudImage.setDisplaySize(this.panelW, this.panelH);
+    this.statusHudImage.setDepth(30);
+
+    // Sprite do Nome Oficial do Personagem (Depth 62 - sobre o topo da moldura)
+    const gs = this.scene.get('GameScene') as any;
+    const charId = (gs && gs.player && gs.player.characterId) ? gs.player.characterId : 'nixy';
+    const charNameTexture = this.textures.exists(`ui-char-name-${charId}`) ? `ui-char-name-${charId}` : 'ui-char-name-nixy';
+    const nameW = 220;
+    const nameH = 100;
+    const nameCenterX = hudCenterX;
+    const nameCenterY = this.panelY + 22;
+
+    this.charNameImage = this.add.image(nameCenterX, nameCenterY, charNameTexture);
+    this.charNameImage.setDisplaySize(nameW, nameH);
+    this.charNameImage.setDepth(62);
+
+    // Medidor de Suprema: Ult Gauge posicionado no lado esquerdo da cavidade
+    this.vialX = this.panelX + Math.round(36 * hudScale) + 29;
+    this.vialY = this.panelY + Math.round(64 * hudScale) + 29;
+
+    this.barsX = this.vialX + 29 + 22;
+    this.barsW = 238;
+    this.hpBarY = this.vialY - 29 + 16;
+    this.stBarY = this.hpBarY + 24;
+
+    // Desenho base dos slots das barras (Depth 35)
     this.baroquePanelGraphics = this.add.graphics();
-    this.baroquePanelGraphics.setDepth(30);
+    this.baroquePanelGraphics.setDepth(35);
     this.drawBaroqueFrame();
 
     // Medidor de Suprema: Ult Gauge (Fundo, Barra Líquida Dinâmica e Moldura Ornamental)
@@ -219,9 +246,9 @@ export class UIScene extends Phaser.Scene {
     vialZone.setInteractive({ useHandCursor: true });
     vialZone.on('pointerdown', () => {
       if (!this.isHUDVisibleState || this.isDialogueActive()) return;
-      const gameScene = this.scene.get('GameScene') as any;
-      if (gameScene && gameScene.player && gameScene.player.isUltimateReady) {
-        gameScene.triggerUltimate();
+      const gs = this.scene.get('GameScene') as any;
+      if (gs && gs.player && gs.player.isUltimateReady) {
+        gs.triggerUltimate();
       }
     });
 
@@ -229,9 +256,9 @@ export class UIScene extends Phaser.Scene {
     if (this.input.keyboard) {
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E).on('down', () => {
         if (!this.isHUDVisibleState || this.isDialogueActive()) return;
-        const gameScene = this.scene.get('GameScene') as any;
-        if (gameScene && gameScene.player && gameScene.player.isUltimateReady) {
-          gameScene.triggerUltimate();
+        const gs = this.scene.get('GameScene') as any;
+        if (gs && gs.player && gs.player.isUltimateReady) {
+          gs.triggerUltimate();
         }
       });
     }
@@ -243,48 +270,33 @@ export class UIScene extends Phaser.Scene {
     this.staminaBarFill = this.add.graphics();
     this.staminaBarFill.setDepth(40);
 
-    // ==========================================
-    // 3. TIPOGRAFIA EM ESTILO PIXEL ART (SILKSCREEN / PRESS START 2P)
-    // ==========================================
-    // Nome da Heroína: NIXY (MAIOR: 26px, branco com contorno carmesim)
-    const nameLabel = this.add.text(this.barsX, this.panelY + 10, 'NIXY', {
-      fontFamily: pixelFont,
-      fontSize: '26px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#4a0e17',
-      strokeThickness: 4
-    });
-    nameLabel.setDepth(60);
-
-    // Nível: LVL 1 em ouro antigo
-    this.levelTag = this.add.text(this.barsX + 115, this.panelY + 16, 'LVL 1', {
+    // Nível: LVL 1 em ouro antigo com contorno preto
+    this.levelTag = this.add.text(this.barsX, this.hpBarY - 16, 'LVL 1', {
       fontFamily: pixelFont,
       fontSize: '13px',
       fontStyle: 'bold',
       color: '#f3d17a',
-      stroke: '#3a2004',
-      strokeThickness: 2
-    });
-    this.levelTag.setDepth(60);
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setDepth(60);
 
     // Texto de Vida sobreposto na barra de HP
-    this.hpText = this.add.text(this.barsX + this.barsW / 2, this.hpBarY + 11, '100 / 100 HP', {
+    this.hpText = this.add.text(this.barsX + this.barsW / 2, this.hpBarY + 9, '100 / 100 HP', {
       fontFamily: pixelFont,
       fontSize: '11px',
       fontStyle: 'bold',
       color: '#ffffff',
-      stroke: '#2b0006',
+      stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5).setDepth(60);
 
     // Texto de Estamina sobreposto na barra de Estamina
-    this.staminaText = this.add.text(this.barsX + this.barsW / 2, this.stBarY + 8, '100% STAMINA', {
+    this.staminaText = this.add.text(this.barsX + this.barsW / 2, this.stBarY + 7, '100% STAMINA', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
       color: '#ffffff',
-      stroke: '#261702',
+      stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5).setDepth(60);
 
@@ -444,6 +456,8 @@ export class UIScene extends Phaser.Scene {
       this.radarTagText,
       radarNorthText,
       this.portraitImage,
+      this.statusHudImage,
+      this.charNameImage,
       this.baroquePanelGraphics,
       this.ultGaugeBg,
       this.vialGraphics,
@@ -452,7 +466,6 @@ export class UIScene extends Phaser.Scene {
       this.ultimateReadyBadge,
       this.hpBarFill,
       this.staminaBarFill,
-      nameLabel,
       this.levelTag,
       this.hpText,
       this.staminaText,
@@ -553,86 +566,32 @@ export class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Desenha a moldura barroca ornamentada com veludo vermelho e filigranas douradas
+   * Desenha os trilhos base das barras de Vida e Estamina dentro da cavidade de pedra do StatusHud
    */
   private drawBaroqueFrame(): void {
     const g = this.baroquePanelGraphics;
     g.clear();
 
-    const x = this.panelX;
-    const y = this.panelY;
-    const w = this.panelW;
-    const h = this.panelH;
-
-    // 1. Fundo de veludo vermelho profundo
-    g.fillStyle(0x1a0208, 0.94);
-    g.fillRoundedRect(x, y, w, h, 10);
-
-    // Padrão interno de veludo carmesim sutil
-    g.fillStyle(0x28040d, 0.85);
-    g.fillRoundedRect(x + 4, y + 4, w - 8, h - 8, 8);
-
-    // 2. Borda externa em ouro envelhecido
-    g.lineStyle(2, 0xc59b27, 1);
-    g.strokeRoundedRect(x, y, w, h, 10);
-
-    // 3. Filete interno dourado claro
-    g.lineStyle(1, 0xf3d17a, 0.8);
-    g.strokeRoundedRect(x + 3, y + 3, w - 6, h - 6, 7);
-
-    // 4. Cantoneiras de filigrana dourada nos 4 cantos
-    const cornerSize = 14;
-    g.lineStyle(2, 0xf3d17a, 1);
-    // Canto Superior Esquerdo
-    g.strokeLineShape(new Phaser.Geom.Line(x + 4, y + 4 + cornerSize, x + 4, y + 4));
-    g.strokeLineShape(new Phaser.Geom.Line(x + 4, y + 4, x + 4 + cornerSize, y + 4));
-    g.strokeLineShape(new Phaser.Geom.Line(x + 8, y + 8 + cornerSize / 2, x + 8, y + 8));
-    g.strokeLineShape(new Phaser.Geom.Line(x + 8, y + 8, x + 8 + cornerSize / 2, y + 8));
-
-    // Canto Superior Direito
-    g.strokeLineShape(new Phaser.Geom.Line(x + w - 4 - cornerSize, y + 4, x + w - 4, y + 4));
-    g.strokeLineShape(new Phaser.Geom.Line(x + w - 4, y + 4, x + w - 4, y + 4 + cornerSize));
-
-    // Canto Inferior Esquerdo
-    g.strokeLineShape(new Phaser.Geom.Line(x + 4, y + h - 4 - cornerSize, x + 4, y + h - 4));
-    g.strokeLineShape(new Phaser.Geom.Line(x + 4, y + h - 4, x + 4 + cornerSize, y + h - 4));
-
-    // Canto Inferior Direito
-    g.strokeLineShape(new Phaser.Geom.Line(x + w - 4 - cornerSize, y + h - 4, x + w - 4, y + h - 4));
-    g.strokeLineShape(new Phaser.Geom.Line(x + w - 4, y + h - 4 - cornerSize, x + w - 4, y + h - 4));
-
-    // 5. Ornato central inferior (Flor-de-lis / brasão dourado)
-    const midX = x + w / 2;
-    g.fillStyle(0xf3d17a, 1);
-    g.fillTriangle(midX, y + h - 1, midX - 6, y + h + 5, midX + 6, y + h + 5);
-    g.fillCircle(midX, y + h - 2, 3);
-
-    // 6. Moldura base da Barra de Vida (HP)
     const hpX = this.barsX;
     const hpY = this.hpBarY;
     const bW = this.barsW;
-    const hpH = 22;
+    const hpH = 18;
 
-    // Fundo escuro da barra de HP
-    g.fillStyle(0x140104, 1);
+    // Fundo escuro e moldura do slot da barra de Vida (HP)
+    g.fillStyle(0x140104, 0.95);
     g.fillRect(hpX, hpY, bW, hpH);
-    g.lineStyle(2, 0xc59b27, 1);
+    g.lineStyle(1.5, 0xc59b27, 0.9);
     g.strokeRect(hpX, hpY, bW, hpH);
-    g.lineStyle(1, 0xf3d17a, 0.7);
-    g.strokeRect(hpX + 1, hpY + 1, bW - 2, hpH - 2);
 
-    // 7. Moldura base da Barra de Estamina
+    // Fundo escuro e moldura do slot da barra de Estamina (ST)
     const stX = this.barsX;
     const stY = this.stBarY;
-    const stH = 16;
+    const stH = 14;
 
-    // Fundo escuro da barra de Estamina
-    g.fillStyle(0x120a02, 1);
+    g.fillStyle(0x120a02, 0.95);
     g.fillRect(stX, stY, bW, stH);
-    g.lineStyle(2, 0xc59b27, 1);
+    g.lineStyle(1.5, 0xc59b27, 0.8);
     g.strokeRect(stX, stY, bW, stH);
-    g.lineStyle(1, 0xf3d17a, 0.6);
-    g.strokeRect(stX + 1, stY + 1, bW - 2, stH - 2);
   }
 
   /**
@@ -719,7 +678,7 @@ export class UIScene extends Phaser.Scene {
     const hpRatio = Math.max(0, p.currentHp / p.maxHp);
     this.hpBarFill.clear();
     this.hpBarFill.fillStyle(0xd90429, 1);
-    this.hpBarFill.fillRect(this.barsX + 2, this.hpBarY + 2, (this.barsW - 4) * hpRatio, 18);
+    this.hpBarFill.fillRect(this.barsX + 2, this.hpBarY + 2, (this.barsW - 4) * hpRatio, 14);
     this.hpText.setText(`${Math.max(0, Math.round(p.currentHp))} / ${p.maxHp} HP`);
 
     // Atualizar Barra de Estamina (ST)
@@ -728,8 +687,16 @@ export class UIScene extends Phaser.Scene {
     // Cor dinâmica: Ciano durante sprint, magenta esgotado, dourado/parchment normal
     const stColor = p.isSprinting ? 0x00f5d4 : (stRatio < 0.2 ? 0xf72585 : 0xe0a96d);
     this.staminaBarFill.fillStyle(stColor, 1);
-    this.staminaBarFill.fillRect(this.barsX + 2, this.stBarY + 2, (this.barsW - 4) * stRatio, 12);
+    this.staminaBarFill.fillRect(this.barsX + 2, this.stBarY + 2, (this.barsW - 4) * stRatio, 10);
     this.staminaText.setText(`${Math.round(p.currentStamina)}% STAMINA`);
+
+    // Atualizar sprite de nome caso o personagem mude
+    if (p.characterId && this.charNameImage) {
+      const charNameKey = `ui-char-name-${p.characterId}`;
+      if (this.textures.exists(charNameKey) && this.charNameImage.texture.key !== charNameKey) {
+        this.charNameImage.setTexture(charNameKey);
+      }
+    }
 
     // Feedback de Dano no Retrato Gigante da Nixy
     if (p.hurtTimer > 0) {

@@ -134,6 +134,8 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('ui-menu-arrow');
     this.textures.remove('ult-gauge-frame');
     this.textures.remove('ult-gauge-bg');
+    this.textures.remove('ui-status-hud');
+    this.textures.remove('ui-char-name-nixy');
   }
 
   preload(): void {
@@ -337,6 +339,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image('ui-menu-arrow', `assets/sprites/items/Seta.png?t=${cacheBuster}`);
     this.load.image('ult-gauge-frame', `assets/sprites/items/UltGauge1.png?t=${cacheBuster}`);
     this.load.image('ult-gauge-bg', `assets/sprites/items/UltGauge2.png?t=${cacheBuster}`);
+    this.load.image('ui-status-hud', `assets/sprites/items/StatusHud.png?t=${cacheBuster}`);
+    this.load.image('ui-char-name-nixy', `assets/sprites/items/NixyName.png?t=${cacheBuster}`);
     this.load.image('void-scythe', `assets/sprites/items/scythe.png?t=${cacheBuster}`);
     this.load.image('blood-dagger', `assets/sprites/items/Adaga.png?t=${cacheBuster}`);
     this.load.image('infernal-meteor', `assets/sprites/items/Meteoro.png?t=${cacheBuster}`);

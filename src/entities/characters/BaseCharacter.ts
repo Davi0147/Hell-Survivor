@@ -39,6 +39,10 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public hurtTimer: number = 0;
   public currentDirection: Direction8 = 'south';
 
+  // Identificação do Personagem para UI / Sprites Dinâmicos
+  public characterId: string = 'nixy';
+  public characterName: string = 'NIXY';
+
   // Carga da Habilidade Suprema (Ultimate: Eternal Despair)
   public ultimateCharge: number = 0;
   public readonly maxUltimateCharge: number = 100;
