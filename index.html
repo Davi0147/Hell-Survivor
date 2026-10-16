@@ -38,8 +38,14 @@
       box-shadow: 0 0 40px rgba(255, 60, 0, 0.15);
     }
   </style>
-</head>
-<body>
+  <!-- Pré-carregador de fontes para garantir renderização perfeita antes do primeiro frame do canvas -->
+  <div style="font-family: 'Silkscreen', monospace; font-weight: bold; position: absolute; left: -9999px; visibility: hidden;" aria-hidden="true">
+    JOGAR HISTÓRIA MODO INFINITO CONFIGURAÇÕES SAIR NIXY CHEFE 0123456789
+  </div>
+  <div style="font-family: 'Press Start 2P', monospace; position: absolute; left: -9999px; visibility: hidden;" aria-hidden="true">
+    HELL SURVIVOR 0123456789
+  </div>
+
   <div id="game-container"></div>
   <div id="build-version" style="
     position: fixed;
@@ -55,7 +61,7 @@
     pointer-events: none;
     z-index: 99999;
     letter-spacing: 0.5px;
-  ">Build v0.4.4 - Volume Sliders & Clean UI (No Emojis)</div>
+  ">Build v0.4.5 - Preloaded Fonts & Halloween Intro BGM</div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

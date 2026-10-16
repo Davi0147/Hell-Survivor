@@ -177,26 +177,36 @@ export class SoundManager {
     this.playMusicTrack('bgm-boss', this.musicVolume * 1.15, fadeInMs);
   }
 
+  private readonly ALL_BGM_KEYS = ['bgm-menu', 'bgm-battle', 'bgm-boss', 'bgm-intro'];
+
   private playMusicTrack(key: string, targetVolume: number, fadeInMs: number): void {
     if (!this.scene || !this.scene.sound) return;
 
     // Se já estiver tocando essa mesma faixa, apenas assegura que o volume está correto
     if (this.currentBgmKey === key && this.currentBgm && this.currentBgm.isPlaying) {
+      if ((this.currentBgm as any).setVolume) {
+        (this.currentBgm as any).setVolume(targetVolume);
+      }
       return;
     }
 
-    // Se houver uma música tocando, faz fade out antes
-    if (this.currentBgm && this.currentBgm.isPlaying) {
-      const oldBgm = this.currentBgm;
-      this.scene.tweens.add({
-        targets: oldBgm,
-        volume: 0,
-        duration: 1000,
-        onComplete: () => {
-          oldBgm.stop();
-          oldBgm.destroy();
-        }
-      });
+    // 1. Interrompe IMEDIATAMENTE todas as outras instâncias de BGM no sound manager global do Phaser
+    for (const k of this.ALL_BGM_KEYS) {
+      if (k !== key) {
+        try {
+          this.scene.sound.stopByKey(k);
+        } catch {}
+      }
+    }
+
+    // 2. Destrói o objeto de áudio anterior se existir
+    if (this.currentBgm) {
+      try {
+        (this.currentBgm as any).stop();
+        (this.currentBgm as any).destroy();
+      } catch {}
+      this.currentBgm = undefined;
+      this.currentBgmKey = undefined;
     }
 
     try {
@@ -215,36 +225,42 @@ export class SoundManager {
       this.currentBgmKey = key;
 
       // Fade-in suave a partir de volume zero
-      this.scene.tweens.add({
-        targets: newBgm,
-        volume: targetVolume,
-        duration: fadeInMs,
-        ease: 'Linear'
-      });
+      if (fadeInMs > 0 && this.scene.tweens) {
+        this.scene.tweens.add({
+          targets: newBgm,
+          volume: targetVolume,
+          duration: fadeInMs,
+          ease: 'Linear'
+        });
+      } else {
+        (newBgm as any).setVolume(targetVolume);
+      }
     } catch (e) {
       console.warn(`[SoundManager] Falha ao reproduzir BGM "${key}":`, e);
     }
   }
 
   /**
-   * Para a música atual com fade out suave
+   * Para a música atual com interrupção instantânea e limpa de todas as BGMs no Phaser
    */
-  public stopMusic(fadeOutMs: number = 1500): void {
-    if (!this.scene || !this.currentBgm || !this.currentBgm.isPlaying) return;
+  public stopMusic(fadeOutMs: number = 0): void {
+    if (!this.scene || !this.scene.sound) return;
 
-    const bgmToStop = this.currentBgm;
-    this.currentBgm = undefined;
-    this.currentBgmKey = undefined;
+    // Interrompe imediatamente todas as faixas de música de fundo
+    for (const k of this.ALL_BGM_KEYS) {
+      try {
+        this.scene.sound.stopByKey(k);
+      } catch {}
+    }
 
-    this.scene.tweens.add({
-      targets: bgmToStop,
-      volume: 0,
-      duration: fadeOutMs,
-      onComplete: () => {
-        bgmToStop.stop();
-        bgmToStop.destroy();
-      }
-    });
+    if (this.currentBgm) {
+      try {
+        (this.currentBgm as any).stop();
+        (this.currentBgm as any).destroy();
+      } catch {}
+      this.currentBgm = undefined;
+      this.currentBgmKey = undefined;
+    }
   }
 
   // =========================================================================

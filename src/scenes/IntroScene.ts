@@ -59,6 +59,8 @@ export class IntroScene extends Phaser.Scene {
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
     SoundManager.getInstance().setScene(this);
+    // Interrompe qualquer música remanescente do menu
+    SoundManager.getInstance().stopMusic();
     // Toca a trilha de Halloween bem baixinha de fundo com fade-in suave em loop
     SoundManager.getInstance().playIntroMusic(2500);
 

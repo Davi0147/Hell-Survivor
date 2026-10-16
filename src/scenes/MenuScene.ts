@@ -243,20 +243,10 @@ export class MenuScene extends Phaser.Scene {
     this.textObjects.forEach((txt, idx) => {
       if (idx === selected) {
         // Letra laranja brilhante com sombra incandescente ao passar o mouse ou selecionar
-        txt.setStyle({
-          color: '#ffa200',
-          stroke: '#ff4500',
-          strokeThickness: 3,
-          shadow: {
-            offsetX: 0,
-            offsetY: 0,
-            color: '#ff6600',
-            blur: 14,
-            stroke: true,
-            fill: true
-          }
-        });
-        txt.setScale(1.0); // FIX: Mantém escala estritamente 1.0 para evitar redimensionamento e jitter
+        txt.setColor('#ffa200');
+        txt.setStroke('#ff4500', 3);
+        txt.setShadow(0, 0, '#ff6600', 14, true, true);
+        txt.setScale(1.0);
 
         // Posiciona os ponteiros > e < flanking o texto selecionado
         const halfWidth = txt.width * 0.5;
@@ -270,19 +260,9 @@ export class MenuScene extends Phaser.Scene {
         }
       } else {
         // Estado inativo: osso / pergaminho escuro
-        txt.setStyle({
-          color: '#d6c7b2',
-          stroke: '#150508',
-          strokeThickness: 3,
-          shadow: {
-            offsetX: 0,
-            offsetY: 0,
-            color: '#000000',
-            blur: 0,
-            stroke: false,
-            fill: false
-          }
-        });
+        txt.setColor('#d6c7b2');
+        txt.setStroke('#150508', 3);
+        txt.setShadow(0, 0, '#000000', 0, false, false);
         txt.setScale(1.0);
       }
     });
@@ -695,7 +675,7 @@ export class MenuScene extends Phaser.Scene {
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(160, () => {
       if (mode === 'story') {
-        SoundManager.getInstance().stopMusic(300);
+        SoundManager.getInstance().stopMusic();
         this.scene.start('IntroScene');
       } else {
         this.scene.start('GameScene', { mode });
