@@ -44,17 +44,21 @@ export class UltimateSystem {
     cutInContainer.add(darkBackdrop);
 
     // 2. Banner de Cut-In Oficial da Nixy (300x70px escalado em 3.15x para largura de ~945px)
-    // Posicionado mais para cima (y = 38% da tela) para equilíbrio visual perfeito
-    const bannerY = Math.round(height * 0.38);
+    // Centralizado perfeitamente no meio da tela (y = 50% da altura)
+    const bannerY = Math.round(height * 0.5);
     const bannerScale = 3.15;
     const cutInSprite = scene.add.sprite(width / 2, bannerY, 'nixy-ult-cutin-1');
     cutInSprite.setScale(bannerScale);
     cutInContainer.add(cutInSprite);
 
-    // 3. Tipografia de Impacto: "ETERNAL DESPAIR" (FONTE MAIOR: 50px, mais para cima, logo abaixo da moldura)
+    // 3. Tipografia de Impacto: "ETERNAL DESPAIR" (FONTE: 50px, rebaixada e animada da esquerda ao centro e saída rápida à direita)
     const pixelFont = "'Pixelzone', 'Silkscreen', 'Press Start 2P', monospace";
 
-    const titleText = scene.add.text(width / 2, bannerY + 115, 'ETERNAL DESPAIR', {
+    // Container dedicado aos textos para controlar movimento independente do fundo
+    const textGroup = scene.add.container(-width * 0.75, 0);
+    cutInContainer.add(textGroup);
+
+    const titleText = scene.add.text(0, bannerY + 140, 'ETERNAL DESPAIR', {
       fontFamily: pixelFont,
       fontSize: '50px',
       fontStyle: 'bold',
@@ -73,7 +77,7 @@ export class UltimateSystem {
     }).setOrigin(0.5);
     titleText.setResolution(2);
 
-    const subText = scene.add.text(width / 2, bannerY + 158, 'SUPREME PURIFICATION', {
+    const subText = scene.add.text(0, bannerY + 185, 'SUPREME PURIFICATION', {
       fontFamily: pixelFont,
       fontSize: '16px',
       fontStyle: 'bold',
@@ -92,64 +96,68 @@ export class UltimateSystem {
     }).setOrigin(0.5);
     subText.setResolution(2);
 
-    cutInContainer.add(titleText);
-    cutInContainer.add(subText);
+    textGroup.add(titleText);
+    textGroup.add(subText);
 
     // 4. Sequência Animada dos 3 Frames:
     // Frame 1 (0ms): Olhos fechados, concentração profunda
-    // Frame 2 (160ms): Olhos se abrem com brilho carmesim
-    // Frame 3 (360ms): Liberação total com cruzes roxas nos olhos e linhas de ação!
-    cutInContainer.setX(-width);
-
+    // O texto vem rápido da esquerda e desacelera suavemente no centro
     scene.tweens.add({
-      targets: cutInContainer,
-      x: 0,
-      duration: 160,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        // Transição para o Frame 2: Os olhos da Nixy se abrem
-        scene.time.delayedCall(160, () => {
-          if (!cutInSprite.scene) return;
-          cutInSprite.setTexture('nixy-ult-cutin-2');
-          cameras.shake(100, 0.006);
+      targets: textGroup,
+      x: width / 2,
+      duration: 260,
+      ease: 'Cubic.easeOut'
+    });
 
-          // Transição para o Frame 3: Poder supremo liberado!
-          scene.time.delayedCall(200, () => {
-            if (!cutInSprite.scene) return;
-            cutInSprite.setTexture('nixy-ult-cutin-3');
-            cameras.shake(250, 0.018);
-            cameras.flash(140, 255, 255, 255);
+    // Transição para o Frame 2 (160ms): Os olhos da Nixy se abrem
+    scene.time.delayedCall(160, () => {
+      if (!cutInSprite.scene) return;
+      cutInSprite.setTexture('nixy-ult-cutin-2');
+      cameras.shake(100, 0.006);
 
-            // Pulso da tipografia acompanhando o pico de energia
-            scene.tweens.add({
-              targets: [titleText, subText],
-              scaleX: 1.12,
-              scaleY: 1.12,
-              duration: 100,
-              yoyo: true,
-              ease: 'Quad.easeInOut'
-            });
+      // Transição para o Frame 3 (360ms): Poder supremo liberado!
+      scene.time.delayedCall(200, () => {
+        if (!cutInSprite.scene) return;
+        cutInSprite.setTexture('nixy-ult-cutin-3');
+        cameras.shake(250, 0.018);
+        cameras.flash(140, 255, 255, 255);
 
-            // Hit-stop de 420ms no ápice do Frame 3 e depois saída em corte veloz
-            scene.time.delayedCall(420, () => {
-              scene.tweens.add({
-                targets: cutInContainer,
-                x: width * 1.25,
-                alpha: 0,
-                duration: 160,
-                ease: 'Quad.easeIn',
-                onComplete: () => {
-                  cutInContainer.destroy();
-                  // Restaura a visualização da HUD limpa após a saída da animação
-                  if (uiScene && typeof uiScene.setHUDVisible === 'function') {
-                    uiScene.setHUDVisible(true);
-                  }
-                }
-              });
-            });
+        // Pulso da tipografia acompanhando o pico de energia
+        scene.tweens.add({
+          targets: [titleText, subText],
+          scaleX: 1.15,
+          scaleY: 1.15,
+          duration: 100,
+          yoyo: true,
+          ease: 'Quad.easeInOut'
+        });
+
+        // Hit-stop de 420ms no ápice do Frame 3 e depois saída rápida pela direita
+        scene.time.delayedCall(420, () => {
+          // O nome sai rapidamente pela direita
+          scene.tweens.add({
+            targets: textGroup,
+            x: width + 600,
+            duration: 160,
+            ease: 'Quad.easeIn'
+          });
+
+          // O banner e o fundo esvanecem em corte cinematográfico
+          scene.tweens.add({
+            targets: cutInContainer,
+            alpha: 0,
+            duration: 160,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+              cutInContainer.destroy();
+              // Restaura a visualização da HUD limpa após a saída da animação
+              if (uiScene && typeof uiScene.setHUDVisible === 'function') {
+                uiScene.setHUDVisible(true);
+              }
+            }
           });
         });
-      }
+      });
     });
 
     // =========================================================================

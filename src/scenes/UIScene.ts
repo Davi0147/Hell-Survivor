@@ -28,7 +28,9 @@ export class UIScene extends Phaser.Scene {
 
   // Painel de Status Barroco Vampírico (Canto Inferior Direito)
   private baroquePanelGraphics!: Phaser.GameObjects.Graphics;
+  private ultGaugeBg!: Phaser.GameObjects.Image;
   private vialGraphics!: Phaser.GameObjects.Graphics;
+  private ultGaugeFrame!: Phaser.GameObjects.Image;
   private ultimatePctText!: Phaser.GameObjects.Text;
   private ultimateReadyBadge!: Phaser.GameObjects.Text;
   private hpBarFill!: Phaser.GameObjects.Graphics;
@@ -60,10 +62,11 @@ export class UIScene extends Phaser.Scene {
   private portraitBaseY: number = 0;
   private portraitSize: number = 340;
 
-  // Painel Superior Direito (Abates, Almas e Arma)
+  // Painel Superior Direito Minimalista (Abates e Almas)
   private killsPanelGraphics!: Phaser.GameObjects.Graphics;
+  private killsIcon!: Phaser.GameObjects.Image;
   private killsText!: Phaser.GameObjects.Text;
-  private weaponInfoText!: Phaser.GameObjects.Text;
+  private weaponInfoText?: Phaser.GameObjects.Text;
   private soulsIcon!: Phaser.GameObjects.Image;
   private soulsText!: Phaser.GameObjects.Text;
 
@@ -170,31 +173,43 @@ export class UIScene extends Phaser.Scene {
     this.baroquePanelGraphics.setDepth(30);
     this.drawBaroqueFrame();
 
-    // Orbe Alado da Suprema (Ultimate: Eternal Despair) (Depth 50)
+    // Medidor de Suprema: Ult Gauge (Fundo, Barra Líquida Dinâmica e Moldura Ornamental)
+    this.ultGaugeBg = this.add.image(this.vialX, this.vialY, 'ult-gauge-bg');
+    this.ultGaugeBg.setScale(1.45).setOrigin(0.5).setDepth(48);
+
     this.vialGraphics = this.add.graphics();
     this.vialGraphics.setDepth(50);
     this.drawUltimateOrb(0, false);
 
-    // Texto de porcentagem da carga da Suprema (ex: 45%)
-    this.ultimatePctText = this.add.text(this.vialX, this.vialY + 4, '0%', {
+    this.ultGaugeFrame = this.add.image(this.vialX, this.vialY, 'ult-gauge-frame');
+    this.ultGaugeFrame.setScale(1.45).setOrigin(0.5).setDepth(52);
+
+    // Texto de porcentagem centralizado durante o carregamento
+    this.ultimatePctText = this.add.text(this.vialX, this.vialY, '0%', {
       fontFamily: pixelFont,
-      fontSize: '9px',
+      fontSize: '11px',
       fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#0e0208',
-      strokeThickness: 3
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3.5
     }).setOrigin(0.5).setDepth(60);
 
-    // Badge pulsante de ativação quando a Suprema atinge 100%
-    this.ultimateReadyBadge = this.add.text(this.vialX, this.vialY - 32, '[E] READY', {
+    // Prompt [E] pulsante no centro do medidor quando 100% pronta
+    this.ultimateReadyBadge = this.add.text(this.vialX, this.vialY, '[E]', {
       fontFamily: pixelFont,
-      fontSize: '10px',
+      fontSize: '15px',
       fontStyle: 'bold',
       color: '#ffd60a',
-      backgroundColor: '#720012ee',
-      padding: { x: 4, y: 2 },
       stroke: '#000000',
-      strokeThickness: 3
+      strokeThickness: 4,
+      shadow: {
+        offsetX: 0,
+        offsetY: 0,
+        color: '#ff0055',
+        blur: 10,
+        stroke: true,
+        fill: true
+      }
     }).setOrigin(0.5).setDepth(65);
     this.ultimateReadyBadge.setVisible(false);
 
@@ -274,48 +289,36 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(60);
 
     // ==========================================
-    // 4. CANTO SUPERIOR DIREITO: ABATES E ARMA ATIVA (ESTILO BARROCO)
+    // 4. CANTO SUPERIOR DIREITO: ABATES E ALMAS (MINIMALISTA SEM FUNDO)
     // ==========================================
-    const margin = 20;
-    const killsPanelW = 250;
-    const killsPanelH = 92;
-    const killsPanelX = width - killsPanelW - margin;
-    const killsPanelY = 20;
-
     this.killsPanelGraphics = this.add.graphics();
-    this.killsPanelGraphics.fillStyle(0x1a0308, 0.92);
-    this.killsPanelGraphics.fillRoundedRect(killsPanelX, killsPanelY, killsPanelW, killsPanelH, 8);
-    this.killsPanelGraphics.lineStyle(2, 0xc59b27, 1);
-    this.killsPanelGraphics.strokeRoundedRect(killsPanelX, killsPanelY, killsPanelW, killsPanelH, 8);
-    this.killsPanelGraphics.lineStyle(1, 0xf3d17a, 0.7);
-    this.killsPanelGraphics.strokeRoundedRect(killsPanelX + 3, killsPanelY + 3, killsPanelW - 6, killsPanelH - 6, 6);
+    this.killsPanelGraphics.setDepth(60);
 
-    this.killsText = this.add.text(killsPanelX + 16, killsPanelY + 14, 'ABATES: 0', {
+    const hudRightX = width - 110;
+    const killsY = 24;
+    const soulsY = 52;
+
+    // Linha 1: ABATES (Sprite Kills + Quantidade com contorno preto)
+    this.killsIcon = this.add.image(hudRightX, killsY, 'ui-kills-icon').setScale(0.55).setOrigin(0.5).setDepth(60);
+    this.killsText = this.add.text(hudRightX + 18, killsY, '0', {
+      fontFamily: pixelFont,
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3.5
+    }).setOrigin(0, 0.5).setDepth(60);
+
+    // Linha 2: ALMAS (Sprite Alma + Quantidade com contorno preto)
+    this.soulsIcon = this.add.image(hudRightX, soulsY, 'item-soul').setScale(0.55).setOrigin(0.5).setDepth(60);
+    this.soulsText = this.add.text(hudRightX + 18, soulsY, '0', {
       fontFamily: pixelFont,
       fontSize: '13px',
       fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#3a0812',
-      strokeThickness: 2
-    });
-
-    this.weaponInfoText = this.add.text(killsPanelX + 16, killsPanelY + 38, 'Soul Bolts (Nív 1)', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#00f5d4',
-      stroke: '#003530',
-      strokeThickness: 2
-    });
-
-    this.soulsIcon = this.add.image(killsPanelX + 26, killsPanelY + 68, 'item-soul').setScale(0.55);
-    this.soulsText = this.add.text(killsPanelX + 44, killsPanelY + 62, '0 ALMAS', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
       color: '#c084fc',
-      stroke: '#240046',
-      strokeThickness: 2
-    });
+      stroke: '#000000',
+      strokeThickness: 3.5
+    }).setOrigin(0, 0.5).setDepth(60);
 
     // ==========================================
     // 5. TOPO CENTRAL: PURIFICAÇÃO DE ALMAS & BARRA DA CHEFE
@@ -442,7 +445,9 @@ export class UIScene extends Phaser.Scene {
       radarNorthText,
       this.portraitImage,
       this.baroquePanelGraphics,
+      this.ultGaugeBg,
       this.vialGraphics,
+      this.ultGaugeFrame,
       this.ultimatePctText,
       this.ultimateReadyBadge,
       this.hpBarFill,
@@ -452,8 +457,8 @@ export class UIScene extends Phaser.Scene {
       this.hpText,
       this.staminaText,
       this.killsPanelGraphics,
+      this.killsIcon,
       this.killsText,
-      this.weaponInfoText,
       this.soulsIcon,
       this.soulsText,
       this.purifyBarGraphics,
@@ -631,9 +636,9 @@ export class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Desenha o Orbe Alado da Suprema (Ultimate: Eternal Despair)
-   * Carrega com abates e gemas de alma.
-   * Ao atingir 100%, emite chamas douradas e o prompt [E] READY!
+   * Desenha a barra líquida mística dentro do novo Medidor da Suprema (Ult Gauge)
+   * O líquido sobe entre o fundo (ult-gauge-bg) e a moldura frontal (ult-gauge-frame).
+   * Violeta místico durante o carregamento; Carmesim ardente ao atingir 100%.
    */
   private drawUltimateOrb(chargeRatio: number, isReady: boolean): void {
     const g = this.vialGraphics;
@@ -641,92 +646,44 @@ export class UIScene extends Phaser.Scene {
 
     const cx = this.vialX;
     const cy = this.vialY;
-    const now = this.time.now;
-    const pulse = isReady ? Math.sin(now * 0.008) * 3 : 0;
 
-    // ========================
-    // 1. ASAS DOURADAS LATERAIS (WINGS)
-    // ========================
-    const drawWing = (dir: number) => {
-      // Penas douradas superiores
-      g.fillStyle(isReady ? 0xf3d17a : 0xc59b27, 0.95);
-      g.fillTriangle(cx + dir * 18, cy - 10, cx + dir * (36 + pulse), cy - 26, cx + dir * 26, cy);
-      g.fillTriangle(cx + dir * 18, cy - 2, cx + dir * (34 + pulse), cy - 12, cx + dir * 24, cy + 8);
-      g.fillTriangle(cx + dir * 16, cy + 6, cx + dir * (30 + pulse), cy + 2, cx + dir * 22, cy + 16);
+    // Dimensões da janela interna transparente da moldura (40x40 escalado em 1.45x)
+    const winW = 34;
+    const winH = 34;
+    const winLeft = cx - winW / 2;
+    const winBottom = cy + 16;
+    const winTop = cy - 18;
 
-      // Relevo de pena clara
-      g.lineStyle(1.5, isReady ? 0xffffff : 0xf3d17a, 1);
-      g.strokeLineShape(new Phaser.Geom.Line(cx + dir * 18, cy - 10, cx + dir * (36 + pulse), cy - 26));
-      g.strokeLineShape(new Phaser.Geom.Line(cx + dir * 18, cy - 2, cx + dir * (34 + pulse), cy - 12));
-    };
-    drawWing(-1); // Asa Esquerda
-    drawWing(1);  // Asa Direita
-
-    // Se pronta, desenha uma aura pulsante dourada em volta do bulbo
-    if (isReady) {
-      g.lineStyle(2, 0xffd60a, 0.75 + Math.sin(now * 0.01) * 0.25);
-      g.strokeCircle(cx, cy + 4, 25 + pulse * 0.6);
-    }
-
-    // ========================
-    // 2. CORPO DO FRASCO DE VIDRO
-    // ========================
-    const bulbRadius = 22;
-
-    // Sombra interna do vidro
-    g.fillStyle(0x0e0208, 0.92);
-    g.fillCircle(cx, cy + 4, bulbRadius);
-
-    // ========================
-    // 3. ESSÊNCIA DA SUPREMA (LÍQUIDO MÍSTICO VIOLETA -> CARMESIM)
-    // ========================
     const clampedRatio = Phaser.Math.Clamp(chargeRatio, 0, 1);
-    if (clampedRatio > 0.04) {
-      const liquidHeight = bulbRadius * 2 * clampedRatio;
-      const fillY = cy + 4 + bulbRadius - liquidHeight;
 
-      // Cor do líquido: Eletrizante carmesim quando pronta, violeta profundo durante carga
-      g.fillStyle(isReady ? 0xff0055 : 0x7209b7, 1);
-      g.beginPath();
-      g.arc(cx, cy + 4, bulbRadius - 2, 0, Math.PI * 2);
-      g.fill();
-
-      // Corte superior do nível de carga
-      g.fillStyle(0x0e0208, 0.92);
-      g.fillRect(cx - bulbRadius, cy + 4 - bulbRadius, bulbRadius * 2, (bulbRadius * 2) * (1 - clampedRatio));
-
-      // Linha de superfície brilhante (menisco de fogo/energia)
-      g.fillStyle(isReady ? 0xffd60a : 0xf72585, 0.95);
-      g.fillRect(cx - bulbRadius + 4, fillY, (bulbRadius - 4) * 2, 2.5);
+    // Se pronta, projeta um halo e aura dourada pulsante ao redor do medidor
+    if (isReady) {
+      const now = this.time.now;
+      const pulse = Math.sin(now * 0.008);
+      g.lineStyle(2.5, 0xff0055, 0.7 + pulse * 0.3);
+      g.strokeRoundedRect(cx - 30 - pulse, cy - 30 - pulse, 60 + pulse * 2, 60 + pulse * 2, 8);
+      g.lineStyle(1.5, 0xffd60a, 0.85);
+      g.strokeRoundedRect(cx - 28, cy - 28, 56, 56, 6);
     }
 
-    // ========================
-    // 4. REFLEXO E BRILHO DO VIDRO
-    // ========================
-    // Contorno do bulbo em ouro e vidro
-    g.lineStyle(2.5, isReady ? 0xffd60a : 0xc59b27, 1);
-    g.strokeCircle(cx, cy + 4, bulbRadius);
-    g.lineStyle(1, 0xffffff, 0.6);
-    g.strokeCircle(cx, cy + 4, bulbRadius - 1);
+    // Líquido místico subindo verticalmente enquanto carrega
+    if (clampedRatio > 0.02) {
+      const fillH = winH * clampedRatio;
+      const fillY = winBottom - fillH;
 
-    // Reflexo de luz branco no vidro (Curva superior esquerda)
-    g.lineStyle(2, 0xffffff, 0.75);
-    g.beginPath();
-    g.arc(cx - 6, cy - 2, 12, Math.PI * 0.9, Math.PI * 1.4);
-    g.stroke();
+      // 1. Corpo principal do líquido (Violeta místico / Carmesim ardente)
+      g.fillStyle(isReady ? 0xd90429 : 0x7b2cbf, 0.95);
+      g.fillRect(winLeft, fillY, winW, fillH);
 
-    // ========================
-    // 5. GARGALO E ROLHA DE OURO
-    // ========================
-    g.fillStyle(0xc59b27, 1);
-    g.fillRect(cx - 7, cy - 24, 14, 6);
-    g.lineStyle(1, 0xf3d17a, 1);
-    g.strokeRect(cx - 7, cy - 24, 14, 6);
+      // 2. Camada de brilho interno translúcido
+      g.fillStyle(isReady ? 0xff0054 : 0x9d4edd, 0.65);
+      g.fillRect(winLeft + 3, fillY + 2, winW - 6, Math.max(0, fillH - 4));
 
-    g.fillStyle(0x936639, 1);
-    g.fillRect(cx - 5, cy - 32, 10, 8);
-    g.lineStyle(1, 0xc48b52, 1);
-    g.strokeRect(cx - 5, cy - 32, 10, 8);
+      // 3. Onda / menisco de energia na superfície do líquido
+      const wave = isReady ? 0 : Math.sin(this.time.now * 0.007) * 1.2;
+      g.fillStyle(isReady ? 0xffd60a : 0x00f5d4, 1);
+      g.fillRect(winLeft, Math.max(winTop, fillY + wave), winW, 2.5);
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -740,7 +697,7 @@ export class UIScene extends Phaser.Scene {
 
     const p = gameScene.player;
 
-    // Atualizar Orbe Alado da Suprema (Ultimate: Eternal Despair)
+    // Atualizar Medidor da Suprema (Ult Gauge)
     const ultRatio = Phaser.Math.Clamp(p.ultimateCharge / p.maxUltimateCharge, 0, 1);
     const isUltReady = p.isUltimateReady;
     this.drawUltimateOrb(ultRatio, isUltReady);
@@ -749,8 +706,8 @@ export class UIScene extends Phaser.Scene {
       this.ultimatePctText.setVisible(false);
       this.ultimateReadyBadge.setVisible(true);
 
-      // Efeito de pulso suave no badge
-      const badgeScale = 1.0 + Math.sin(this.time.now * 0.008) * 0.08;
+      // Efeito de pulso rítmico no prompt [E]
+      const badgeScale = 1.0 + Math.sin(this.time.now * 0.008) * 0.14;
       this.ultimateReadyBadge.setScale(badgeScale);
     } else {
       this.ultimateReadyBadge.setVisible(false);
@@ -795,12 +752,12 @@ export class UIScene extends Phaser.Scene {
       this.portraitImage.clearTint();
     }
 
-    // Atualizar Abates e Almas Corrompidas
+    // Atualizar Abates e Almas Corrompidas (Apenas valores numéricos com ícones)
     if (typeof gameScene.killCount === 'number') {
-      this.killsText.setText(`ABATES: ${gameScene.killCount}`);
+      this.killsText.setText(`${gameScene.killCount}`);
     }
     const runSouls = MetaProgressManager.getInstance().runSoulsCollected;
-    this.soulsText.setText(`${runSouls} ALMAS`);
+    this.soulsText.setText(`${runSouls}`);
 
     // Atualizar Barra Superior de Experiência (XP)
     const { width, height } = this.scale;
@@ -810,20 +767,6 @@ export class UIScene extends Phaser.Scene {
     this.xpBarFill.fillRect(0, 0, width * xpRatio, 13);
     this.xpText.setText(`LVL ${p.currentLevel}   [ ${p.currentXp} / ${p.xpToNextLevel} XP ]`);
     this.levelTag.setText(`LVL ${p.currentLevel}`);
-
-    // Atualizar Armas Ativas no Painel Superior Direito
-    if (gameScene.weapons && gameScene.weapons.length > 0) {
-      const names = gameScene.weapons.map((w: any) => {
-        if (w instanceof VoidScythesWeapon) {
-          return `${w.name} (${w.getBladeCount()}/6)`;
-        }
-        if (w instanceof HellfireAuraWeapon) {
-          return `${w.name} (Nív ${w.getLevel()}/5)`;
-        }
-        return w.name;
-      }).join(' | ');
-      this.weaponInfoText.setText(names);
-    }
 
     // Atualizar Barra de Purificação de Almas (Modo História), Barra de Vida da Chefe, ou Cronômetro (Modo Infinito)
     if (gameScene.isBossFightActive && gameScene.bossInstance && gameScene.bossInstance.active) {

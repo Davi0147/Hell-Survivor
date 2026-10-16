@@ -12,8 +12,8 @@ export class MenuScene extends Phaser.Scene {
   private selectedIndex: number = 0;
   private menuItems: MenuItem[] = [];
   private textObjects: Phaser.GameObjects.Text[] = [];
-  private leftIndicator?: Phaser.GameObjects.Text;
-  private rightIndicator?: Phaser.GameObjects.Text;
+  private menuArrow?: Phaser.GameObjects.Image;
+  private arrowTween?: Phaser.Tweens.Tween;
   private menuSoulsText?: Phaser.GameObjects.Text;
   private isModalOpen: boolean = false;
   private modalContainer?: Phaser.GameObjects.Container;
@@ -202,34 +202,11 @@ export class MenuScene extends Phaser.Scene {
       this.textObjects.push(txt);
     });
 
-    // 7. Indicadores Visuais da Opção Selecionada (> à esquerda e < à direita)
-    this.leftIndicator = this.add.text(0, 0, '>', {
-      fontFamily: pixelFont,
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: '#ffa200',
-      stroke: '#ff4500',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(16);
-
-    this.rightIndicator = this.add.text(0, 0, '<', {
-      fontFamily: pixelFont,
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: '#ffa200',
-      stroke: '#ff4500',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(16);
-
-    // Efeito de pulso suave e rítmico dos indicadores
-    this.tweens.add({
-      targets: [this.leftIndicator, this.rightIndicator],
-      alpha: { from: 0.65, to: 1.0 },
-      duration: 420,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+    // 7. Indicador Visual da Opção Selecionada (Sprite Seta à esquerda)
+    this.menuArrow = this.add.image(0, 0, 'ui-menu-arrow');
+    this.menuArrow.setScale(0.75);
+    this.menuArrow.setOrigin(0.5);
+    this.menuArrow.setDepth(16);
 
     this.updateMenuVisuals();
 
@@ -278,15 +255,24 @@ export class MenuScene extends Phaser.Scene {
         txt.setShadow(0, 0, '#ff6600', 14, true, true);
         txt.setScale(1.0);
 
-        // Posiciona os ponteiros > e < flanking o texto selecionado
+        // Posiciona a Seta à esquerda do texto selecionado com flutuação arcade suave
         const halfWidth = txt.width * 0.5;
-        if (this.leftIndicator) {
-          this.leftIndicator.setPosition(txt.x - halfWidth - 24, txt.y);
-          this.leftIndicator.setVisible(true);
-        }
-        if (this.rightIndicator) {
-          this.rightIndicator.setPosition(txt.x + halfWidth + 24, txt.y);
-          this.rightIndicator.setVisible(true);
+        const targetX = txt.x - halfWidth - 28;
+        if (this.menuArrow) {
+          this.menuArrow.setVisible(true);
+          this.menuArrow.setPosition(targetX, txt.y);
+
+          if (this.arrowTween) {
+            this.arrowTween.stop();
+          }
+          this.arrowTween = this.tweens.add({
+            targets: this.menuArrow,
+            x: targetX + 6,
+            duration: 380,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
         }
       } else {
         // Estado inativo: osso / pergaminho escuro

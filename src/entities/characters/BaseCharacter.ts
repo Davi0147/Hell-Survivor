@@ -210,8 +210,8 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public gainUltimateCharge(amount: number): boolean {
     if (this.isUltimateActive) return false;
     const prev = this.ultimateCharge;
-    // Demora 3x mais para carregar tudo (aumento equilibrado do tempo de recarga)
-    this.ultimateCharge = Phaser.Math.Clamp(this.ultimateCharge + (amount / 3), 0, this.maxUltimateCharge);
+    // Taxa de recarga calibrada (+20% mais exigente para carregar a Suprema)
+    this.ultimateCharge = Phaser.Math.Clamp(this.ultimateCharge + (amount / 3.6), 0, this.maxUltimateCharge);
     if (prev < this.maxUltimateCharge && this.ultimateCharge >= this.maxUltimateCharge) {
       this.emit('ultimate-ready');
       return true;
