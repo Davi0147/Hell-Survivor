@@ -353,6 +353,7 @@ export class IntroScene extends Phaser.Scene {
     if (speaker === 'nixy') {
       // Destaca Nixy na esquerda
       this.leftBust.setTexture('chat-nixy');
+      this.leftBust.setDisplaySize(this.BUST_W, this.BUST_H);
       this.leftBust.clearTint();
       this.leftBust.setDepth(35);
 
@@ -375,6 +376,7 @@ export class IntroScene extends Phaser.Scene {
     } else if (speaker === 'chefe') {
       // Destaca Chefe na direita
       this.rightBust.setTexture('chat-boss');
+      this.rightBust.setDisplaySize(this.BUST_W, this.BUST_H);
       this.rightBust.clearTint();
       this.rightBust.setDepth(35);
 
@@ -917,9 +919,8 @@ export class IntroScene extends Phaser.Scene {
           SoundManager.getInstance().playSmokePoof();
           s.tweens.add({
             targets: s.rightBust,
-            alpha: 0.3,
-            scaleX: 0.8,
-            duration: 500
+            alpha: 0.35,
+            duration: 450
           });
         }
       },

@@ -35,6 +35,14 @@ export class GameScene extends Phaser.Scene {
   public isRevival: boolean = false;
   private bossMinionTimer: number = 0;
 
+  // Sistema de Balões de Fala Dinâmicos em Combate
+  private activeCombatBubbles: {
+    container: Phaser.GameObjects.Container;
+    target: any;
+    offsetY: number;
+  }[] = [];
+  private combatBanterTimers: Phaser.Time.TimerEvent[] = [];
+
   // Sistema de Combate e Armas
   public weapons: BaseWeapon[] = [];
   public soulBoltWeapon!: SoulBoltWeapon;
@@ -76,6 +84,7 @@ export class GameScene extends Phaser.Scene {
     this.bossInstance = undefined;
     this.spawnTimer = 0;
     this.bossMinionTimer = 0;
+    this.clearCombatSpeechBubbles();
   }
 
   create(): void {
@@ -215,6 +224,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
     });
 
@@ -322,6 +332,17 @@ export class GameScene extends Phaser.Scene {
     if (this.isGameOver || this.isChapterCompleted) return;
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene && uiScene.isDialogueActive()) return;
+
+    // Atualizar posição dos balões dinâmicos de combate (rastreando os personagens em tempo real)
+    for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
+      const bubble = this.activeCombatBubbles[i];
+      if (bubble.target && bubble.target.active && !bubble.target.isDead) {
+        bubble.container.setPosition(bubble.target.x, bubble.target.y + bubble.offsetY);
+      } else {
+        bubble.container.destroy();
+        this.activeCombatBubbles.splice(i, 1);
+      }
+    }
 
     // Verificar se Nixy foi derrotada
     if (this.player.currentHp <= 0) {
@@ -795,6 +816,7 @@ export class GameScene extends Phaser.Scene {
     SoundManager.getInstance().playGameOver();
 
     this.physics.pause();
+    this.clearCombatSpeechBubbles();
     if (this.player?.body) {
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
     }
@@ -831,7 +853,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Inicia o confronto épico contra a Boss Succubus Imperial
+   * Inicia o confronto épico contra a Boss Succubus
    */
   private triggerBossEncounter(): void {
     this.isBossFightActive = true;
@@ -848,26 +870,194 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(260, 255, 255, 255);
     this.cameras.main.shake(200, 0.015);
 
-    // 2. Diálogo Pré-Boss (Persona 5 style)
+    // 2. Diálogo Pré-Boss (Persona 5 style) com a Succubus
     this.time.delayedCall(300, () => {
       this.playDialogue([
         {
           speaker: 'succubus',
-          speakerName: 'Succubus Imperial',
+          speakerName: 'Succubus',
           portraitKey: 'chat-succubus',
-          text: 'Hahaha... Que doce e insolente heroína temos aqui. Você realmente achou que poderia ceifar minhas almas impunemente?'
+          text: 'Ora, ora, ora... Olha só quem resolveu sair da sua mesinha de escritório.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Nixy!'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'O que aconteceu, querida? Perdeu o emprego ou finalmente perdeu o juízo?'
         },
         {
           speaker: 'nixy',
           speakerName: 'Nixy',
           portraitKey: 'chat-nixy',
-          text: 'Uma Succubus Imperial... Então era você quem estava comandando essa matilha pútrida. Prepare-se, demônio.'
+          text: 'Os dois. E adivinha qual dos dois problemas eu vim resolver primeiro?'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus Imperial',
+          speakerName: 'Succubus',
           portraitKey: 'chat-succubus',
-          text: 'Prepare-se você, mortal! Suas cinzas alimentarão as chamas do abismo eterno!'
+          text: 'Hahaha! Continua com essa boquinha suja, pelo visto.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Vamos facilitar as coisas, querida. Você já causou problemas demais por aqui. Que tal dar meia-volta, retornar ao trabalho e deixar os adultos resolverem essa bagunça?'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Ow, sua [CENSURADO]! Sai da minha frente antes que eu arranque essas asas de merda e enfie elas no seu [CENSURADO]!'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Nossa! Alguém acordou com o rabinho pegando fogo!'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Sempre soube que você era esquentadinha, mas nunca imaginei que fosse tão desesperada.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Embora... pensando bem, talvez eu devesse ter previsto isso. O chefe sempre teve um talento especial para ignorar as funcionárias problemáticas.'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Engraçado. Eu sempre achei que ele tivesse um talento especial para promover as [CENSURADO] que dão pra ele.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'C-COMO É QUE É?!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Você ouviu, querida. Ou precisa que eu desenhe? Posso até preencher um formulário, se ajudar.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Sua... sua insolente!'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Eu conquistei cada pedaço do poder que tenho! Enquanto você ficava enterrada em papelada, eu estava subindo na hierarquia!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Subindo na hierarquia ou subindo no colo do chefe? Porque, sinceramente, com essa sua cara de [CENSURADO], fica difícil distinguir.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Sua inveja é tão patética que chega a ser adorável.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Você passou mil anos rastejando pelos corredores deste inferno, achando que alguém se importava com você. E agora está aqui, fazendo birra porque descobriu que é descartável.'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'E você passou mil anos lambendo as botas de um demônio que nem deve lembrar seu nome quando está de costas.'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'A diferença é que eu sei fazer meu trabalho.'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Você só sabe abrir as pernas e bater as asas.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: '...'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Muito bem.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Eu ia deixar você voltar para sua insignificante vidinha de funcionária revoltada.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Mas agora...'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Agora vou arrancar cada pedacinho dessa sua arrogância.'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'Vou me deliciar com seu sangue enquanto uso esses chifres ridículos para abrir um buraco tão fundo em você que nem o próprio inferno vai conseguir encontrar o fundo!'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'HAHAHAHAHAHA!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Caralho, mulher. Você ensaiou isso na frente do espelho?'
+        },
+        {
+          speaker: 'succubus',
+          speakerName: 'Succubus',
+          portraitKey: 'chat-succubus',
+          text: 'EU VOU MATAR VOCÊ!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'ENTÃO CAI DENTRO, SUA DESGRAÇADA!'
         }
       ], () => {
         this.spawnSuccubusBoss();
@@ -884,8 +1074,11 @@ export class GameScene extends Phaser.Scene {
     this.enemiesGroup.add(this.bossInstance);
     this.bossInstance.spawn(bossX, bossY);
 
-    this.cameras.main.flash(200, 255, 0, 85);
-    this.cameras.main.shake(250, 0.02);
+    this.cameras.main.flash(260, 255, 0, 85);
+    this.cameras.main.shake(300, 0.022);
+
+    // Inicia os balões dinâmicos de fala em tempo real durante a batalha
+    this.startBossCombatBanter();
 
     this.bossInstance.on('boss-defeated', () => {
       this.handleBossDefeated();
@@ -894,6 +1087,7 @@ export class GameScene extends Phaser.Scene {
 
   private handleBossDefeated(): void {
     this.isChapterCompleted = true;
+    this.clearCombatSpeechBubbles();
     SoundManager.getInstance().stopMusic(2500);
     this.physics.pause();
     if (this.player?.body) {
@@ -956,5 +1150,205 @@ export class GameScene extends Phaser.Scene {
     if (!this.player.isUltimateReady || this.player.isUltimateActive) return;
     SoundManager.getInstance().playUltimateCast();
     UltimateSystem.execute(this, this.player, this.enemiesGroup);
+  }
+
+  /**
+   * Dispara a sequência de provocações em tempo real entre Nixy e Succubus durante o combate
+   */
+  private startBossCombatBanter(): void {
+    this.clearCombatSpeechBubbles();
+
+    // 1. Nixy: "Só pra deixar claro:" (1.2s após início do combate)
+    const t1 = this.time.delayedCall(1200, () => {
+      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
+      this.showCombatSpeechBubble(this.player, 'Só pra deixar claro:', 1900, true);
+    });
+    this.combatBanterTimers.push(t1);
+
+    // 2. Nixy: "se você sobreviver..." (3.3s após início do combate)
+    const t2 = this.time.delayedCall(3300, () => {
+      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
+      this.showCombatSpeechBubble(this.player, 'se você sobreviver...', 2000, true);
+    });
+    this.combatBanterTimers.push(t2);
+
+    // 3. Nixy: "eu ainda vou terminar o que comecei com essas asas!" (5.5s após início do combate)
+    const t3 = this.time.delayedCall(5500, () => {
+      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
+      this.showCombatSpeechBubble(this.player, 'eu ainda vou terminar o que comecei com essas asas!', 3000, true);
+    });
+    this.combatBanterTimers.push(t3);
+
+    // 4. Succubus: "E se você sobreviver..." (8.8s após início do combate)
+    const t4 = this.time.delayedCall(8800, () => {
+      if (!this.bossInstance || this.bossInstance.isDead || !this.isBossFightActive || this.isGameOver) return;
+      this.showCombatSpeechBubble(this.bossInstance, 'E se você sobreviver...', 2200, false);
+    });
+    this.combatBanterTimers.push(t4);
+
+    // 5. Succubus: "eu arranco sua língua!" (11.2s após início do combate)
+    const t5 = this.time.delayedCall(11200, () => {
+      if (!this.bossInstance || this.bossInstance.isDead || !this.isBossFightActive || this.isGameOver) return;
+      this.showCombatSpeechBubble(this.bossInstance, 'eu arranco sua língua!', 2600, false);
+    });
+    this.combatBanterTimers.push(t5);
+
+    // 6. Nixy: "Olha só!" (14.1s após início do combate)
+    const t6 = this.time.delayedCall(14100, () => {
+      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
+      this.showCombatSpeechBubble(this.player, 'Olha só!', 1600, true);
+    });
+    this.combatBanterTimers.push(t6);
+
+    // 7. Nixy: "Finalmente encontramos algo em que concordamos." (15.9s após início do combate)
+    const t7 = this.time.delayedCall(15900, () => {
+      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
+      this.showCombatSpeechBubble(this.player, 'Finalmente encontramos algo em que concordamos.', 3000, true);
+    });
+    this.combatBanterTimers.push(t7);
+  }
+
+  /**
+   * Exibe um balão de fala estilo quadrinhos sobre a cabeça de Nixy ou Succubus no calor do combate
+   */
+  private showCombatSpeechBubble(
+    target: any,
+    text: string,
+    durationMs: number,
+    isNixy: boolean
+  ): void {
+    if (!target || !target.active) return;
+    if ('isDead' in target && target.isDead) return;
+    if ('currentHp' in target && target.currentHp <= 0) return;
+
+    // Remove balão anterior do mesmo alvo, se existir, para não sobrepor
+    for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
+      if (this.activeCombatBubbles[i].target === target) {
+        this.activeCombatBubbles[i].container.destroy();
+        this.activeCombatBubbles.splice(i, 1);
+      }
+    }
+
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+    const offsetY = isNixy ? -36 : -52;
+
+    const container = this.add.container(target.x, target.y + offsetY);
+    container.setDepth(1500);
+
+    const nameText = this.add.text(0, 0, isNixy ? 'NIXY' : 'SUCCUBUS', {
+      fontFamily: pixelFont,
+      fontSize: '6px',
+      fontStyle: 'bold',
+      color: isNixy ? '#ffbe0b' : '#ff3388',
+      align: 'center'
+    }).setOrigin(0.5);
+
+    const bodyText = this.add.text(0, 0, text, {
+      fontFamily: pixelFont,
+      fontSize: '8px',
+      color: isNixy ? '#fff5f8' : '#ffeef8',
+      align: 'center',
+      wordWrap: { width: 140 }
+    }).setOrigin(0.5);
+
+    const padX = 8;
+    const padY = 5;
+    const contentW = Math.max(nameText.width, bodyText.width);
+    const bubbleW = Math.max(54, Math.ceil(contentW) + padX * 2);
+    const bubbleH = Math.ceil(nameText.height + bodyText.height + 4) + padY * 2;
+    const halfW = bubbleW / 2;
+    const pointerH = 5;
+    const totalH = bubbleH + pointerH;
+
+    nameText.setPosition(0, -totalH + padY + nameText.height / 2);
+    bodyText.setPosition(0, -totalH + padY + nameText.height + 3 + bodyText.height / 2);
+
+    const bgG = this.add.graphics();
+    const bgColor = isNixy ? 0x1f030a : 0x180122;
+    const borderColor = isNixy ? 0xd4af37 : 0xff2a85;
+
+    // Sombra suave do balão
+    bgG.fillStyle(0x000000, 0.6);
+    bgG.fillRoundedRect(-halfW + 2, -totalH + 2, bubbleW, bubbleH, 4);
+
+    // Fundo preenchido
+    bgG.fillStyle(bgColor, 0.94);
+    bgG.fillRoundedRect(-halfW, -totalH, bubbleW, bubbleH, 4);
+
+    // Triângulo apontador inferior
+    bgG.beginPath();
+    bgG.moveTo(-4, -pointerH);
+    bgG.lineTo(4, -pointerH);
+    bgG.lineTo(0, 0);
+    bgG.closePath();
+    bgG.fill();
+
+    // Borda estilizada
+    bgG.lineStyle(1.5, borderColor, 1);
+    bgG.strokeRoundedRect(-halfW, -totalH, bubbleW, bubbleH, 4);
+    bgG.beginPath();
+    bgG.moveTo(-4, -pointerH);
+    bgG.lineTo(0, 0);
+    bgG.lineTo(4, -pointerH);
+    bgG.stroke();
+
+    container.add([bgG, nameText, bodyText]);
+
+    // Animação pop-in
+    container.setScale(0.5);
+    container.setAlpha(0);
+    this.tweens.add({
+      targets: container,
+      scaleX: 1,
+      scaleY: 1,
+      alpha: 1,
+      duration: 160,
+      ease: 'Back.easeOut'
+    });
+
+    this.activeCombatBubbles.push({
+      container,
+      target,
+      offsetY
+    });
+
+    // Fade-out antes de desaparecer
+    const fadeDelay = Math.max(100, durationMs - 220);
+    const fadeTimer = this.time.delayedCall(fadeDelay, () => {
+      if (container.active) {
+        this.tweens.add({
+          targets: container,
+          alpha: 0,
+          scaleX: 0.8,
+          scaleY: 0.8,
+          duration: 200,
+          onComplete: () => {
+            container.destroy();
+            const idx = this.activeCombatBubbles.findIndex(b => b.container === container);
+            if (idx !== -1) {
+              this.activeCombatBubbles.splice(idx, 1);
+            }
+          }
+        });
+      }
+    });
+    this.combatBanterTimers.push(fadeTimer);
+  }
+
+  /**
+   * Limpa todos os balões de fala e timers de provocação do combate
+   */
+  public clearCombatSpeechBubbles(): void {
+    for (const timer of this.combatBanterTimers) {
+      if (timer) timer.remove();
+    }
+    this.combatBanterTimers = [];
+
+    for (const item of this.activeCombatBubbles) {
+      if (item.container) {
+        item.container.destroy();
+      }
+    }
+    this.activeCombatBubbles = [];
   }
 }
