@@ -13,6 +13,8 @@ import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
 import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { MapItem, MapItemType } from '../entities/items/MapItem';
+import { EvolutionAltar } from '../entities/items/EvolutionAltar';
+import { UpgradeScene } from './UpgradeScene';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
@@ -61,6 +63,9 @@ export class GameScene extends Phaser.Scene {
   public enemiesGroup!: Phaser.GameObjects.Group;
   public gemsGroup!: Phaser.GameObjects.Group;
   public mapItemsGroup!: Phaser.GameObjects.Group;
+  public altarInstance: EvolutionAltar | null = null;
+  private altarSpawnTimer: number = 0;
+  private readonly ALTAR_SPAWN_INTERVAL: number = 75000;
   private spawnTimer: number = 0;
   private mapItemSpawnTimer: number = 0;
   public killCount: number = 0;
@@ -102,6 +107,8 @@ export class GameScene extends Phaser.Scene {
     this.boss10mSpawned = false;
     this.survivalTimeMs = 0;
     this.bossInstance = undefined;
+    this.altarInstance = null;
+    this.altarSpawnTimer = 0;
     this.spawnTimer = 0;
     this.mapItemSpawnTimer = 0;
     this.bossMinionTimer = 0;
@@ -541,6 +548,13 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // 5.3. Atualizar Altar de Ascensão e Spawner Periódico
+    if (this.altarInstance && this.altarInstance.active && !this.altarInstance.isDestroyed) {
+      this.altarInstance.updateAltar(this.player, delta);
+    } else {
+      this.updateAltarSpawning(delta);
+    }
+
     // 6. Atualizar Inimigos Ativos (Culling + IA de Cada Espécie)
     const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
     for (let i = 0; i < enemies.length; i++) {
@@ -828,6 +842,89 @@ export class GameScene extends Phaser.Scene {
     const x = this.player.x + Math.cos(angle) * dist;
     const y = this.player.y + Math.sin(angle) * dist;
     this.spawnMapItem(x, y);
+  }
+
+  /**
+   * Spawner Periódico do Altar de Ascensão Rúnico.
+   * Surge a cada ~75 segundos no mapa se a Nixy possuir armas não evoluídas.
+   */
+  public updateAltarSpawning(delta: number): void {
+    if (this.isGameOver || this.isChapterCompleted) return;
+    if (this.altarInstance && this.altarInstance.active && !this.altarInstance.isDestroyed) return;
+
+    // Se o jogador não possui armas disponíveis para evoluir, não spawna o altar
+    const evolutionsAvailable = UpgradeScene.getAltarEvolutionCards(this.player, this);
+    if (evolutionsAvailable.length === 0) return;
+
+    this.altarSpawnTimer += delta;
+    if (this.altarSpawnTimer >= this.ALTAR_SPAWN_INTERVAL) {
+      this.altarSpawnTimer = 0;
+      this.spawnEvolutionAltar();
+    }
+  }
+
+  /**
+   * Instancia um Altar de Ascensão no mapa com círculo de captura e 3 estágios visuais
+   */
+  public spawnEvolutionAltar(customX?: number, customY?: number): EvolutionAltar | null {
+    if (this.altarInstance && this.altarInstance.active && !this.altarInstance.isDestroyed) {
+      return this.altarInstance;
+    }
+
+    const evolutionsAvailable = UpgradeScene.getAltarEvolutionCards(this.player, this);
+    if (evolutionsAvailable.length === 0) {
+      DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Tentativa de spawnar altar ignorada: todas as armas já evoluídas');
+      return null;
+    }
+
+    let spawnX = customX;
+    let spawnY = customY;
+
+    if (spawnX === undefined || spawnY === undefined) {
+      // Posiciona entre 320px e 460px de distância da Nixy em ângulo aleatório
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(320, 460);
+      spawnX = this.player.x + Math.cos(angle) * dist;
+      spawnY = this.player.y + Math.sin(angle) * dist;
+    }
+
+    this.altarInstance = new EvolutionAltar(this, spawnX, spawnY);
+    this.altarInstance.on('altar-completed', (altar: EvolutionAltar) => {
+      this.handleAltarCompleted(altar);
+    });
+
+    DebugSessionLogger.getInstance().log(
+      'ALTAR',
+      'INFO',
+      `Altar de Ascensão rúnico surgiu em (${Math.round(spawnX)}, ${Math.round(spawnY)})`
+    );
+
+    return this.altarInstance;
+  }
+
+  /**
+   * Acionado quando o jogador conclui 100% da carga do Altar de Ascensão
+   */
+  private handleAltarCompleted(altar: EvolutionAltar): void {
+    if (this.isGameOver || this.isChapterCompleted) return;
+    if (this.scene.isActive('UpgradeScene')) return;
+
+    DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Ascensão completado 100%! Abrindo seleção suprema...');
+    this.cameras.main.flash(300, 255, 230, 0);
+    this.physics.pause();
+    this.scene.pause();
+
+    this.scene.launch('UpgradeScene', {
+      player: this.player,
+      gameScene: this,
+      isAltar: true,
+      onAltarChosen: () => {
+        altar.explodeAndDestroy();
+        if (this.altarInstance === altar) {
+          this.altarInstance = null;
+        }
+      }
+    });
   }
 
   /**

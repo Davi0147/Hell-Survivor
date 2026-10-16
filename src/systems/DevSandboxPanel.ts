@@ -1130,6 +1130,36 @@ export class DevSandboxPanel {
         }
       },
       {
+        label: 'SPAWNAR ALTAR DE ASCENSÃO (AO LADO DA NIXY)',
+        color: 0x4a044e,
+        border: 0xe879f9,
+        action: () => {
+          this.togglePanel(false);
+          const altar = gs.spawnEvolutionAltar(p.x + 95, p.y);
+          if (altar) {
+            this.showToast('ALTAR DE ASCENSÃO SPAWNADO AO LADO!', '#e879f9');
+          } else {
+            this.showToast('TODAS AS ARMAS JÁ FORAM EVOLUÍDAS!', '#facc15');
+          }
+        }
+      },
+      {
+        label: 'CARREGAR ALTAR EM 100% (TESTAR EXPLOSÃO/CARTAS)',
+        color: 0x78350f,
+        border: 0xffe600,
+        action: () => {
+          if (!gs.altarInstance || !gs.altarInstance.active) {
+            gs.spawnEvolutionAltar(p.x + 95, p.y);
+          }
+          if (gs.altarInstance) {
+            this.togglePanel(false);
+            gs.altarInstance.progress = 100;
+            gs.altarInstance.updateAltar(p, 16);
+            this.showToast('ALTAR CARREGADO A 100%!', '#ffe600');
+          }
+        }
+      },
+      {
         label: 'ABRIR ROLETA DO BAÚ DIRETAMENTE AGORA',
         color: 0x713f12,
         border: 0xffe600,
@@ -1163,9 +1193,9 @@ export class DevSandboxPanel {
     itemActions.forEach((act, idx) => {
       this.createActionButton(
         col2X,
-        y + 30 + idx * 52,
+        y + 26 + idx * 42,
         colW,
-        42,
+        36,
         act.label,
         act.color,
         act.border,

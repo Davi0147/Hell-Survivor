@@ -179,4 +179,18 @@ export class AbyssalChainsWeapon extends BaseWeapon {
   public isMaxLevel(): boolean {
     return this.level >= this.maxLevel;
   }
+
+  public isEvolved: boolean = false;
+
+  public evolve(): void {
+    if (this.isEvolved) return;
+    this.isEvolved = true;
+    this.name = 'Grilhões do Tartarus';
+    this.damage = 54;
+    this.targetCount = 8;
+    this.range = 280;
+    this.stunDurationMs = 1800;
+    this.cooldownMs = 950;
+    SoundManager.getInstance().playWeaponEvolve();
+  }
 }

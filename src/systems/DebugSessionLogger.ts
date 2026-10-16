@@ -5,6 +5,7 @@ export type DebugLogCategory =
   | 'WEAPON'
   | 'UPGRADE'
   | 'ITEM'
+  | 'ALTAR'
   | 'BOSS'
   | 'AUDIO'
   | 'ANOMALY'

@@ -148,4 +148,17 @@ export class BloodDaggersWeapon extends BaseWeapon {
   public isMaxLevel(): boolean {
     return this.level >= this.maxLevel;
   }
+
+  public isEvolved: boolean = false;
+
+  public evolve(): void {
+    if (this.isEvolved) return;
+    this.isEvolved = true;
+    this.name = 'Chuva de Sangue Carmesim';
+    this.projectileCount = 8;
+    this.damage = 38;
+    this.cooldownMs = 420;
+    this.pierce = 3;
+    SoundManager.getInstance().playWeaponEvolve();
+  }
 }

@@ -108,6 +108,9 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('card-inferno');
     this.textures.remove('card-mystic');
     this.textures.remove('card-obsidian');
+    this.textures.remove('altar-1');
+    this.textures.remove('altar-2');
+    this.textures.remove('altar-3');
     this.textures.remove('game-title-logo');
     for (let i = 1; i <= 6; i++) {
       this.textures.remove(`intro-${i}`);
@@ -320,6 +323,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image('card-inferno', `assets/sprites/cards/Inferno%20Card.png?t=${cacheBuster}`);
     this.load.image('card-mystic', `assets/sprites/cards/Mystic%20Card.png?t=${cacheBuster}`);
     this.load.image('card-obsidian', `assets/sprites/cards/Obsidian%20Card.png?t=${cacheBuster}`);
+
+    // Sprites do Altar de Ascensão / Evolução (200x200px)
+    this.load.image('altar-1', `assets/sprites/items/Altar%201.png?t=${cacheBuster}`);
+    this.load.image('altar-2', `assets/sprites/items/Altar%202.png?t=${cacheBuster}`);
+    this.load.image('altar-3', `assets/sprites/items/Altar%203.png?t=${cacheBuster}`);
 
     this.load.image('game-title-logo', `assets/sprites/title.png?t=${cacheBuster}`);
     this.load.image('menu-background', `assets/sprites/main_menu_background.jpg?t=${cacheBuster}`);

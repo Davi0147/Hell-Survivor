@@ -289,4 +289,17 @@ export class InfernalMeteorWeapon extends BaseWeapon {
   public isMaxLevel(): boolean {
     return this.level >= this.maxLevel;
   }
+
+  public isEvolved: boolean = false;
+
+  public evolve(): void {
+    if (this.isEvolved) return;
+    this.isEvolved = true;
+    this.name = 'Cataclismo Solar';
+    this.damage = 95;
+    this.meteorCount = 5;
+    this.range = 95;
+    this.cooldownMs = 1200;
+    SoundManager.getInstance().playWeaponEvolve();
+  }
 }

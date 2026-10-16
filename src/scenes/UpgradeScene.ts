@@ -43,9 +43,18 @@ const C_SPEED   = '#38bdf8'; // Azul ciano para Velocidade / Estamina / Cadênci
 const C_UTILITY = '#fbbf24'; // Dourado para Quantidades / Projéteis / Alcance / Perfuração
 const C_EVO     = '#ffe600'; // Ouro radiante para Evoluções Supremas
 
+export interface UpgradeSceneData {
+  player: BaseCharacter;
+  gameScene: any;
+  isAltar?: boolean;
+  onAltarChosen?: () => void;
+}
+
 export class UpgradeScene extends Phaser.Scene {
   private player!: BaseCharacter;
   private gameScene!: any;
+  private isAltar: boolean = false;
+  private onAltarChosen?: () => void;
   private cardContainers: Phaser.GameObjects.Container[] = [];
   private currentCardIds: string[] = [];
   private rerollBtnContainer?: Phaser.GameObjects.Container;
@@ -60,9 +69,11 @@ export class UpgradeScene extends Phaser.Scene {
     super('UpgradeScene');
   }
 
-  create(data: { player: BaseCharacter; gameScene: any }): void {
+  create(data: UpgradeSceneData): void {
     this.player = data.player;
     this.gameScene = data.gameScene;
+    this.isAltar = !!data.isAltar;
+    this.onAltarChosen = data.onAltarChosen;
     this.cardContainers = [];
     this.currentCardIds = [];
     this.isClosing = false;
@@ -100,26 +111,31 @@ export class UpgradeScene extends Phaser.Scene {
     const titleBox = this.add.graphics();
     titleBox.fillStyle(0x080206, 0.95);
     titleBox.fillRoundedRect(width / 2 - 270, titleY - 20, 540, 40, 6);
-    titleBox.lineStyle(2, 0xc59b27, 1);
+    titleBox.lineStyle(2, this.isAltar ? 0xff4500 : 0xc59b27, 1);
     titleBox.strokeRoundedRect(width / 2 - 270, titleY - 20, 540, 40, 6);
 
-    this.add.text(width / 2, titleY, 'LEVEL UP! // ESCOLHA SUA CARTA', {
+    const titleText = this.isAltar
+      ? 'ALTAR DOS ANCESTRAIS // ASCENSÃO SUPREMA'
+      : 'LEVEL UP! // ESCOLHA SUA CARTA';
+    const titleColor = this.isAltar ? '#ffe600' : '#f3d17a';
+
+    this.add.text(width / 2, titleY, titleText, {
       fontFamily: this.uiFont,
       fontSize: '14px',
       fontStyle: 'bold',
-      color: '#f3d17a',
+      color: titleColor,
       stroke: '#2b0914',
       strokeThickness: 3
     }).setOrigin(0.5);
 
-    // 3. Renderização das 3 Cartas Flutuantes
+    // 3. Renderização das Cartas Flutuantes
     this.dealCards(false);
 
-    // 4. Barra Tática Inferior: Botões de Re-rolar (Reroll) e Pular/Canalizar (Skip)
+    // 4. Barra Tática Inferior: Botões de Re-rolar e Pular (apenas no Level-Up)
     this.createTacticalFooter(width, height, this.uiFont);
 
     // 5. Atalhos de Teclado (R para Re-rolar, Espaço para Canalizar/Skip)
-    if (this.input.keyboard) {
+    if (!this.isAltar && this.input.keyboard) {
       this.input.keyboard.on('keydown-R', () => {
         this.handleReroll();
       });
@@ -137,8 +153,15 @@ export class UpgradeScene extends Phaser.Scene {
     }
     this.cardContainers = [];
 
-    const availableCards = this.getAvailableCards();
-    const chosenCards = this.pickRandomCards(availableCards, 3, isReroll ? this.currentCardIds : []);
+    let chosenCards: UpgradeCard[] = [];
+    if (this.isAltar) {
+      const availableCards = UpgradeScene.getAltarEvolutionCards(this.player, this.gameScene);
+      const shuffled = [...availableCards].sort(() => 0.5 - Math.random());
+      chosenCards = shuffled.slice(0, Math.min(3, shuffled.length));
+    } else {
+      const availableCards = this.getAvailableCards();
+      chosenCards = this.pickRandomCards(availableCards, 3, isReroll ? this.currentCardIds : []);
+    }
     this.currentCardIds = chosenCards.map((c) => c.id);
 
     // Cada carta 120x200 escalada em 2.2x = 264x440
@@ -158,6 +181,18 @@ export class UpgradeScene extends Phaser.Scene {
 
   private createTacticalFooter(width: number, height: number, pixelFont: string): void {
     const footerY = height - 36;
+
+    if (this.isAltar) {
+      this.add.text(width / 2, footerY, '[ TOQUE OU CLIQUE EM UMA DAS CARTAS PARA DESPERTAR SEU PODER MÁXIMO ]', {
+        fontFamily: pixelFont,
+        fontSize: '10px',
+        fontStyle: 'bold',
+        color: '#ffe600',
+        stroke: '#000000',
+        strokeThickness: 2.5
+      }).setOrigin(0.5);
+      return;
+    }
 
     // --- BOTÃO 1: RE-ROLAR BÊNÇÃOS ---
     const rerollW = 270;
@@ -803,22 +838,32 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // =========================================================================
-    // EVOLUÇÕES SUPREMAS DE ARMAS (WEAPON FUSION / ASCENSÃO)
-    // =========================================================================
+    return catalog;
+  }
 
-    // Evolução 1: RAIO DO APOCALIPSE
-    if (
-      soulBoltWeapon &&
-      !soulBoltWeapon.isEvolved &&
-      (player.extraProjectiles >= 1 || player.extraPierce >= 1) &&
-      player.bonusDamagePercent >= 25
-    ) {
-      const evoDmg = Math.round(45 * dmgMult);
-      catalog.unshift({
+  /**
+   * Retorna até 3 cartas de Evolução Suprema das armas equipadas e ainda não evoluídas.
+   * Concedido exclusivamente ao capturar 100% de um Altar de Ascensão.
+   */
+  public static getAltarEvolutionCards(player: BaseCharacter, gameScene: any): UpgradeCard[] {
+    const weapons: any[] = gameScene.weapons || [];
+    const dmgMult = 1 + (player.bonusDamagePercent || 0) / 100;
+    const cards: UpgradeCard[] = [];
+
+    const soulBoltWeapon = weapons.find((w) => w instanceof SoulBoltWeapon) as SoulBoltWeapon | undefined;
+    const scythesWeapon = weapons.find((w) => w instanceof VoidScythesWeapon) as VoidScythesWeapon | undefined;
+    const hellfireWeapon = weapons.find((w) => w instanceof HellfireAuraWeapon) as HellfireAuraWeapon | undefined;
+    const daggersWeapon = weapons.find((w) => w instanceof BloodDaggersWeapon) as BloodDaggersWeapon | undefined;
+    const chainsWeapon = weapons.find((w) => w instanceof AbyssalChainsWeapon) as AbyssalChainsWeapon | undefined;
+    const meteorWeapon = weapons.find((w) => w instanceof InfernalMeteorWeapon) as InfernalMeteorWeapon | undefined;
+
+    // 1. RAIO DO APOCALIPSE (Evolução de SoulBolt)
+    if (soulBoltWeapon && !soulBoltWeapon.isEvolved) {
+      const evoDmg = Math.round(46 * dmgMult);
+      cards.push({
         id: 'evo_soul_bolt',
         title: 'RAIO DO APOCALIPSE',
-        category: 'EVOLUÇÃO SUPREMA // FUSÃO',
+        category: 'EVOLUÇÃO SUPREMA // ASCENSÃO',
         badgeColor: 0xffba08,
         icon: 'ASCENSÃO',
         isEvolution: true,
@@ -827,13 +872,13 @@ export class UpgradeScene extends Phaser.Scene {
         rarityColor: C_EVO,
         cardName: 'APOCALIPSE',
         cardNameColor: C_EVO,
-        levelLabel: 'ARMA EVOLUÍDA',
+        levelLabel: 'DISPARO DE ALMAS',
         glowColor: 0xffe600,
-        description: 'Disparo de Almas + Fúria Infernal\n\nTransforma seus disparos em raios astrais dourados de alta cadência e perfuração massiva!',
+        description: 'Disparos convertidos em raios astrais dourados de alta cadência e perfuração massiva.',
         richLines: [
           [{ text: 'EVOLUI PARA ', color: C_WHITE }, { text: 'RAIO ASTRAL', color: C_WEAPON }],
           [{ text: 'DE ALTA CADÊNCIA COM', color: C_WHITE }],
-          [{ text: `${evoDmg} DE DANO`, color: C_DAMAGE }, { text: ' E ', color: C_WHITE }, { text: '+PERFURAÇÃO', color: C_UTILITY }]
+          [{ text: `${evoDmg} DE DANO`, color: C_DAMAGE }, { text: ' E ', color: C_WHITE }, { text: '3 PERFURAÇÕES', color: C_UTILITY }]
         ],
         apply: () => {
           soulBoltWeapon.evolve();
@@ -841,18 +886,13 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // Evolução 2: CEIFADORA DO VAZIO
-    if (
-      scythesWeapon &&
-      scythesWeapon.isMaxBlades() &&
-      !scythesWeapon.isEvolved &&
-      player.bonusSpeedPercent >= 15
-    ) {
-      const evoDmg = Math.round(52 * dmgMult);
-      catalog.unshift({
+    // 2. CEIFADORA DO VAZIO (Evolução de VoidScythes)
+    if (scythesWeapon && !scythesWeapon.isEvolved) {
+      const evoDmg = Math.round(22 * dmgMult);
+      cards.push({
         id: 'evo_void_scythes',
         title: 'CEIFADORA DO VAZIO',
-        category: 'EVOLUÇÃO SUPREMA // FUSÃO',
+        category: 'EVOLUÇÃO SUPREMA // ASCENSÃO',
         badgeColor: 0xffba08,
         icon: 'ASCENSÃO',
         isEvolution: true,
@@ -861,13 +901,13 @@ export class UpgradeScene extends Phaser.Scene {
         rarityColor: C_EVO,
         cardName: 'CEIFADORA',
         cardNameColor: C_EVO,
-        levelLabel: 'ARMA EVOLUÍDA',
+        levelLabel: 'LÂMINAS ORBITAIS',
         glowColor: 0xffe600,
-        description: '6 Lâminas Orbitais + Celeridade Abissal\n\nFunde as 6 foices em um vórtice carmesim hiper-veloz de raio expandido e corte letal!',
+        description: 'Funde as foices em um vórtice carmesim hiper-veloz de corte letal contínuo.',
         richLines: [
-          [{ text: 'FUNDE AS ', color: C_WHITE }, { text: '6 FOICES', color: C_WEAPON }],
-          [{ text: 'EM UM VÓRTice VELOZ', color: C_SPEED }],
-          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${evoDmg} DE DANO`, color: C_DAMAGE }]
+          [{ text: 'FUNDE AS FOICES EM', color: C_WHITE }],
+          [{ text: 'VÓRTICE DO VAZIO', color: C_WEAPON }, { text: ' ULTRA-VELOZ', color: C_SPEED }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${evoDmg} DE DANO`, color: C_DAMAGE }, { text: ' CONTÍNUO', color: C_WHITE }]
         ],
         apply: () => {
           scythesWeapon.evolve();
@@ -875,18 +915,13 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // Evolução 3: SUPERNOVA ABISSAL
-    if (
-      hellfireWeapon &&
-      hellfireWeapon.isMaxLevel() &&
-      !hellfireWeapon.isEvolved &&
-      player.maxHp > 100
-    ) {
-      const evoDmg = Math.round(72 * dmgMult);
-      catalog.unshift({
+    // 3. SUPERNOVA ABISSAL (Evolução de HellfireAura)
+    if (hellfireWeapon && !hellfireWeapon.isEvolved) {
+      const evoDmg = Math.round(78 * dmgMult);
+      cards.push({
         id: 'evo_hellfire_aura',
         title: 'SUPERNOVA ABISSAL',
-        category: 'EVOLUÇÃO SUPREMA // FUSÃO',
+        category: 'EVOLUÇÃO SUPREMA // ASCENSÃO',
         badgeColor: 0xffba08,
         icon: 'ASCENSÃO',
         isEvolution: true,
@@ -895,12 +930,12 @@ export class UpgradeScene extends Phaser.Scene {
         rarityColor: C_EVO,
         cardName: 'SUPERNOVA',
         cardNameColor: C_EVO,
-        levelLabel: 'ARMA EVOLUÍDA',
+        levelLabel: 'CHAMAS DO PURGATÓRIO',
         glowColor: 0xffe600,
-        description: 'Chamas Nív 5 + Vitalidade Sangrenta\n\nEmite ondas estrelares azuis e douradas que incineram uma área colossal e curam a Nixy!',
+        description: 'Ondas estelares azuis e douradas calcinando área colossal e restaurando vida.',
         richLines: [
-          [{ text: 'CRIA UMA ', color: C_WHITE }, { text: 'SUPERNOVA', color: C_WEAPON }],
-          [{ text: 'QUE CAUSA ', color: C_WHITE }, { text: `${evoDmg} DE DANO`, color: C_DAMAGE }],
+          [{ text: 'CRIA UMA ', color: C_WHITE }, { text: 'SUPERNOVA GIGANTE', color: C_WEAPON }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${evoDmg} DE DANO`, color: C_DAMAGE }],
           [{ text: 'E ', color: C_WHITE }, { text: 'CURA +3 VIDA', color: C_LIFE }, { text: '/PULSO', color: C_WHITE }]
         ],
         apply: () => {
@@ -909,7 +944,94 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    return catalog;
+    // 4. CHUVA DE SANGUE CARMESIM (Evolução de BloodDaggers)
+    if (daggersWeapon && !daggersWeapon.isEvolved) {
+      const evoDmg = Math.round(38 * dmgMult);
+      cards.push({
+        id: 'evo_blood_daggers',
+        title: 'CHUVA CARMESIM',
+        category: 'EVOLUÇÃO SUPREMA // ASCENSÃO',
+        badgeColor: 0xffba08,
+        icon: 'ASCENSÃO',
+        isEvolution: true,
+        cardSpriteKey: 'card-gold',
+        rarityLabel: 'SUPREMO',
+        rarityColor: C_EVO,
+        cardName: 'CHUVA SANGUE',
+        cardNameColor: C_EVO,
+        levelLabel: 'ADAGAS DE SANGUE',
+        glowColor: 0xffe600,
+        description: 'Dispara 8 adagas espectrais de alta perfuração em leque quase ininterrupto.',
+        richLines: [
+          [{ text: 'DISPARA ', color: C_WHITE }, { text: '8 ADAGAS VELOZES', color: C_WEAPON }],
+          [{ text: 'EM LEQUE QUASE CONTÍNUO', color: C_WHITE }],
+          [{ text: `${evoDmg} DE DANO`, color: C_DAMAGE }, { text: ' E ', color: C_WHITE }, { text: '3 PERFURAÇÕES', color: C_UTILITY }]
+        ],
+        apply: () => {
+          daggersWeapon.evolve();
+        }
+      });
+    }
+
+    // 5. GRILHÕES DO TARTARUS (Evolução de AbyssalChains)
+    if (chainsWeapon && !chainsWeapon.isEvolved) {
+      const evoDmg = Math.round(54 * dmgMult);
+      cards.push({
+        id: 'evo_abyssal_chains',
+        title: 'GRILHÕES TARTARUS',
+        category: 'EVOLUÇÃO SUPREMA // ASCENSÃO',
+        badgeColor: 0xffba08,
+        icon: 'ASCENSÃO',
+        isEvolution: true,
+        cardSpriteKey: 'card-gold',
+        rarityLabel: 'SUPREMO',
+        rarityColor: C_EVO,
+        cardName: 'TARTARUS',
+        cardNameColor: C_EVO,
+        levelLabel: 'CADEIAS ABISSAIS',
+        glowColor: 0xffe600,
+        description: 'Prende até 8 alvos em estacas abissais com atordoamento prolongado de 1.8s.',
+        richLines: [
+          [{ text: 'PRENDE ATÉ ', color: C_WHITE }, { text: '8 MONSTROS', color: C_UTILITY }],
+          [{ text: 'EM ', color: C_WHITE }, { text: 'ESTACAS ABISSAIS', color: C_WEAPON }],
+          [{ text: `${evoDmg} DE DANO`, color: C_DAMAGE }, { text: ' E ', color: C_WHITE }, { text: 'PARALISIA 1.8s', color: C_SPEED }]
+        ],
+        apply: () => {
+          chainsWeapon.evolve();
+        }
+      });
+    }
+
+    // 6. CATACLISMO SOLAR (Evolução de InfernalMeteor)
+    if (meteorWeapon && !meteorWeapon.isEvolved) {
+      const evoDmg = Math.round(95 * dmgMult);
+      cards.push({
+        id: 'evo_infernal_meteor',
+        title: 'CATACLISMO SOLAR',
+        category: 'EVOLUÇÃO SUPREMA // ASCENSÃO',
+        badgeColor: 0xffba08,
+        icon: 'ASCENSÃO',
+        isEvolution: true,
+        cardSpriteKey: 'card-gold',
+        rarityLabel: 'SUPREMO',
+        rarityColor: C_EVO,
+        cardName: 'CATACLISMO',
+        cardNameColor: C_EVO,
+        levelLabel: 'METEORO INFERNAL',
+        glowColor: 0xffe600,
+        description: 'Bombardeio estelar massivo de 5 meteoros gigantes destruindo a horda.',
+        richLines: [
+          [{ text: 'BOMBARDEIA O MAPA COM', color: C_WHITE }],
+          [{ text: '5 METEOROS GIGANTES', color: C_WEAPON }],
+          [{ text: `${evoDmg} DE DANO`, color: C_DAMAGE }, { text: ' EM ÁREA COLOSSAL', color: C_WHITE }]
+        ],
+        apply: () => {
+          meteorWeapon.evolve();
+        }
+      });
+    }
+
+    return cards;
   }
 
   private getAvailableCards(): UpgradeCard[] {
@@ -980,34 +1102,8 @@ export class UpgradeScene extends Phaser.Scene {
     const glowColor = card.glowColor ?? card.badgeColor ?? 0xfacc15;
     const isEvo = card.isEvolution === true;
 
-    // 1. Brilho de Fundo (Back-Glow Aura) atrás do sprite da carta
-    const backGlow = this.add.graphics();
-    backGlow.setBlendMode(Phaser.BlendModes.ADD);
-
-    const drawBackGlow = (hover: boolean) => {
-      backGlow.clear();
-      if (!hover && !isEvo) {
-        // Sombra suave + aura discreta em repouso
-        backGlow.fillStyle(glowColor, 0.12);
-        backGlow.fillRoundedRect(-w / 2 - 4, -h / 2 - 4, w + 8, h + 8, 18);
-        return;
-      }
-
-      // Brilho intenso em camadas concêntricas ao passar o mouse (ou em Evoluções)
-      const baseAlpha = hover ? 0.34 : 0.2;
-      backGlow.fillStyle(glowColor, baseAlpha * 0.45);
-      backGlow.fillRoundedRect(-w / 2 - 22, -h / 2 - 22, w + 44, h + 44, 28);
-
-      backGlow.fillStyle(glowColor, baseAlpha * 0.75);
-      backGlow.fillRoundedRect(-w / 2 - 12, -h / 2 - 12, w + 24, h + 24, 22);
-
-      backGlow.lineStyle(3, 0xffffff, hover ? 0.85 : 0.4);
-      backGlow.strokeRoundedRect(-w / 2 - 4, -h / 2 - 4, w + 8, h + 8, 14);
-    };
-    drawBackGlow(false);
-    floatContainer.add(backGlow);
-
-    // 2. Sprite da Moldura da Carta (120x200px escalada por cardScale = 2.2 -> 264x440)
+    // 1. Sprite da Moldura da Carta (120x200px escalada por cardScale = 2.2 -> 264x440)
+    // Sem formas semitransparentes ou bordas brancas atrás, destacando a arte da moldura
     const spriteKey = card.cardSpriteKey && this.textures.exists(card.cardSpriteKey)
       ? card.cardSpriteKey
       : 'card-base';
@@ -1031,13 +1127,13 @@ export class UpgradeScene extends Phaser.Scene {
     const SAFE_INNER_WIDTH = 134;
 
     // =========================================================================
-    // JANELA SUPERIOR DA CARTA (Y entre -114px e +8px)
-    // Contém: RARIDADE no topo + NOME DA CARTA no centro + NÍVEL discreto abaixo
+    // JANELA SUPERIOR DA CARTA (Y entre -120px e +8px)
+    // Contém: RARIDADE no topo superior + NOME DA CARTA central ampliado + NÍVEL discreto abaixo
     // =========================================================================
     const rarityStr = (card.rarityLabel || 'RARO').toUpperCase();
     const rarityCol = card.rarityColor || '#facc15';
 
-    const rarityText = this.add.text(0, -96, rarityStr, {
+    const rarityText = this.add.text(0, -112, rarityStr, {
       fontFamily: this.cardFont,
       fontSize: '26px',
       color: rarityCol,
@@ -1054,12 +1150,12 @@ export class UpgradeScene extends Phaser.Scene {
     const cardTitleStr = (card.cardName || card.icon || card.title).toUpperCase();
     const cardTitleCol = card.cardNameColor || C_WEAPON;
 
-    const nameText = this.add.text(0, -46, cardTitleStr, {
+    const nameText = this.add.text(0, -64, cardTitleStr, {
       fontFamily: this.cardFont,
-      fontSize: '32px',
+      fontSize: '38px',
       color: cardTitleCol,
       stroke: '#000000',
-      strokeThickness: 4,
+      strokeThickness: 4.5,
       align: 'center'
     }).setOrigin(0.5);
     nameText.setResolution(2);
@@ -1069,7 +1165,7 @@ export class UpgradeScene extends Phaser.Scene {
     floatContainer.add(nameText);
 
     if (card.levelLabel) {
-      const lvlText = this.add.text(0, -8, card.levelLabel.toUpperCase(), {
+      const lvlText = this.add.text(0, -18, card.levelLabel.toUpperCase(), {
         fontFamily: this.cardFont,
         fontSize: '16px',
         color: '#cbd5e1',
@@ -1095,7 +1191,7 @@ export class UpgradeScene extends Phaser.Scene {
     this.renderRichDescriptionBox(floatContainer, richLines, 109, SAFE_INNER_WIDTH, 92);
 
     // =========================================================================
-    // INTERATIVIDADE: HOVER (BRILHO + FLUTUAÇÃO) & CLICK (CASH + EXPLOSÃO)
+    // INTERATIVIDADE: HOVER (FLUTUAÇÃO E ESCALA) & CLICK (CASH + EXPLOSÃO)
     // =========================================================================
     const hitArea = new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h);
     rootContainer.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
@@ -1106,7 +1202,6 @@ export class UpgradeScene extends Phaser.Scene {
     rootContainer.on('pointerover', () => {
       if (this.isClosing) return;
       SoundManager.getInstance().playCardHover();
-      drawBackGlow(true);
       rootContainer.setDepth(50);
 
       this.tweens.add({
@@ -1121,7 +1216,6 @@ export class UpgradeScene extends Phaser.Scene {
 
     rootContainer.on('pointerout', () => {
       if (this.isClosing) return;
-      drawBackGlow(false);
       rootContainer.setDepth(10);
 
       this.tweens.add({
@@ -1143,6 +1237,11 @@ export class UpgradeScene extends Phaser.Scene {
 
       // 2. Aplica o benefício da carta na heroína Nixy
       card.apply(this.player, this.gameScene);
+
+      // 3. Notifica o Altar no mundo para explodir e se desintegrar
+      if (this.isAltar && typeof this.onAltarChosen === 'function') {
+        this.onAltarChosen();
+      }
 
       // 3. As outras duas cartas não escolhidas descem para baixo da tela!
       this.cardContainers.forEach((otherContainer, otherIdx) => {

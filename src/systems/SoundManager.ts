@@ -1453,5 +1453,51 @@ export class SoundManager {
       osc.stop(start + 0.48);
     });
   }
+
+  /**
+   * Som de explosão massiva e detonação de rochas (usado no Altar de Ascensão e chefes)
+   */
+  public playEnemyExplosion(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Sub-bass estrondoso
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(140, now);
+    subOsc.frequency.exponentialRampToValueAtTime(32, now + 0.35);
+
+    subGain.gain.setValueAtTime(0.42 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGainNode || ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.40);
+
+    // Ruído/estalo de rocha estilhaçando
+    const crackOsc = ctx.createOscillator();
+    const crackFilter = ctx.createBiquadFilter();
+    const crackGain = ctx.createGain();
+    crackOsc.type = 'sawtooth';
+    crackOsc.frequency.setValueAtTime(420, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(60, now + 0.28);
+
+    crackFilter.type = 'lowpass';
+    crackFilter.frequency.setValueAtTime(1200, now);
+    crackFilter.frequency.exponentialRampToValueAtTime(120, now + 0.28);
+
+    crackGain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.30);
+
+    crackOsc.connect(crackFilter);
+    crackFilter.connect(crackGain);
+    crackGain.connect(this.sfxGainNode || ctx.destination);
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.32);
+  }
 }
 
