@@ -1135,6 +1135,11 @@ export class DevSandboxPanel {
         border: 0xe879f9,
         action: () => {
           this.togglePanel(false);
+          // Garante rigorosamente que nunca existirá mais de 1 altar no mapa
+          if (gs.altarInstance && gs.altarInstance.active && !gs.altarInstance.isDestroyed) {
+            gs.altarInstance.destroy();
+            gs.altarInstance = null;
+          }
           const altar = gs.spawnEvolutionAltar(p.x + 95, p.y);
           if (altar) {
             this.showToast('ALTAR DE ASCENSÃO SPAWNADO AO LADO!', '#e879f9');

@@ -90,6 +90,11 @@ export class UIScene extends Phaser.Scene {
   private waveAlertBanner!: Phaser.GameObjects.Text;
   private bestRecordSec: number = 0;
 
+  // Indicador de Borda para o Altar de Ascensão (quando fora da tela)
+  private altarIndicatorContainer!: Phaser.GameObjects.Container;
+  private altarIndicatorGraphics!: Phaser.GameObjects.Graphics;
+  private altarIndicatorText!: Phaser.GameObjects.Text;
+
   constructor() {
     super('UIScene');
   }
@@ -447,6 +452,26 @@ export class UIScene extends Phaser.Scene {
       this.xpBarFill,
       this.xpText
     ];
+
+    // 8. Indicador de Borda para o Altar de Ascensão (quando fora da tela)
+    this.altarIndicatorContainer = this.add.container(0, 0);
+    this.altarIndicatorContainer.setDepth(150);
+    this.altarIndicatorContainer.setVisible(false);
+
+    this.altarIndicatorGraphics = this.add.graphics();
+    this.altarIndicatorContainer.add(this.altarIndicatorGraphics);
+
+    this.altarIndicatorText = this.add.text(0, 0, '', {
+      fontFamily: pixelFont,
+      fontSize: '9px',
+      fontStyle: 'bold',
+      color: '#ffe600',
+      stroke: '#000000',
+      strokeThickness: 2.5
+    }).setOrigin(0.5);
+    this.altarIndicatorContainer.add(this.altarIndicatorText);
+
+    this.hudElements.push(this.altarIndicatorContainer);
 
     // ==========================================
     // 8. CONSOLE DE TESTE & GRAVADOR DE SESSÃO (SANDBOX / DEV MODE)
@@ -913,6 +938,9 @@ export class UIScene extends Phaser.Scene {
 
     // Atualizar Radar Tático / Minimapa
     this.updateRadar(p, gameScene);
+
+    // Atualizar Indicador Direcional de Borda para o Altar de Ascensão (quando fora da tela)
+    this.updateAltarOffscreenIndicator(p, gameScene);
   }
 
   /**
@@ -1000,6 +1028,45 @@ export class UIScene extends Phaser.Scene {
     }
 
     // ==========================================
+    // 2.1. BLIP DO ALTAR DE ASCENSÃO (MARCADO COM "X" NO MINIMAPA)
+    // ==========================================
+    if (gameScene.altarInstance && gameScene.altarInstance.active && !gameScene.altarInstance.isDestroyed) {
+      const altar = gameScene.altarInstance;
+      const dx = altar.x - p.x;
+      const dy = altar.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+
+      // Se estiver fora do alcance do radar, fixa na borda do radar apontando na direção do Altar
+      const isOffRadar = dist > maxWorldDist;
+      const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
+      const bx = cx + Math.cos(angle) * blipDist;
+      const by = cy + Math.sin(angle) * blipDist;
+
+      // Glow suave de fundo
+      g.fillStyle(0x7f0910, 0.7);
+      g.fillCircle(bx, by, 7.5);
+
+      // Círculo dourado fino
+      g.lineStyle(1.2, 0xffe600, 0.95);
+      g.strokeCircle(bx, by, 7);
+
+      // Desenho do "X" com braços nítidos em cruz diagonal
+      const xArm = 4.2;
+      g.lineStyle(2.6, 0xff1e27, 1);
+      g.beginPath();
+      g.moveTo(bx - xArm, by - xArm);
+      g.lineTo(bx + xArm, by + xArm);
+      g.moveTo(bx + xArm, by - xArm);
+      g.lineTo(bx - xArm, by + xArm);
+      g.strokePath();
+
+      // Centro do X com ponto dourado brilhante
+      g.fillStyle(0xffe600, 1);
+      g.fillCircle(bx, by, 1.2);
+    }
+
+    // ==========================================
     // 3. JOGADOR (CENTRO DO RADAR COM PONTEIRO DIRECIONAL)
     // ==========================================
     // Determina o ângulo da direção atual da heroína
@@ -1036,6 +1103,114 @@ export class UIScene extends Phaser.Scene {
     g.fillCircle(cx, cy, 3.5);
     g.fillStyle(0xffffff, 1);
     g.fillCircle(cx, cy, 1.5);
+  }
+
+  /**
+   * Atualiza o indicador direcional de borda de tela para o Altar de Ascensão.
+   * Quando o altar está fora da visão da câmera, aponta exatamente para sua direção
+   * com badge [X] e distância em metros. Quando o jogador se aproxima e o altar entra na tela,
+   * o indicador é ocultado automaticamente para não poluir a visão.
+   */
+  private updateAltarOffscreenIndicator(p: any, gameScene: any): void {
+    if (!this.altarIndicatorContainer) return;
+
+    const altar = gameScene.altarInstance;
+    if (!altar || !altar.active || altar.isDestroyed) {
+      this.altarIndicatorContainer.setVisible(false);
+      return;
+    }
+
+    const cam = gameScene.cameras?.main;
+    if (!cam) {
+      this.altarIndicatorContainer.setVisible(false);
+      return;
+    }
+
+    // Verifica se o Altar está dentro da visão visível da câmera (com folga de 30px)
+    const margin = 30;
+    const isAltarOnScreen =
+      altar.x >= cam.worldView.x + margin &&
+      altar.x <= cam.worldView.right - margin &&
+      altar.y >= cam.worldView.y + margin &&
+      altar.y <= cam.worldView.bottom - margin;
+
+    if (isAltarOnScreen) {
+      this.altarIndicatorContainer.setVisible(false);
+      return;
+    }
+
+    // Se o Altar está fora da tela, ativa o indicador na borda da tela
+    this.altarIndicatorContainer.setVisible(true);
+
+    const { width, height } = this.scale;
+    const scX = width / 2;
+    const scY = height / 2;
+
+    const dx = altar.x - p.x;
+    const dy = altar.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx);
+
+    // Margem segura da tela
+    const marginX = 52;
+    const marginY = 56;
+    const halfW = width / 2 - marginX;
+    const halfH = height / 2 - marginY;
+
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const scaleFactor = Math.min(
+      Math.abs(halfW / (cos || 0.0001)),
+      Math.abs(halfH / (sin || 0.0001))
+    );
+
+    const edgeX = scX + cos * scaleFactor;
+    const edgeY = scY + sin * scaleFactor;
+
+    this.altarIndicatorContainer.setPosition(Math.round(edgeX), Math.round(edgeY));
+
+    // Desenha o marcador de borda com seta e badge [X]
+    const g = this.altarIndicatorGraphics;
+    g.clear();
+
+    // Seta / Triângulo apontando para o Altar
+    const arrowDist = 18;
+    const tipX = Math.cos(angle) * arrowDist;
+    const tipY = Math.sin(angle) * arrowDist;
+    const perpAngle = angle + Math.PI / 2;
+    const wingX1 = Math.cos(perpAngle) * 7.5;
+    const wingY1 = Math.sin(perpAngle) * 7.5;
+    const wingX2 = -Math.cos(perpAngle) * 7.5;
+    const wingY2 = -Math.sin(perpAngle) * 7.5;
+
+    g.fillStyle(0x18040a, 0.95);
+    g.beginPath();
+    g.moveTo(tipX, tipY);
+    g.lineTo(wingX1, wingY1);
+    g.lineTo(wingX2, wingY2);
+    g.closePath();
+    g.fill();
+
+    g.lineStyle(2, 0xff002b, 1);
+    g.beginPath();
+    g.moveTo(tipX, tipY);
+    g.lineTo(wingX1, wingY1);
+    g.lineTo(wingX2, wingY2);
+    g.closePath();
+    g.stroke();
+
+    // Fundo do badge [X]
+    const badgeW = 68;
+    const badgeH = 22;
+    g.fillStyle(0x0e0206, 0.94);
+    g.fillRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
+    g.lineStyle(1.5, 0xffe600, 0.95);
+    g.strokeRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
+
+    // Texto: X e Distância em metros
+    const distMeters = Math.max(1, Math.round(dist / 10));
+    this.altarIndicatorText.setText(`[X] ${distMeters}m`);
+    this.altarIndicatorText.setColor('#ffe600');
   }
 
   public setHUDVisible(visible: boolean): void {
