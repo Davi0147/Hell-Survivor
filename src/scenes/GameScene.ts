@@ -14,6 +14,7 @@ import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
+import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { UIScene } from './UIScene';
 
 export class GameScene extends Phaser.Scene {
@@ -112,11 +113,24 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setZoom(2);
     this.cameras.main.setRoundPixels(true);
 
-    // Sincronizar o chão infinito no POST_UPDATE compensando a escala do ladrilho (sem deslizar)
+    // Sincronizar o chão infinito e balões de combate no POST_UPDATE compensando a física e câmera (sem deslizar nem tremer)
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
       if (this.floorTile && this.cameras.main) {
         this.floorTile.tilePositionX = Math.round(this.cameras.main.scrollX / floorScale);
         this.floorTile.tilePositionY = Math.round(this.cameras.main.scrollY / floorScale);
+      }
+
+      // Rastreamento pixel-perfect dos balões de combate (executa após a física mover os sprites e a câmera atualizar)
+      for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
+        const bubble = this.activeCombatBubbles[i];
+        const target = bubble.target;
+        const isAlive = target && target.active && !('isDead' in target && target.isDead) && !('currentHp' in target && target.currentHp <= 0);
+        if (isAlive) {
+          bubble.container.setPosition(Math.round(target.x), Math.round(target.y + bubble.offsetY));
+        } else {
+          bubble.container.destroy();
+          this.activeCombatBubbles.splice(i, 1);
+        }
       }
     });
 
@@ -332,17 +346,6 @@ export class GameScene extends Phaser.Scene {
     if (this.isGameOver || this.isChapterCompleted) return;
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene && uiScene.isDialogueActive()) return;
-
-    // Atualizar posição dos balões dinâmicos de combate (rastreando os personagens em tempo real)
-    for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
-      const bubble = this.activeCombatBubbles[i];
-      if (bubble.target && bubble.target.active && !bubble.target.isDead) {
-        bubble.container.setPosition(bubble.target.x, bubble.target.y + bubble.offsetY);
-      } else {
-        bubble.container.destroy();
-        this.activeCombatBubbles.splice(i, 1);
-      }
-    }
 
     // Verificar se Nixy foi derrotada
     if (this.player.currentHp <= 0) {
@@ -1230,38 +1233,45 @@ export class GameScene extends Phaser.Scene {
     }
 
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-    const offsetY = isNixy ? -36 : -52;
+    const offsetY = isNixy ? -38 : -54;
 
-    const container = this.add.container(target.x, target.y + offsetY);
+    const container = this.add.container(Math.round(target.x), Math.round(target.y + offsetY));
     container.setDepth(1500);
 
     const nameText = this.add.text(0, 0, isNixy ? 'NIXY' : 'SUCCUBUS', {
       fontFamily: pixelFont,
-      fontSize: '6px',
+      fontSize: '7px',
       fontStyle: 'bold',
       color: isNixy ? '#ffbe0b' : '#ff3388',
-      align: 'center'
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 2
     }).setOrigin(0.5);
+    nameText.setResolution(2);
 
     const bodyText = this.add.text(0, 0, text, {
       fontFamily: pixelFont,
-      fontSize: '8px',
+      fontSize: '9px',
       color: isNixy ? '#fff5f8' : '#ffeef8',
       align: 'center',
-      wordWrap: { width: 140 }
+      stroke: isNixy ? '#180106' : '#14001c',
+      strokeThickness: 2.5,
+      wordWrap: { width: 145 }
     }).setOrigin(0.5);
+    bodyText.setResolution(2);
+    enableCensoredTextHighlight(bodyText, '#ffd700');
 
     const padX = 8;
     const padY = 5;
-    const contentW = Math.max(nameText.width, bodyText.width);
-    const bubbleW = Math.max(54, Math.ceil(contentW) + padX * 2);
+    const contentW = Math.max(Math.ceil(nameText.width), Math.ceil(bodyText.width));
+    const bubbleW = Math.max(56, contentW + padX * 2);
     const bubbleH = Math.ceil(nameText.height + bodyText.height + 4) + padY * 2;
-    const halfW = bubbleW / 2;
+    const halfW = Math.round(bubbleW / 2);
     const pointerH = 5;
     const totalH = bubbleH + pointerH;
 
-    nameText.setPosition(0, -totalH + padY + nameText.height / 2);
-    bodyText.setPosition(0, -totalH + padY + nameText.height + 3 + bodyText.height / 2);
+    nameText.setPosition(0, Math.round(-totalH + padY + nameText.height / 2));
+    bodyText.setPosition(0, Math.round(-totalH + padY + nameText.height + 3 + bodyText.height / 2));
 
     const bgG = this.add.graphics();
     const bgColor = isNixy ? 0x1f030a : 0x180122;
@@ -1294,16 +1304,14 @@ export class GameScene extends Phaser.Scene {
 
     container.add([bgG, nameText, bodyText]);
 
-    // Animação pop-in
-    container.setScale(0.5);
+    // Animação de entrada suave por alpha sem alteração de escala (evita artefatos de amostragem e borrão)
+    container.setScale(1.0);
     container.setAlpha(0);
     this.tweens.add({
       targets: container,
-      scaleX: 1,
-      scaleY: 1,
       alpha: 1,
-      duration: 160,
-      ease: 'Back.easeOut'
+      duration: 120,
+      ease: 'Linear'
     });
 
     this.activeCombatBubbles.push({
@@ -1313,15 +1321,13 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Fade-out antes de desaparecer
-    const fadeDelay = Math.max(100, durationMs - 220);
+    const fadeDelay = Math.max(100, durationMs - 200);
     const fadeTimer = this.time.delayedCall(fadeDelay, () => {
       if (container.active) {
         this.tweens.add({
           targets: container,
           alpha: 0,
-          scaleX: 0.8,
-          scaleY: 0.8,
-          duration: 200,
+          duration: 180,
           onComplete: () => {
             container.destroy();
             const idx = this.activeCombatBubbles.findIndex(b => b.container === container);

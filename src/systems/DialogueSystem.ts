@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SoundManager } from './SoundManager';
+import { enableCensoredTextHighlight } from './TextHighlight';
 
 export interface DialogueLine {
   speaker: string; // 'nixy', 'succubus', ou futuros NPCs
@@ -114,6 +115,7 @@ export class DialogueSystem {
       wordWrap: { width: this.BALLOON_W - 60, useAdvancedWrap: true },
       lineSpacing: 10
     });
+    enableCensoredTextHighlight(this.dialogueText, '#ffd700');
     this.balloonContainer.add(this.dialogueText);
 
     // 4.5 Prompt de Avançar [ESPAÇO / CLIQUE]

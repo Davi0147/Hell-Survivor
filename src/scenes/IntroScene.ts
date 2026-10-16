@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
+import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 
 interface IntroStep {
   bgKey?: string;
@@ -133,6 +134,7 @@ export class IntroScene extends Phaser.Scene {
       wordWrap: { width: this.BOX_W - 70, useAdvancedWrap: true },
       lineSpacing: 10
     });
+    enableCensoredTextHighlight(this.dialogueText, '#ffd700');
     this.boxContainer.add(this.dialogueText);
 
     this.promptText = this.add.text(this.BOX_W - 30, this.BOX_H - 18, '▶ ESPAÇO / CLIQUE', {
