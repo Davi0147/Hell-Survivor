@@ -579,14 +579,14 @@ export class DevSandboxPanel {
       y + 30,
       colW,
       44,
-      'INICIAR LUTA DA BOSS SUCCUBUS (DIRETO)',
+      'INICIAR LUTA CONTRA ROSALIN (DIRETO)',
       0x881337,
       0xf43f5e,
       '#ffe4e6',
       () => {
         this.togglePanel(false);
         gs.sandboxSpawnBoss(false);
-        this.showToast('BOSS SUCCUBUS IMPERIAL INVOCADA!', '#fb7185');
+        this.showToast('CHEFE ROSALIN INVOCADA!', '#fb7185');
       }
     );
 
@@ -595,7 +595,7 @@ export class DevSandboxPanel {
       y + 84,
       colW,
       44,
-      'INICIAR BOSS SUCCUBUS (COM DIÁLOGO DE INTRO)',
+      'INICIAR ROSALIN (COM DIÁLOGO DE INTRO)',
       0x581c87,
       0xc084fc,
       '#f3e8ff',
@@ -610,13 +610,13 @@ export class DevSandboxPanel {
       y + 138,
       colW,
       44,
-      'REMOVER / DERROTAR BOSS ATUAL (RESTAURAR BGM)',
+      'REMOVER / DERROTAR ROSALIN (RESTAURAR BGM)',
       0x1e293b,
       0x94a3b8,
       '#e2e8f0',
       () => {
         gs.sandboxRemoveBoss();
-        this.showToast('BOSS REMOVIDA E MÚSICA DE BATALHA RESTAURADA!', '#38bdf8');
+        this.showToast('ROSALIN REMOVIDA E MÚSICA DE BATALHA RESTAURADA!', '#38bdf8');
       }
     );
 

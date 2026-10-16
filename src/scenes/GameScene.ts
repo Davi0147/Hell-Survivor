@@ -229,13 +229,11 @@ export class GameScene extends Phaser.Scene {
     // 5. Inicialização de Grupos, Armas e Gemas de Alma (com Limites de Performance Rigorosos)
     this.enemiesGroup = this.add.group({
       classType: BaseEnemy,
-      maxSize: PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES,
       runChildUpdate: false
     });
 
     this.gemsGroup = this.add.group({
       classType: SoulGem,
-      maxSize: PERFORMANCE_LIMITS.MAX_ACTIVE_GEMS,
       runChildUpdate: false
     });
 
@@ -640,11 +638,11 @@ export class GameScene extends Phaser.Scene {
           this.spawnMatriarchSuccubus();
         }
 
-        // 10:00 (600s): Succubus Imperial Desperta (Chefe Suprema do Modo Infinito)
+        // 10:00 (600s): Rosalin Desperta (Chefe Suprema do Modo Infinito)
         if (!this.boss10mSpawned && elapsedSec >= 600) {
           this.boss10mSpawned = true;
           if (uiScene) {
-            uiScene.showWaveAlert('ALERTA CRÍTICO: SUCCUBUS IMPERIAL DESPERTA!', 5000);
+            uiScene.showWaveAlert('ALERTA CRÍTICO: ROSALIN DESPERTA!', 5000);
           }
           this.spawnSuccubusBossEndless();
         }
@@ -1386,7 +1384,7 @@ export class GameScene extends Phaser.Scene {
 
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene) {
-      uiScene.showWaveAlert('O ALTAR DE INVOCAÇÃO DESPERTOU! DIRIA-SE AO ALTAR PARA O CONFRONTO!', 5000);
+      uiScene.showCenterAnnouncement('O ALTAR DE INVOCAÇÃO FOI ATIVADO!', 'ROSALIN AGUARDA NO PENTAGRAMA — SIGA O INDICADOR');
     }
     DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Invocação ativado! Hordas pausadas, guiando Nixy ao confronto.');
   }
@@ -1407,7 +1405,10 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 2. Posiciona Nixy em frente ao Altar olhando para cima
+    // 2. Limpa quaisquer balões de combate antigos antes do diálogo
+    this.clearCombatSpeechBubbles();
+
+    // 3. Posiciona Nixy em frente ao Altar olhando para cima
     if (this.bossSummonAltar) {
       const pBody = this.player.body as Phaser.Physics.Arcade.Body;
       if (pBody) {
@@ -1420,17 +1421,17 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(350, 255, 60, 60);
     this.cameras.main.shake(250, 0.02);
 
-    // 3. Spawna a Boss Succubus materializando sobre o pentagrama do altar
-    this.spawnSuccubusBoss();
+    // 4. Spawna Rosalin materializando sobre o pentagrama do altar SEM banter imediato
+    this.spawnSuccubusBoss(false);
 
-    // 4. Inicia diálogo pré-boss (a Succubus já está sobre o altar!)
+    // 5. Inicia diálogo pré-boss (a Rosalin já está sobre o altar!)
     this.time.delayedCall(300, () => {
       this.triggerBossDialogueOnly();
     });
   }
 
   /**
-   * Inicia o confronto épico contra a Boss Succubus
+   * Inicia o confronto épico contra a Boss Rosalin
    */
   private triggerBossEncounter(): void {
     if (this.bossSummonAltar && !this.bossSummonAltar.isActive) {
@@ -1444,19 +1445,19 @@ export class GameScene extends Phaser.Scene {
       this.playDialogue([
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Ora, ora, ora... Olha só quem resolveu sair da sua mesinha de escritório.'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Nixy!'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'O que aconteceu, querida? Perdeu o emprego ou finalmente perdeu o juízo?'
         },
@@ -1468,13 +1469,13 @@ export class GameScene extends Phaser.Scene {
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Hahaha! Continua com essa boquinha suja, pelo visto.'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Vamos facilitar as coisas, querida. Você já causou problemas demais por aqui. Que tal dar meia-volta, retornar ao trabalho e deixar os adultos resolverem essa bagunça?'
         },
@@ -1486,19 +1487,19 @@ export class GameScene extends Phaser.Scene {
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Nossa! Alguém acordou com o rabinho pegando fogo!'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Sempre soube que você era esquentadinha, mas nunca imaginei que fosse tão desesperada.'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Embora... pensando bem, talvez eu devesse ter previsto isso. O chefe sempre teve um talento especial para ignorar as funcionárias problemáticas.'
         },
@@ -1510,7 +1511,7 @@ export class GameScene extends Phaser.Scene {
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'C-COMO É QUE É?!'
         },
@@ -1522,13 +1523,13 @@ export class GameScene extends Phaser.Scene {
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Sua... sua insolente!'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Eu conquistei cada pedaço do poder que tenho! Enquanto você ficava enterrada em papelada, eu estava subindo na hierarquia!'
         },
@@ -1540,13 +1541,13 @@ export class GameScene extends Phaser.Scene {
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Sua inveja é tão patética que chega a ser adorável.'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Você passou mil anos rastejando pelos corredores deste inferno, achando que alguém se importava com você. E agora está aqui, fazendo birra porque descobriu que é descartável.'
         },
@@ -1570,43 +1571,43 @@ export class GameScene extends Phaser.Scene {
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: '...'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Muito bem.'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Eu ia deixar você voltar para sua insignificante vidinha de funcionária revoltada.'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Mas agora...'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Agora vou arrancar cada pedacinho dessa sua arrogância.'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Vou me deliciar com seu sangue enquanto uso esses chifres ridículos para abrir um buraco tão fundo em você que nem o próprio inferno vai conseguir encontrar o fundo!'
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'HAHAHAHAHAHA!'
         },
@@ -1618,7 +1619,7 @@ export class GameScene extends Phaser.Scene {
         },
         {
           speaker: 'succubus',
-          speakerName: 'Succubus',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'EU VOU MATAR VOCÊ!'
         },
@@ -1629,15 +1630,16 @@ export class GameScene extends Phaser.Scene {
           text: 'ENTÃO CAI DENTRO, SUA DESGRAÇADA!'
         }
       ], () => {
+        this.clearCombatSpeechBubbles();
         if (!this.bossInstance || !this.bossInstance.active) {
-          this.spawnSuccubusBoss();
+          this.spawnSuccubusBoss(true);
         } else {
           this.startBossCombatBanter();
         }
       });
   }
 
-  private spawnSuccubusBoss(): void {
+  private spawnSuccubusBoss(startBanterImmediate: boolean = true): void {
     let bossX = this.player.x + 220;
     let bossY = this.player.y - 140;
 
@@ -1654,8 +1656,10 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(260, 255, 0, 85);
     this.cameras.main.shake(300, 0.022);
 
-    // Inicia os balões dinâmicos de fala em tempo real durante a batalha
-    this.startBossCombatBanter();
+    // Inicia os balões dinâmicos de fala em tempo real durante a batalha apenas se solicitado
+    if (startBanterImmediate) {
+      this.startBossCombatBanter();
+    }
 
     this.bossInstance.on('boss-defeated', () => {
       if (this.bossSummonAltar) {
@@ -1666,7 +1670,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleBossDefeated(): void {
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Succubus Imperial derrotada!');
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Rosalin derrotada!');
 
     if (this.gameMode === 'sandbox') {
       this.isBossFightActive = false;
@@ -1680,7 +1684,7 @@ export class GameScene extends Phaser.Scene {
       this.spawnMapItem(bx, by - 35, 'chest');
       const uiScene = this.scene.get('UIScene') as UIScene;
       if (uiScene) {
-        uiScene.showWaveAlert('BOSS SUCCUBUS DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
+        uiScene.showWaveAlert('ROSALIN DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
       }
       return;
     }
@@ -1705,7 +1709,7 @@ export class GameScene extends Phaser.Scene {
       this.playDialogue([
         {
           speaker: 'succubus',
-          speakerName: 'Succubus Imperial',
+          speakerName: 'Rosalin',
           portraitKey: 'chat-succubus',
           text: 'Não... isso é impossível... uma mera mortal do plano terreno...'
         },

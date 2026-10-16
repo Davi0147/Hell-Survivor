@@ -100,29 +100,8 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
 
   private drawAura(): void {
     this.auraGraphics.clear();
-
-    if (!this.isActive) {
-      // Glow suave escuro de pedra ancestral
-      this.auraGraphics.fillStyle(0x0a0508, 0.45);
-      this.auraGraphics.fillCircle(0, 0, 85);
-      return;
-    }
-
-    // Aura pulsante de pentagrama ardente
-    const pulse = Math.sin(this.pulseTimer * 0.005) * 6;
-    const baseR = 88 + pulse;
-
-    // Brilho exterior carmesim/laranja
-    this.auraGraphics.fillStyle(0xff3300, 0.18);
-    this.auraGraphics.fillCircle(0, 0, baseR + 25);
-
-    // Núcleo vulcânico
-    this.auraGraphics.fillStyle(0xff6600, 0.28);
-    this.auraGraphics.fillCircle(0, 0, baseR);
-
-    // Anel de contenção rúnico
-    this.auraGraphics.lineStyle(2, 0xffbb00, 0.85);
-    this.auraGraphics.strokeCircle(0, 0, baseR);
+    // Círculos e anéis de fundo removidos conforme solicitado pelo usuário.
+    // O visual do altar é garantido pelos sprites oficiais AltarInvoc.png e chamas animadas.
   }
 
   private spawnFlameEmber(isBurst: boolean): void {

@@ -10,6 +10,8 @@ import { BaseCharacter } from '../characters/BaseCharacter';
 export class SoulBoltWeapon extends BaseWeapon {
   public projectilesGroup: Phaser.GameObjects.Group;
   public isEvolved: boolean = false;
+  public level: number = 1;
+  public readonly maxLevel: number = 5;
   private player?: BaseCharacter;
 
   constructor(scene: Phaser.Scene, player?: BaseCharacter) {
@@ -34,12 +36,30 @@ export class SoulBoltWeapon extends BaseWeapon {
     });
   }
 
+  public getLevel(): number {
+    return this.level;
+  }
+
+  public isMaxLevel(): boolean {
+    return this.isEvolved || this.level >= this.maxLevel;
+  }
+
+  public upgrade(): boolean {
+    if (this.level >= this.maxLevel) return false;
+    this.level++;
+    this.damage += 6;
+    this.cooldownMs = Math.max(550, this.cooldownMs - 60);
+    this.projectileSpeed += 25;
+    return true;
+  }
+
   /**
    * Evolução Suprema: transforma o Disparo de Almas no Raio do Apocalipse
    */
   public evolve(): void {
     if (this.isEvolved) return;
     this.isEvolved = true;
+    this.level = this.maxLevel;
     this.name = 'Raio do Apocalipse';
     this.damage = 46;
     this.cooldownMs = 520;

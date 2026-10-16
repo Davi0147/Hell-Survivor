@@ -323,7 +323,7 @@ export class UIScene extends Phaser.Scene {
     this.bossBarGraphics.setDepth(115);
     this.bossBarGraphics.setVisible(false);
 
-    this.bossNameText = this.add.text(width / 2, 17, 'SUCCUBUS IMPERIAL [CHEFE DO CAPÍTULO 1]', {
+    this.bossNameText = this.add.text(width / 2, 17, 'ROSALIN [CHEFE DO CAPÍTULO 1]', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -1352,7 +1352,7 @@ export class UIScene extends Phaser.Scene {
     modal.add(subtitle);
 
     const statsText = this.add.text(panelX, panelY, 
-      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Succubus Imperial (DERROTADA)`, {
+      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Rosalin (DERROTADA)`, {
       fontFamily: pixelFont,
       fontSize: '12px',
       color: '#e0aaff',
@@ -1463,6 +1463,109 @@ export class UIScene extends Phaser.Scene {
             if (this.waveAlertBanner) {
               this.waveAlertBanner.setVisible(false);
             }
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Exibe uma notificação dramática no centro exato da tela que surge e desaparece.
+   * Utilizada quando o Altar de Invocação é ativado.
+   */
+  public showCenterAnnouncement(title: string, subtitle?: string, durationMs: number = 3800): void {
+    const { width, height } = this.scale;
+    const centerY = height / 2 - 25;
+
+    // Remove qualquer anúncio anterior se ainda estiver na tela
+    const existing = this.children.getByName('center-announcement-container');
+    if (existing) {
+      existing.destroy();
+    }
+
+    const container = this.add.container(width / 2, centerY);
+    container.setName('center-announcement-container');
+    container.setDepth(999);
+    container.setAlpha(0);
+    container.setScale(0.75);
+
+    // 1. Placa/faixa cinematográfica escura com bordas douradas e carmesins
+    const bannerBg = this.add.graphics();
+    const bW = 620;
+    const bH = subtitle ? 78 : 52;
+    bannerBg.fillStyle(0x0a0307, 0.94);
+    bannerBg.fillRoundedRect(-bW / 2, -bH / 2, bW, bH, 8);
+    bannerBg.lineStyle(2, 0xffba08, 1);
+    bannerBg.strokeRoundedRect(-bW / 2, -bH / 2, bW, bH, 8);
+
+    // Efeito de filete carmesim interno
+    bannerBg.lineStyle(1, 0xef233c, 0.75);
+    bannerBg.strokeRoundedRect(-bW / 2 + 3, -bH / 2 + 3, bW - 6, bH - 6, 6);
+    container.add(bannerBg);
+
+    // 2. Título Principal em Dourado/Flamejante
+    const titleText = this.add.text(0, subtitle ? -14 : 0, title, {
+      fontFamily: 'Pixelzone, Silkscreen, monospace',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ffe600',
+      stroke: '#370617',
+      strokeThickness: 4,
+      align: 'center'
+    }).setOrigin(0.5);
+    container.add(titleText);
+
+    // 3. Subtítulo Opcional
+    if (subtitle) {
+      const subText = this.add.text(0, 16, subtitle, {
+        fontFamily: 'Pixelzone, Silkscreen, monospace',
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: '#ffccd5',
+        stroke: '#1f0009',
+        strokeThickness: 3,
+        align: 'center'
+      }).setOrigin(0.5);
+      container.add(subText);
+    }
+
+    // Toca som dramático de anúncio
+    SoundManager.getInstance().playWeaponEvolve();
+
+    // Animação de entrada fluida (Bounce in)
+    this.tweens.add({
+      targets: container,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 320,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Pulso suave no banner
+        this.tweens.add({
+          targets: container,
+          scaleX: 1.025,
+          scaleY: 1.025,
+          duration: 900,
+          yoyo: true,
+          repeat: 2,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    });
+
+    // Animação de saída (Fade out e destruição)
+    this.time.delayedCall(durationMs, () => {
+      if (container.scene) {
+        this.tweens.add({
+          targets: container,
+          alpha: 0,
+          scaleX: 0.9,
+          scaleY: 0.9,
+          duration: 380,
+          ease: 'Power2.easeIn',
+          onComplete: () => {
+            container.destroy();
           }
         });
       }

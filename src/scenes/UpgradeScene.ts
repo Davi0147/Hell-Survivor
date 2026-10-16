@@ -567,6 +567,35 @@ export class UpgradeScene extends Phaser.Scene {
     // ARMAS ATIVAS E SUAS MELHORIAS (NÍVEL 1 A 5/6)
     // =========================================================================
 
+    // 0. DISPARO DE ALMAS (Soul Bolt - Nível 2 ao 5)
+    if (soulBoltWeapon && !soulBoltWeapon.isEvolved && !soulBoltWeapon.isMaxLevel()) {
+      const nextLvl = soulBoltWeapon.getLevel() + 1;
+      const nextDmg = Math.round((25 + (nextLvl - 1) * 6) * dmgMult);
+      catalog.unshift({
+        id: 'soul_bolt_upgrade',
+        title: 'DISPARO DE ALMAS',
+        category: `MELHORIA // NÍVEL ${nextLvl}/5`,
+        badgeColor: 0x00f5d4,
+        icon: 'ALMAS',
+        cardSpriteKey: 'card-mystic',
+        rarityLabel: 'RARO',
+        rarityColor: '#facc15',
+        cardName: 'ALMAS',
+        cardNameColor: C_WEAPON,
+        levelLabel: `NÍVEL ${nextLvl}/5`,
+        glowColor: 0x00f5d4,
+        description: `+Dano Espiritual e +Cadência (Nív ${nextLvl}/5)\n\nAumenta a potência dos disparos astrais e a velocidade dos projéteis!`,
+        richLines: [
+          [{ text: 'POTENCIALIZA O ', color: C_WHITE }, { text: 'DISPARO DE ALMAS', color: C_WEAPON }],
+          [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${nextDmg} DE DANO`, color: C_DAMAGE }],
+          [{ text: 'E ', color: C_WHITE }, { text: '+VELOCIDADE', color: C_SPEED }, { text: ' DE PROJÉTIL', color: C_WHITE }]
+        ],
+        apply: () => {
+          soulBoltWeapon.upgrade();
+        }
+      });
+    }
+
     // 1. LÂMINAS ORBITAIS (Void Scythes / Foice)
     if (!scythesWeapon) {
       const scytheDmg = Math.round(28 * dmgMult);
@@ -857,8 +886,8 @@ export class UpgradeScene extends Phaser.Scene {
     const chainsWeapon = weapons.find((w) => w instanceof AbyssalChainsWeapon) as AbyssalChainsWeapon | undefined;
     const meteorWeapon = weapons.find((w) => w instanceof InfernalMeteorWeapon) as InfernalMeteorWeapon | undefined;
 
-    // 1. RAIO DO APOCALIPSE (Evolução de SoulBolt)
-    if (soulBoltWeapon && !soulBoltWeapon.isEvolved) {
+    // 1. RAIO DO APOCALIPSE (Evolução de SoulBolt - Exige Nível 5 Máximo)
+    if (soulBoltWeapon && !soulBoltWeapon.isEvolved && soulBoltWeapon.isMaxLevel()) {
       const evoDmg = Math.round(46 * dmgMult);
       cards.push({
         id: 'evo_soul_bolt',
@@ -886,8 +915,8 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // 2. CEIFADORA DO VAZIO (Evolução de VoidScythes)
-    if (scythesWeapon && !scythesWeapon.isEvolved) {
+    // 2. CEIFADORA DO VAZIO (Evolução de VoidScythes - Exige 6 Lâminas Máximas)
+    if (scythesWeapon && !scythesWeapon.isEvolved && scythesWeapon.isMaxBlades()) {
       const evoDmg = Math.round(22 * dmgMult);
       cards.push({
         id: 'evo_void_scythes',
@@ -915,8 +944,8 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // 3. SUPERNOVA ABISSAL (Evolução de HellfireAura)
-    if (hellfireWeapon && !hellfireWeapon.isEvolved) {
+    // 3. SUPERNOVA ABISSAL (Evolução de HellfireAura - Exige Nível 5 Máximo)
+    if (hellfireWeapon && !hellfireWeapon.isEvolved && hellfireWeapon.isMaxLevel()) {
       const evoDmg = Math.round(78 * dmgMult);
       cards.push({
         id: 'evo_hellfire_aura',
@@ -944,8 +973,8 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // 4. CHUVA DE SANGUE CARMESIM (Evolução de BloodDaggers)
-    if (daggersWeapon && !daggersWeapon.isEvolved) {
+    // 4. CHUVA DE SANGUE CARMESIM (Evolução de BloodDaggers - Exige Nível 5 Máximo)
+    if (daggersWeapon && !daggersWeapon.isEvolved && daggersWeapon.isMaxLevel()) {
       const evoDmg = Math.round(38 * dmgMult);
       cards.push({
         id: 'evo_blood_daggers',
@@ -973,8 +1002,8 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // 5. GRILHÕES DO TARTARUS (Evolução de AbyssalChains)
-    if (chainsWeapon && !chainsWeapon.isEvolved) {
+    // 5. GRILHÕES DO TARTARUS (Evolução de AbyssalChains - Exige Nível 5 Máximo)
+    if (chainsWeapon && !chainsWeapon.isEvolved && chainsWeapon.isMaxLevel()) {
       const evoDmg = Math.round(54 * dmgMult);
       cards.push({
         id: 'evo_abyssal_chains',
@@ -1002,8 +1031,8 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
 
-    // 6. CATACLISMO SOLAR (Evolução de InfernalMeteor)
-    if (meteorWeapon && !meteorWeapon.isEvolved) {
+    // 6. CATACLISMO SOLAR (Evolução de InfernalMeteor - Exige Nível 5 Máximo)
+    if (meteorWeapon && !meteorWeapon.isEvolved && meteorWeapon.isMaxLevel()) {
       const evoDmg = Math.round(95 * dmgMult);
       cards.push({
         id: 'evo_infernal_meteor',
