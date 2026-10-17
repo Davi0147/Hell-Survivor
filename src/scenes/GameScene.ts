@@ -28,6 +28,8 @@ import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG } from '../config/bal
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
+import { MapEditorSystem } from '../systems/MapEditorSystem';
+import { MapStorageManager, ChapterMapConfig } from '../config/mapData';
 
 export class GameScene extends Phaser.Scene {
   public player!: Nixy;
@@ -41,6 +43,8 @@ export class GameScene extends Phaser.Scene {
   public sandboxAutoSpawn: boolean = false;
   public sandboxShowHitboxes: boolean = false;
   public testShowroomSystem?: TestShowroomSystem;
+  public mapEditorSystem?: MapEditorSystem;
+  private mapEditorLauncherButton?: Phaser.GameObjects.Container;
 
   public chapterPurifiedSouls: number = 0;
   public readonly chapterTargetSouls: number = 900;
@@ -158,8 +162,13 @@ export class GameScene extends Phaser.Scene {
     this.floorTile.setTileScale(floorScale, floorScale);
     this.floorTile.setTint(0x423232); // Diminui a cor e saturação das pedras para destacar monstros e Nixy
 
-    // 2. Instanciação da Nixy no centro do mundo (0, 0)
-    this.player = new Nixy(this, 0, 0);
+    // 2. Carrega o mapa ativo (Customizado ou Padrão do Capítulo 1)
+    const activeMap = MapStorageManager.getActiveMap();
+    const spawnX = activeMap.playerSpawn?.x ?? 0;
+    const spawnY = activeMap.playerSpawn?.y ?? 0;
+
+    // 2. Instanciação da Nixy na posição de spawn do mapa
+    this.player = new Nixy(this, spawnX, spawnY);
     this.player.setDepth(20);
 
     // 2.1. Animação ritual da Estrela de Respawn (Pentagrama de Invocação) nos pés de Nixy
@@ -178,11 +187,14 @@ export class GameScene extends Phaser.Scene {
     // 3.2. Desenha o abismo e a bruma mística nas bordas da arena
     this.drawArenaBorders();
 
-    // 3.3. Instancia os Elementos Decorativos de Cenário (sem colisão física para trânsito livre de Nixy e monstros)
-    this.spawnSceneryProps();
-
-    // 3.4. Instancia o Altar de Invocação do Chefe (inicialmente inativo no mapa)
-    this.spawnBossSummonAltar();
+    // 3.3. Instancia os Elementos de Cenário e Altar respeitando o layout do mapa
+    const customMap = MapStorageManager.loadCustomMap();
+    if (customMap) {
+      this.loadCustomMapLayout(customMap);
+    } else {
+      this.spawnSceneryProps();
+      this.spawnBossSummonAltar();
+    }
 
     // Sincronizar o chão infinito no POST_UPDATE compensando o scroll da câmera
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
@@ -245,6 +257,12 @@ export class GameScene extends Phaser.Scene {
             active ? 'BOT IA: TESTE AUTÔNOMO ATIVADO [F3]' : 'BOT IA: CONTROLE MANUAL RESTAURADO [F3]',
             2500
           );
+        }
+      });
+
+      keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M).on('down', () => {
+        if (this.gameMode === 'sandbox' && !this.isGameOver) {
+          this.mapEditorSystem?.toggle();
         }
       });
     }
@@ -371,13 +389,20 @@ export class GameScene extends Phaser.Scene {
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
       this.testShowroomSystem?.destroy();
+      this.mapEditorSystem?.destroy();
+      if (this.mapEditorLauncherButton) {
+        this.mapEditorLauncherButton.destroy();
+        this.mapEditorLauncherButton = undefined;
+      }
     });
 
     // Spawns Iniciais de Itens no Mapa (exploração e auxílio inicial)
-    const angle1 = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const angle2 = angle1 + Math.PI * 0.75;
-    this.spawnMapItem(this.player.x + Math.cos(angle1) * 450, this.player.y + Math.sin(angle1) * 450, 'chalice');
-    this.spawnMapItem(this.player.x + Math.cos(angle2) * 520, this.player.y + Math.sin(angle2) * 520, 'chest');
+    if (!customMap || !customMap.itemSpawners || customMap.itemSpawners.length === 0) {
+      const angle1 = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const angle2 = angle1 + Math.PI * 0.75;
+      this.spawnMapItem(this.player.x + Math.cos(angle1) * 450, this.player.y + Math.sin(angle1) * 450, 'chalice');
+      this.spawnMapItem(this.player.x + Math.cos(angle2) * 520, this.player.y + Math.sin(angle2) * 520, 'chest');
+    }
 
     // Spawns Iniciais de Monstros (apenas Cães Zumbis no início de História/Infinito; limpo no Sandbox)
     if (this.gameMode === 'sandbox') {
@@ -385,6 +410,10 @@ export class GameScene extends Phaser.Scene {
       DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Arena Sandbox pronta. God Mode ativo por padrão.');
       this.testShowroomSystem = new TestShowroomSystem(this);
       this.testShowroomSystem.init();
+
+      // Inicializa o Editor de Mapas completo do Capítulo 1 / Sandbox
+      this.mapEditorSystem = new MapEditorSystem(this);
+      this.createMapEditorLauncherButton();
     } else if (this.gameMode === 'endless') {
       this.spawnZombieDogAt(-220, -100);
       this.spawnZombieDogAt(220, -120);
@@ -669,6 +698,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    // Se o Editor de Mapas estiver aberto, processa câmera livre e ignora movimentação da Nixy e combate
+    if (this.mapEditorSystem?.isOpen) {
+      this.mapEditorSystem.update(delta);
+      return;
+    }
+
     // Se o jogo acabou ou capítulo foi concluído ou diálogo/roleta de baú estiver ativo, congela toda a ação do jogo
     if (this.isGameOver || this.isChapterCompleted) return;
     const uiScene = this.scene.get('UIScene') as UIScene;
@@ -951,6 +986,11 @@ export class GameScene extends Phaser.Scene {
     // 8. Atualização da Área de Teste / Showroom de Sprites (Apenas no Modo de Teste)
     if (this.testShowroomSystem) {
       this.testShowroomSystem.update(delta);
+    }
+
+    // 9. Atualização do Editor de Mapas
+    if (this.mapEditorSystem) {
+      this.mapEditorSystem.update(delta);
     }
   }
 
@@ -1812,7 +1852,7 @@ export class GameScene extends Phaser.Scene {
     const crystal = this.add.image(x, y, 'scenery-cristal');
     crystal.setOrigin(0.5, 0.65);
     crystal.setDepth(-15);
-    crystal.setScale(0.85 + Math.random() * 0.25);
+    crystal.setScale((0.85 + Math.random() * 0.25) * 0.5); // Reduzido em 50%
     this.sceneryProps.push(crystal);
   }
 
@@ -2008,6 +2048,131 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Carrega um layout customizado de mapa (ou do editor) aplicando props, portais, itens e spawn de Nixy
+   */
+  public loadCustomMapLayout(config?: ChapterMapConfig): void {
+    const map = config ?? MapStorageManager.getActiveMap();
+
+    // 1. Limpa props de cenário anteriores
+    for (const prop of this.sceneryProps) {
+      if (prop && (prop as any).destroy) {
+        (prop as any).destroy();
+      }
+    }
+    this.sceneryProps = [];
+
+    // 2. Reposiciona jogador se definido
+    if (this.player && map.playerSpawn) {
+      this.player.setPosition(map.playerSpawn.x, map.playerSpawn.y);
+      if (this.cameras.main) {
+        this.cameras.main.pan(map.playerSpawn.x, map.playerSpawn.y, 300, 'Power2');
+      }
+    }
+
+    // 3. Spawna ou reposiciona o Altar de Invocação
+    const portalX = map.bossPortal?.x ?? 1450;
+    const portalY = map.bossPortal?.y ?? -1200;
+    this.spawnBossSummonAltar(portalX, portalY);
+
+    // 4. Instancia os props definidos no mapa
+    if (map.props && Array.isArray(map.props)) {
+      for (const p of map.props) {
+        if (p.type === 'scenery-tocha') {
+          this.addSceneryTorch(p.x, p.y);
+        } else if (p.type === 'scenery-rocha') {
+          this.addSceneryRock(p.x, p.y, 0);
+        } else if (p.type === 'scenery-rocha-2') {
+          this.addSceneryRock(p.x, p.y, 1);
+        } else if (p.type === 'scenery-cristal') {
+          this.addSceneryCrystal(p.x, p.y);
+        } else if (p.type === 'scenery-ossos') {
+          this.addSceneryBones(p.x, p.y);
+        } else if (p.type === 'scenery-cogumelos') {
+          this.addSceneryMushroom(p.x, p.y);
+        } else if (p.type.startsWith('altar-')) {
+          if (this.textures.exists(p.type)) {
+            const altarImg = this.add.image(p.x, p.y, p.type);
+            altarImg.setOrigin(0.5, 0.5);
+            altarImg.setDepth(-12);
+            altarImg.setScale(p.scale ?? 0.55);
+            this.sceneryProps.push(altarImg);
+          }
+        } else if (this.textures.exists(p.type)) {
+          const img = this.add.image(p.x, p.y, p.type);
+          img.setOrigin(0.5, 0.5);
+          img.setDepth(-10);
+          img.setScale(p.scale ?? 1.0);
+          this.sceneryProps.push(img);
+        }
+      }
+    } else {
+      this.spawnSceneryProps();
+    }
+
+    // 5. Spawna itens de exploração se definidos nas zonas de item
+    if (map.itemSpawners && Array.isArray(map.itemSpawners) && map.itemSpawners.length > 0) {
+      const oldItems = this.mapItemsGroup.getChildren() as MapItem[];
+      for (let i = oldItems.length - 1; i >= 0; i--) {
+        oldItems[i].destroy();
+      }
+      for (const sp of map.itemSpawners) {
+        const types: ('chalice' | 'chest' | 'magnet')[] = ['chalice', 'chest', 'magnet'];
+        const chosen = Phaser.Math.RND.pick(types);
+        this.spawnMapItem(sp.x, sp.y, chosen);
+      }
+    }
+  }
+
+  /**
+   * Cria o botão HUD de acesso rápido ao Editor de Fases no Modo Sandbox
+   */
+  private createMapEditorLauncherButton(): void {
+    const { width } = this.scale;
+    const btnContainer = this.add.container(width - 150, 45);
+    btnContainer.setScrollFactor(0);
+    btnContainer.setDepth(9999);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1e1e2e, 0.9);
+    bg.lineStyle(2, 0xa855f7, 0.9);
+    bg.fillRoundedRect(-65, -18, 130, 36, 8);
+    bg.strokeRoundedRect(-65, -18, 130, 36, 8);
+
+    const text = this.add.text(0, 0, '🗺️ EDITOR [M]', {
+      fontFamily: 'monospace',
+      fontSize: '13px',
+      fontStyle: 'bold',
+      color: '#e2e8f0'
+    }).setOrigin(0.5);
+
+    btnContainer.add([bg, text]);
+    btnContainer.setSize(130, 36);
+    btnContainer.setInteractive(new Phaser.Geom.Rectangle(-65, -18, 130, 36), Phaser.Geom.Rectangle.Contains);
+
+    btnContainer.on('pointerover', () => {
+      bg.clear();
+      bg.fillStyle(0x3b0764, 0.95);
+      bg.lineStyle(2, 0xd8b4fe, 1.0);
+      bg.fillRoundedRect(-65, -18, 130, 36, 8);
+      bg.strokeRoundedRect(-65, -18, 130, 36, 8);
+    });
+
+    btnContainer.on('pointerout', () => {
+      bg.clear();
+      bg.fillStyle(0x1e1e2e, 0.9);
+      bg.lineStyle(2, 0xa855f7, 0.9);
+      bg.fillRoundedRect(-65, -18, 130, 36, 8);
+      bg.strokeRoundedRect(-65, -18, 130, 36, 8);
+    });
+
+    btnContainer.on('pointerdown', () => {
+      this.mapEditorSystem?.toggle();
+    });
+
+    this.mapEditorLauncherButton = btnContainer;
+  }
+
+  /**
    * Executa a animação ritual da Estrela de Respawn (Pentagrama de Invocação) nos pés de Nixy
    */
   public playRespawnStarEffect(): void {
@@ -2055,9 +2220,11 @@ export class GameScene extends Phaser.Scene {
   /**
    * Instancia o Altar de Invocação do Chefe no mapa (inicialmente inativo)
    */
-  private spawnBossSummonAltar(): void {
-    const altarX = 1450;
-    const altarY = -1200;
+  private spawnBossSummonAltar(altarX: number = 1450, altarY: number = -1200): void {
+    if (this.bossSummonAltar) {
+      this.bossSummonAltar.destroy();
+      this.bossSummonAltar = null;
+    }
     this.bossSummonAltar = new BossSummonAltar(this, altarX, altarY);
     this.bossSummonAltar.on('boss-summon-triggered', () => {
       this.handleBossSummonTriggered();
@@ -2402,9 +2569,13 @@ export class GameScene extends Phaser.Scene {
     let bossX = this.player.x + 220;
     let bossY = this.player.y - 140;
 
+    const activeMap = MapStorageManager.getActiveMap();
     if (this.bossSummonAltar && this.bossSummonAltar.isActive) {
       bossX = this.bossSummonAltar.x;
       bossY = this.bossSummonAltar.y - 15;
+    } else if (activeMap?.bossSpawn) {
+      bossX = activeMap.bossSpawn.x;
+      bossY = activeMap.bossSpawn.y;
     }
 
     this.bossInstance = new SuccubusBoss(this, bossX, bossY);

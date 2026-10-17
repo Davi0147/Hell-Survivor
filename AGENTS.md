@@ -37,3 +37,16 @@ Diretrizes da Galeria Showroom:
 3. **Manequins Pacíficos:** Inimigos e chefes posicionados na galeria são estritamente manequins estáticos para inspeção visual (sem dano de contato, sem knockback, sem agressão ao jogador).
 4. **Espaçamento e Legibilidade:** Manter espaçamento limpo entre os itens com rótulo descritivo sob cada sprite para fácil conferência visual de fidelidade estética.
 
+---
+
+## 4. REGRA DE OURO OBRIGATÓRIA: Registro Contínuo no Editor de Mapas (`Level-Editor-First Rule`)
+
+**Todo e qualquer novo objeto de cenário, elemento decorativo, portal, armadilha, ponto de spawn ou interativo de mapa adicionado ao jogo DEVE OBRIGATORIAMENTE ser registrado na paleta do Editor de Mapas (`src/systems/MapEditorSystem.ts`), no catálogo de dados (`src/config/mapData.ts`) e no carregador dinâmico de mapas (`loadCustomMapLayout` em `GameScene.ts`).**
+
+Diretrizes do Editor de Mapas:
+1. **Inclusão Imediata na Paleta:** Adicionar o novo item em `MapEditorSystem.PALETTE` com id único, categoria apropriada (`props` ou `spawns`), ícone descritivo, textura e escala padronizada.
+2. **Zero Colisão Física para Props:** Props de cenário devem sempre manter `setDepth(-10)` e sem corpos físicos rígidos para jamais prender Nixy ou inimigos.
+3. **Compatibilidade com Exportação/Importação JSON:** O formato dos dados de mapa em `src/config/mapData.ts` deve sempre suportar novos tipos de props sem quebrar mapas previamente exportados pelo usuário.
+4. **Renderização Fiel no Editor e In-Game:** Efeitos associados a props (como halos de tochas crepitando, auras de portais e zonas de bosses) devem ser reproduzidos tanto no preview do editor quanto no carregamento do jogo real.
+
+

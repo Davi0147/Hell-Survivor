@@ -228,7 +228,7 @@ export class TestShowroomSystem {
           { name: 'Rocha 2 (1.5x)', texture: 'scenery-rocha-2', scale: 1.5 },
           { name: 'Pilha Ossos', texture: 'scenery-ossos', scale: 1.0 },
           { name: 'Cogumelos', texture: 'scenery-cogumelos', scale: 1.0 },
-          { name: 'Cristais', texture: 'scenery-cristal', scale: 1.0 },
+          { name: 'Cristais (0.5x)', texture: 'scenery-cristal', scale: 0.5 },
           { name: 'Altar 1', texture: 'altar-1', scale: 0.55 },
           { name: 'Altar 2', texture: 'altar-2', scale: 0.55 },
           { name: 'Altar 3', texture: 'altar-3', scale: 0.55 },
