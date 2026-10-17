@@ -1,0 +1,25 @@
+{
+  "name": "Hell Survivor",
+  "short_name": "HellSurvivor",
+  "description": "Hell Survivor - Roguelike Bullet Hell Gótico",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0a0104",
+  "theme_color": "#ff0055",
+  "icons": [
+    {
+      "src": "./assets/sprites/items/soul.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/sprites/title.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -24,3 +24,10 @@ if (document.readyState === 'loading') {
 } else {
   bootstrap();
 }
+
+// Registro de PWA Service Worker (Instalação no celular e cache de performance)
+if ('serviceWorker' in navigator && (import.meta.env.PROD || window.location.protocol === 'https:')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}

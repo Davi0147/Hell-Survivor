@@ -730,7 +730,12 @@ export class UIScene extends Phaser.Scene {
       this.ultimatePctText.setVisible(false);
       this.ultimateReadyBadge.setVisible(true);
 
-      // Efeito de pulso rítmico no prompt [E]
+      const promptLabel = this.currentControlScheme === 'gamepad' ? '[Y]' : '[E]';
+      if (this.ultimateReadyBadge.text !== promptLabel) {
+        this.ultimateReadyBadge.setText(promptLabel);
+      }
+
+      // Efeito de pulso rítmico no prompt [E] ou [Y]
       const badgeScale = 1.0 + Math.sin(this.time.now * 0.008) * 0.14;
       this.ultimateReadyBadge.setScale(badgeScale);
     } else {
@@ -2036,27 +2041,8 @@ export class UIScene extends Phaser.Scene {
     renderBtn1(true);
     renderBtn2(false);
 
-    // Configura o cursor virtual sobre os botões para Gamepad
+    // Garante que o cursor virtual de pause esteja limpo
     this.cleanupPauseCursor();
-    this.pauseZones = [btn1Zone, btn2Zone];
-    this.pauseCursorX = btn1X;
-    this.pauseCursorY = btnY;
-    this.prevPadConfirm = false;
-
-    this.pauseCursorGraphics = this.add.graphics();
-    this.pauseCursorGraphics.setDepth(3700);
-
-    this.pauseCursorHintText = this.add.text(this.pauseCursorX + 16, this.pauseCursorY - 12, '[A] SELECIONAR', {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#00f5d4',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0, 0.5).setDepth(3701);
-    this.pauseCursorHintText.setVisible(false);
-
-    this.drawPauseCursor(true);
   }
 
   // ==========================================
@@ -2679,9 +2665,6 @@ export class UIScene extends Phaser.Scene {
       this.triggerGameOverChoice(this.gameOverSelectedIndex);
       return;
     }
-
-    // Também atualiza o cursor virtual do analógico se o jogador preferir mirar livremente
-    this.updatePauseCursor(delta, null);
   }
 
   private selectGameOverBtn(index: number): void {

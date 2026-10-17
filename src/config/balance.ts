@@ -99,6 +99,15 @@ export function getEnemyScaling(survivalTimeMs: number, isEndless: boolean) {
 export const ENABLE_DEV_SANDBOX: boolean = true;
 
 export function isDevSandboxEnabled(): boolean {
+  // Em build de produção / pública ou fora de localhost, o Sandbox é estritamente ocultado
+  if (import.meta.env.PROD || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('debug') === '1') return true;
+    } catch {}
+    return false;
+  }
+
   if (ENABLE_DEV_SANDBOX) return true;
   try {
     const params = new URLSearchParams(window.location.search);
