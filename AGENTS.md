@@ -24,3 +24,16 @@ Sempre que criar ou modificar:
 - **Nunca altere valores de balanceamento já aprovados** (como vida da Succubus, recarga da Ultimate, etc.) a menos que o usuário peça explicitamente.
 - **Zero Emojis Unicode em Textos do Phaser:** Utilize apenas tipografia pixel art (`Silkscreen`, `Press Start 2P`) e ícones vetoriais/sprites para evitar glifos quebrados no WebGL/Canvas.
 - **Transições de Áudio Limpas:** Ao alternar entre músicas (`bgm-menu`, `bgm-battle`, `bgm-boss`), utilize sempre os métodos do `SoundManager` que interrompem imediatamente qualquer faixa anterior antes de iniciar a nova.
+
+---
+
+## 3. REGRA DE OURO OBRIGATÓRIA: Atualização Contínua da Área de Teste / Galeria de Sprites (`Showroom-First Rule`)
+
+**Todo e qualquer sprite, textura, prop de cenário, item coletável, arma, projétil, inimigo, chefe, moldura de carta ou efeito visual (VFX) adicionado ou alterado no jogo DEVE OBRIGATORIAMENTE ser registrado na Área de Teste / Galeria de Sprites (`src/systems/TestShowroomSystem.ts`).**
+
+Diretrizes da Galeria Showroom:
+1. **Organização Lógica por Categorias:** Novos elementos devem ser inseridos em sua respectiva categoria temática (`CENÁRIO & PROPS`, `ITENS & COLETÁVEIS`, `ARMAS & PROJÉTEIS`, `INIMIGOS & CHEFES`, `CARTAS DE BÊNÇÃO`, `ANIMAÇÕES & VFX`, `UI & RETRATOS`) ou em uma nova categoria dedicada se for um sistema inédito.
+2. **Escala e Renderização Fiel In-Game:** O sprite deve ser exibido com a mesma proporção, cor/tint e efeitos complementares (ex: tochas acompanhadas do seu halo crepitante de iluminação; animações rodando em loop contínuo).
+3. **Manequins Pacíficos:** Inimigos e chefes posicionados na galeria são estritamente manequins estáticos para inspeção visual (sem dano de contato, sem knockback, sem agressão ao jogador).
+4. **Espaçamento e Legibilidade:** Manter espaçamento limpo entre os itens com rótulo descritivo sob cada sprite para fácil conferência visual de fidelidade estética.
+

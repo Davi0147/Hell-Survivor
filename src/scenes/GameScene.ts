@@ -27,6 +27,7 @@ import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG } from '../config/balance';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
+import { TestShowroomSystem } from '../systems/TestShowroomSystem';
 
 export class GameScene extends Phaser.Scene {
   public player!: Nixy;
@@ -39,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   public sandboxInfiniteStamina: boolean = false;
   public sandboxAutoSpawn: boolean = false;
   public sandboxShowHitboxes: boolean = false;
+  public testShowroomSystem?: TestShowroomSystem;
 
   public chapterPurifiedSouls: number = 0;
   public readonly chapterTargetSouls: number = 900;
@@ -368,6 +370,7 @@ export class GameScene extends Phaser.Scene {
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
+      this.testShowroomSystem?.destroy();
     });
 
     // Spawns Iniciais de Itens no Mapa (exploração e auxílio inicial)
@@ -380,6 +383,8 @@ export class GameScene extends Phaser.Scene {
     if (this.gameMode === 'sandbox') {
       // No Modo de Teste a arena começa limpa e pronta para os comandos do usuário
       DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Arena Sandbox pronta. God Mode ativo por padrão.');
+      this.testShowroomSystem = new TestShowroomSystem(this);
+      this.testShowroomSystem.init();
     } else if (this.gameMode === 'endless') {
       this.spawnZombieDogAt(-220, -100);
       this.spawnZombieDogAt(220, -120);
@@ -941,6 +946,11 @@ export class GameScene extends Phaser.Scene {
     if (_time - this.lastMistCheckTime > 160) {
       this.lastMistCheckTime = _time;
       this.updateBorderMist();
+    }
+
+    // 8. Atualização da Área de Teste / Showroom de Sprites (Apenas no Modo de Teste)
+    if (this.testShowroomSystem) {
+      this.testShowroomSystem.update(delta);
     }
   }
 
@@ -1835,6 +1845,13 @@ export class GameScene extends Phaser.Scene {
       radius: number,
       addCallback: (px: number, py: number) => void
     ): boolean => {
+      // No Modo Sandbox: mantém a Galeria Showroom (-750 a 750, -3100 a -2000) 100% limpa e exclusiva
+      if (this.gameMode === 'sandbox') {
+        if (x >= -750 && x <= 750 && y >= -3100 && y <= -2000) {
+          return false;
+        }
+      }
+
       // Garante distância segura entre qualquer elemento para que não fiquem colados
       for (const p of placedProps) {
         const dist = Math.hypot(p.x - x, p.y - y);
