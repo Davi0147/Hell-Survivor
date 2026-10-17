@@ -306,30 +306,30 @@ export class UIScene extends Phaser.Scene {
     this.killsPanelGraphics = this.add.graphics();
     this.killsPanelGraphics.setDepth(60);
 
-    const hudRightX = width - 110;
-    const killsY = 24;
-    const soulsY = 52;
+    const hudRightX = width - 120;
+    const killsY = 46;
+    const soulsY = 88;
 
     // Linha 1: ABATES (Sprite Kills + Quantidade com contorno preto)
-    this.killsIcon = this.add.image(hudRightX, killsY, 'ui-kills-icon').setScale(0.55).setOrigin(0.5).setDepth(60);
-    this.killsText = this.add.text(hudRightX + 18, killsY, '0', {
+    this.killsIcon = this.add.image(hudRightX, killsY, 'ui-kills-icon').setScale(1.0).setOrigin(0.5).setDepth(60);
+    this.killsText = this.add.text(hudRightX + 26, killsY, '0', {
       fontFamily: pixelFont,
-      fontSize: '14px',
+      fontSize: '18px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
-      strokeThickness: 3.5
+      strokeThickness: 4
     }).setOrigin(0, 0.5).setDepth(60);
 
     // Linha 2: ALMAS (Sprite Alma + Quantidade com contorno preto)
-    this.soulsIcon = this.add.image(hudRightX, soulsY, 'item-soul').setScale(0.55).setOrigin(0.5).setDepth(60);
-    this.soulsText = this.add.text(hudRightX + 18, soulsY, '0', {
+    this.soulsIcon = this.add.image(hudRightX, soulsY, 'item-soul').setScale(1.0).setOrigin(0.5).setDepth(60);
+    this.soulsText = this.add.text(hudRightX + 26, soulsY, '0', {
       fontFamily: pixelFont,
-      fontSize: '13px',
+      fontSize: '18px',
       fontStyle: 'bold',
       color: '#c084fc',
       stroke: '#000000',
-      strokeThickness: 3.5
+      strokeThickness: 4
     }).setOrigin(0, 0.5).setDepth(60);
 
     // ==========================================
