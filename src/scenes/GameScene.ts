@@ -80,6 +80,12 @@ export class GameScene extends Phaser.Scene {
   private playerInvulnerableTimer: number = 0;
   public poisonPuddles: any[] = [];
 
+  // Elementos de Cenário e Fumaça nas Bordas
+  private sceneryColliders!: Phaser.Physics.Arcade.StaticGroup;
+  private sceneryProps: (Phaser.GameObjects.GameObject | Phaser.Physics.Arcade.Sprite)[] = [];
+  private borderMistEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private lastMistCheckTime: number = 0;
+
   // Teclas de controle
   private keyW!: Phaser.Input.Keyboard.Key;
   private keyA!: Phaser.Input.Keyboard.Key;
@@ -155,6 +161,9 @@ export class GameScene extends Phaser.Scene {
     this.player = new Nixy(this, 0, 0);
     this.player.setDepth(20);
 
+    // 2.1. Animação ritual da Estrela de Respawn (Pentagrama de Invocação) nos pés de Nixy
+    this.playRespawnStarEffect();
+
     // 3. Câmera travada no jogador com zoom 2x inteiro e pixels arredondados (pixel-perfect)
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.cameras.main.setZoom(2);
@@ -165,10 +174,15 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(ARENA_CONFIG.MIN_X, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.WIDTH, ARENA_CONFIG.HEIGHT);
     this.player.setCollideWorldBounds(true);
 
-    // 3.2. Desenha o abismo e as fendas rúnicas de contenção nas bordas da arena
+    // 3.2. Desenha o abismo e a bruma mística nas bordas da arena
     this.drawArenaBorders();
 
-    // 3.3. Instancia o Altar de Invocação do Chefe (inicialmente inativo no mapa)
+    // 3.3. Instancia os Obstáculos Físicos e Elementos Decorativos de Cenário
+    this.sceneryColliders = this.physics.add.staticGroup();
+    this.physics.add.collider(this.player, this.sceneryColliders);
+    this.spawnSceneryProps();
+
+    // 3.4. Instancia o Altar de Invocação do Chefe (inicialmente inativo no mapa)
     this.spawnBossSummonAltar();
 
     // Sincronizar o chão infinito no POST_UPDATE compensando o scroll da câmera
@@ -241,6 +255,7 @@ export class GameScene extends Phaser.Scene {
       classType: BaseEnemy,
       runChildUpdate: false
     });
+    this.physics.add.collider(this.enemiesGroup, this.sceneryColliders);
 
     this.gemsGroup = this.add.group({
       classType: SoulGem,
@@ -925,6 +940,12 @@ export class GameScene extends Phaser.Scene {
         this.spawnBloodBatFlock(3);
       }
     }
+
+    // 7. Atualização da Bruma e Fumaça nas Bordas (quando perto dos limites da arena)
+    if (_time - this.lastMistCheckTime > 160) {
+      this.lastMistCheckTime = _time;
+      this.updateBorderMist();
+    }
   }
 
   /**
@@ -1177,6 +1198,7 @@ export class GameScene extends Phaser.Scene {
     this.hasRevivalUsed = true;
     this.player.currentHp = Math.max(1, Math.round(this.player.maxHp * 0.5));
     this.playerInvulnerableTimer = 3500;
+    this.playRespawnStarEffect();
 
     SoundManager.getInstance().playLevelUp();
     this.cameras.main.flash(350, 192, 132, 252);
@@ -1657,7 +1679,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Desenha os limites visuais e o abismo ao redor da Arena Gigante (6400 x 6400 px)
+   * Desenha os limites visuais da Arena com dissolução suave de fumaça (sem linhas duras)
    */
   private drawArenaBorders(): void {
     const g = this.add.graphics();
@@ -1678,35 +1700,312 @@ export class GameScene extends Phaser.Scene {
     g.fillRect(minX - voidPadding, minY, voidPadding, h);
     g.fillRect(maxX, minY, voidPadding, h);
 
-    // 2. Fenda de Fogo e Rocha vulcânica delimitando o perímetro
-    g.lineStyle(16, 0x1a0509, 0.95);
-    g.strokeRect(minX, minY, w, h);
+    // 2. Dissolução Suave do Chão no Abismo (Bruma / Névoa de Borda em 16 passos de gradiente)
+    const fadeSteps = 16;
+    const stepSize = 14; // 16 * 14 = 224px de transição suave sem nenhuma linha delimitadora
+    for (let i = 0; i < fadeSteps; i++) {
+      const alpha = Math.pow((i + 1) / fadeSteps, 1.85);
+      g.fillStyle(0x050104, alpha);
 
-    g.lineStyle(6, 0xd90429, 0.85);
-    g.strokeRect(minX, minY, w, h);
-
-    g.lineStyle(2, 0xffba08, 0.95);
-    g.strokeRect(minX, minY, w, h);
-
-    // 3. Pilares rúnicos distribuídos ao longo da fronteira da arena
-    const pilarDist = 400;
-    for (let x = minX; x <= maxX; x += pilarDist) {
-      this.drawBorderRune(g, x, minY);
-      this.drawBorderRune(g, x, maxY);
+      // Borda Superior
+      g.fillRect(minX - 50, minY + (fadeSteps - 1 - i) * stepSize, w + 100, stepSize);
+      // Borda Inferior
+      g.fillRect(minX - 50, maxY - (fadeSteps - i) * stepSize, w + 100, stepSize);
+      // Borda Esquerda
+      g.fillRect(minX + (fadeSteps - 1 - i) * stepSize, minY - 50, stepSize, h + 100);
+      // Borda Direita
+      g.fillRect(maxX - (fadeSteps - i) * stepSize, minY - 50, stepSize, h + 100);
     }
-    for (let y = minY; y <= maxY; y += pilarDist) {
-      this.drawBorderRune(g, minX, y);
-      this.drawBorderRune(g, maxX, y);
+
+    // 3. Emitter de Bruma e Fumaça Carmesim Ondulante nas Bordas (Custo de CPU Zero no interior)
+    this.borderMistEmitter = this.add.particles(0, 0, 'particle-smoke', {
+      lifespan: { min: 2500, max: 4200 },
+      speed: { min: 10, max: 28 },
+      scale: { start: 1.1, end: 2.6 },
+      alpha: { start: 0.35, end: 0 },
+      blendMode: Phaser.BlendModes.NORMAL,
+      emitting: false
+    });
+    this.borderMistEmitter.setDepth(-30);
+  }
+
+  /**
+   * Emite baforadas de fumaça viva nas bordas visíveis apenas quando a câmera estiver próxima aos limites
+   */
+  private updateBorderMist(): void {
+    if (!this.borderMistEmitter || !this.cameras.main) return;
+
+    const cam = this.cameras.main;
+    const view = cam.worldView;
+    const margin = 350;
+
+    // Borda Superior (minY)
+    if (view.y <= ARENA_CONFIG.MIN_Y + margin) {
+      const rx = Phaser.Math.Between(Math.max(ARENA_CONFIG.MIN_X, view.x - 100), Math.min(ARENA_CONFIG.MAX_X, view.right + 100));
+      this.borderMistEmitter.emitParticleAt(rx, ARENA_CONFIG.MIN_Y + Phaser.Math.Between(0, 80));
+    }
+    // Borda Inferior (maxY)
+    if (view.bottom >= ARENA_CONFIG.MAX_Y - margin) {
+      const rx = Phaser.Math.Between(Math.max(ARENA_CONFIG.MIN_X, view.x - 100), Math.min(ARENA_CONFIG.MAX_X, view.right + 100));
+      this.borderMistEmitter.emitParticleAt(rx, ARENA_CONFIG.MAX_Y - Phaser.Math.Between(0, 80));
+    }
+    // Borda Esquerda (minX)
+    if (view.x <= ARENA_CONFIG.MIN_X + margin) {
+      const ry = Phaser.Math.Between(Math.max(ARENA_CONFIG.MIN_Y, view.y - 100), Math.min(ARENA_CONFIG.MAX_Y, view.bottom + 100));
+      this.borderMistEmitter.emitParticleAt(ARENA_CONFIG.MIN_X + Phaser.Math.Between(0, 80), ry);
+    }
+    // Borda Direita (maxX)
+    if (view.right >= ARENA_CONFIG.MAX_X - margin) {
+      const ry = Phaser.Math.Between(Math.max(ARENA_CONFIG.MIN_Y, view.y - 100), Math.min(ARENA_CONFIG.MAX_Y, view.bottom + 100));
+      this.borderMistEmitter.emitParticleAt(ARENA_CONFIG.MAX_X - Phaser.Math.Between(0, 80), ry);
     }
   }
 
-  private drawBorderRune(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
-    g.fillStyle(0x28040d, 1);
-    g.fillCircle(x, y, 10);
-    g.lineStyle(2, 0xffba08, 0.9);
-    g.strokeCircle(x, y, 10);
-    g.fillStyle(0xff1e27, 1);
-    g.fillCircle(x, y, 4);
+  private addSceneryRock(x: number, y: number): void {
+    const rock = this.sceneryColliders.create(x, y, 'scenery-rocha') as Phaser.Physics.Arcade.Sprite;
+    rock.setOrigin(0.5, 0.7);
+    rock.setDepth(12);
+    const body = rock.body as Phaser.Physics.Arcade.StaticBody;
+    if (body) {
+      body.setSize(36, 24);
+      body.setOffset(22, 50);
+      body.updateFromGameObject();
+    }
+    this.sceneryProps.push(rock);
+  }
+
+  private addSceneryTorch(x: number, y: number): void {
+    const torch = this.sceneryColliders.create(x, y, 'scenery-tocha') as Phaser.Physics.Arcade.Sprite;
+    torch.setOrigin(0.5, 0.7);
+    torch.setDepth(12);
+    const body = torch.body as Phaser.Physics.Arcade.StaticBody;
+    if (body) {
+      body.setSize(20, 16);
+      body.setOffset(30, 60);
+      body.updateFromGameObject();
+    }
+    this.sceneryProps.push(torch);
+
+    // Halo de Luz Quente e Suave (Âmbar / Dourado) com Pulsação de Chama Crepitando
+    const halo = this.add.image(x, y - 18, 'torch-light');
+    halo.setOrigin(0.5, 0.5);
+    halo.setDepth(11);
+    halo.setBlendMode(Phaser.BlendModes.ADD);
+    halo.setAlpha(0.72);
+    halo.setScale(0.92);
+
+    this.tweens.add({
+      targets: halo,
+      scaleX: { from: 0.88, to: 1.06 },
+      scaleY: { from: 0.88, to: 1.06 },
+      alpha: { from: 0.58, to: 0.82 },
+      duration: 380 + Math.random() * 220,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    this.sceneryProps.push(halo);
+  }
+
+  private addSceneryCrystal(x: number, y: number): void {
+    const crystal = this.add.image(x, y, 'scenery-cristal');
+    crystal.setOrigin(0.5, 0.65);
+    crystal.setDepth(-15);
+    crystal.setScale(0.85 + Math.random() * 0.25);
+    this.sceneryProps.push(crystal);
+  }
+
+  private addSceneryMushroom(x: number, y: number): void {
+    const mush = this.add.image(x, y, 'scenery-cogumelos');
+    mush.setOrigin(0.5, 0.65);
+    mush.setDepth(-15);
+    mush.setScale(0.85 + Math.random() * 0.25);
+    this.sceneryProps.push(mush);
+  }
+
+  private addSceneryBones(x: number, y: number): void {
+    const bones = this.add.image(x, y, 'scenery-ossos');
+    bones.setOrigin(0.5, 0.65);
+    bones.setDepth(-15);
+    bones.setScale(0.85 + Math.random() * 0.25);
+    this.sceneryProps.push(bones);
+  }
+
+  /**
+   * Instancia agrupamentos temáticos de cenário (rochas, tochas com luz, cogumelos, cristais e ossos)
+   */
+  private spawnSceneryProps(): void {
+    // 1. Santuário das Tochas ao redor do Altar de Invocação (1450, -1200)
+    const altarX = 1450;
+    const altarY = -1200;
+    this.addSceneryTorch(altarX - 130, altarY + 120);
+    this.addSceneryTorch(altarX + 130, altarY + 120);
+    this.addSceneryCrystal(altarX - 160, altarY - 80);
+    this.addSceneryCrystal(altarX + 160, altarY - 80);
+    this.addSceneryCrystal(altarX - 110, altarY - 140);
+    this.addSceneryCrystal(altarX + 110, altarY - 140);
+    this.addSceneryBones(altarX - 180, altarY + 40);
+    this.addSceneryBones(altarX + 180, altarY + 40);
+    this.addSceneryRock(altarX - 220, altarY - 100);
+    this.addSceneryRock(altarX + 220, altarY - 100);
+
+    // 2. Trilhas de Tochas guiando para áreas estratégicas da arena
+    const trailCoords = [
+      { x: 950, y: -750 },
+      { x: 1150, y: -950 },
+      { x: 600, y: -400 },
+      { x: -550, y: -500 },
+      { x: 550, y: 500 },
+      { x: -550, y: 500 },
+      { x: -800, y: 0 },
+      { x: 800, y: 0 }
+    ];
+    for (const t of trailCoords) {
+      this.addSceneryTorch(t.x, t.y);
+      if (Math.random() > 0.4) {
+        this.addSceneryRock(t.x + (Math.random() > 0.5 ? 45 : -45), t.y + (Math.random() > 0.5 ? 30 : -30));
+      }
+    }
+
+    // 3. Postos Avançados ao redor da clareira central (mantendo raio de 450px do centro totalmente limpo)
+    this.addSceneryMushroom(-520, -480);
+    this.addSceneryMushroom(-560, -450);
+    this.addSceneryCrystal(-490, -530);
+
+    this.addSceneryCrystal(520, -480);
+    this.addSceneryCrystal(560, -510);
+    this.addSceneryMushroom(490, -440);
+
+    this.addSceneryBones(-520, 520);
+    this.addSceneryBones(-570, 480);
+    this.addSceneryRock(-600, 560);
+
+    this.addSceneryMushroom(520, 520);
+    this.addSceneryCrystal(560, 480);
+    this.addSceneryBones(600, 550);
+
+    // 4. Clusters Temáticos Grandes pelos 4 Quadrantes da Arena
+    const clusterCenters = [
+      // Noroeste (Bosques Místicos e Cavernas de Cristal)
+      { x: -1500, y: -1100, type: 'nature' },
+      { x: -2200, y: -2000, type: 'crystals' },
+      { x: -1100, y: -2300, type: 'graveyard' },
+      { x: -2500, y: -900,  type: 'rocks' },
+
+      // Sudoeste (Cemitérios e Cumes Sombrios)
+      { x: -1400, y: 1400,  type: 'graveyard' },
+      { x: -2300, y: 1200,  type: 'rocks' },
+      { x: -1700, y: 2200,  type: 'nature' },
+      { x: -900,  y: 1900,  type: 'crystals' },
+
+      // Sudeste (Jardins Demoníacos e Ossuários)
+      { x: 1500,  y: 1500,  type: 'nature' },
+      { x: 2300,  y: 1700,  type: 'graveyard' },
+      { x: 1100,  y: 2200,  type: 'crystals' },
+      { x: 2400,  y: 900,   type: 'rocks' },
+
+      // Nordeste (Vale das Sombras e Picos Rúnicos)
+      { x: 2200,  y: -1700, type: 'graveyard' },
+      { x: 2100,  y: -700,  type: 'crystals' },
+      { x: 900,   y: -2200, type: 'nature' },
+      { x: 2500,  y: -2400, type: 'rocks' }
+    ];
+
+    for (const c of clusterCenters) {
+      if (c.type === 'nature') {
+        this.addSceneryTorch(c.x, c.y);
+        this.addSceneryRock(c.x + 60, c.y - 40);
+        for (let i = 0; i < 5; i++) {
+          const ox = Phaser.Math.Between(-110, 110);
+          const oy = Phaser.Math.Between(-110, 110);
+          this.addSceneryMushroom(c.x + ox, c.y + oy);
+        }
+        for (let i = 0; i < 3; i++) {
+          const ox = Phaser.Math.Between(-100, 100);
+          const oy = Phaser.Math.Between(-100, 100);
+          this.addSceneryCrystal(c.x + ox, c.y + oy);
+        }
+      } else if (c.type === 'crystals') {
+        this.addSceneryRock(c.x - 45, c.y - 30);
+        this.addSceneryRock(c.x + 55, c.y + 40);
+        for (let i = 0; i < 6; i++) {
+          const ox = Phaser.Math.Between(-120, 120);
+          const oy = Phaser.Math.Between(-120, 120);
+          this.addSceneryCrystal(c.x + ox, c.y + oy);
+        }
+        for (let i = 0; i < 2; i++) {
+          const ox = Phaser.Math.Between(-90, 90);
+          const oy = Phaser.Math.Between(-90, 90);
+          this.addSceneryMushroom(c.x + ox, c.y + oy);
+        }
+      } else if (c.type === 'graveyard') {
+        this.addSceneryTorch(c.x, c.y);
+        this.addSceneryRock(c.x - 65, c.y + 25);
+        for (let i = 0; i < 6; i++) {
+          const ox = Phaser.Math.Between(-120, 120);
+          const oy = Phaser.Math.Between(-120, 120);
+          this.addSceneryBones(c.x + ox, c.y + oy);
+        }
+        if (Math.random() > 0.5) {
+          this.addSceneryRock(c.x + 75, c.y - 50);
+        }
+      } else if (c.type === 'rocks') {
+        this.addSceneryRock(c.x - 50, c.y);
+        this.addSceneryRock(c.x + 50, c.y - 20);
+        this.addSceneryRock(c.x, c.y + 55);
+        this.addSceneryTorch(c.x + 10, c.y - 45);
+        for (let i = 0; i < 3; i++) {
+          const ox = Phaser.Math.Between(-100, 100);
+          const oy = Phaser.Math.Between(-100, 100);
+          this.addSceneryBones(c.x + ox, c.y + oy);
+        }
+      }
+    }
+  }
+
+  /**
+   * Executa a animação ritual da Estrela de Respawn (Pentagrama de Invocação) nos pés de Nixy
+   */
+  public playRespawnStarEffect(): void {
+    if (!this.player) return;
+
+    const starX = this.player.x;
+    const starY = this.player.y + 12;
+
+    const star = this.add.sprite(starX, starY, 'respawn-star-1');
+    star.setOrigin(0.5, 0.5);
+    star.setDepth(15);
+    star.setScale(1.2);
+    star.setBlendMode(Phaser.BlendModes.ADD);
+
+    star.play('anim-respawn-star');
+
+    star.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.tweens.add({
+        targets: star,
+        scaleX: 1.3,
+        scaleY: 1.3,
+        alpha: { from: 0.9, to: 1 },
+        duration: 500,
+        yoyo: true,
+        repeat: 1,
+        ease: 'Sine.easeInOut'
+      });
+
+      this.time.delayedCall(1000, () => {
+        this.tweens.add({
+          targets: star,
+          alpha: 0,
+          scaleX: 1.45,
+          scaleY: 1.45,
+          duration: 700,
+          ease: 'Cubic.easeOut',
+          onComplete: () => {
+            star.destroy();
+          }
+        });
+      });
+    });
   }
 
   /**

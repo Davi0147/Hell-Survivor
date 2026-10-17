@@ -409,6 +409,18 @@ export class BootScene extends Phaser.Scene {
 
     this.load.image('chat-boss', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);
     this.load.image('chat-chefe', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);
+
+    // 21. Elementos Decorativos e Obstáculos de Cenário (80x80px)
+    this.load.image('scenery-cogumelos', `assets/sprites/items/Cogumelos.png?t=${cacheBuster}`);
+    this.load.image('scenery-cristal', `assets/sprites/items/Cristal.png?t=${cacheBuster}`);
+    this.load.image('scenery-ossos', `assets/sprites/items/Pilha%20de%20Ossos.png?t=${cacheBuster}`);
+    this.load.image('scenery-rocha', `assets/sprites/items/Rocha.png?t=${cacheBuster}`);
+    this.load.image('scenery-tocha', `assets/sprites/items/Tocha.png?t=${cacheBuster}`);
+
+    // 22. Animação da Estrela de Respawn (Pentagrama de Invocação - 6 frames)
+    for (let i = 1; i <= 6; i++) {
+      this.load.image(`respawn-star-${i}`, `assets/sprites/items/Respawn%20Star%20${i}.png?t=${cacheBuster}`);
+    }
   }
 
   create(): void {
@@ -552,6 +564,24 @@ export class BootScene extends Phaser.Scene {
         { key: 'explosion-5' }
       ],
       frameRate: 15,
+      repeat: 0
+    });
+
+    // 1.6. Registrar animação da Estrela de Respawn (Pentagrama de Invocação - 6 frames)
+    if (this.anims.exists('anim-respawn-star')) {
+      this.anims.remove('anim-respawn-star');
+    }
+    this.anims.create({
+      key: 'anim-respawn-star',
+      frames: [
+        { key: 'respawn-star-1' },
+        { key: 'respawn-star-2' },
+        { key: 'respawn-star-3' },
+        { key: 'respawn-star-4' },
+        { key: 'respawn-star-5' },
+        { key: 'respawn-star-6' }
+      ],
+      frameRate: 10,
       repeat: 0
     });
 
@@ -740,6 +770,50 @@ export class BootScene extends Phaser.Scene {
         ctx.fillRect(2, 0, 2, 6);
         ctx.fillRect(0, 2, 6, 2);
         this.textures.addCanvas('particle-spark', canvas);
+      }
+    }
+
+    // Halo de Luz Quente e Suave para Tochas de Cenário (180x180px)
+    if (!this.textures.exists('torch-light')) {
+      const size = 180;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const rad = size / 2;
+        const grad = ctx.createRadialGradient(rad, rad, 4, rad, rad, rad);
+        grad.addColorStop(0, 'rgba(255, 175, 40, 0.85)');
+        grad.addColorStop(0.25, 'rgba(255, 110, 20, 0.45)');
+        grad.addColorStop(0.60, 'rgba(217, 4, 41, 0.18)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(rad, rad, rad, 0, Math.PI * 2);
+        ctx.fill();
+        this.textures.addCanvas('torch-light', canvas);
+      }
+    }
+
+    // Bruma e Fumaça Carmesim Suave para as Bordas do Cenário (64x64px)
+    if (!this.textures.exists('particle-smoke')) {
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const rad = size / 2;
+        const grad = ctx.createRadialGradient(rad, rad, 2, rad, rad, rad);
+        grad.addColorStop(0, 'rgba(45, 10, 22, 0.65)');
+        grad.addColorStop(0.40, 'rgba(30, 6, 16, 0.40)');
+        grad.addColorStop(0.75, 'rgba(15, 3, 9, 0.15)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(rad, rad, rad, 0, Math.PI * 2);
+        ctx.fill();
+        this.textures.addCanvas('particle-smoke', canvas);
       }
     }
   }
