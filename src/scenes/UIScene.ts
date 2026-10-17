@@ -833,6 +833,18 @@ export class UIScene extends Phaser.Scene {
       this.bossBarGraphics.setVisible(true);
       this.bossNameText.setVisible(true);
 
+      const isAzazel = gameScene.currentChapter === 2 || gameScene.bossInstance === gameScene.azazelBoss;
+      if (isAzazel) {
+        if (gameScene.bossInstance.combatPhase === 3) {
+          const cap = gameScene.azazelCrystalsCaptured || 0;
+          this.bossNameText.setText(`AZAZEL [CRISTAIS PURIFICADOS: ${cap}/3]`);
+        } else {
+          this.bossNameText.setText('AZAZEL [CHEFE DO CAPÍTULO 2]');
+        }
+      } else {
+        this.bossNameText.setText('ROSALIN [CHEFE DO CAPÍTULO 1]');
+      }
+
       if (gameScene.gameMode === 'endless') {
         this.endlessTimerText.setVisible(true);
         this.endlessTimerText.setY(48);
@@ -989,12 +1001,12 @@ export class UIScene extends Phaser.Scene {
         const dist = Math.hypot(dx, dy);
         const angle = Math.atan2(dy, dx);
 
-        // Identifica Chefes e Mini-Chefes (HP alto >= 80 ou textura succubus/boss)
+        // Identifica Chefes e Mini-Chefes (HP alto >= 80 ou textura succubus/boss/azazel)
         const isBoss = (enemy.maxHp && enemy.maxHp >= 80) ||
-          (enemy.texture?.key && (enemy.texture.key.includes('succubus') || enemy.texture.key.includes('boss')));
+          (enemy.texture?.key && (enemy.texture.key.includes('succubus') || enemy.texture.key.includes('boss') || enemy.texture.key.includes('azazel')));
 
         if (isBoss) {
-          // Chefe/Succubus: bola um pouco maior (raio 4.5 vs 2.5 dos comuns), sem anel dourado
+          // Chefe/Succubus/Azazel: bola um pouco maior (raio 4.5 vs 2.5 dos comuns)
           const isOffRadar = dist > maxWorldDist;
           const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
           const bx = cx + Math.cos(angle) * blipDist;
@@ -1041,6 +1053,29 @@ export class UIScene extends Phaser.Scene {
         g.fillCircle(bx, by, 3.8);
         g.lineStyle(1, 0xffffff, 0.9);
         g.strokeCircle(bx, by, 3.8);
+      }
+    }
+
+    // ==========================================
+    // 2.05. BLIPS DOS 3 CRISTAIS DE AZAZEL (FASE 3 - CIANO/MAGENTA PULSANTE)
+    // ==========================================
+    if (gameScene.azazelCrystals && Array.isArray(gameScene.azazelCrystals)) {
+      for (const crystal of gameScene.azazelCrystals) {
+        if (!crystal || !crystal.active || crystal.isCompleted || crystal.isDestroyed) continue;
+        const dx = crystal.x - p.x;
+        const dy = crystal.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx);
+
+        const isOffRadar = dist > maxWorldDist;
+        const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
+        const bx = cx + Math.cos(angle) * blipDist;
+        const by = cy + Math.sin(angle) * blipDist;
+
+        g.fillStyle(0x00f5d4, 1);
+        g.fillCircle(bx, by, 5.2);
+        g.lineStyle(1.8, 0xff0055, 1);
+        g.strokeCircle(bx, by, 5.2);
       }
     }
 
@@ -1177,12 +1212,32 @@ export class UIScene extends Phaser.Scene {
     let targetAltar: any = null;
     let isBossAltar = false;
 
-    if (gameScene.bossSummonAltar && gameScene.bossSummonAltar.isActive && !gameScene.bossSummonAltar.isBossSpawned) {
-      targetAltar = gameScene.bossSummonAltar;
-      isBossAltar = true;
-    } else if (gameScene.altarInstance && gameScene.altarInstance.active && !gameScene.altarInstance.isDestroyed) {
-      targetAltar = gameScene.altarInstance;
-      isBossAltar = false;
+    if (gameScene.azazelCrystals && Array.isArray(gameScene.azazelCrystals) && gameScene.azazelCrystals.length > 0) {
+      let nearestCrystal: any = null;
+      let minDist = Infinity;
+      for (const c of gameScene.azazelCrystals) {
+        if (c && c.active && !c.isCompleted && !c.isDestroyed) {
+          const d = Math.hypot(c.x - p.x, c.y - p.y);
+          if (d < minDist) {
+            minDist = d;
+            nearestCrystal = c;
+          }
+        }
+      }
+      if (nearestCrystal) {
+        targetAltar = nearestCrystal;
+        isBossAltar = true;
+      }
+    }
+
+    if (!targetAltar) {
+      if (gameScene.bossSummonAltar && gameScene.bossSummonAltar.isActive && !gameScene.bossSummonAltar.isBossSpawned) {
+        targetAltar = gameScene.bossSummonAltar;
+        isBossAltar = true;
+      } else if (gameScene.altarInstance && gameScene.altarInstance.active && !gameScene.altarInstance.isDestroyed) {
+        targetAltar = gameScene.altarInstance;
+        isBossAltar = false;
+      }
     }
 
     if (!targetAltar) {
@@ -1302,6 +1357,72 @@ export class UIScene extends Phaser.Scene {
       if (this.bossBarGraphics) this.bossBarGraphics.clear();
       if (this.waveAlertBanner) this.waveAlertBanner.setVisible(false);
     }
+  }
+
+  /**
+   * Exibe frase dramática de Azazel no centro da tela ("AQUI É O MEU MUNDO", "SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ")
+   */
+  public showCenterBossPhrase(phrase: string, durationMs: number = 2100): void {
+    const { width, height } = this.scale;
+    const container = this.add.container(0, 0);
+    container.setDepth(3600);
+
+    const flashBg = this.add.rectangle(width / 2, height / 2, width, 130, 0x050003, 0.88);
+    container.add(flashBg);
+
+    const lineTop = this.add.rectangle(width / 2, height / 2 - 65, width, 3, 0xff0044, 0.9);
+    const lineBot = this.add.rectangle(width / 2, height / 2 + 65, width, 3, 0xff0044, 0.9);
+    container.add(lineTop);
+    container.add(lineBot);
+
+    const text = this.add.text(width / 2, height / 2, phrase, {
+      fontFamily: "'Cinzel', Georgia, serif",
+      fontSize: phrase.length > 26 ? '30px' : '42px',
+      fontStyle: 'bold',
+      color: '#ff1a4b',
+      stroke: '#000000',
+      strokeThickness: 8,
+      align: 'center',
+      wordWrap: { width: width - 120 },
+      shadow: {
+        offsetX: 0,
+        offsetY: 0,
+        color: '#ff0044',
+        blur: 22,
+        stroke: true,
+        fill: true
+      }
+    }).setOrigin(0.5).setScale(0.4);
+    container.add(text);
+
+    SoundManager.getInstance().playStampImpact();
+    SoundManager.getInstance().playDialogueVoice('azazel');
+
+    this.tweens.add({
+      targets: text,
+      scaleX: 1.05,
+      scaleY: 1.05,
+      duration: 280,
+      ease: 'Back.easeOut'
+    });
+
+    this.tweens.add({
+      targets: text,
+      x: { from: width / 2 - 3, to: width / 2 + 3 },
+      duration: 50,
+      yoyo: true,
+      repeat: Math.floor(durationMs / 60)
+    });
+
+    this.time.delayedCall(Math.max(400, durationMs - 260), () => {
+      if (!container.scene) return;
+      this.tweens.add({
+        targets: container,
+        alpha: 0,
+        duration: 250,
+        onComplete: () => container.destroy()
+      });
+    });
   }
 
   public startDialogue(lines: DialogueLine[], onComplete: () => void): void {

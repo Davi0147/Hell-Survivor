@@ -582,16 +582,85 @@ export class DevSandboxPanel {
       );
     });
 
-    // Coluna 2: Controle de Boss e Limpeza da Arena
+    // Coluna 2: Controle de Boss (Cap 1 & Cap 2) e Limpeza da Arena
     const col2X = x + colW + 24;
-    this.addSectionTitle(col2X, y, 'CONTROLE DE CHEFE (BOSS) & LIMPEZA DE MAPA');
+    this.addSectionTitle(col2X, y, 'CONTROLE DE CHEFES (ROSALIN & AZAZEL) & MAPA');
 
+    const halfBtnW = Math.floor((colW - 8) / 2);
+
+    // Linha 1: Azazel (Cap 2) - Com Diálogo (Intro->Mid->Fight) | Direto
     this.createActionButton(
       col2X,
-      y + 30,
-      colW,
-      44,
-      'INICIAR LUTA CONTRA SUCCUBUS (DIRETO)',
+      y + 26,
+      halfBtnW,
+      36,
+      'AZAZEL (COM INTRO/DIÁLOGO)',
+      0x3b0764,
+      0xc084fc,
+      '#f3e8ff',
+      () => {
+        this.togglePanel(false);
+        gs.sandboxSpawnAzazel(true);
+        this.showToast('ENCONTRO COM AZAZEL INICIADO!', '#c084fc');
+      }
+    );
+
+    this.createActionButton(
+      col2X + halfBtnW + 8,
+      y + 26,
+      halfBtnW,
+      36,
+      'AZAZEL (LUTAR DIRETO)',
+      0x581c87,
+      0xe879f9,
+      '#fae8ff',
+      () => {
+        this.togglePanel(false);
+        gs.sandboxSpawnAzazel(false);
+        this.showToast('BOSS AZAZEL INVOCADO (FASE 1)!', '#e879f9');
+      }
+    );
+
+    // Linha 2: Forçar Fases de Azazel (Fase 2 50% Escuridão | Fase 3 20% Dimensão Chao2)
+    this.createActionButton(
+      col2X,
+      y + 70,
+      halfBtnW,
+      36,
+      'AZAZEL: FASE 2 (50% ESCURO)',
+      0x1e1b4b,
+      0x818cf8,
+      '#e0e7ff',
+      () => {
+        this.togglePanel(false);
+        gs.sandboxForceAzazelPhase2();
+        this.showToast('FASE 2 DE AZAZEL (ESCURIDÃO) ATIVADA!', '#818cf8');
+      }
+    );
+
+    this.createActionButton(
+      col2X + halfBtnW + 8,
+      y + 70,
+      halfBtnW,
+      36,
+      'AZAZEL: FASE 3 (20% CHAO2)',
+      0x4c0519,
+      0xf43f5e,
+      '#ffe4e6',
+      () => {
+        this.togglePanel(false);
+        gs.sandboxForceAzazelPhase3();
+        this.showToast('FASE 3 DE AZAZEL (CRISTAIS + CHAO2) ATIVADA!', '#fb7185');
+      }
+    );
+
+    // Linha 3: Rosalin (Cap 1) - Direto | Com Diálogo
+    this.createActionButton(
+      col2X,
+      y + 114,
+      halfBtnW,
+      36,
+      'SUCCUBUS (LUTAR DIRETO)',
       0x881337,
       0xf43f5e,
       '#ffe4e6',
@@ -603,63 +672,81 @@ export class DevSandboxPanel {
     );
 
     this.createActionButton(
-      col2X,
-      y + 84,
-      colW,
-      44,
-      'INICIAR SUCCUBUS (COM DIÁLOGO)',
-      0x581c87,
-      0xc084fc,
-      '#f3e8ff',
+      col2X + halfBtnW + 8,
+      y + 114,
+      halfBtnW,
+      36,
+      'SUCCUBUS (COM DIÁLOGO)',
+      0x701a75,
+      0xd946ef,
+      '#fdf4ff',
       () => {
         this.togglePanel(false);
         gs.sandboxSpawnBoss(true);
       }
     );
 
+    // Linha 4: Cenas Finais (Cap 1 | Cap 2)
     this.createActionButton(
       col2X,
-      y + 138,
-      colW,
-      44,
-      'TESTAR CENA FINAL CAP. 1 (VISUAL NOVEL)',
-      0x701a75,
+      y + 158,
+      halfBtnW,
+      36,
+      'CENA FINAL CAP. 1 (ROSALIN)',
+      0x4a044e,
       0xf472b6,
       '#fdf2f8',
       () => {
         this.togglePanel(false);
         gs.scene.stop('UIScene');
         gs.scene.start('Chapter1EndScene', {
-          runStats: {
-            kills: 412,
-            level: 14,
-            timeSec: 360,
-            soulsEarned: 80
-          }
+          chapter: 1,
+          runStats: { kills: 412, level: 14, timeSec: 360, soulsEarned: 80 }
         });
       }
     );
 
     this.createActionButton(
+      col2X + halfBtnW + 8,
+      y + 158,
+      halfBtnW,
+      36,
+      'CENA FINAL CAP. 2 (AZAZEL)',
+      0x2e1065,
+      0xa855f7,
+      '#f3e8ff',
+      () => {
+        this.togglePanel(false);
+        gs.scene.stop('UIScene');
+        gs.scene.start('Chapter1EndScene', {
+          chapter: 2,
+          runStats: { kills: 620, level: 18, timeSec: 410, soulsEarned: 150 }
+        });
+      }
+    );
+
+    // Linha 5: Remover Boss Ativo
+    this.createActionButton(
       col2X,
-      y + 192,
+      y + 202,
       colW,
-      44,
-      'REMOVER / DERROTAR SUCCUBUS',
+      36,
+      'REMOVER CHEFE ATIVO (ROSALIN / AZAZEL)',
       0x1e293b,
       0x94a3b8,
       '#e2e8f0',
       () => {
         gs.sandboxRemoveBoss();
-        this.showToast('SUCCUBUS REMOVIDA E MÚSICA RESTAURADA!', '#38bdf8');
+        this.showToast('CHEFE REMOVIDO E ARENA RESTAURADA!', '#38bdf8');
       }
     );
 
+    // Linha 6: Matar Monstros com Drop
     this.createActionButton(
       col2X,
-      y + 204,
+      y + 246,
       colW,
-      44,
+      36,
       'MATAR TODOS OS MONSTROS (GERAR DROPS/XP)',
       0x78350f,
       0xfbbf24,
@@ -670,11 +757,12 @@ export class DevSandboxPanel {
       }
     );
 
+    // Linha 7: Limpar Hordas sem Drop
     this.createActionButton(
       col2X,
-      y + 258,
+      y + 290,
       colW,
-      44,
+      36,
       'LIMPAR HORDAS INSTANTANEAMENTE (SEM DROPS)',
       0x064e3b,
       0x34d399,

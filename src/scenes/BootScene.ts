@@ -137,6 +137,26 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('ult-gauge-bg');
     this.textures.remove('ui-status-hud');
     this.textures.remove('ui-char-name-nixy');
+    this.sound.removeByKey('bgm-azazel-intro');
+    this.sound.removeByKey('bgm-azazel-mid');
+    this.sound.removeByKey('bgm-azazel-fight');
+    this.textures.remove('floor-tile-2');
+    this.textures.remove('azazel-crystal');
+    this.textures.remove('chat-azazel');
+    this.textures.remove('azazel-orb');
+    this.textures.remove('azazel-lightning-bolt');
+    for (const dir of DIRECTIONS_8) {
+      this.textures.remove(`azazel-idle-${dir}`);
+      this.textures.remove(`azazel-hand-${dir}`);
+      if (this.anims.exists(`azazel-idle-${dir}`)) this.anims.remove(`azazel-idle-${dir}`);
+      if (this.anims.exists(`azazel-hand-${dir}`)) this.anims.remove(`azazel-hand-${dir}`);
+      if (this.anims.exists(`azazel-run-${dir}`)) this.anims.remove(`azazel-run-${dir}`);
+    }
+    for (const dir of ['east', 'north', 'south', 'west'] as const) {
+      for (let i = 0; i < 8; i++) {
+        this.textures.remove(`azazel-run-${dir}-${i}`);
+      }
+    }
     this.textures.remove('chat-nixy-damage');
     this.textures.remove('chat-rosalin-defeated');
     this.textures.remove('ui-star');
@@ -422,6 +442,36 @@ export class BootScene extends Phaser.Scene {
     for (let i = 1; i <= 6; i++) {
       this.load.image(`respawn-star-${i}`, `assets/sprites/items/Respawn%20Star%20${i}.png?t=${cacheBuster}`);
     }
+
+    // 23. Capítulo 2 e Boss Azazel (Textura chao2, Cristal de Azazel, Sprites e Trilha Sonora Tripla)
+    this.load.image('floor-tile-2', `assets/textures/chao2.jpg?t=${cacheBuster}`);
+    this.load.image('azazel-crystal', `assets/sprites/items/CristalAzazel.png?t=${cacheBuster}`);
+    this.load.image('chat-azazel', `assets/sprites/enemies/Azazel/AzazelChat.png?t=${cacheBuster}`);
+
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(
+        `azazel-idle-${dir}`,
+        `assets/sprites/enemies/Azazel/Idle/rotations/${dir}.png?t=${cacheBuster}`
+      );
+      this.load.image(
+        `azazel-hand-${dir}`,
+        `assets/sprites/enemies/Azazel/Rise%20Hand/rotations/${dir}.png?t=${cacheBuster}`
+      );
+    }
+
+    const AZAZEL_RUN_DIRS = ['east', 'north', 'south', 'west'] as const;
+    for (const dir of AZAZEL_RUN_DIRS) {
+      for (let i = 0; i < 8; i++) {
+        this.load.image(
+          `azazel-run-${dir}-${i}`,
+          `assets/sprites/enemies/Azazel/Idle/animations/Running/${dir}/frame_00${i}.png?t=${cacheBuster}`
+        );
+      }
+    }
+
+    this.load.audio('bgm-azazel-intro', 'assets/audio/azazel/intro.mp3');
+    this.load.audio('bgm-azazel-mid', 'assets/audio/azazel/mid.mp3');
+    this.load.audio('bgm-azazel-fight', 'assets/audio/azazel/fight.mp3');
   }
 
   create(): void {
@@ -551,6 +601,39 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
+    // Registrar animações do Boss Azazel (Idle 8 direções, Rise Hand 8 direções e Running 8 frames mapeados para 8 direções)
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({
+        key: `azazel-idle-${dir}`,
+        frames: [{ key: `azazel-idle-${dir}` }],
+        frameRate: 1,
+        repeat: -1
+      });
+
+      this.anims.create({
+        key: `azazel-hand-${dir}`,
+        frames: [{ key: `azazel-hand-${dir}` }],
+        frameRate: 1,
+        repeat: -1
+      });
+
+      const runAxis = (dir === 'north-east' || dir === 'south-east')
+        ? 'east'
+        : (dir === 'north-west' || dir === 'south-west')
+          ? 'west'
+          : dir;
+      const azazelRunFrames = [];
+      for (let i = 0; i < 8; i++) {
+        azazelRunFrames.push({ key: `azazel-run-${runAxis}-${i}` });
+      }
+      this.anims.create({
+        key: `azazel-run-${dir}`,
+        frames: azazelRunFrames,
+        frameRate: 12,
+        repeat: -1
+      });
+    }
+
     // 1.5. Registrar animação de explosão (Explosion 1 a 5)
     if (this.anims.exists('anim-explosion')) {
       this.anims.remove('anim-explosion');
@@ -594,6 +677,7 @@ export class BootScene extends Phaser.Scene {
     this.createScytheTexture();
     this.createDarkOrbTexture();
     this.createBloodDaggerTexture();
+    this.createAzazelVfxTextures();
 
     // 3. Registrar animações da Nixy para as 8 direções
     for (const dir of DIRECTIONS_8) {
@@ -997,5 +1081,79 @@ export class BootScene extends Phaser.Scene {
 
     this.textures.addCanvas('blood-dagger', canvas);
   }
+
+  private createAzazelVfxTextures(): void {
+    // 1. Orbe de Energia de Azazel (azazel-orb - 28x28px)
+    if (!this.textures.exists('azazel-orb')) {
+      const size = 28;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const cx = size / 2;
+        const grad = ctx.createRadialGradient(cx, cx, 2, cx, cx, cx - 1);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.28, '#ff3366');
+        grad.addColorStop(0.65, '#9d0208');
+        grad.addColorStop(1, 'rgba(58, 12, 163, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cx, cx - 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Anel energético interno
+        ctx.strokeStyle = '#ff99bb';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cx, 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        this.textures.addCanvas('azazel-orb', canvas);
+      }
+    }
+
+    // 2. Raio Abissal de Azazel (azazel-lightning-bolt - 64x240px)
+    if (!this.textures.exists('azazel-lightning-bolt')) {
+      const w = 64;
+      const h = 240;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Halo externo carmesim/violeta
+        ctx.strokeStyle = 'rgba(255, 20, 90, 0.55)';
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        const pts = [
+          [32, 4],
+          [20, 48],
+          [42, 92],
+          [18, 140],
+          [38, 185],
+          [32, 234]
+        ];
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.stroke();
+
+        // Feixe intermediário rubi intenso
+        ctx.strokeStyle = '#ff2a5f';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        // Núcleo branco incandescente
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        this.textures.addCanvas('azazel-lightning-bolt', canvas);
+      }
+    }
+  }
 }
+
 

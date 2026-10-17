@@ -13,6 +13,8 @@ export class SoundManager {
   private currentBgmTween?: Phaser.Tweens.Tween;
   private musicVolume: number = 0.10; // Volume padrão das músicas ajustado para 10%
   private sfxVolume: number = 0.60;
+  private bgmBoostMultiplier: number = 1.0;
+  private azazelTransitionTimers: number[] = [];
 
   // Rate limiter para digitação e dano
   private lastTypewriterTime: number = 0;
@@ -67,12 +69,12 @@ export class SoundManager {
 
     if (this.currentBgm && (this.currentBgm as any).setVolume) {
       let targetVol = this.musicVolume;
-      if (this.currentBgmKey === 'bgm-boss') {
-        targetVol = this.musicVolume * 1.15;
+      if (this.currentBgmKey === 'bgm-boss' || this.currentBgmKey === 'bgm-azazel-mid' || this.currentBgmKey === 'bgm-azazel-fight') {
+        targetVol = Phaser.Math.Clamp(this.musicVolume * 1.15 * this.bgmBoostMultiplier, 0, 1);
       } else if (this.currentBgmKey === 'bgm-intro') {
         targetVol = Phaser.Math.Clamp(this.musicVolume * 0.50, 0.02, 0.06);
-      } else if (this.currentBgmKey === 'bgm-spooky') {
-        targetVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.06);
+      } else if (this.currentBgmKey === 'bgm-spooky' || this.currentBgmKey === 'bgm-azazel-intro') {
+        targetVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.07);
       }
       (this.currentBgm as any).setVolume(targetVol);
     }
@@ -174,6 +176,8 @@ export class SoundManager {
    * Toca a música oficial do Menu Inicial ("Hell Survivor") com fade-in suave
    */
   public playMenuMusic(fadeInMs: number = 1800): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
     this.playMusicTrack('bgm-menu', this.musicVolume, fadeInMs);
   }
 
@@ -181,6 +185,8 @@ export class SoundManager {
    * Toca a música da Intro ("Halloween") bem baixinha de fundo com fade-in suave em loop
    */
   public playIntroMusic(fadeInMs: number = 2500): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
     const lowIntroVol = Phaser.Math.Clamp(this.musicVolume * 0.50, 0.02, 0.06);
     this.playMusicTrack('bgm-intro', lowIntroVol, fadeInMs);
   }
@@ -189,6 +195,8 @@ export class SoundManager {
    * Toca a música da horda normal ("Eternal Shadow") com fade-in suave
    */
   public playBattleMusic(fadeInMs: number = 2500): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
     this.playMusicTrack('bgm-battle', this.musicVolume, fadeInMs);
   }
 
@@ -196,6 +204,8 @@ export class SoundManager {
    * Toca a música épica da Boss ("Orchestral Overture") com fade-in dramático
    */
   public playBossMusic(fadeInMs: number = 2000): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
     this.playMusicTrack('bgm-boss', this.musicVolume * 1.15, fadeInMs);
   }
 
@@ -203,11 +213,187 @@ export class SoundManager {
    * Toca a música da cena pós-chefe ("Spooky Halloween") bem baixinha de fundo
    */
   public playSpookyMusic(fadeInMs: number = 2500): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
     const lowVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.06);
     this.playMusicTrack('bgm-spooky', lowVol, fadeInMs);
   }
 
-  private readonly ALL_BGM_KEYS = ['bgm-menu', 'bgm-battle', 'bgm-boss', 'bgm-intro', 'bgm-spooky'];
+  /**
+   * Toca a Parte 1 da música de Azazel (intro.mp3) em loop e volume baixo durante o diálogo
+   */
+  public playAzazelIntroMusic(fadeInMs: number = 900): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
+    const lowVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.07);
+    this.playMusicTrack('bgm-azazel-intro', lowVol, fadeInMs);
+  }
+
+  /**
+   * Toca diretamente a música de batalha de Azazel (fight.mp3) em loop
+   */
+  public playAzazelFightMusic(fadeInMs: number = 0): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
+    const fightVol = Phaser.Math.Clamp(this.musicVolume * 1.15 * this.bgmBoostMultiplier, 0, 1);
+    this.playMusicTrack('bgm-azazel-fight', fightVol, fadeInMs);
+  }
+
+  /**
+   * Aumenta ou restaura o multiplicador de volume da música atual (ex: +30% na Fase 2 Escuridão de Azazel)
+   */
+  public boostCurrentMusicVolume(multiplier: number = 1.3): void {
+    this.bgmBoostMultiplier = multiplier;
+    if (this.currentBgm && (this.currentBgm as any).setVolume) {
+      const targetVol = Phaser.Math.Clamp(this.musicVolume * 1.15 * this.bgmBoostMultiplier, 0, 1);
+      if (this.scene?.tweens) {
+        this.killBgmTweens();
+        this.currentBgmTween = this.scene.tweens.add({
+          targets: this.currentBgm,
+          volume: targetVol,
+          duration: 500,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            this.currentBgmTween = undefined;
+          }
+        });
+      } else {
+        (this.currentBgm as any).setVolume(targetVol);
+      }
+    }
+  }
+
+  private clearAzazelTransitionTimers(): void {
+    for (const tid of this.azazelTransitionTimers) {
+      window.clearTimeout(tid);
+    }
+    this.azazelTransitionTimers = [];
+  }
+
+  /**
+   * Sincronização Musical Tripla de Azazel:
+   * 1. Faz o loop atual de 'bgm-azazel-intro' tocar até o fim pela última vez (loop = false).
+   * 2. Assim que termina, dispara 'bgm-azazel-mid' (~2s) e invoca onMidStart() (Azazel ergue a mão e grita "SUA ALMA É MINHA!").
+   * 3. Assim que 'bgm-azazel-mid' termina, entra em 'bgm-azazel-fight' (loop = true) e invoca onFightStart().
+   */
+  public finishAzazelIntroAndTransition(onMidStart: () => void, onFightStart: () => void): void {
+    this.clearAzazelTransitionTimers();
+
+    let midStarted = false;
+    let fightStarted = false;
+
+    const startFightStage = () => {
+      if (fightStarted) return;
+      fightStarted = true;
+      this.clearAzazelTransitionTimers();
+      this.playAzazelFightMusic(0);
+      try {
+        onFightStart();
+      } catch (e) {
+        console.error('[SoundManager] Erro em onFightStart:', e);
+      }
+    };
+
+    const startMidStage = () => {
+      if (midStarted) return;
+      midStarted = true;
+      this.clearAzazelTransitionTimers();
+
+      // Para a intro e toca o mid.mp3 sem loop
+      this.killBgmTweens();
+      if (this.currentBgm) {
+        try {
+          (this.currentBgm as any).stop();
+          (this.currentBgm as any).destroy();
+        } catch {}
+        this.currentBgm = undefined;
+        this.currentBgmKey = undefined;
+      }
+
+      let midDurationMs = 2050;
+      if (this.scene && this.scene.sound && this.scene.cache.audio.exists('bgm-azazel-mid')) {
+        try {
+          const midVol = Phaser.Math.Clamp(this.musicVolume * 1.20, 0, 1);
+          const midBgm = this.scene.sound.add('bgm-azazel-mid', {
+            loop: false,
+            volume: midVol
+          });
+          this.currentBgm = midBgm;
+          this.currentBgmKey = 'bgm-azazel-mid';
+          midBgm.once('complete', () => {
+            startFightStage();
+          });
+          midBgm.play();
+          const durSec = (midBgm as any).duration || (midBgm as any).totalDuration || 2.0;
+          if (durSec > 0.3 && durSec < 10) {
+            midDurationMs = Math.round(durSec * 1000);
+          }
+        } catch (e) {
+          console.warn('[SoundManager] Erro ao tocar bgm-azazel-mid:', e);
+        }
+      }
+
+      // Invoca callback visual: Azazel levanta a mão e grita "SUA ALMA É MINHA!"
+      try {
+        onMidStart();
+      } catch (e) {
+        console.error('[SoundManager] Erro em onMidStart:', e);
+      }
+
+      // Fallback timer caso o evento 'complete' do áudio não dispare (ex: aba sem foco / mute)
+      const fallbackFightId = window.setTimeout(() => {
+        startFightStage();
+      }, midDurationMs + 80);
+      this.azazelTransitionTimers.push(fallbackFightId);
+    };
+
+    // Se 'bgm-azazel-intro' está tocando, desativa o loop para ele tocar uma última vez até o fim
+    if (this.currentBgm && this.currentBgmKey === 'bgm-azazel-intro' && this.currentBgm.isPlaying) {
+      const introSound = this.currentBgm as any;
+      try {
+        if (typeof introSound.setLoop === 'function') {
+          introSound.setLoop(false);
+        } else {
+          introSound.loop = false;
+        }
+        if (introSound.source) {
+          introSound.source.loop = false;
+        }
+      } catch {}
+
+      this.currentBgm.once('complete', () => {
+        startMidStage();
+      });
+
+      // Calcula quanto falta do loop atual para fallback preciso
+      const duration = introSound.duration || introSound.totalDuration || 4.0;
+      const rawSeek = introSound.seek || 0;
+      const currentPos = duration > 0 ? (rawSeek % duration) : 0;
+      const remainingMs = Math.max(350, Math.round((duration - currentPos) * 1000));
+
+      const fallbackMidId = window.setTimeout(() => {
+        startMidStage();
+      }, remainingMs + 100);
+      this.azazelTransitionTimers.push(fallbackMidId);
+    } else {
+      // Caso o áudio não estivesse tocando, inicia o mid após breve respiro
+      const fallbackMidId = window.setTimeout(() => {
+        startMidStage();
+      }, 450);
+      this.azazelTransitionTimers.push(fallbackMidId);
+    }
+  }
+
+  private readonly ALL_BGM_KEYS = [
+    'bgm-menu',
+    'bgm-battle',
+    'bgm-boss',
+    'bgm-intro',
+    'bgm-spooky',
+    'bgm-azazel-intro',
+    'bgm-azazel-mid',
+    'bgm-azazel-fight'
+  ];
 
   /**
    * Encerra de forma segura qualquer tween ativo de volume de BGM em todas as cenas ativas
@@ -329,6 +515,8 @@ export class SoundManager {
    * Para a música atual com interrupção instantânea e limpa de todas as BGMs no Phaser
    */
   public stopMusic(fadeOutMs: number = 0): void {
+    this.bgmBoostMultiplier = 1.0;
+    this.clearAzazelTransitionTimers();
     if (!this.scene || !this.scene.sound) return;
 
     this.killBgmTweens();
@@ -773,6 +961,37 @@ export class SoundManager {
       osc2.start(now);
       osc1.stop(now + 0.23);
       osc2.stop(now + 0.23);
+    } else if (sLower === 'azazel') {
+      // Azazel: Timbre soberano abissal (sub-grave ressonante + harmônico metálico escuro)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sawtooth';
+      osc2.type = 'sine';
+
+      osc1.frequency.setValueAtTime(115, now);
+      osc1.frequency.exponentialRampToValueAtTime(75, now + 0.24);
+
+      osc2.frequency.setValueAtTime(230, now);
+      osc2.frequency.exponentialRampToValueAtTime(150, now + 0.24);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(480, now);
+
+      gain.gain.setValueAtTime(0.32 * this.sfxVolume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGainNode || ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.27);
+      osc2.stop(now + 0.27);
     } else {
       // NPC / Outros: Blip amigável retro
       const osc = ctx.createOscillator();
@@ -1730,5 +1949,94 @@ export class SoundManager {
     chimeOsc.start(now);
     chimeOsc.stop(now + 0.24);
   }
+
+  /**
+   * Som de teleporte sombrio de Azazel (blink reverso + deslocamento de ar)
+   */
+  public playAzazelTeleport(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(620, now);
+    osc.frequency.exponentialRampToValueAtTime(95, now + 0.14);
+
+    gain.gain.setValueAtTime(0.22 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGainNode || ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  }
+
+  /**
+   * Som de queda de raio abissal de Azazel (estalo elétrico agudo + trovão grave)
+   */
+  public playAzazelLightningStrike(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Estalo elétrico cortante
+    const zapOsc = ctx.createOscillator();
+    const zapGain = ctx.createGain();
+    zapOsc.type = 'sawtooth';
+    zapOsc.frequency.setValueAtTime(2200, now);
+    zapOsc.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+
+    zapGain.gain.setValueAtTime(0.28 * this.sfxVolume, now);
+    zapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    zapOsc.connect(zapGain);
+    zapGain.connect(this.sfxGainNode || ctx.destination);
+    zapOsc.start(now);
+    zapOsc.stop(now + 0.15);
+
+    // 2. Trovão sub-grave
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(135, now);
+    subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.28);
+
+    subGain.gain.setValueAtTime(0.32 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.30);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGainNode || ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.32);
+  }
+
+  /**
+   * Som de disparo de projétil de energia de Azazel
+   */
+  public playAzazelOrbShoot(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(480, now);
+    osc.frequency.exponentialRampToValueAtTime(190, now + 0.09);
+
+    gain.gain.setValueAtTime(0.15 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGainNode || ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.11);
+  }
 }
+
 

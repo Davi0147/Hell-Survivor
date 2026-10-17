@@ -6,13 +6,14 @@ import { MetaProgressManager } from '../systems/MetaProgressManager';
 
 interface DialogueStep {
   bgKey: string;
-  speaker: 'nixy' | 'rosalin' | 'narrator';
+  speaker: 'nixy' | 'rosalin' | 'azazel' | 'narrator';
   speakerName: string;
   text: string;
   action?: (scene: Chapter1EndScene) => void;
 }
 
 export class Chapter1EndScene extends Phaser.Scene {
+  private chapter: number = 1;
   private runStats: { kills: number; level: number; timeSec: number; soulsEarned?: number } = {
     kills: 0,
     level: 1,
@@ -76,7 +77,8 @@ export class Chapter1EndScene extends Phaser.Scene {
     super('Chapter1EndScene');
   }
 
-  init(data: { runStats?: { kills: number; level: number; timeSec: number; soulsEarned?: number } }): void {
+  init(data: { runStats?: { kills: number; level: number; timeSec: number; soulsEarned?: number }; chapter?: number }): void {
+    this.chapter = data?.chapter ?? 1;
     if (data && data.runStats) {
       this.runStats = data.runStats;
     }
@@ -109,14 +111,14 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.fitBackground(this.bgImageB);
 
     // 2. Bustos dos Personagens ao lado do balão (Padrão Visual Novel igual à Intro)
-    // Nixy com sprite Damage UI ('chat-nixy-damage') e Rosalin com 'chat-rosalin-defeated'
     this.leftBust = this.add.image(this.BUST_LEFT_X, height + 10, 'chat-nixy-damage');
     this.leftBust.setOrigin(0.5, 1.0);
     this.leftBust.setDisplaySize(this.BUST_W, this.BUST_H);
     this.leftBust.setDepth(30);
     this.leftBust.setAlpha(0);
 
-    this.rightBust = this.add.image(this.BUST_RIGHT_X, height + 10, 'chat-rosalin-defeated');
+    const rightPortraitKey = this.chapter === 2 ? 'chat-azazel' : 'chat-rosalin-defeated';
+    this.rightBust = this.add.image(this.BUST_RIGHT_X, height + 10, rightPortraitKey);
     this.rightBust.setOrigin(0.5, 1.0);
     this.rightBust.setDisplaySize(this.BUST_W, this.BUST_H);
     this.rightBust.setDepth(30);
@@ -437,6 +439,57 @@ export class Chapter1EndScene extends Phaser.Scene {
   }
 
   private setupStorySteps(): void {
+    if (this.chapter === 2) {
+      this.steps = [
+        {
+          bgKey: 'endchap1-3',
+          speaker: 'narrator',
+          speakerName: '',
+          text: '*(Os cristais despedaçados ecoam pelo vazio enquanto o domínio de sombras de Azazel se desfaz em cinzas. O senhor da mente cai de joelhos diante de Nixy.)*'
+        },
+        {
+          bgKey: 'endchap1-3',
+          speaker: 'azazel',
+          speakerName: 'AZAZEL',
+          text: 'Impossível... Minha escuridão... Meus espelhos de sangue... Como uma simples alma condenada pôde rasgar o meu mundo?!'
+        },
+        {
+          bgKey: 'endchap1-3',
+          speaker: 'nixy',
+          speakerName: 'NIXY',
+          text: 'Simples, seu mágico de circo: quem trabalha mil anos no escuro daquele escritório não tem medo de luz apagada!'
+        },
+        {
+          bgKey: 'endchap1-3',
+          speaker: 'azazel',
+          speakerName: 'AZAZEL',
+          text: 'Você não faz ideia do que está despertando nos círculos superiores, Nixy... A minha queda é apenas o começo do seu tormento!'
+        },
+        {
+          bgKey: 'endchap1-3',
+          speaker: 'nixy',
+          speakerName: 'NIXY',
+          text: 'Ótimo. Manda lembranças pros seus chefes quando chegar no fundo do abismo!'
+        },
+        {
+          bgKey: 'endchap1-4',
+          speaker: 'narrator',
+          speakerName: '',
+          text: '*(Com um golpe implacável, Nixy dissipa a essência sombria de Azazel e absorve o poder do Segundo Círculo.)*'
+        },
+        {
+          bgKey: 'endchap1-5',
+          speaker: 'nixy',
+          speakerName: 'NIXY',
+          text: 'Dois já foram. E a minha lista de demissões ainda tá longe de acabar.',
+          action: (scene) => {
+            scene.zoomBackgroundLeftOnNixy(1200);
+          }
+        }
+      ];
+      return;
+    }
+
     this.steps = [
       // ==================== IMAGEM 1 ====================
       {
@@ -743,12 +796,12 @@ export class Chapter1EndScene extends Phaser.Scene {
   /**
    * Atualiza os bustos laterais seguindo o padrão Visual Novel da Intro
    */
-  private updateBusts(speaker: 'nixy' | 'rosalin' | 'narrator', bgKey: string): void {
+  private updateBusts(speaker: 'nixy' | 'rosalin' | 'azazel' | 'narrator', bgKey: string): void {
     const { width, height } = this.scale;
     const isAfterSlash = this.hasSlashExecuted || bgKey === 'endchap1-4' || bgKey === 'endchap1-5';
 
     if (isAfterSlash) {
-      // Após o corte de execução, Rosalin foi abatida; esconde o busto dela
+      // Após o corte de execução, o boss foi abatido; esconde o busto dele(a)
       this.tweens.killTweensOf(this.rightBust);
       this.rightBust.setAlpha(0);
     }
@@ -772,14 +825,14 @@ export class Chapter1EndScene extends Phaser.Scene {
         });
       }
 
-      // Diminui Rosalin se visível antes do corte
+      // Diminui Boss se visível antes do corte
       if (!isAfterSlash && this.rightBust.alpha > 0) {
         this.rightBust.setTint(0x554455);
         this.rightBust.setDepth(30);
       }
-    } else if (speaker === 'rosalin' && !isAfterSlash) {
-      // Destaca Rosalin derrotada na direita
-      this.rightBust.setTexture('chat-rosalin-defeated');
+    } else if ((speaker === 'rosalin' || speaker === 'azazel') && !isAfterSlash) {
+      // Destaca Rosalin ou Azazel derrotado na direita
+      this.rightBust.setTexture(speaker === 'azazel' ? 'chat-azazel' : 'chat-rosalin-defeated');
       this.rightBust.setDisplaySize(this.BUST_W, this.BUST_H);
       this.rightBust.clearTint();
       this.rightBust.setDepth(35);
@@ -844,6 +897,9 @@ export class Chapter1EndScene extends Phaser.Scene {
       this.dialogueText.setFontStyle('italic');
     } else if (step.speaker === 'rosalin') {
       this.dialogueText.setColor('#ffccd5');
+      this.dialogueText.setFontStyle('normal');
+    } else if (step.speaker === 'azazel') {
+      this.dialogueText.setColor('#e0aaff');
       this.dialogueText.setFontStyle('normal');
     } else {
       this.dialogueText.setColor('#ffffff');
@@ -979,13 +1035,14 @@ export class Chapter1EndScene extends Phaser.Scene {
   /**
    * Caixa Angular Estilo Persona 5 / Mangá (idêntica ao padrão de qualidade da Intro)
    */
-  private drawSlantedBox(speaker: 'nixy' | 'rosalin' | 'narrator'): void {
+  private drawSlantedBox(speaker: 'nixy' | 'rosalin' | 'azazel' | 'narrator'): void {
     const g = this.boxGraphics;
     g.clear();
 
     const boxW = this.BOX_W;
     const boxH = this.BOX_H;
-    const slant = speaker === 'rosalin' ? -12 : (speaker === 'narrator' ? 0 : 12);
+    const isBoss = speaker === 'rosalin' || speaker === 'azazel';
+    const slant = isBoss ? -12 : (speaker === 'narrator' ? 0 : 12);
 
     // 1. Sombra projetada preta
     g.fillStyle(0x000000, 0.78);
@@ -997,12 +1054,15 @@ export class Chapter1EndScene extends Phaser.Scene {
     g.closePath();
     g.fill();
 
-    // 2. Fundo interno (Carmesim escuro para Nixy / Roxo Escuro para Rosalin / Ônix para Narrador)
+    // 2. Fundo interno
     let bgColor = 0x160207;
     let accentColor = 0xc59b27;
     if (speaker === 'rosalin') {
       bgColor = 0x180214;
       accentColor = 0xff0055;
+    } else if (speaker === 'azazel') {
+      bgColor = 0x11031c;
+      accentColor = 0x9d4edd;
     } else if (speaker === 'narrator') {
       bgColor = 0x0c070e;
       accentColor = 0x887799;
@@ -1035,7 +1095,7 @@ export class Chapter1EndScene extends Phaser.Scene {
   /**
    * Plaqueta de Nome Recortada e Alinhada com Perfeição
    */
-  private drawNameplate(speaker: 'nixy' | 'rosalin' | 'narrator', name: string): void {
+  private drawNameplate(speaker: 'nixy' | 'rosalin' | 'azazel' | 'narrator', name: string): void {
     const g = this.nameplateGraphics;
     g.clear();
 
@@ -1044,13 +1104,13 @@ export class Chapter1EndScene extends Phaser.Scene {
       return;
     }
 
-    const isRosalin = speaker === 'rosalin';
+    const isBoss = speaker === 'rosalin' || speaker === 'azazel';
     const nW = Math.max(160, name.length * 15 + 40);
     const nH = 34;
-    const nX = isRosalin ? this.BOX_W - nW - 25 : 25;
+    const nX = isBoss ? this.BOX_W - nW - 25 : 25;
     const nY = -28;
 
-    const plateColor = isRosalin ? 0x6a0056 : 0x9d0208;
+    const plateColor = speaker === 'azazel' ? 0x3c096c : (speaker === 'rosalin' ? 0x6a0056 : 0x9d0208);
     g.fillStyle(plateColor, 1);
     g.beginPath();
     g.moveTo(nX, nY);
@@ -1217,13 +1277,7 @@ export class Chapter1EndScene extends Phaser.Scene {
   }
 
   /**
-   * Sequência de Conclusão do Capítulo 1:
-   * - Sem fundo (apenas tipografia estilizada sobre a cena final)
-   * - Alinhada mais à direita (deixando a Nixy livre à esquerda)
-   * - Título "CAPÍTULO 1 CONCLUÍDO" vem da frente e cola na tela com barulho e tremor
-   * - Estatísticas digitadas uma por uma com barulho de máquina de escrever
-   * - Estrelas (STAR) batendo uma atrás da outra e tremendo a tela
-   * - Opções finais sem fundo algum
+   * Sequência de Conclusão do Capítulo 1 ou 2
    */
   private showVictorySequence(): void {
     const { width, height } = this.scale;
@@ -1234,9 +1288,10 @@ export class Chapter1EndScene extends Phaser.Scene {
     // Eixo alinhado à direita da tela (deixando o rosto da Nixy livre na esquerda)
     const rightCenterX = Math.round(width * 0.68); // ~870px em 1280px
     const titleY = 140;
+    const chapterTitleText = this.chapter === 2 ? 'CAPÍTULO 2 CONCLUÍDO' : 'CAPÍTULO 1 CONCLUÍDO';
 
-    // 1. TÍTULO: "CAPÍTULO 1 CONCLUÍDO" (Vem da frente e cola na tela com impacto!)
-    const title = this.add.text(rightCenterX, titleY, 'CAPÍTULO 1 CONCLUÍDO', {
+    // 1. TÍTULO: "CAPÍTULO X CONCLUÍDO" (Vem da frente e cola na tela com impacto!)
+    const title = this.add.text(rightCenterX, titleY, chapterTitleText, {
       fontFamily: pixelFont,
       fontSize: '26px',
       fontStyle: 'bold',
@@ -1271,7 +1326,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         this.cameras.main.shake(230, 0.018);
 
         // Onda fantasma de impacto do título
-        const titleGhost = this.add.text(rightCenterX, titleY, 'CAPÍTULO 1 CONCLUÍDO', {
+        const titleGhost = this.add.text(rightCenterX, titleY, chapterTitleText, {
           fontFamily: pixelFont,
           fontSize: '26px',
           fontStyle: 'bold',
@@ -1505,10 +1560,21 @@ export class Chapter1EndScene extends Phaser.Scene {
 
         const handleNextChapter = () => {
           SoundManager.getInstance().playMenuClick();
+          if (this.chapter === 1) {
+            SoundManager.getInstance().stopMusic(600);
+            this.cameras.main.fadeOut(500, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+              this.scene.stop('Chapter1EndScene');
+              this.scene.stop('UIScene');
+              this.scene.start('GameScene', { mode: 'story', chapter: 2 });
+            });
+            return;
+          }
+
           toastNotice.setText('');
           toastNotice.setAlpha(1);
           this.tweens.killTweensOf(toastNotice);
-          this.typeTextLine(toastNotice, 'CAPÍTULO 2 EM BREVE NAS PRÓXIMAS ATUALIZAÇÕES!', 18, () => {
+          this.typeTextLine(toastNotice, 'CAPÍTULO 3 EM BREVE NAS PRÓXIMAS ATUALIZAÇÕES!', 18, () => {
             this.tweens.add({
               targets: toastNotice,
               alpha: 0,

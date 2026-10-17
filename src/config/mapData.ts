@@ -1,5 +1,5 @@
 export interface MapEntityProp {
-  type: string;       // ex: 'scenery-tocha', 'scenery-rocha', 'scenery-rocha-2', 'scenery-ossos', 'scenery-cogumelos', 'scenery-cristal', 'altar-1', etc.
+  type: string; // ex: 'scenery-tocha', 'scenery-rocha', 'scenery-rocha-2', 'scenery-ossos', 'scenery-cogumelos', 'scenery-cristal', 'azazel-crystal', 'altar-1', etc.
   x: number;
   y: number;
   scale?: number;
@@ -12,13 +12,15 @@ export interface MapPoint {
 
 export interface ChapterMapConfig {
   version: number;
-  chapter: number;
+  chapter: number; // 1 = Cap 1, 2 = Cap 2, 202 = Dimensão de Azazel (chao2)
   name: string;
   description?: string;
+  floorTexture?: string; // 'floor-tile' (chao1.jpg) ou 'floor-tile-2' (chao2.jpg)
   playerSpawn: MapPoint;
   bossPortal: MapPoint;
   bossSpawn: MapPoint;
   itemSpawners: MapPoint[];
+  azazelCrystals?: MapPoint[]; // Posições dos 3 Cristais de Azazel (Fase 3)
   props: MapEntityProp[];
 }
 
@@ -30,6 +32,7 @@ export const DEFAULT_CHAPTER_1_MAP: ChapterMapConfig = {
   chapter: 1,
   name: 'Capítulo 1: O Despertar no Abismo',
   description: 'Arena infernal cercada pelo abismo com o Altar de Invocação de Rosalin no quadrante nordeste.',
+  floorTexture: 'floor-tile',
   playerSpawn: { x: 0, y: 0 },
   bossPortal: { x: 1450, y: -1200 },
   bossSpawn: { x: 1450, y: -1215 },
@@ -90,20 +93,113 @@ export const DEFAULT_CHAPTER_1_MAP: ChapterMapConfig = {
   ]
 };
 
-const STORAGE_KEY_MAP = 'hell_survivor_custom_map_chapter_1';
+/**
+ * Layout Padrão do Capítulo 2 (Vale das Almas & Santuário de Azazel)
+ */
+export const DEFAULT_CHAPTER_2_MAP: ChapterMapConfig = {
+  version: 1,
+  chapter: 2,
+  name: 'Capítulo 2: Domínio de Azazel',
+  description: 'Profundezas do purgatório onde Azazel aguarda no santuário noroeste.',
+  floorTexture: 'floor-tile',
+  playerSpawn: { x: 0, y: 0 },
+  bossPortal: { x: -1350, y: -1150 },
+  bossSpawn: { x: -1350, y: -1165 },
+  itemSpawners: [
+    { x: 420, y: -320 },
+    { x: -420, y: 360 },
+    { x: -820, y: -760 },
+    { x: 880, y: 780 }
+  ],
+  props: [
+    // Santuário de Azazel (Noroeste)
+    { type: 'scenery-tocha', x: -1210, y: -1010, scale: 0.5 },
+    { type: 'scenery-tocha', x: -1490, y: -1010, scale: 0.5 },
+    { type: 'azazel-crystal', x: -1160, y: -1240, scale: 0.55 },
+    { type: 'azazel-crystal', x: -1540, y: -1240, scale: 0.55 },
+    { type: 'scenery-ossos', x: -1260, y: -1310, scale: 1.0 },
+    { type: 'scenery-ossos', x: -1440, y: -1310, scale: 1.0 },
+    { type: 'scenery-rocha-2', x: -1100, y: -1180, scale: 1.5 },
+    { type: 'scenery-rocha-2', x: -1600, y: -1180, scale: 1.5 },
+
+    // Clareira Central e Trilhas
+    { type: 'scenery-tocha', x: -500, y: -450, scale: 0.5 },
+    { type: 'scenery-tocha', x: 500, y: -450, scale: 0.5 },
+    { type: 'scenery-tocha', x: -500, y: 450, scale: 0.5 },
+    { type: 'scenery-tocha', x: 500, y: 450, scale: 0.5 },
+    { type: 'scenery-rocha', x: -640, y: -380, scale: 1.0 },
+    { type: 'scenery-rocha-2', x: 660, y: -480, scale: 1.5 },
+    { type: 'scenery-ossos', x: -420, y: -560, scale: 1.0 },
+    { type: 'scenery-ossos', x: 460, y: 560, scale: 1.0 },
+    { type: 'scenery-cogumelos', x: -580, y: 520, scale: 1.0 },
+    { type: 'scenery-cristal', x: 580, y: 420, scale: 0.5 },
+    { type: 'scenery-tocha', x: -850, y: -750, scale: 0.5 },
+    { type: 'scenery-tocha', x: -1080, y: -920, scale: 0.5 }
+  ]
+};
+
+/**
+ * Layout Padrão da Dimensão Corrompida de Azazel (Fase 3 - chao2.jpg e 3 Cristais de Azazel)
+ */
+export const DEFAULT_AZAZEL_DIM_MAP: ChapterMapConfig = {
+  version: 1,
+  chapter: 202,
+  name: 'Dimensão de Azazel (Fase 3 - Chao 2)',
+  description: 'Dimensão corrompida com piso chao2.jpg onde 3 Cristais de Azazel devem ser purificados.',
+  floorTexture: 'floor-tile-2',
+  playerSpawn: { x: 0, y: 0 },
+  bossPortal: { x: 0, y: -520 },
+  bossSpawn: { x: 0, y: -340 },
+  itemSpawners: [
+    { x: -360, y: 320 },
+    { x: 360, y: 320 }
+  ],
+  azazelCrystals: [
+    { x: 0, y: -480 },
+    { x: -460, y: 320 },
+    { x: 460, y: 320 }
+  ],
+  props: [
+    { type: 'scenery-tocha', x: -260, y: -260, scale: 0.5 },
+    { type: 'scenery-tocha', x: 260, y: -260, scale: 0.5 },
+    { type: 'scenery-tocha', x: -260, y: 260, scale: 0.5 },
+    { type: 'scenery-tocha', x: 260, y: 260, scale: 0.5 },
+    { type: 'scenery-ossos', x: -180, y: -420, scale: 1.0 },
+    { type: 'scenery-ossos', x: 180, y: -420, scale: 1.0 },
+    { type: 'scenery-rocha-2', x: -580, y: -120, scale: 1.5 },
+    { type: 'scenery-rocha-2', x: 580, y: -120, scale: 1.5 },
+    { type: 'scenery-rocha', x: -340, y: 520, scale: 1.0 },
+    { type: 'scenery-rocha', x: 340, y: 520, scale: 1.0 }
+  ]
+};
 
 export class MapStorageManager {
-  public static saveCustomMap(map: ChapterMapConfig): void {
+  private static getStorageKey(chapter: number = 1): string {
+    return `hell_survivor_custom_map_chapter_${chapter}`;
+  }
+
+  public static getDefaultMap(chapter: number = 1): ChapterMapConfig {
+    if (chapter === 2) {
+      return JSON.parse(JSON.stringify(DEFAULT_CHAPTER_2_MAP));
+    }
+    if (chapter === 202) {
+      return JSON.parse(JSON.stringify(DEFAULT_AZAZEL_DIM_MAP));
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_CHAPTER_1_MAP));
+  }
+
+  public static saveCustomMap(map: ChapterMapConfig, chapterOverride?: number): void {
     try {
-      localStorage.setItem(STORAGE_KEY_MAP, JSON.stringify(map));
+      const ch = chapterOverride ?? map.chapter ?? 1;
+      localStorage.setItem(this.getStorageKey(ch), JSON.stringify(map));
     } catch (e) {
       console.warn('Erro ao salvar mapa no localStorage:', e);
     }
   }
 
-  public static loadCustomMap(): ChapterMapConfig | null {
+  public static loadCustomMap(chapter: number = 1): ChapterMapConfig | null {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_MAP);
+      const data = localStorage.getItem(this.getStorageKey(chapter));
       if (data) {
         return JSON.parse(data) as ChapterMapConfig;
       }
@@ -113,19 +209,19 @@ export class MapStorageManager {
     return null;
   }
 
-  public static clearCustomMap(): void {
+  public static clearCustomMap(chapter: number = 1): void {
     try {
-      localStorage.removeItem(STORAGE_KEY_MAP);
+      localStorage.removeItem(this.getStorageKey(chapter));
     } catch (e) {
       console.warn('Erro ao limpar mapa do localStorage:', e);
     }
   }
 
-  public static getActiveMap(): ChapterMapConfig {
-    const custom = this.loadCustomMap();
+  public static getActiveMap(chapter: number = 1): ChapterMapConfig {
+    const custom = this.loadCustomMap(chapter);
     if (custom && custom.playerSpawn && custom.bossPortal) {
       return custom;
     }
-    return JSON.parse(JSON.stringify(DEFAULT_CHAPTER_1_MAP));
+    return this.getDefaultMap(chapter);
   }
 }

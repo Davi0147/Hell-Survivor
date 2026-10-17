@@ -137,7 +137,7 @@ export class MenuScene extends Phaser.Scene {
     this.menuItems = [
       {
         label: 'JOGAR HISTÓRIA',
-        action: () => this.startGame('story')
+        action: () => this.openChapterSelectModal()
       },
       {
         label: 'MODO INFINITO',
@@ -1113,6 +1113,147 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Modal de Seleção de Capítulo do Modo História (Capítulo 1 ou Capítulo 2)
+   */
+  private openChapterSelectModal(): void {
+    if (this.isModalOpen) return;
+    this.isModalOpen = true;
+
+    const { width, height } = this.scale;
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+
+    this.modalContainer = this.add.container(0, 0);
+    this.modalContainer.setDepth(100);
+
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.84);
+    overlay.setInteractive();
+    this.modalContainer.add(overlay);
+
+    const panelW = 680;
+    const panelH = 400;
+    const panelX = width / 2;
+    const panelY = height / 2;
+
+    const panelG = this.add.graphics();
+    panelG.fillStyle(0x130309, 0.98);
+    panelG.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+    panelG.lineStyle(3, 0xc59b27, 0.95);
+    panelG.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
+    panelG.lineStyle(1.5, 0x9d4edd, 0.65);
+    panelG.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 10);
+    this.modalContainer.add(panelG);
+
+    const title = this.add.text(panelX, panelY - panelH / 2 + 38, 'SELECIONAR CAPÍTULO DA HISTÓRIA', {
+      fontFamily: pixelFont,
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ffd60a',
+      stroke: '#300207',
+      strokeThickness: 4
+    }).setOrigin(0.5);
+    this.modalContainer.add(title);
+
+    const chapters = [
+      {
+        chapter: 1 as const,
+        title: 'CAPÍTULO 1: O DESPERTAR NO ABISMO',
+        subtitle: 'Boss: Rosalin (A Dama do Submundo) • Meta: 900 Almas Purificadas',
+        accent: 0xff2a55,
+        y: panelY - 48
+      },
+      {
+        chapter: 2 as const,
+        title: 'CAPÍTULO 2: O DOMÍNIO DE AZAZEL',
+        subtitle: 'Boss: Azazel (3 Fases + Dimensão Abissal) • Monstros +20% • Meta: 1.350 Almas',
+        accent: 0x9d4edd,
+        y: panelY + 52
+      }
+    ];
+
+    chapters.forEach((chap) => {
+      const cardW = 600;
+      const cardH = 82;
+      const cardG = this.add.graphics();
+      const renderCard = (hover: boolean) => {
+        cardG.clear();
+        cardG.fillStyle(hover ? 0x2a081c : 0x190510, 0.96);
+        cardG.fillRoundedRect(panelX - cardW / 2, chap.y - cardH / 2, cardW, cardH, 8);
+        cardG.lineStyle(2, hover ? 0xffd60a : chap.accent, 0.95);
+        cardG.strokeRoundedRect(panelX - cardW / 2, chap.y - cardH / 2, cardW, cardH, 8);
+      };
+      renderCard(false);
+      this.modalContainer?.add(cardG);
+
+      const cTitle = this.add.text(panelX, chap.y - 12, chap.title, {
+        fontFamily: pixelFont,
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3
+      }).setOrigin(0.5);
+      this.modalContainer?.add(cTitle);
+
+      const cSub = this.add.text(panelX, chap.y + 16, chap.subtitle, {
+        fontFamily: pixelFont,
+        fontSize: '9px',
+        color: '#e0aaff'
+      }).setOrigin(0.5);
+      this.modalContainer?.add(cSub);
+
+      const zone = this.add.zone(panelX, chap.y, cardW, cardH).setInteractive({ useHandCursor: true });
+      this.modalContainer?.add(zone);
+
+      zone.on('pointerover', () => {
+        renderCard(true);
+        cTitle.setColor('#ffd60a');
+        SoundManager.getInstance().playMenuHover();
+      });
+      zone.on('pointerout', () => {
+        renderCard(false);
+        cTitle.setColor('#ffffff');
+      });
+      zone.on('pointerdown', () => {
+        SoundManager.getInstance().playMenuClick();
+        this.closeModal();
+        this.startGame('story', chap.chapter);
+      });
+    });
+
+    // Botão Voltar
+    const closeY = panelY + panelH / 2 - 42;
+    const closeW = 240;
+    const closeH = 36;
+    const closeG = this.add.graphics();
+    const renderClose = (hover: boolean) => {
+      closeG.clear();
+      closeG.fillStyle(hover ? 0xff4500 : 0x3d0a15, 1);
+      closeG.fillRoundedRect(panelX - closeW / 2, closeY - closeH / 2, closeW, closeH, 6);
+      closeG.lineStyle(1.5, hover ? 0xffffff : 0xc59b27, 1);
+      closeG.strokeRoundedRect(panelX - closeW / 2, closeY - closeH / 2, closeW, closeH, 6);
+    };
+    renderClose(false);
+    this.modalContainer.add(closeG);
+
+    const closeTxt = this.add.text(panelX, closeY, 'VOLTAR AO MENU', {
+      fontFamily: pixelFont,
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    this.modalContainer.add(closeTxt);
+
+    const closeZone = this.add.zone(panelX, closeY, closeW, closeH).setInteractive({ useHandCursor: true });
+    this.modalContainer.add(closeZone);
+    closeZone.on('pointerover', () => { renderClose(true); SoundManager.getInstance().playMenuHover(); });
+    closeZone.on('pointerout', () => renderClose(false));
+    closeZone.on('pointerdown', () => {
+      SoundManager.getInstance().playMenuClick();
+      this.closeModal();
+    });
+  }
+
   private closeModal(): void {
     if (this.modalContainer) {
       this.modalContainer.destroy();
@@ -1121,15 +1262,19 @@ export class MenuScene extends Phaser.Scene {
     this.isModalOpen = false;
   }
 
-  private startGame(mode: 'story' | 'endless' | 'sandbox'): void {
+  private startGame(mode: 'story' | 'endless' | 'sandbox', chapter: 1 | 2 = 1): void {
     SoundManager.getInstance().playMenuClick();
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(160, () => {
       if (mode === 'story') {
         SoundManager.getInstance().stopMusic();
-        this.scene.start('IntroScene');
+        if (chapter === 2) {
+          this.scene.start('GameScene', { mode: 'story', chapter: 2 });
+        } else {
+          this.scene.start('IntroScene');
+        }
       } else {
-        this.scene.start('GameScene', { mode });
+        this.scene.start('GameScene', { mode, chapter: 1 });
       }
     });
   }

@@ -18,6 +18,7 @@ export class MapEditorSystem {
   private scene: GameScene;
   public isOpen: boolean = false;
 
+  private editingChapter: number = 1; // 1 = Cap 1, 2 = Cap 2, 202 = Dimensão Azazel (chao2)
   private currentMap: ChapterMapConfig;
   private currentTool: string = 'select';
   private gridSnap: number = 32; // 0 = livre, 32, 64
@@ -26,6 +27,7 @@ export class MapEditorSystem {
   private domRoot?: HTMLDivElement;
   private coordBadge?: HTMLSpanElement;
   private gridButton?: HTMLButtonElement;
+  private mapSwitchButton?: HTMLButtonElement;
   private activeToolButtons: Map<string, HTMLButtonElement> = new Map();
 
   // Controle de Câmera Livre
@@ -57,6 +59,8 @@ export class MapEditorSystem {
     { id: 'player_spawn', name: 'Spawn da Nixy', category: 'spawns', icon: '👤', texture: 'nixy-idle-south', scale: 1.0 },
     { id: 'boss_portal', name: 'Altar de Invocação', category: 'spawns', icon: '🏛️', texture: 'altar-invoc-inactive', scale: 0.75 },
     { id: 'boss_spawn', name: 'Área da Chefe (Rosalin)', category: 'spawns', icon: '👑', texture: 'succubus-idle-south', scale: 1.2 },
+    { id: 'azazel_spawn', name: 'Área do Chefe (Azazel)', category: 'spawns', icon: '😈', texture: 'azazel-idle-south', scale: 1.2 },
+    { id: 'azazel_crystal_spawn', name: 'Cristal Azazel (Fase 3)', category: 'spawns', icon: '🔮', texture: 'azazel-crystal', scale: 0.65 },
     { id: 'item_spawner', name: 'Item Aleatório (Exploração)', category: 'spawns', icon: '🎁', texture: 'item-chest', scale: 1.0 },
 
     // 2. Props de Cenário e Ambientação
@@ -64,6 +68,7 @@ export class MapEditorSystem {
     { id: 'scenery-rocha', name: 'Rocha Comum (1)', category: 'props', icon: '🪨', texture: 'scenery-rocha', scale: 1.0 },
     { id: 'scenery-rocha-2', name: 'Rocha Grande (2)', category: 'props', icon: '⛰️', texture: 'scenery-rocha-2', scale: 1.5 },
     { id: 'scenery-cristal', name: 'Cristais Abissais', category: 'props', icon: '💎', texture: 'scenery-cristal', scale: 0.5 },
+    { id: 'azazel-crystal', name: 'Cristal Azazel (Cenário)', category: 'props', icon: '🔮', texture: 'azazel-crystal', scale: 0.55 },
     { id: 'scenery-ossos', name: 'Pilha de Ossos', category: 'props', icon: '💀', texture: 'scenery-ossos', scale: 1.0 },
     { id: 'scenery-cogumelos', name: 'Cogumelos Infernais', category: 'props', icon: '🍄', texture: 'scenery-cogumelos', scale: 1.0 },
     { id: 'altar-1', name: 'Altar de Ascensão 1', category: 'props', icon: '✨', texture: 'altar-1', scale: 0.55 },
@@ -77,7 +82,8 @@ export class MapEditorSystem {
 
   constructor(scene: GameScene) {
     this.scene = scene;
-    this.currentMap = MapStorageManager.getActiveMap();
+    this.editingChapter = (scene as any).currentChapter || 1;
+    this.currentMap = MapStorageManager.getActiveMap(this.editingChapter);
   }
 
   /**
@@ -113,7 +119,10 @@ export class MapEditorSystem {
     }
 
     // 3. Carrega o mapa ativo e monta os elementos editáveis
-    this.currentMap = MapStorageManager.getActiveMap();
+    this.currentMap = MapStorageManager.getActiveMap(this.editingChapter);
+    if ((this.scene as any).setArenaFloorTexture) {
+      (this.scene as any).setArenaFloorTexture(this.currentMap.floorTexture || (this.editingChapter === 202 ? 'floor-tile-2' : 'floor-tile'));
+    }
     this.saveCameraState();
     this.setupCameraControls();
     this.createDomOverlay();
@@ -292,7 +301,7 @@ export class MapEditorSystem {
     // 1. Spawns Especiais Únicos
     if (this.currentTool === 'player_spawn') {
       this.currentMap.playerSpawn = { x: worldX, y: worldY };
-      MapStorageManager.saveCustomMap(this.currentMap);
+      MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
       this.showToast(`Ponto de Spawn da Nixy reposicionado para (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
@@ -301,19 +310,37 @@ export class MapEditorSystem {
 
     if (this.currentTool === 'boss_portal') {
       this.currentMap.bossPortal = { x: worldX, y: worldY };
-      MapStorageManager.saveCustomMap(this.currentMap);
+      MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
       this.showToast(`Altar / Portal de Invocação posicionado em (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
       return;
     }
 
-    if (this.currentTool === 'boss_spawn') {
+    if (this.currentTool === 'boss_spawn' || this.currentTool === 'azazel_spawn') {
       this.currentMap.bossSpawn = { x: worldX, y: worldY };
-      MapStorageManager.saveCustomMap(this.currentMap);
+      MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
-      this.showToast(`Área de Combate da Rosalin posicionada em (${worldX}, ${worldY})`);
+      const bossName = this.currentTool === 'azazel_spawn' ? 'Azazel' : 'Rosalin';
+      this.showToast(`Área de Combate de ${bossName} posicionada em (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
+      return;
+    }
+
+    if (this.currentTool === 'azazel_crystal_spawn') {
+      if (!this.currentMap.azazelCrystals) {
+        this.currentMap.azazelCrystals = [];
+      }
+      const exists = this.currentMap.azazelCrystals.some(
+        (c) => Math.hypot(c.x - worldX, c.y - worldY) < 40
+      );
+      if (!exists) {
+        this.currentMap.azazelCrystals.push({ x: worldX, y: worldY });
+        MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
+        this.renderAllMapEntities();
+        this.showToast(`Cristal de Azazel (Fase 3) adicionado em (${worldX}, ${worldY})`);
+        SoundManager.getInstance().playGemCollect();
+      }
       return;
     }
 
@@ -325,7 +352,7 @@ export class MapEditorSystem {
       );
       if (!exists) {
         this.currentMap.itemSpawners.push({ x: worldX, y: worldY });
-        MapStorageManager.saveCustomMap(this.currentMap);
+        MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.renderAllMapEntities();
         this.showToast(`Novo Spawner de Item Aleatório criado em (${worldX}, ${worldY})`);
         SoundManager.getInstance().playGemCollect();
@@ -348,7 +375,7 @@ export class MapEditorSystem {
           scale: paletteDef.scale ?? 1.0
         };
         this.currentMap.props.push(newProp);
-        MapStorageManager.saveCustomMap(this.currentMap);
+        MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.renderAllMapEntities();
         SoundManager.getInstance().playCardCashSelect();
       }
@@ -361,13 +388,28 @@ export class MapEditorSystem {
   private deleteAtWorldPosition(worldX: number, worldY: number): void {
     const clickRadius = 40;
 
+    // 0. Tenta deletar Cristal de Azazel (Fase 3)
+    if (this.currentMap.azazelCrystals) {
+      const cIdx = this.currentMap.azazelCrystals.findIndex(
+        (c) => Math.hypot(c.x - worldX, c.y - worldY) <= clickRadius
+      );
+      if (cIdx !== -1) {
+        this.currentMap.azazelCrystals.splice(cIdx, 1);
+        MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
+        this.renderAllMapEntities();
+        this.showToast('Cristal de Azazel (Fase 3) removido!');
+        SoundManager.getInstance().playPlayerHurt();
+        return;
+      }
+    }
+
     // 1. Tenta deletar spawner de item
     const spawnerIdx = this.currentMap.itemSpawners.findIndex(
       (sp) => Math.hypot(sp.x - worldX, sp.y - worldY) <= clickRadius
     );
     if (spawnerIdx !== -1) {
       this.currentMap.itemSpawners.splice(spawnerIdx, 1);
-      MapStorageManager.saveCustomMap(this.currentMap);
+      MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
       this.showToast('Spawner de Item Aleatório removido!');
       SoundManager.getInstance().playPlayerHurt();
@@ -380,7 +422,7 @@ export class MapEditorSystem {
     );
     if (propIdx !== -1) {
       const removed = this.currentMap.props.splice(propIdx, 1)[0];
-      MapStorageManager.saveCustomMap(this.currentMap);
+      MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
       this.showToast(`Objeto [${removed.type}] removido do mapa!`);
       SoundManager.getInstance().playPlayerHurt();
@@ -497,19 +539,20 @@ export class MapEditorSystem {
 
     this.editorDisplayGroup.addMultiple([portalBase, portalSprite, portalLabel]);
 
-    // 3. Marcador da Área de Encontro da Rosalin (Chefe)
+    // 3. Marcador da Área de Encontro do Chefe (Rosalin no Cap 1 ou Azazel no Cap 2 / Dimensão)
     const bs = this.currentMap.bossSpawn;
+    const isAzazelMap = this.editingChapter >= 2;
     const bossZone = this.scene.add.circle(bs.x, bs.y, 60, 0xef4444, 0.25);
     bossZone.setStrokeStyle(3, 0xf87171, 0.9);
     bossZone.setDepth(17);
 
-    const bossSprite = this.scene.add.sprite(bs.x, bs.y, 'succubus-idle-south');
+    const bossTex = isAzazelMap && this.scene.textures.exists('azazel-idle-south') ? 'azazel-idle-south' : 'succubus-idle-south';
+    const bossSprite = this.scene.add.sprite(bs.x, bs.y, bossTex);
     bossSprite.setOrigin(0.5, 0.5);
     bossSprite.setDepth(19);
     bossSprite.setScale(1.2);
-    bossSprite.setTint(0xff4477);
 
-    const bossLabel = this.scene.add.text(bs.x, bs.y - 65, 'ÁREA DO CONFRONTO (ROSALIN)', {
+    const bossLabel = this.scene.add.text(bs.x, bs.y - 65, isAzazelMap ? 'ÁREA DO CONFRONTO (AZAZEL)' : 'ÁREA DO CONFRONTO (ROSALIN)', {
       fontFamily: pixelFont,
       fontSize: '10px',
       color: '#f87171',
@@ -518,6 +561,29 @@ export class MapEditorSystem {
     }).setOrigin(0.5).setDepth(25);
 
     this.editorDisplayGroup.addMultiple([bossZone, bossSprite, bossLabel]);
+
+    // 3.5. Marcadores dos Cristais de Azazel (Fase 3)
+    if (this.currentMap.azazelCrystals) {
+      for (const c of this.currentMap.azazelCrystals) {
+        const cZone = this.scene.add.circle(c.x, c.y, 75, 0xff0055, 0.2);
+        cZone.setStrokeStyle(2.5, 0xff3388, 0.9);
+        cZone.setDepth(16);
+
+        const cSprite = this.scene.add.image(c.x, c.y - 6, 'azazel-crystal');
+        cSprite.setScale(0.65);
+        cSprite.setDepth(18);
+
+        const cTag = this.scene.add.text(c.x, c.y - 52, 'CRISTAL DE AZAZEL (5s)', {
+          fontFamily: pixelFont,
+          fontSize: '9px',
+          color: '#ff66aa',
+          stroke: '#000000',
+          strokeThickness: 3
+        }).setOrigin(0.5).setDepth(25);
+
+        this.editorDisplayGroup.addMultiple([cZone, cSprite, cTag]);
+      }
+    }
 
     // 4. Quadrados de Spawn de Item Aleatório
     for (const sp of this.currentMap.itemSpawners) {
@@ -675,6 +741,33 @@ export class MapEditorSystem {
     };
     leftSection.appendChild(this.gridButton);
 
+    // Botão de alternar qual Mapa está editando (Cap 1 / Cap 2 / Dimensão Azazel chao2)
+    const getMapLabel = (ch: number) => {
+      if (ch === 2) return '🗺️ MAPA: CAPÍTULO 2 (AZAZEL)';
+      if (ch === 202) return '🗺️ MAPA: DIMENSÃO AZAZEL (CHAO 2)';
+      return '🗺️ MAPA: CAPÍTULO 1 (ROSALIN)';
+    };
+    this.mapSwitchButton = document.createElement('button');
+    this.mapSwitchButton.textContent = getMapLabel(this.editingChapter);
+    this.mapSwitchButton.style.cssText = this.getActionButtonStyle('#f43f5e');
+    this.mapSwitchButton.onclick = () => {
+      if (this.editingChapter === 1) this.editingChapter = 2;
+      else if (this.editingChapter === 2) this.editingChapter = 202;
+      else this.editingChapter = 1;
+
+      this.currentMap = MapStorageManager.getActiveMap(this.editingChapter);
+      this.mapSwitchButton!.textContent = getMapLabel(this.editingChapter);
+      if ((this.scene as any).setArenaFloorTexture) {
+        (this.scene as any).setArenaFloorTexture(
+          this.currentMap.floorTexture || (this.editingChapter === 202 ? 'floor-tile-2' : 'floor-tile')
+        );
+      }
+      this.scene.clearAllSceneryProps();
+      this.renderAllMapEntities();
+      this.showToast(`Editando: ${getMapLabel(this.editingChapter)}`, '#f43f5e');
+    };
+    leftSection.appendChild(this.mapSwitchButton);
+
     topBar.appendChild(leftSection);
 
     // BOTOES DE AÇÃO PRINCIPAIS
@@ -714,10 +807,13 @@ export class MapEditorSystem {
     clearBtn.textContent = '🗑️ LIMPAR TUDO';
     clearBtn.style.cssText = this.getActionButtonStyle('#ef4444');
     clearBtn.onclick = () => {
-      if (confirm('Deseja realmente limpar todos os objetos e spawners do mapa?')) {
+      if (confirm('Deseja realmente limpar todos os objetos e spawners do mapa atual?')) {
         this.currentMap.props = [];
         this.currentMap.itemSpawners = [];
-        MapStorageManager.saveCustomMap(this.currentMap);
+        if (this.currentMap.azazelCrystals) {
+          this.currentMap.azazelCrystals = [];
+        }
+        MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.scene.clearAllSceneryProps();
         this.renderAllMapEntities();
         this.showToast('Mapa limpo! Todos os objetos e spawners foram removidos.', '#ef4444');
@@ -725,18 +821,18 @@ export class MapEditorSystem {
     };
     actionGroup.appendChild(clearBtn);
 
-    // 6. Botão Restaurar Padrão do Cap 1
+    // 6. Botão Restaurar Padrão do Mapa Atual
     const resetBtn = document.createElement('button');
-    resetBtn.textContent = '🔄 PADRÃO CAP 1';
+    resetBtn.textContent = '🔄 RESTAURAR PADRÃO';
     resetBtn.style.cssText = this.getActionButtonStyle('#64748b');
     resetBtn.onclick = () => {
-      if (confirm('Restaurar o mapa para o layout padrão original do Capítulo 1?')) {
-        this.currentMap = JSON.parse(JSON.stringify(DEFAULT_CHAPTER_1_MAP));
-        MapStorageManager.saveCustomMap(this.currentMap);
+      if (confirm('Restaurar este mapa para o layout padrão original?')) {
+        this.currentMap = MapStorageManager.getDefaultMap(this.editingChapter);
+        MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.scene.loadCustomMapLayout(this.currentMap);
         this.scene.setSceneryPropsVisible(false);
         this.renderAllMapEntities();
-        this.showToast('Mapa padrão do Capítulo 1 restaurado!', '#38bdf8');
+        this.showToast('Mapa padrão restaurado!', '#38bdf8');
       }
     };
     actionGroup.appendChild(resetBtn);
@@ -842,7 +938,7 @@ export class MapEditorSystem {
    * Aplica o mapa customizado diretamente no jogo e fecha o editor para teste imediato
    */
   public applyAndTestCurrentMap(): void {
-    MapStorageManager.saveCustomMap(this.currentMap);
+    MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
     this.close();
 
     // Aplica o mapa na cena ativa
@@ -855,7 +951,7 @@ export class MapEditorSystem {
    * Faz o download do arquivo .json formatado no computador do usuário
    */
   public downloadMapJsonFile(): void {
-    MapStorageManager.saveCustomMap(this.currentMap);
+    MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
     const jsonStr = JSON.stringify(this.currentMap, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -875,7 +971,7 @@ export class MapEditorSystem {
    * Copia o código JSON do mapa completo para a área de transferência
    */
   public copyMapJsonToClipboard(): void {
-    MapStorageManager.saveCustomMap(this.currentMap);
+    MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
     const jsonStr = JSON.stringify(this.currentMap, null, 2);
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -914,7 +1010,7 @@ export class MapEditorSystem {
       }
 
       this.currentMap = parsed;
-      MapStorageManager.saveCustomMap(this.currentMap);
+      MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
       this.showToast('Mapa importado com sucesso a partir do JSON!', '#10b981');
     } catch (e) {

@@ -230,11 +230,13 @@ export class TestShowroomSystem {
           { name: 'Pilha Ossos', texture: 'scenery-ossos', scale: 1.0 },
           { name: 'Cogumelos', texture: 'scenery-cogumelos', scale: 1.0 },
           { name: 'Cristais (0.5x)', texture: 'scenery-cristal', scale: 0.5 },
+          { name: 'Cristal Azazel', texture: 'azazel-crystal', scale: 0.5 },
           { name: 'Altar 1', texture: 'altar-1', scale: 0.55 },
           { name: 'Altar 2', texture: 'altar-2', scale: 0.55 },
           { name: 'Altar 3', texture: 'altar-3', scale: 0.55 },
           { name: 'Altar Invoc. Inativo', texture: 'altar-invoc-inactive', scale: 0.55 },
-          { name: 'Altar Invoc. Ativo', texture: 'altar-invoc-active-1', scale: 0.55 }
+          { name: 'Altar Invoc. Ativo', texture: 'altar-invoc-active-1', scale: 0.55 },
+          { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.08 }
         ]
       },
 
@@ -269,7 +271,9 @@ export class TestShowroomSystem {
           { name: 'Adaga Sangue', texture: 'blood-dagger', scale: 1.0 },
           { name: 'Meteoro Infernal', texture: 'infernal-meteor', scale: 1.0 },
           { name: 'Heart Attack', texture: 'projectile-heart-attack', scale: 1.0 },
-          { name: 'Gosma Tóxica', texture: 'mummy-poison-gosma', scale: 1.0 }
+          { name: 'Gosma Tóxica', texture: 'mummy-poison-gosma', scale: 1.0 },
+          { name: 'Orbe Azazel (VFX)', texture: 'azazel-orb', scale: 1.15 },
+          { name: 'Raio Azazel (VFX)', texture: 'azazel-lightning-bolt', scale: 0.25 }
         ]
       },
 
@@ -285,7 +289,10 @@ export class TestShowroomSystem {
           { name: 'Múmia Abissal', texture: 'mummy-idle-south', scale: 1.05, anim: 'mummy-idle-south' },
           { name: 'Skull Slime', texture: 'skull-slime-idle-south', scale: 1.0, anim: 'skull-slime-idle-south' },
           { name: 'Succubus Menor', texture: 'succubus-idle-south', scale: 1.0, anim: 'succubus-fly-south' },
-          { name: 'Rosalin (Chefe)', texture: 'succubus-idle-south', scale: 1.75, anim: 'succubus-fly-south' }
+          { name: 'Rosalin (Chefe 1)', texture: 'succubus-idle-south', scale: 1.75, anim: 'succubus-fly-south' },
+          { name: 'Azazel (Parado)', texture: 'azazel-idle-south', scale: 1.55, anim: 'azazel-idle-south' },
+          { name: 'Azazel (Correndo)', texture: 'azazel-run-south-0', scale: 1.55, anim: 'azazel-run-south' },
+          { name: 'Azazel (Mão Erguida)', texture: 'azazel-hand-south', scale: 1.55, anim: 'azazel-hand-south' }
         ]
       },
 
@@ -320,6 +327,7 @@ export class TestShowroomSystem {
           { name: 'Ult Gauge Frame', texture: 'ult-gauge-frame', scale: 0.55 },
           { name: 'Nixy Damage UI', texture: 'chat-nixy-damage', scale: 0.75 },
           { name: 'Rosalin Defeated', texture: 'chat-rosalin-defeated', scale: 0.75 },
+          { name: 'Azazel Chat UI', texture: 'chat-azazel', scale: 0.14 },
           { name: 'Logo Oficial', texture: 'game-title-logo', scale: 0.35 }
         ]
       }

@@ -18,11 +18,21 @@ export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  public fire(startX: number, startY: number, angle: number, speed: number = 220, damage: number = 18): void {
+  public fire(
+    startX: number,
+    startY: number,
+    angle: number,
+    speed: number = 220,
+    damage: number = 18,
+    customTextureKey?: string
+  ): void {
+    if (customTextureKey && this.scene.textures.exists(customTextureKey)) {
+      this.setTexture(customTextureKey);
+    }
     this.setPosition(startX, startY);
     this.setRotation(angle);
     this.damage = damage;
-    this.lifespanMs = 3200;
+    this.lifespanMs = 3400;
     this.setActive(true);
     this.setVisible(true);
 
