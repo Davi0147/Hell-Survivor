@@ -38,16 +38,20 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
 
 ---
 
-## 3. Contrato de Efeitos de Status da Nixy (`src/entities/characters/Nixy.ts`)
+## 3. Contrato de Efeitos de Status da Nixy (`src/entities/characters/`)
 
-1. **Estados de Controle e Timers:**
-   - **Lentidão (`slowTimer`):** Reduz temporariamente a velocidade para uma fração da velocidade base e aplica coloração fria/ciano.
-   - **Enraizamento/Prisão (`rootTimer`):** Trava a velocidade do corpo físico em zero e aplica coloração púrpura/sombria.
-   - **Empurrão (`knockbackTimer`):** Desloca a heroína na direção do impacto enquanto desacelera suavemente por arrasto físico.
-   - **Dano Recente (`hurtTimer`):** Aplica flash avermelhado durante milissegundos após sofrer impacto.
-   - **Imunidade de Graça (`invulnerableTimer`):** Período breve pós-dano onde a heroína não recebe novos danos.
-2. **Regra de Prioridade Visual de Cores (A ser consolidada no Pacote 2):**
-   - As colorações visuais devem seguir a hierarquia estrita: `Dano (Hurt) > Prisão (Root) > Lentidão (Slow) > Normal (clearTint)`.
+1. **Estados de Controle e Timers da Heroína (`Nixy.ts`):**
+   - **Lentidão (`slowTimer`):** Configurado via `applySlow(multiplier = 0.60, durationMs = 600)`. Reduz a velocidade através de `speedDebuffMultiplier` (padrão 0.60) e aplica coloração verde tóxico do lodo (`this.setTint(0x70e000)`). O timer é decrementado por `deltaMs` no método `Nixy.updateNixy`. Ao zerar, restaura `speedDebuffMultiplier = 1.0` e limpa o tint caso a heroína não esteja enraizada nem sofrendo dano.
+   - **Prisão Ácida / Enraizamento (`rootTimer`):** Configurado via `applyAcidRoot(durationMs = 1000)`. Zera a velocidade do corpo físico (`body.setVelocity(0, 0)`), bloqueia vetores de entrada (`dx = 0`, `dy = 0`), impede ativação de sprint e aplica coloração verde ácida (`this.setTint(0x55ff77)`). O timer é decrementado por `deltaMs` no método `Nixy.updateNixy`. Ao expirar, desativa `isRooted = false` e chama `clearTint()`.
+   - **Empurrão / Impacto (`knockbackTimer`):** Configurado via `applyKnockback(vx, vy, durationMs = 220)`. Armazena o vetor em `knockbackVelocity` e impõe velocidade contínua diretamente ao corpo físico (`body.setVelocity(this.knockbackVelocity.x, this.knockbackVelocity.y)`) a cada frame enquanto `knockbackTimer > 0`, sem utilizar atrito/arrasto físico da engine. Dispara tremor de câmera via `this.camerasShake(durationMs)`. O timer é decrementado por `deltaMs` no método `Nixy.updateNixy`.
+   - **Sombra Fantasma de Sprint (`trailTimer`):** A cada `40ms` (`TRAIL_INTERVAL_MS`) de deslocamento contínuo em sprint, gera uma cópia translúcida (`createSprintGhost`) com tint magenta/rubi (`0xff2a6d`), alfa `0.85`, blend mode aditivo e fade-out de `360ms`.
+2. **Reação a Dano na Classe Base (`BaseCharacter.ts`):**
+   - **Dano Recente (`hurtTimer`):** Configurado em `BaseCharacter.takeDamage` com valor fixo de `250ms`. É decrementado por `deltaMs` em `BaseCharacter.updateMovement`. Não aplica tint colorido; seu propósito exclusivo é ativar a pose de animação de sofrer impacto (`nixy-hurt-${dir}`) com prioridade sobre as animações de corrida e repouso.
+3. **Invulnerabilidade Pós-Dano (`GameScene.ts`):**
+   - A imunidade de dano não reside em `Nixy.ts` nem em `BaseCharacter.ts`. Ela é gerenciada centralmente na cena principal através da propriedade `playerInvulnerableTimer` em [`src/scenes/GameScene.ts`](../src/scenes/GameScene.ts).
+   - Ao sofrer dano por colisão com monstros, `playerInvulnerableTimer` é inicializado em `450ms` e é decrementado pelo tempo delta (`delta`) a cada quadro dentro de `GameScene.update()`. Enquanto `playerInvulnerableTimer > 0`, novos danos de colisão com inimigos são ignorados.
+4. **Regra de Prioridade Visual de Cores (A ser consolidada no Pacote 2):**
+   - As colorações visuais devem seguir a hierarquia estrita: `Dano (Hurt) > Prisão (Root: 0x55ff77) > Lentidão (Slow: 0x70e000) > Normal (clearTint)`.
    - A contagem regressiva de todos os timers deve ocorrer sem interrupções antecipadas.
 
 ---
@@ -60,11 +64,11 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Nenhum ataque especial de grande impacto (investidas rápidas, quedas de meteoro, raios caindo do céu) causa dano imediato sem aviso visual.
    - Todo ataque perigoso projeta previamente guias visuais no chão (`Phaser.GameObjects.Graphics`) com linha direcional ou área circular preenchida progressivamente durante um intervalo de tempo justo para reação do jogador antes do dano ser ativado.
 3. **Estrutura de Fases do Azazel (Verificado no Código):**
-   Conforme implementado em `src/entities/enemies/AzazelBoss.ts` (linhas 7, 412, 898, 1187, 1240, 1300, 1311) e `src/scenes/GameScene.ts` (linhas 3041–3113), a luta contra Azazel possui **4 Fases de Combate (`AzazelCombatPhase = 1 | 2 | 3 | 4`)**:
-   - **Fase 1 (100% → 50% HP):** Arena delimitada, investidas telegrafadas, tempestade de raios e barragem espiral (`AzazelBoss.ts` L412–890).
-   - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada), alternando 5 investidas rápidas no escuro e 8 clones espectrais (`AzazelPhantomClone`) que compartilham vida com o chefe (`AzazelBoss.ts` L898–1180; gatilho em `takeDamage` L1300).
-   - **Fase 3 (Trava aos 20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (`map 202`, `floor-tile-2` / `chao2`), onde Azazel fica oculto/invulnerável enquanto o jogador purifica os 3 Cristais em meio a uma horda intensa (`GameScene.ts` L3041–3090, `AzazelBoss.ts` L1187; gatilho em L1311).
-   - **Fase 4 (20% → 0% HP — Showdown Final):** Azazel reaparece com velocidade ampliada (+20% em L412) para o confronto decisivo até 0% de HP (`GameScene.ts` L3112, `AzazelBoss.ts` L1240).
+   Conforme implementado em `src/entities/enemies/AzazelBoss.ts` e `src/scenes/GameScene.ts`, a luta contra Azazel possui **4 Fases de Combate (`AzazelCombatPhase = 1 | 2 | 3 | 4`)**:
+   - **Fase 1 (100% → 50% HP):** Arena delimitada, investidas telegrafadas, tempestade de raios e barragem espiral (`AzazelBoss.ts`).
+   - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada), alternando 5 investidas rápidas no escuro e 8 clones espectrais (`AzazelPhantomClone`) que compartilham vida com o chefe (`AzazelBoss.ts`; gatilho ao atingir 50% de HP).
+   - **Fase 3 (Trava aos 20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (`map 202`, `floor-tile-2` / `chao2`), disparado pelo evento `'azazel-phase3-dimension-start'`, onde Azazel fica oculto/invulnerável enquanto o jogador purifica os 3 Cristais em meio a uma horda intensa (`GameScene.ts`; gatilho ao atingir 20% de HP).
+   - **Fase 4 (20% → 0% HP — Showdown Final):** Azazel reaparece com velocidade ampliada (+20%) para o confronto decisivo até 0% de HP (`GameScene.ts` e `AzazelBoss.ts`).
 4. **Limpeza Gráfica e Restauração:**
    - Na derrota do chefe, todos os gráficos de telegrafia, clones e overlays de escuridão devem ser destruídos imediatamente.
    - O zoom da câmera deve ser restaurado suavemente para o padrão de exploração via tween.
@@ -81,7 +85,7 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Quando colocado na lista `props` de um mapa customizado/editor (`altar-1`), o carregador `loadCustomMapLayout` instancia uma imagem estática decorativa (`setDepth(-12)`), sem lógica de captura.
    - Durante a captura do altar interativo, o jogador deve permanecer dentro do raio de captura (`captureRadius` em `EvolutionAltar.ts`) até completar a barra circular rúnica, emitindo `'altar-completed'`.
 3. **Cristais de Azazel (`AzazelCrystal`):**
-   - **Comportamento Real do Código:** Os 3 cristais são gerados dinamicamente em tempo de execução pela `GameScene` (`handleAzazelPhase3Transition`, linhas 3051–3067) em ângulos e distâncias aleatórias ao redor do jogador na Fase 3 da luta.
+   - **Comportamento Real do Código:** Os 3 cristais são gerados dinamicamente em tempo de execução pela `GameScene` dentro de `startAzazelPhase3Dimension()` em ângulos e distâncias aleatórias ao redor do jogador na Fase 3 da luta.
    - **Campo Morto Deprecated:** O campo `azazelCrystals` em `ChapterMapConfig` / `DEFAULT_AZAZEL_DIM_MAP` está marcado como `@deprecated` (não é lido por `loadCustomMapLayout` e será removido no Pacote 2).
    - A captura exige permanência no raio do cristal (`captureRadius` em `AzazelCrystal.ts`) durante o tempo estabelecido. Ao completar, valida a câmera antes da explosão e emite `'crystal-completed'`.
 

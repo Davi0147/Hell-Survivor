@@ -39,7 +39,7 @@ flowchart TD
 | [`BootScene.ts`](../src/scenes/BootScene.ts) | Carrega texturas, folhas de sprites, fontes e faixas de áudio. Registra as animações globais de 8/4 direções no `this.anims` e inicia `MenuScene`. |
 | [`MenuScene.ts`](../src/scenes/MenuScene.ts) | Renderiza o menu gótico, modal de seleção de capítulo (Cap. 1, Cap. 2, Modo Infinito), loja do **Altar de Bênçãos** (consumindo `MetaProgressManager`), configurações de áudio (`SoundManager`) e botão do **Modo de Teste** (`isDevSandboxEnabled()`). |
 | [`IntroScene.ts`](../src/scenes/IntroScene.ts) | Cutscene narrativa antes do Capítulo 1. Apresenta slides ilustrados, bustos de personagens, efeito de máquina de escrever, destaque de `[CENSURADO]` (`TextHighlight`) e vozes sintetizadas via `SoundManager.playDialogueVoice(speaker)`. |
-| [`GameScene.ts`](../src/scenes/GameScene.ts) | Orquestrador principal da partida (`story`, `endless`, `sandbox`). Instancia `Nixy`, grupos de física (`enemiesGroup`, `gemsGroup`, `corruptedSoulsGroup`, `mapItemsGroup`), carrega mapa (`MapStorageManager`), altares (`EvolutionAltar`, `BossSummonAltar`, `AzazelCrystal`), gerencia hordas e chefes (`SuccubusBoss`, `AzazelBoss`), colisões e integrações com `UIScene`, `UpgradeScene`, `DevSandboxPanel`, `TestShowroomSystem` e `MapEditorSystem`. |
+| [`GameScene.ts`](../src/scenes/GameScene.ts) | Orquestrador principal da partida (`story`, `endless`, `sandbox`). Instancia `Nixy`, grupos de física (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`), gerencia `playerInvulnerableTimer`, carrega mapa (`MapStorageManager`), altares (`EvolutionAltar`, `BossSummonAltar`, `AzazelCrystal`), gerencia hordas e chefes (`SuccubusBoss`, `AzazelBoss`), colisões e integrações com `UIScene`, `UpgradeScene`, `DevSandboxPanel`, `TestShowroomSystem` e `MapEditorSystem`. |
 | [`UIScene.ts`](../src/scenes/UIScene.ts) | Camada de interface fixa paralela (`scrollFactor = 0`). Exibe frascos de vida/estamina, barra de almas, barra de vida dos chefes, radar/minimapa, anúncios dramáticos sem moldura via `showCenterBossPhrase()`, roleta de baú, modais de pausa, Game Over e Vitória. |
 | [`UpgradeScene.ts`](../src/scenes/UpgradeScene.ts) | Cena modal de Level Up e Evolução de Altar. Apresenta 3 cartas arcanas estilizadas com molduras temáticas, botões de `Reroll` e `Skip`, devolvendo a escolha para a `GameScene` via callback. |
 | [`Chapter1EndScene.ts`](../src/scenes/Chapter1EndScene.ts) | Cena pós-vitória do Capítulo 1 (Rosalin) ou Capítulo 2 (Azazel). Executa corte diagonal de espada na tela (`Slash Cut`), diálogos ilustrados e transição para o próximo capítulo ou menu. |
@@ -49,8 +49,8 @@ flowchart TD
 ### 2.3. Entidades (`src/entities/`)
 
 #### Personagens (`src/entities/characters/`)
-- [`BaseCharacter.ts`](../src/entities/characters/BaseCharacter.ts): Classe abstrata sobre `Phaser.Physics.Arcade.Sprite`. Implementa movimentação vetorial normalizada em 8 direções e gerenciamento de estamina.
-- [`Nixy.ts`](../src/entities/characters/Nixy.ts): Heroína jogável. Aplica modificadores de `MetaProgressManager`, atributos de run, estados de controle (`slowTimer`, `rootTimer`, `knockbackTimer`, `hurtTimer`, `invulnerableTimer`), rastro fantasma de sprint e sequência de morte.
+- [`BaseCharacter.ts`](../src/entities/characters/BaseCharacter.ts): Classe abstrata sobre `Phaser.Physics.Arcade.Sprite`. Implementa movimentação vetorial normalizada em 8 direções, gerenciamento de estamina e reação de animação a dano (`hurtTimer`).
+- [`Nixy.ts`](../src/entities/characters/Nixy.ts): Heroína jogável. Aplica modificadores de `MetaProgressManager`, atributos de run, estados de controle da heroína (`slowTimer`, `rootTimer`, `knockbackTimer`, `trailTimer`), rastro fantasma de sprint e sequência de morte. (A invulnerabilidade pós-dano `playerInvulnerableTimer` reside centralizada na `GameScene.ts`).
 
 #### Inimigos e Chefes (`src/entities/enemies/`)
 - [`BaseEnemy.ts`](../src/entities/enemies/BaseEnemy.ts): Classe base de monstros com pooling (`spawn`), cálculo de atordoamento (`applyStun`), flash de impacto e emissão de números de dano via `DamageTextSystem`.
@@ -88,7 +88,7 @@ flowchart TD
 ### 2.4. Sistemas e Utilitários (`src/systems/` & `src/ui/`)
 | Sistema | Tipo | Papel e Quem Chama |
 | :--- | :--- | :--- |
-| [`SoundManager.ts`](../src/systems/SoundManager.ts) | Singleton | Gerencia músicas do jogo, máquina de sincronia de Azazel (`finishAzazelIntroAndTransition`), sintetizadores Web Audio e vozes/typewriter de diálogo (`playDialogueVoice`, `playDialogueTypewriter`). |
+| [`SoundManager.ts`](../src/systems/SoundManager.ts) | Singleton | Gerencia músicas do jogo, máquina de sincronia de Azazel (`finishAzazelIntroAndTransition`), sintetizadores Web Audio, efeito de digitação (`playDialogueTypewriter`) e síntese de vozes de diálogo (`playDialogueVoice`, com timbres customizados para `'nixy'`, `'succubus'`/`'rosalin'`, `'boss'`/`'chefe'`, `'azazel'`, e tom padrão retro para demais falantes). |
 | [`MetaProgressManager.ts`](../src/systems/MetaProgressManager.ts) | Singleton | Gerencia Almas Corrompidas, bênçãos de `BLESSINGS_CATALOG`, reembolso de 70%, modificadores de partida (`getModifiers`) e estatísticas persistidas no `localStorage`. |
 | [`DialogueSystem.ts`](../src/systems/DialogueSystem.ts) | Instância por `GameScene` | Diálogos in-game estilo Visual Novel durante confrontos de chefes, com destaque para `[CENSURADO]` e suporte a sincronia de áudio. |
 | [`UltimateSystem.ts`](../src/systems/UltimateSystem.ts) | Instância por `GameScene` | Recarga e execução da Suprema (*Julgamento do Caos*), limpando projéteis e danificando a tela inteira. |
