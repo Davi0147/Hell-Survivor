@@ -1,115 +1,103 @@
-# Livro de Anotações de Desenvolvimento — Hell Survivor
+# Livro de Anotações & Status do Projeto — Hell Survivor
 
-> **REGRA DE OURO OBRIGATÓRIA — SINCRONIZAÇÃO COM O MODO DE TESTE (SANDBOX-FIRST RULE):**
-> Tudo o que for adicionado ou alterado no jogo daqui para frente (novas armas, evoluções, bênçãos passivas, inimigos, mini-bosses, chefes, itens de mapa, biomas ou mecânicas) **DEVE OBRIGATORIAMENTE** ser integrado no mesmo instante ao **Modo de Teste (`src/systems/DevSandboxPanel.ts`)** e ao **Gravador de Sessão (`src/systems/DebugSessionLogger.ts`)**, garantindo que qualquer novidade possa ser testada em 1 clique e auditada nos relatórios exportados para a IA.
-
----
-
-## Etapa 0: Fundação, Combate Base e Capítulo 1 (Concluído & Aprovado)
-- [x] Movimentação em 8 direções da Nixy com animações de corrida, sprint e controle de estamina.
-- [x] Sistema de câmera pixel-perfect com zoom 2x e chão infinito sincronizado no `POST_UPDATE`.
-- [x] Cutscene de Introdução (6 cenas ilustradas, música ambiente, diálogos com censura dourada `[CENSURADO]`).
-- [x] Inimigos do Capítulo 1: Cão Zumbi, Cão Alfa Elite, Morcego de Sangue e Skull Slime.
-- [x] Chefe do Capítulo 1: **Succubus Imperial** (9.000 HP História / 12.000 HP Infinito, teletransporte, orbes negros, lacaios e diálogos em combate).
-- [x] Armas iniciais: Disparo de Almas (`SoulBoltWeapon`), Lâminas Orbitais (`VoidScythesWeapon` com sprite de foice girando no próprio eixo) e Chamas do Purgatório (`HellfireAuraWeapon`).
-- [x] Habilidade Suprema (Ultimate): *Julgamento do Caos* (recarga 3x mais cadenciada e equilibrada).
-- [x] Itens de Mapa com levitação e ícone verde no minimapa: Taça de Vinho (50% HP), Ímã de Almas (atrai todo o XP) e Baú do Abismo.
-- [x] Roleta Minimalista do Baú: nomes subindo verticalmente, efeitos sonoros procedurais de giro e prêmio, congelamento total de spawns durante o baú e período de graça/imunidade ao fechar.
-- [x] Atributos passivos de Regeneração Sombria (+0.2 a +0.8 HP/s) e Dreno Vital (+0.1 a +0.3 HP/hit).
+> **📌 Regras Obrigatórias do Projeto (`Sandbox-First`, `Showroom-First`, `Level-Editor-First`):**
+> Todas as regras invioláveis de desenvolvimento e manutenção foram movidas e consolidadas em **[`AGENTS.md`](AGENTS.md)**.
+> Consulte também: **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | **[`docs/MECHANICS.md`](docs/MECHANICS.md)** | **[`docs/CHANGELOG.md`](docs/CHANGELOG.md)**.
 
 ---
 
-## Ferramenta Oficial: Modo de Teste (Sandbox) & Gravador de Sessão p/ IA *(Concluído — Pronto para Uso)*
-- [x] **Acesso no Menu Principal (`MODO DE TESTE`) + Chave de Lançamento Oficial:** Controlado por `ENABLE_DEV_SANDBOX` em `src/config/balance.ts`. Ao mudar para `false` no lançamento oficial, fica 100% oculto para os jogadores (mantendo backdoor secreto `?debug=1` para o desenvolvedor).
-- [x] **Barra Rápida no Topo & Atalho `[F1]`:** Exibe FPS ao vivo, contagem de inimigos, status do God Mode e botão de 1 clique `[COPIAR LOG IA]`.
-- [x] **Aba 1 (`[1] CHEATS & NIXY`):** Vida Infinita (God Mode), Ultimate Infinita, Estamina Infinita, Auto-Spawn de Hordas ON/OFF, Hitboxes Físicas ON/OFF, Velocidade do Jogo (`0.5x`, `1x`, `2x`), Level Up instantâneo, Cura e disparo imediato da Suprema.
-- [x] **Aba 2 (`[2] HORDAS & BOSS`):** Spawn individual ou em horda de todos os monstros e Mini-Bosses, remoção limpa de hordas (com ou sem drop de XP) e invocação/remoção da **Succubus Imperial** com transição musical limpa (`bgm-boss` ↔ `bgm-battle`) sem conflitos de áudio.
-- [x] **Aba 3 (`[3] ARMAS & EVOLUÇÕES`):** Equipar, subir nível (`+1 Nív`), Maximizar/Evoluir para a forma Suprema (`MAX / EVO`) ou remover qualquer uma das 6 armas do jogo, além de botão para equipar e evoluir todas de uma vez.
-- [x] **Aba 4 (`[4] BÊNÇÃOS & ITENS`):** Adicionar (`+`) ou remover (`-`) níveis de todas as 9 bênçãos passivas livremente, resetar atributos e dropar Taça de Vinho, Ímã, Baú do Abismo, Roleta Direta ou Chuva de 20 Gemas ao lado da Nixy.
-- [x] **Aba 5 (`[5] LOGS & EXPORTAR IA`):** Gravador de Voo (`DebugSessionLogger`) que intercepta erros globais, monitora quedas de FPS/anomalias e gera um relatório completo formatado em 1 clique (`[ COPIAR RELATÓRIO COMPLETO P/ IA ]` ou `[ BAIXAR LOG (.JSON) ]`).
-- [x] **Inicializador Rápido e Limpador de Cache (`INICIAR_JOGO.bat` / `JOGAR.bat`):** Script em lote (.bat) de 1 clique que limpa o cache interno do Vite (`node_modules\.vite`), libera portas residuais, abre automaticamente a página no navegador padrão e roda o servidor com `--force` para carregar sempre a versão mais recente.
+## 📊 1. O Que Já Existe e Está Implementado (`[x]`)
+
+### 1.1. Fundação, Heroína Nixy, Cenas de Morte e Revival (`Concluído ✅`)
+- [x] **Movimentação 8-Way & Estamina (`BaseCharacter.ts`, `Nixy.ts`):** Vetor normalizado nas 8 direções (`N, NE, E, SE, S, SW, W, NW`), Full Sprint com rastro fantasma (`createSprintGhost`) e regeneração diferenciada andando/parada.
+- [x] **Animação de Morte & Ressurreição (`Nixy.ts`, `GameScene.ts`, `UIScene.ts`):** Sequência dramática `nixy-death-anim`, modal de Game Over e botão **Ressurgir das Cinzas** (quando a bênção *Pacto Demoníaco* está ativa), reiniciando com ciclo físico limpo (`physics.resume()`).
+- [x] **Câmera & Arena (`balance.ts`, `GameScene.ts`):** Arena delimitada de `6400x6400` (`-3200` a `+3200`), câmera pixel-perfect (`2.0x` em exploração/combate normal e abertura suave para `1.35x` na luta contra Azazel).
+
+### 1.2. Arsenal Completo (6 Armas + 6 Evoluções Supremas) & Cartas Arcanas (`Concluído ✅`)
+- [x] **Disparo de Almas (`SoulBoltWeapon`)** → Evolui no Altar para **Raio do Apocalipse**.
+- [x] **Lâminas Orbitais (`VoidScythesWeapon`)** → Evolui no Altar para **Ceifadora do Vazio**.
+- [x] **Chamas do Purgatório (`HellfireAuraWeapon`)** → Evolui no Altar para **Supernova Abissal**.
+- [x] **Adagas de Sangue (`BloodDaggersWeapon` + `Adaga.png`)** → Evolui no Altar para **Chuva de Mil Lâminas**.
+- [x] **Cadeias Abissais (`AbyssalChainsWeapon` com Stun)** → Evolui no Altar para **Prisão de Tártaro**.
+- [x] **Meteoro Infernal (`InfernalMeteorWeapon` + `Meteoro.png`)** → Evolui no Altar para **Cataclismo Estelar**.
+- [x] **Habilidade Suprema (`UltimateSystem.ts`):** *Julgamento do Caos* (`[E]`).
+- [x] **Cartas Arcanas (`UpgradeScene.ts`):** 8 molduras temáticas pixel-art (`Gold`, `Mystic`, `Fire`, `Inferno`, `Green`, `Ice`, `Obsidian`, `Base`), fonte `Pixelzone`, destaque colorido de palavras-chave, botões de **Reroll** e **Skip (+20 HP)**.
+
+### 1.3. Fase 2 — Meta-Progressão Permanente & Economia (`MetaProgressManager.ts` — `Concluído ✅`)
+- [x] **Moeda Persistente (`CorruptedSoulItem.ts`):** Almas Corrompidas coletadas durante a partida (`runSoulsCollected`) e salvas automaticamente no `localStorage` ao encerrar a run ou fechar a aba (`beforeunload`).
+- [x] **Altar de Bênçãos Permanentes (`MenuScene.ts` + `BLESSINGS_CATALOG`):**
+  - *Vitalidade Abissal* (`vitality`, até Nív. 5: `+12 HP Máx` por nível);
+  - *Fúria Sombria* (`might`, até Nív. 5: `+5% Dano Global` por nível);
+  - *Atração Etérea* (`magnetism`, até Nív. 5: `+15% Raio de Coleta` por nível);
+  - *Passo Fantasma* (`agility`, até Nív. 5: `+4% Vel / +10 Estamina` por nível);
+  - *Sorte do Destino* (`reroll`, até Nív. 3: `+1 Reroll` por nível);
+  - *Pacto Demoníaco* (`revival`, Nív. único: `+1 Ressurreição` por partida).
+- [x] **Sistema de Reembolso (`refundBlessings`):** Devolve estritamente **70%** do total de almas investidas (`Math.floor(totalSpent * 0.70)`).
+- [x] **Estatísticas Persistentes (`MetaSaveData.stats`):** Registra `totalKills`, `totalRuns`, `highestEndlessTimeSec`, `bossesDefeated`, `totalSoulsCollected`, `storyDeathCount` e `bossDeaths`.
+
+### 1.4. Inimigos, Escalonamento e Otimização de Performance (`Concluído ✅`)
+- [x] **Elenco de Inimigos Atuais (`src/entities/enemies/`):**
+  - Cão Zumbi (`ZombieDog`) + Variante Alfa Elite;
+  - Morcego de Sangue (`BloodBat`);
+  - Skull Slime (`SkullSlime`);
+  - Múmia do Abismo (`MummyEnemy` — movimento em zigue-zague, poças de veneno com lentidão de `-40%` e knockback no contato);
+  - Succubus Menor (`Succubus`).
+- [x] **Escalonamento Progressivo Oficial (`getEnemyScaling` em `src/config/balance.ts`):**
+  - **Vida (HP):** `+12%/min` no Modo História | `+16%/min` no Modo Infinito;
+  - **Dano:** `+6%/min` no Modo História | `+8%/min` no Modo Infinito;
+  - **Velocidade:** `+2%/min` (limitado ao teto máximo de `+30%` / `1.30x`).
+- [x] **Limites Rígidos e Viewport Culling (`PERFORMANCE_LIMITS`):**
+  - Máximo de `120` inimigos ativos simultâneos e `150` gemas no chão (com fusão de gemas excedentes e culling fora da `camera.worldView + 100px`).
+
+### 1.5. Fase 4 — Capítulos 1 e 2, Chefes, Visual Novel e Dimensão de Azazel (`Concluído ✅`)
+- [x] **Capítulo 1 & Chefe Succubus Imperial (Imperatriz Rosalin — `SuccubusBoss.ts`):**
+  - Meta de `900` almas para ativar o `BossSummonAltar`;
+  - Ataques telegrafados: Investida Rápida, Salva de Orbes Sombrios e Salto Aéreo Esmagador (`3.6s` de carga).
+- [x] **Capítulo 2 & Chefe Azazel, O Anjo Caído (`AzazelBoss.ts` + `AzazelCrystal.ts`):**
+  - Meta de `1.350` almas no Capítulo 2 para ativar o Altar de Invocação de Azazel;
+  - **Trilha Musical Sincronizada em 3 Partes (`SoundManager.ts`):** `intro.mp3` (loop durante o diálogo inicial, aguarda o término do último compasso) → `mid.mp3` (2 segundos com pose de mão erguida e grito *"SUA ALMA É MINHA!"*) → `fight.mp3` (loop de combate com abertura de câmera para `1.35x`);
+  - **Fase 1 (100% → 50% HP):** Arena delimitada (`750px`), teleporte, investida telegrafada, tempestade de raios (`1.0s` de aviso no chão) e barragem espiral;
+  - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada), alternando 5 investidas rápidas no escuro e 8 clones espectrais (`AzazelPhantomClone`) ao redor da Nixy que compartilham a vida do chefe;
+  - **Fase 3 (20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (mapa `202` com textura `floor-tile-2` / `chao2`), enxame de monstros e **3 Cristais de Azazel** gerados em locais aleatórios (captura de `5s` cada);
+  - **Fase 4 (20% → 0% HP):** Retorno após destruir os 3 cristais para o confronto final enfurecido.
+- [x] **Modo Visual Novel (`IntroScene.ts`, `Chapter1EndScene.ts`, `DialogueSystem.ts`):**
+  - Cenas ilustradas de abertura e encerramento de capítulos (Cap. 1 Rosalin e Cap. 2 Azazel), corte interativo de lâmina na tela (`Slash Cut`), bustos `420x420` / `430x430` e destaque dourado automático para `[CENSURADO]`.
+
+### 1.6. Ferramental In-Game: Sandbox, Galeria Showroom, Editor de Mapas e Bot IA (`Concluído ✅`)
+- [x] **Painel Sandbox (`DevSandboxPanel.ts` — `[F1]`):** 5 abas completas para cheats, spawn de hordas/chefes (Rosalin e Azazel), controle das 6 armas/evoluções, bênçãos/itens, teleporte para a Sala de Teste, abertura do Editor de Mapas e exportação do `DebugSessionLogger`.
+- [x] **Área de Teste / Galeria Showroom (`TestShowroomSystem.ts`):** Sala isolada em `(0, -20000)` fora da arena com todos os sprites, props, itens, armas, projéteis, inimigos, chefes e molduras de cartas lado a lado em escala real.
+- [x] **Editor de Mapas In-Game (`MapEditorSystem.ts` & `mapData.ts`):**
+  - 4 abas organizadas (`Estruturas & Altares`, `Cenário & Props`, `Textura do Chão`, `Checklist Obrigatório`);
+  - Limites estritos (1 Spawn da Nixy, 1 Altar de Chefe contextual ao capítulo, apenas `altar-1` para Ascensão, Cristais de Azazel restritos à boss fight);
+  - Seletor em tempo real de textura do chão (`floor-tile` vs `floor-tile-2`) e exportação/importação JSON.
+- [x] **Bot Autônomo de Testes (`AutoPlayTestAgent.ts` — `[F3]`):** Joga sozinho com kiting, captura de altares/cristais e escolha automática de upgrades.
+
+### 1.7. Acessibilidade Multiplataforma (`Concluído ✅`)
+- [x] **Controles Mobile (`TouchControls.ts`):** Joystick virtual flutuante/fixo à esquerda e botões de Sprint, Ultimate e Pausa à direita.
+- [x] **Suporte a Gamepad (`GamepadManager.ts`):** Movimentação analógica, gatilhos de Sprint/Ultimate e navegação completa por botões em todos os menus e cenas de diálogo.
 
 ---
 
-## Fase 1: Expansão do Arsenal e Evoluções de Armas *(Implementado — Pronto para Testar no Sandbox)*
-*Foco: Rejogabilidade, variedade de builds e progressão de poder dentro da partida.*
+## ⏳ 2. O Que Está Pendente (`[ ]`)
 
-### 1.1. Novas Armas Ativas no Catálogo de Level Up
-- [x] **Adagas de Sangue (`BloodDaggersWeapon`):** Dispara leques velozes de adagas carmesins na direção em que a Nixy está olhando (ou mirando no inimigo frontal mais próximo). Evolui do Nível 1 ao 5 aumentando a quantidade de adagas no leque, velocidade e dano.
-- [x] **Cadeias Abissais (`AbyssalChainsWeapon`):** Correntes espectrais que chicoteiam grupos de inimigos próximos, causando dano em área e aplicando **Grilhão Abissal (Atordoamento/Lentidão temporária)**. Evolui do Nível 1 ao 5 aumentando o alcance, número de alvos e duração do controle de grupo.
-- [x] **Meteoro Infernal (`InfernalMeteorWeapon`):** Invoca rochas vulcânicas do céu que caem sobre áreas de alta concentração de monstros com indicador visual de impacto, causando dano massivo de explosão. Evolui do Nível 1 ao 5 reduzindo a recarga e aumentando o número de meteoros por salva.
+### 2.1. Roteiro de Blindagem Arquitetural e Qualidade (Em Execução)
+- [x] **Pacote 0:** Baseline Git (`baseline-pre-refactor`), `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/MECHANICS.md`, `docs/CHANGELOG.md` e atualização deste Livro de Status.
+- [ ] **Pacote 1:** Rede de segurança com `npm run check` (`tsc --noEmit` + `eslint` + `vitest`) e testes unitários de lógica pura (`getEnemyScaling`, `MetaProgressManager`, validador de mapas).
+- [ ] **Pacote 2:** Correções pontuais (`Nixy.ts` timers no topo + prioridade única de `tint` + object pool do Ghost Trail; `mapData.ts` versionamento com backup + `Record` + limpeza de props duplicados; `MetaProgressManager` `saveVersion` + filtro de modo em `recordRun`; `CHAPTER_CONFIG` e `STORAGE_KEYS` em `balance.ts`).
+- [ ] **Pacote 3:** Modularização segura da `GameScene.ts` (`SandboxController` → `CombatBubbleSystem` → `ArenaScenerySystem`) e tipagem forte no lugar de `any`.
+- [ ] **Pacote 4:** Refatoração interna do `SoundManager.ts` (`playTone`/`playNoise`, `BGM_TRACKS`, limite de vozes/cooldown de horda, remoção de `window.setTimeout` e divisão interna mantendo a fachada pública).
 
-### 1.2. Sistema de Evolução Suprema de Armas (Weapon Fusion)
-- [x] **Raio do Apocalipse *(Evolução do Disparo de Almas)*:** Desbloqueado com Disparo Nvl 5 + *Alma Extra* ou *Perfuração Mística* + *Fúria Infernal*. Transforma os disparos em projéteis astrais colossais dourados/cianos de altíssima cadência e perfuração devastadora.
-- [x] **Ceifadora do Vazio *(Evolução das Lâminas Orbitais)*:** Desbloqueada com 6 Foices Orbitais + *Celeridade Abissal*. Transforma as foices em um vórtice carmesim hiper-veloz com raio expandido e dano crítico amplificado.
-- [x] **Supernova Abissal *(Evolução das Chamas do Purgatório)*:** Desbloqueada com Chamas Nvl 5 + *Vitalidade Sangrenta*. Emite ondas duplas de fogo azul/dourado que queimam uma área colossal e restauram vida da Nixy a cada pulso.
-
-### 1.3. Mecânicas Táticas de Level Up (Reroll & Skip)
-- [x] **Botão de Re-rolar Bênçãos (`Reroll`):** Permite sortear 3 novas opções de cartas na tela de Level Up (2 cargas por partida).
-- [x] **Botão de Pular / Canalizar Energia (`Skip`):** Permite recusar as 3 cartas em troca de uma cura imediata de emergência (+20 HP), garantindo que o jogador nunca seja forçado a pegar algo que não deseja.
+### 2.2. Expansões Futuras de Gameplay (Backlog)
+- [ ] **Novos Inimigos da Fase 3:** *Cultista Arcano* (artilheiro à distância) e *Brutamonte das Profundezas* (tanque com resistência a knockback).
+- [ ] **Eventos Dinâmicos de Horda:** Cerco circular e ondas de emboscada em minutos específicos.
+- [ ] **Sistema de Conquistas In-Game (Achievements):** Notificações estilo arcade aproveitando os dados de `MetaProgressManager.stats`.
+- [ ] **Capítulo 3:** Novo bioma, chefe inédito e continuação da campanha.
 
 ---
 
-## Otimizações de Engine, Balanceamento Contínuo & Agente IA *(Concluído)*
-- [x] **Resolução do Congelamento no Nível 15 & Gemas Travadas:** Fila de Level Up sequencial desacoplada (`pendingLevelUps`), atração magnética unificada usando `effectivePickupRadius` e colisão física Arcade Overlap de coleta imediata.
-- [x] **Otimização de Performance (Viewport Culling & Limites Rígidos):**
-  - Teto máximo de 120 monstros ativos e 150 gemas no mapa.
-  - Culling de câmera (`worldView` + margem de 100px) tornando entidades fora da tela invisíveis (`visible = false`).
-  - Fusão inteligente de gemas excedentes (estilo *Vampire Survivors*), concentrando XP em gemas próximas de tiers superiores sem gerar lag.
-- [x] **Escalonamento Progressivo de Inimigos (Anti-AFK Balance):** Aumento gradual de Vida (+12%/min) e Dano (+8%/min) dos monstros com base no tempo de sobrevivência, garantindo desafio contínuo mesmo com builds perfeitas.
-- [x] **Novo Inimigo — Múmia do Abismo (`MummyEnemy`):**
-  - Animação de caminhada em 4 direções e rotação ociosa em 8 ângulos.
-  - Movimentação ondulatória em zigue-zague na direção da Nixy.
-  - Emite poças verdes de veneno tóxico que causam lentidão (-40% velocidade) e dano contínuo.
-  - Poças duram 5 segundos após a morte da múmia e depois evaporam.
-  - Golpe de contato físico causa dano e knockback para trás na heroína.
-- [x] **Agente de Testes Autônomo (Bot IA — `AutoPlayTestAgent`):**
-  - Ativado por atalho **`[F3]`** ou pela Aba 5 do Modo de Teste (`DevSandboxPanel`).
-  - Pilota a Nixy de forma autônoma: kiting inteligente em 360°, atração para itens e gemas, corrida tática (Sprint) ao ser cercada e disparo automático de Ultimate.
-  - Resolve a tela de upgrades escolhendo automaticamente sinergias e evoluções de armas.
-  - Grava histórico de runs e reinicia testes automaticamente.
-- [x] **Novo Sistema de Cartas Arcanas (`UpgradeScene` & Fonte `Pixelzone`):**
-  - Molduras oficiais em pixel-art (`120x200px` escaladas: *Gold, Mystic, Fire, Inferno, Green, Ice, Obsidian, Base*) atribuídas de acordo com o elemento e raridade de cada bênção/arma.
-  - Tipografia oficial `Pixelzone.ttf` com trava geométrica anti-vazamento (`SAFE_INNER_WIDTH = 134px`), garantindo que Raridade e Nome fiquem na janela superior e a descrição na janela inferior sem invadir os ossos da moldura.
-  - Palavras-chave multicoloridas na descrição: **Armas/Habilidades** em Roxo (`#9b5de5`), **Dano** em Vermelho (`#ff3333`), **Vida/Cura/Regen** em Verde (`#2ecc71`), **Velocidade/Controle** em Azul Ciano (`#38bdf8`) e **Utilidade/Projéteis** em Dourado (`#fbbf24`).
-  - Flutuação contínua em onda senoidal, brilho traseiro concêntrico ao passar o mouse (`Back-Glow`), queda das duas cartas recusadas para baixo e explosão de 40+ partículas e ondas de choque na carta escolhida.
-  - Efeitos sonoros estilo Cassino / Arcade (`playCasinoLevelUp`, `playCardHover` e som de caixa registradora/moedas `playCardCashSelect`).
-- [x] **Sprites Oficiais e Rastros de Adaga e Meteoro:**
-  - `Adaga.png` integrada em `BloodDaggerProjectile` com rastro carmesim leve saindo detrás do cabo durante o voo.
-  - `Meteoro.png` integrado em `InfernalMeteorWeapon` com rotação em queda e labaredas/cauda de fogo saindo detrás da rocha.
-
----
-
-## Fase 2: Meta-Progressão Permanente & Economia *(Pendente)*
-*Foco: Sensação de evolução contínua entre partidas.*
-- [ ] **Moeda Persistente (Almas Corrompidas / Ouro Abissal):** Dropada por elites, chefes e baús, salva automaticamente no `localStorage`.
-- [ ] **Altar de Bênçãos Permanentes (Loja no Menu Principal):** Compra de atributos permanentes para a Nixy (*Vida Base*, *Dano Global*, *Velocidade*, *Raio de Coleta*, *Cargas Extras de Reroll*, *Ressurreição Extra*).
-- [ ] **Grimório de Estatísticas e Recordes:** Painel com melhor tempo no Modo Infinito, total de demônios purificados e armas evoluídas descobertas.
-
----
-
-## Fase 3: Novos Inimigos e Dinâmica de Enxame *(Em Andamento)*
-*Foco: Desafio tático e variedade de ameaças.*
-- [x] **Inimigo Ofensivo com Rastro de Controle — Múmia do Abismo** (Zigue-zague, Poças de Lentidão, Dano Contínuo e Knockback).
-- [ ] **Inimigo Artilheiro — Cultista Arcano:** Dispara projéteis mágicos à distância, exigindo movimentação lateral e uso estratégico do Sprint.
-- [ ] **Inimigo Tanque — Brutamonte das Profundezas:** Demônio pesado com alta vida e resistência a empurrão (knockback) que protege a linha de frente da horda.
-- [ ] **Eventos Dinâmicos de Horda:** Cerco circular de inimigos e ondas de emboscada rápida em minutos específicos.
-
----
-
-## Fase 4: Capítulo 2 e Progressão da Campanha *(Pendente)*
-*Foco: Expansão da história e novos ambientes.*
-- [ ] **Novo Bioma (Capítulo 2 — Cripta de Sangue / Rio Estígio):** Novo piso, atmosfera visual e perigos ambientais no mapa (poças de magma/ácido).
-- [ ] **Novo Chefe do Capítulo 2:** Mecânicas inéditas de combate, novas fases de ataque e diálogos ácidos com `[CENSURADO]` em dourado.
-- [ ] **Cutscenes de Transição para o Capítulo 2:** Continuação direta da fuga da Nixy.
-
----
-
-## Fase 5: Polimento de Controles (Mobile & Gamepad) & Conquistas *(Pendente)*
-*Foco: Acessibilidade multiplataforma e sensação Arcade.*
-- [ ] **Controles de Tela para Mobile (Touch Controls):**
-  - Joystick Virtual flutuante/fixo no lado esquerdo da tela para movimentação fluida em 360 graus.
-  - Botões dedicados na direita da tela para **Sprint (Correr)** e **Ultimate (E)** com feedback visual de recarga e toque responsivo.
-  - Adaptação ergonômica de todos os menus e modais para toque direto.
-- [ ] **Suporte Completo a Gamepad / Controles:** Movimentação no analógico, sprint nos gatilhos, uso da Ultimate e navegação nos menus.
-- [ ] **Sistema de Conquistas In-Game (Achievements):** Notificações estilo arcade no canto da tela ao cumprir desafios especiais.
+## 🏛️ 3. Decisões Técnicas e de Design Tomadas (ADR)
+1. **Pacto Demoníaco com Nível Único (`maxLevel: 1`):** Intencional para limitar a ressurreição a no máximo 1 por partida, mantendo a tensão dos confrontos contra chefes.
+2. **Reembolso de Bênçãos Fixado em 70%:** Intencional para permitir experimentar builds no Altar de Bênçãos com custo estratégico (`Math.floor(totalSpent * 0.70)`).
+3. **Sala de Teste Isolada em `Y = -20000`:** Posicionada longe da arena (`-3200..3200`) para que os manequins e efeitos visuais nunca interfiram no minimapa, na câmera ou no auto-aim durante a partida.
+4. **Cristais de Azazel Exclusivos da Boss Fight:** Não aparecem na paleta do Editor de Mapas porque são instanciados dinamicamente em 3 coordenadas aleatórias apenas durante a Fase 3 do Azazel.
+5. **Abertura de Câmera no Azazel (`Zoom 1.35x`):** A câmera abre de `2.0x` para `1.35x` após o diálogo inicial do Azazel para garantir visibilidade justa das linhas de investida, relâmpagos e clones espectrais.

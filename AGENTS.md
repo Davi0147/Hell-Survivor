@@ -1,52 +1,48 @@
-# Regras Críticas do Projeto — Hell Survivor (`AGENTS.md`)
+# Hell Survivor — Regras Obrigatórias do Projeto (`AGENTS.md`)
 
-## 1. REGRA DE OURO OBRIGATÓRIA: Sincronização com o Modo de Teste & Gravador de Sessão (`Sandbox-First Rule`)
-
-**Qualquer funcionalidade, entidade ou mecânica adicionada ou alterada no jogo DEVE OBRIGATORIAMENTE ser atualizada simultaneamente no Modo de Teste (`src/systems/DevSandboxPanel.ts`) e no Gravador de Sessão (`src/systems/DebugSessionLogger.ts`).**
-
-Sempre que criar ou modificar:
-1. **Nova Arma ou Evolução Suprema:**
-   - Adicione um card correspondente na aba **`[3] ARMAS & EVOLUÇÕES`** do `DevSandboxPanel.ts` com botões para `[ EQUIPAR ]`, `[ +1 NÍV ]`, `[ MAX / EVO ]` e `[ REMOVER ]`, além de incluí-la no botão global `[ EQUIPAR E EVOLUIR TODAS AS 6 ARMAS ]`.
-   - Registre o evento no `DebugSessionLogger.getInstance().log('WEAPON', ...)`.
-2. **Novo Inimigo, Mini-Boss ou Chefe (Boss):**
-   - Adicione um botão de invocação na aba **`[2] HORDAS & BOSS`** do `DevSandboxPanel.ts` e no método `sandboxSpawnHorde()` / `sandboxSpawnBoss()` em `GameScene.ts`.
-   - Garanta que ao remover ou derrotar o Chefe no Modo de Teste, a música de batalha (`SoundManager.getInstance().playBattleMusic(1500)`) seja restaurada sem encerrar a sessão Sandbox e sem conflito de faixas de áudio.
-3. **Nova Bênção Passiva, Atributo ou Moeda/Economia:**
-   - Adicione controles `[ - ]` e `[ + ]` na aba **`[4] BÊNÇÃOS & ITENS`** do `DevSandboxPanel.ts` e inclua o atributo no botão de Reset e no snapshot de estado do `DebugSessionLogger.ts` (`captureSnapshot`).
-4. **Novo Item de Mapa, Evento ou Bioma:**
-   - Adicione um botão de spawn/acionamento imediato próximo à Nixy no `DevSandboxPanel.ts` para que o usuário possa testar a mecânica em 1 clique sem depender de RNG ou espera de tempo.
-5. **Chave de Produção (`ENABLE_DEV_SANDBOX`):**
-   - Mantenha o controle de visibilidade do Modo de Teste centralizado em `ENABLE_DEV_SANDBOX` (`src/config/balance.ts`), permitindo ocultar o modo para jogadores finais no lançamento oficial apenas mudando `ENABLE_DEV_SANDBOX = false`.
+## Stack & Ambiente
+- **Engine:** Phaser 3 (`^3.87.0`) + TypeScript (`strict`) + Vite.
+- **Dependências:** Proibido adicionar pacotes externos sem autorização explícita do usuário (exceção autorizada: `vitest` / `eslint` como `devDependencies`).
 
 ---
 
-## 2. Preservação de Balanceamento e Regras de Áudio/UI
-- **Nunca altere valores de balanceamento já aprovados** (como vida da Succubus, recarga da Ultimate, etc.) a menos que o usuário peça explicitamente.
-- **Zero Emojis Unicode em Textos do Phaser:** Utilize apenas tipografia pixel art (`Silkscreen`, `Press Start 2P`) e ícones vetoriais/sprites para evitar glifos quebrados no WebGL/Canvas.
-- **Transições de Áudio Limpas:** Ao alternar entre músicas (`bgm-menu`, `bgm-battle`, `bgm-boss`), utilize sempre os métodos do `SoundManager` que interrompem imediatamente qualquer faixa anterior antes de iniciar a nova.
+## Regras Invioláveis (Numeradas e Verificáveis)
 
----
+1. **Escopo Mínimo e Preservação de Comportamento:**
+   - NUNCA remova, reescreva ou refatore código fora do escopo do pacote/tarefa atual.
+   - Refatorações NÃO mudam o comportamento do jogo. Se qualquer mudança de comportamento for necessária, avise antes de editar.
+   - Antes de editar, liste os arquivos que serão tocados e os potenciais riscos. Ao concluir, apresente o resumo do `git diff` confirmando que nada fora do escopo foi alterado.
 
-## 3. REGRA DE OURO OBRIGATÓRIA: Atualização Contínua da Área de Teste / Galeria de Sprites (`Showroom-First Rule`)
+2. **REGRA DE OURO AMPLIADA (`Sandbox-First` + `Showroom-First` + `Level-Editor-First`):**
+   - **Sandbox & Logger:** Toda nova arma, evolução, bênção passiva, inimigo, mini-boss, chefe, item de mapa ou mecânica DEVE ser integrada simultaneamente ao Modo de Teste (`src/systems/DevSandboxPanel.ts`) e ao Gravador de Sessão (`src/systems/DebugSessionLogger.ts`).
+   - **Galeria Showroom:** Todo novo sprite, textura, prop, coletável, projétil, inimigo, chefe ou moldura de carta DEVE ser registrado na Área de Teste / Galeria de Sprites (`src/systems/TestShowroomSystem.ts`, isolada em `Y = -20000`) na categoria correspondente, em escala real e como manequim pacífico.
+   - **Editor de Mapas:** Todo novo prop decorativo, altar, spawner ou textura de chão aplicável a fases DEVE ser registrado na paleta do Editor de Mapas (`src/systems/MapEditorSystem.ts`), tipado em `src/config/mapData.ts` e suportado no carregador de fases (`loadCustomMapLayout` em `src/scenes/GameScene.ts`). Props decorativos têm `depth = -10` e zero colisão física rígida.
 
-**Todo e qualquer sprite, textura, prop de cenário, item coletável, arma, projétil, inimigo, chefe, moldura de carta ou efeito visual (VFX) adicionado ou alterado no jogo DEVE OBRIGATORIAMENTE ser registrado na Área de Teste / Galeria de Sprites (`src/systems/TestShowroomSystem.ts`).**
+3. **Zero Números Mágicos de Balanceamento (`src/config/balance.ts`):**
+   - NUNCA hardcode números de balanceamento (HP, dano, velocidade, cooldowns, metas de almas de capítulos, limites de entidades, curvas de XP/escalonamento) dentro de cenas ou entidades. Tudo deve residir em `src/config/balance.ts` (incluindo `BALANCE`, `PERFORMANCE_LIMITS`, `ARENA_CONFIG`, `CHAPTER_CONFIG`).
+   - Nunca altere valores de balanceamento já aprovados sem pedido explícito.
 
-Diretrizes da Galeria Showroom:
-1. **Organização Lógica por Categorias:** Novos elementos devem ser inseridos em sua respectiva categoria temática (`CENÁRIO & PROPS`, `ITENS & COLETÁVEIS`, `ARMAS & PROJÉTEIS`, `INIMIGOS & CHEFES`, `CARTAS DE BÊNÇÃO`, `ANIMAÇÕES & VFX`, `UI & RETRATOS`) ou em uma nova categoria dedicada se for um sistema inédito.
-2. **Escala e Renderização Fiel In-Game:** O sprite deve ser exibido com a mesma proporção, cor/tint e efeitos complementares (ex: tochas acompanhadas do seu halo crepitante de iluminação; animações rodando em loop contínuo).
-3. **Manequins Pacíficos:** Inimigos e chefes posicionados na galeria são estritamente manequins estáticos para inspeção visual (sem dano de contato, sem knockback, sem agressão ao jogador).
-4. **Espaçamento e Legibilidade:** Manter espaçamento limpo entre os itens com rótulo descritivo sob cada sprite para fácil conferência visual de fidelidade estética.
+4. **Identidade Visual Gótica & Tipografia (`src/config/theme.ts`):**
+   - NUNCA altere estilo visual (cores, fontes, layout de HUD, molduras) sem pedido explícito. Cores, fontes e constantes de VFX devem ser centralizadas em `src/config/theme.ts`.
+   - **Zero Emojis Unicode em Textos WebGL/Canvas do Phaser:** Use apenas as fontes pixel-art do projeto (`Press Start 2P`, `Silkscreen`, `Pixelzone`) e ícones vetoriais/sprites para evitar glifos quebrados.
+   - Ao trocar texturas dinamicamente em imagens com tamanho fixo (ex: bustos de diálogo `420x420` ou `430x430`), chame sempre `setDisplaySize(w, h)` logo após `setTexture()`.
 
----
+5. **Timers Seguros no Ciclo do Phaser:**
+   - NUNCA use `window.setTimeout` ou `window.setInterval` em lógica de gameplay, combate ou cenas. Use sempre `this.time.delayedCall` ou `this.time.addEvent` da cena ativa para respeitar pausas (`scene.pause()`) e evitar vazamentos ao trocar de cena.
 
-## 4. REGRA DE OURO OBRIGATÓRIA: Registro Contínuo no Editor de Mapas (`Level-Editor-First Rule`)
+6. **Persistência e Chaves de `localStorage` (`STORAGE_KEYS`):**
+   - NUNCA espalhe strings literais de chaves do `localStorage` pelo código. Todas as chaves (`meta_save`, `custom_map`, `sound_settings`, `dev_unlocked`) devem ser lidas/gravadas exclusivamente via objeto centralizado `STORAGE_KEYS` (em `src/config/balance.ts`), sempre protegidas por `try / catch` e mantendo compatibilidade/migração com saves anteriores.
 
-**Todo e qualquer novo objeto de cenário, elemento decorativo, portal, armadilha, ponto de spawn ou interativo de mapa adicionado ao jogo DEVE OBRIGATORIAMENTE ser registrado na paleta do Editor de Mapas (`src/systems/MapEditorSystem.ts`), no catálogo de dados (`src/config/mapData.ts`) e no carregador dinâmico de mapas (`loadCustomMapLayout` em `GameScene.ts`).**
+7. **Arquitetura e Contratos de Mecânicas (`docs/`):**
+   - Toda mecânica nova ou alterada deve respeitar estritamente os contratos definidos em [`docs/MECHANICS.md`](docs/MECHANICS.md) e a divisão de responsabilidades em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+   - Novos subsistemas de lógica devem ficar em `src/systems/`; `GameScene.ts` atua apenas como cena orquestradora.
 
-Diretrizes do Editor de Mapas:
-1. **Inclusão Imediata na Paleta:** Adicionar o novo item em `MapEditorSystem.PALETTE` com id único, categoria apropriada (`props` ou `spawns`), ícone descritivo, textura e escala padronizada.
-2. **Zero Colisão Física para Props:** Props de cenário devem sempre manter `setDepth(-10)` e sem corpos físicos rígidos para jamais prender Nixy ou inimigos.
-3. **Compatibilidade com Exportação/Importação JSON:** O formato dos dados de mapa em `src/config/mapData.ts` deve sempre suportar novos tipos de props sem quebrar mapas previamente exportados pelo usuário.
-4. **Renderização Fiel no Editor e In-Game:** Efeitos associados a props (como halos de tochas crepitando, auras de portais e zonas de bosses) devem ser reproduzidos tanto no preview do editor quanto no carregamento do jogo real.
+8. **Definição de Pronto (DoD — Definition of Done):**
+   Uma tarefa ou pacote SÓ é considerado concluído quando:
+   - `npm run check` (`tsc --noEmit` + `eslint` + `vitest`) e `npm run build` passam com 0 erros;
+   - O Bot Autônomo (`[F3]` / `AutoPlayTestAgent`) roda por pelo menos 2 minutos sem gerar erro novo no `DebugSessionLogger`;
+   - [`LIVRO_DE_ANOTACOES.md`](LIVRO_DE_ANOTACOES.md) e [`docs/CHANGELOG.md`](docs/CHANGELOG.md) foram atualizados refletindo a entrega;
+   - Commit limpo realizado na branch de trabalho.
 
-
+9. **Regra de Conflito (Parada Obrigatória):**
+   - **Se qualquer instrução de uma tarefa conflitar com este arquivo (`AGENTS.md`) ou com `docs/MECHANICS.md`, PARE imediatamente e pergunte ao usuário antes de escrever código.**
