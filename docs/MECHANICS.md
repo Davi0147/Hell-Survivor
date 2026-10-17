@@ -59,9 +59,12 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
 2. **Telegrafia Obrigatória de Ataques (Telegraph):**
    - Nenhum ataque especial de grande impacto (investidas rápidas, quedas de meteoro, raios caindo do céu) causa dano imediato sem aviso visual.
    - Todo ataque perigoso projeta previamente guias visuais no chão (`Phaser.GameObjects.Graphics`) com linha direcional ou área circular preenchida progressivamente durante um intervalo de tempo justo para reação do jogador antes do dano ser ativado.
-3. **Transições de Fase e Entidades Auxiliares:**
-   - Transições de fase bloqueiam dano temporariamente (`isInvulnerable = true`), limpam projéteis ativos, exibem frase dramática centralizada na tela via `UIScene.showCenterBossPhrase()` (sem moldura retangular de fundo, com impacto de escala e partículas) e sincronizam faixas no `SoundManager`.
-   - Clones ou lacaios que devam ser alvos de armas automáticas (ex: `AzazelPhantomClone`) estendem `BaseEnemy`, integram o `enemiesGroup` e repassam dano para o chefe principal.
+3. **Estrutura de Fases do Azazel (Verificado no Código):**
+   Conforme implementado em `src/entities/enemies/AzazelBoss.ts` (linhas 7, 412, 898, 1187, 1240, 1300, 1311) e `src/scenes/GameScene.ts` (linhas 3041–3113), a luta contra Azazel possui **4 Fases de Combate (`AzazelCombatPhase = 1 | 2 | 3 | 4`)**:
+   - **Fase 1 (100% → 50% HP):** Arena delimitada, investidas telegrafadas, tempestade de raios e barragem espiral (`AzazelBoss.ts` L412–890).
+   - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada), alternando 5 investidas rápidas no escuro e 8 clones espectrais (`AzazelPhantomClone`) que compartilham vida com o chefe (`AzazelBoss.ts` L898–1180; gatilho em `takeDamage` L1300).
+   - **Fase 3 (Trava aos 20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (`map 202`, `floor-tile-2` / `chao2`), onde Azazel fica oculto/invulnerável enquanto o jogador purifica os 3 Cristais em meio a uma horda intensa (`GameScene.ts` L3041–3090, `AzazelBoss.ts` L1187; gatilho em L1311).
+   - **Fase 4 (20% → 0% HP — Showdown Final):** Azazel reaparece com velocidade ampliada (+20% em L412) para o confronto decisivo até 0% de HP (`GameScene.ts` L3112, `AzazelBoss.ts` L1240).
 4. **Limpeza Gráfica e Restauração:**
    - Na derrota do chefe, todos os gráficos de telegrafia, clones e overlays de escuridão devem ser destruídos imediatamente.
    - O zoom da câmera deve ser restaurado suavemente para o padrão de exploração via tween.
@@ -78,32 +81,33 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Quando colocado na lista `props` de um mapa customizado/editor (`altar-1`), o carregador `loadCustomMapLayout` instancia uma imagem estática decorativa (`setDepth(-12)`), sem lógica de captura.
    - Durante a captura do altar interativo, o jogador deve permanecer dentro do raio de captura (`captureRadius` em `EvolutionAltar.ts`) até completar a barra circular rúnica, emitindo `'altar-completed'`.
 3. **Cristais de Azazel (`AzazelCrystal`):**
-   - **Comportamento Real do Código:** Os 3 cristais são gerados dinamicamente em tempo de execução pela `GameScene` (`handleAzazelPhase3Transition`) em ângulos e distâncias aleatórias ao redor do jogador na Fase 3 da luta.
-   - O campo opcional `azazelCrystals` presente na configuração do mapa 202 (`DEFAULT_AZAZEL_DIM_MAP`) atualmente **não é lido** por `loadCustomMapLayout` (código/dado morto na configuração).
+   - **Comportamento Real do Código:** Os 3 cristais são gerados dinamicamente em tempo de execução pela `GameScene` (`handleAzazelPhase3Transition`, linhas 3051–3067) em ângulos e distâncias aleatórias ao redor do jogador na Fase 3 da luta.
+   - **Campo Morto Deprecated:** O campo `azazelCrystals` em `ChapterMapConfig` / `DEFAULT_AZAZEL_DIM_MAP` está marcado como `@deprecated` (não é lido por `loadCustomMapLayout` e será removido no Pacote 2).
    - A captura exige permanência no raio do cristal (`captureRadius` em `AzazelCrystal.ts`) durante o tempo estabelecido. Ao completar, valida a câmera antes da explosão e emite `'crystal-completed'`.
 
 ---
 
-## 6. Contrato de Mapas e Checklist do Editor (`src/config/mapData.ts`)
+## 6. Contrato de Mapas e Checklist Oficial do Validador (`src/config/mapData.ts`)
 
 1. **Estrutura de Dados (`ChapterMapConfig`):**
    - Cada mapa define `version`, `chapter`, `name`, `floorTexture`, `playerSpawn` (`MapPoint`), `bossPortal` (`MapPoint`), `bossSpawn` (`MapPoint`), `itemSpawners` (`MapPoint[]`) e `props` (`MapEntityProp[]`).
-   - O nome correto do array de pontos de spawn de itens é **`itemSpawners`** (e não `itemSpawns`).
-2. **Realidade dos Mapas Atuais vs Checklist:**
-   - **Capítulo 1 (`DEFAULT_CHAPTER_1_MAP`):** Possui 1 `playerSpawn`, 1 `bossPortal`/`bossSpawn`, 4 `itemSpawners` e props variados. **Não possui `altar-1` em `props`** (os altares de evolução surgem dinamicamente via timer na cena).
-   - **Capítulo 2 (`DEFAULT_CHAPTER_2_MAP`):** Possui 1 `playerSpawn`, 1 `bossPortal`/`bossSpawn`, 14 `itemSpawners` e props decorativos (incluindo 2 `altar-1` decorativos de santuário).
-   - **Dimensão de Azazel (`DEFAULT_AZAZEL_DIM_MAP`, Cap. 202):** Possui 1 `playerSpawn`, 1 `bossPortal`/`bossSpawn`, 2 `itemSpawners` e props de cenário. Não possui `altar-1`.
-3. **Proposta de Checklist Realista por Tipo de Mapa:**
-   - **Mapas de Campanha/Capítulo Regular (Cap. 1, Cap. 2, Cap. 3):**
-     - Exatamente 1 `playerSpawn` válido (dentro da arena);
-     - Exatamente 1 `bossPortal` e `bossSpawn` válidos;
-     - Mínimo de 4 `itemSpawners` para garantir exploração de consumíveis;
-     - *Altar de Ascensão em `props`:* Opcional/decorativo (a mecânica real opera via timer procedural da `GameScene`).
-   - **Mapas de Dimensão / Arenas de Boss Fechadas (ex: Cap. 202):**
-     - Exatamente 1 `playerSpawn` válido;
-     - Exatamente 1 `bossPortal` e `bossSpawn` válidos;
-     - Mínimo de 2 `itemSpawners`;
+   - A propriedade oficial é **`itemSpawners`** (e não `itemSpawns`).
+2. **Contagens Reais dos Mapas Atuais (Verificado no Código):**
+   - **Capítulo 1 (`DEFAULT_CHAPTER_1_MAP`):** 4 `itemSpawners`, 0 props `altar-1`.
+   - **Capítulo 2 (`DEFAULT_CHAPTER_2_MAP`):** 17 `itemSpawners`, 2 props `altar-1` decorativos.
+   - **Dimensão de Azazel (`DEFAULT_AZAZEL_DIM_MAP`, Cap. 202):** 2 `itemSpawners`, 0 props `altar-1`.
+3. **Checklist Oficial Aprovado por Tipo de Mapa:**
+   - **Mapas de Capítulo (Capítulo 1 e Capítulo 2):**
+     - Exatamente 1 `playerSpawn` (dentro dos limites de `ARENA_CONFIG`);
+     - Exatamente 1 `bossPortal` e 1 `bossSpawn` (dentro dos limites de `ARENA_CONFIG`);
+     - Mínimo de 4 `itemSpawners` (dentro de `ARENA_CONFIG`);
+     - *Altar de Ascensão (`altar-1` em props):* **Opcional** (a mecânica real do `EvolutionAltar` surge via timer procedural na `GameScene`).
+   - **Arena de Chefe / Dimensão Fechada (Capítulo 202):**
+     - Exatamente 1 `playerSpawn` (dentro de `ARENA_CONFIG`);
+     - Exatamente 1 `bossPortal` e 1 `bossSpawn` (dentro de `ARENA_CONFIG`);
+     - Mínimo de 2 `itemSpawners` (dentro de `ARENA_CONFIG`);
      - Sem exigência de altar de ascensão.
+   - **Regra de Espaçamento de Props:** Props quase duplicados (mesmo `type` com distância euclidiana inferior a `48px`) geram **aviso informativo** listado no relatório de validação, sem reprovar o mapa.
 
 ---
 

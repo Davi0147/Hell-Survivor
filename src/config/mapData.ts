@@ -20,7 +20,8 @@ export interface ChapterMapConfig {
   bossPortal: MapPoint;
   bossSpawn: MapPoint;
   itemSpawners: MapPoint[];
-  azazelCrystals?: MapPoint[]; // Posições dos 3 Cristais de Azazel (Fase 3)
+  /** @deprecated Dado morto na config: os 3 Cristais de Azazel são gerados dinamicamente em GameScene.ts na Fase 3 (a remover no Pacote 2). */
+  azazelCrystals?: MapPoint[];
   props: MapEntityProp[];
 }
 

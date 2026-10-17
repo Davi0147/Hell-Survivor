@@ -62,10 +62,10 @@
 - [x] **Capítulo 2 & Chefe Azazel, O Anjo Caído (`AzazelBoss.ts` + `AzazelCrystal.ts`):**
   - Meta de `1.350` almas no Capítulo 2 para ativar o Altar de Invocação de Azazel;
   - **Trilha Musical Sincronizada em 3 Partes (`SoundManager.ts`):** `intro.mp3` (loop durante o diálogo inicial, aguarda o término do último compasso) → `mid.mp3` (2 segundos com pose de mão erguida e grito *"SUA ALMA É MINHA!"*) → `fight.mp3` (loop de combate com abertura de câmera para `1.35x`);
-  - **Fase 1:** Arena delimitada, teleporte, investida telegrafada, tempestade de raios e barragem espiral;
-  - **Fase 2 (*"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada), alternando 5 investidas rápidas no escuro e 8 clones espectrais (`AzazelPhantomClone`) ao redor da Nixy que compartilham a vida do chefe;
-  - **Fase 3 (*"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (mapa `202` com textura `floor-tile-2` / `chao2`), enxame de monstros e **3 Cristais de Azazel** gerados em locais aleatórios dinâmicos;
-  - **Fase 4:** Retorno após purificar os 3 cristais para o confronto final enfurecido.
+  - **Fase 1 (100% → 50% HP):** Arena delimitada, teleporte, investida telegrafada, tempestade de raios e barragem espiral (`AzazelBoss.ts` L412–890);
+  - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada), alternando 5 investidas rápidas no escuro e 8 clones espectrais (`AzazelPhantomClone`) que compartilham vida com o chefe (`AzazelBoss.ts` L898–1180, gatilho L1300);
+  - **Fase 3 (Trava aos 20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (mapa `202` com textura `floor-tile-2` / `chao2`), enxame de monstros e 3 Cristais de Azazel gerados em locais aleatórios dinâmicos enquanto Azazel fica oculto (`GameScene.ts` L3041–3090, `AzazelBoss.ts` L1187, gatilho L1311);
+  - **Fase 4 (20% → 0% HP — Showdown Final):** Retorno após purificar os 3 cristais para o confronto final com velocidade ampliada (+20%) até a derrota (`GameScene.ts` L3112, `AzazelBoss.ts` L412, L1240).
 - [x] **Modo Visual Novel (`IntroScene.ts`, `Chapter1EndScene.ts`, `DialogueSystem.ts`):**
   - Cenas ilustradas de abertura e encerramento de capítulos (Cap. 1 Rosalin e Cap. 2 Azazel), corte interativo de lâmina na tela (`Slash Cut`), bustos padronizados e destaque dourado automático para `[CENSURADO]`.
 
@@ -107,8 +107,8 @@
 ---
 
 ## 🏛️ 3. Decisões Técnicas e de Design Tomadas (ADR)
-1. **Pacto Demoníaco com Nível Único (`maxLevel: 1`):** Intencional para limitar a ressurreição a no máximo 1 por partida, mantendo a tensão dos confrontos contra chefes.
-2. **Reembolso de Bênçãos Fixado em 70%:** Intencional para permitir experimentar builds no Altar de Bênçãos com custo estratégico (`Math.floor(totalSpent * 0.70)`).
-3. **Sala de Teste Isolada em `Y = -20000`:** Posicionada longe da arena (`-3200..3200`) para que os manequins e efeitos visuais nunca interfiram no minimapa, na câmera ou no auto-aim durante a partida.
-4. **Cristais de Azazel Gerados Dinamicamente:** Os cristais surgem em 3 ângulos e distâncias aleatórias ao redor do jogador na Fase 3 do Azazel, garantindo variedade de rota e desafio.
-5. **Abertura de Câmera no Azazel (`Zoom 1.35x`):** A câmera abre de `2.0x` para `1.35x` após o diálogo inicial do Azazel para garantir visibilidade justa das linhas de investida, relâmpagos e clones espectrais.
+1. **Reembolso de Bênçãos Fixado em 70%:** Confirmado no código de `MetaProgressManager.ts` (`refundBlessings` calcula `Math.floor(totalSpent * 0.70)` devolvendo estritamente 70% das almas gastas).
+2. **Sala de Teste Isolada em `Y = -20000`:** Posicionada fora da arena (`-3200..3200`) para que os manequins pacíficos e efeitos visuais não interfiram no radar, câmera ou combate da partida real.
+3. **Pacto Demoníaco com Nível Único (`maxLevel: 1`):** *(proposta — aguardando confirmação do dono)* Atualmente configurado com nível único em `BLESSINGS_CATALOG` (`costs: [1200]`).
+4. **Cristais de Azazel Gerados Dinamicamente:** *(proposta — aguardando confirmação do dono)* Implementado no código via geração procedural em 3 posições aleatórias ao redor do jogador na Fase 3 (`GameScene.ts` L3051–3067), com o campo fixo `azazelCrystals` em `mapData.ts` mantido como dado morto `@deprecated`.
+5. **Abertura de Câmera no Azazel (`Zoom 1.35x`):** *(proposta — aguardando confirmação do dono)* Implementado via tween suave de `2.0x` para `1.35x` na `GameScene.ts` para ampliar a visão de combate.
