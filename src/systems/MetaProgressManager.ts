@@ -87,6 +87,13 @@ export class MetaProgressManager {
 
   private constructor() {
     this.data = this.loadInitialData();
+
+    // Garante que almas coletadas sejam bancadas mesmo se a janela for fechada ou recarregada
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.finalizeRunSouls();
+      });
+    }
   }
 
   public static getInstance(): MetaProgressManager {

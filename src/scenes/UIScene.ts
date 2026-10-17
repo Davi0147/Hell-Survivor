@@ -402,6 +402,7 @@ export class UIScene extends Phaser.Scene {
     // Atalho silencioso de teclado para recarregar com F2 (sem nenhum botão ou texto na tela)
     if (this.input.keyboard) {
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F2).on('down', () => {
+        MetaProgressManager.getInstance().finalizeRunSouls();
         this.scene.stop('UIScene');
         const gameScene = this.scene.get('GameScene');
         if (gameScene) {
@@ -1993,10 +1994,11 @@ export class UIScene extends Phaser.Scene {
 
     // 4. Estatísticas da Partida Atual
     const sec = Math.floor(gameScene.survivalTimeMs / 1000);
+    const runSouls = MetaProgressManager.getInstance().runSoulsCollected;
     const statsText = this.add.text(
       panelX,
       panelY - 95,
-      `TEMPO: ${this.formatTime(sec)}   |   ABATES: ${gameScene.killCount}   |   NÍVEL: ${gameScene.player?.currentLevel || 1}`,
+      `TEMPO: ${this.formatTime(sec)}   |   ABATES: ${gameScene.killCount}   |   NÍVEL: ${gameScene.player?.currentLevel || 1}   |   ALMAS: ${runSouls}`,
       {
         fontFamily: pixelFont,
         fontSize: '11px',
@@ -2156,6 +2158,7 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.createPauseActionBtn(bStartX + (bW + bSpacing), btnY, bW, bH, 'REINICIAR', 0x553311, 0xffaa00, () => {
+      MetaProgressManager.getInstance().finalizeRunSouls();
       this.isPaused = false;
       if (this.pauseModalContainer) {
         this.pauseModalContainer.destroy();
@@ -2166,6 +2169,7 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, 'MENU', 0x551122, 0xff0055, () => {
+      MetaProgressManager.getInstance().finalizeRunSouls();
       this.isPaused = false;
       if (this.pauseModalContainer) {
         this.pauseModalContainer.destroy();

@@ -100,7 +100,7 @@ export class GameScene extends Phaser.Scene {
     this.gameMode = data?.mode ?? 'story';
     this.isRevival = data?.isRevival ?? false;
     this.hasRevivalUsed = false;
-    MetaProgressManager.getInstance().resetRunSouls();
+    MetaProgressManager.getInstance().finalizeRunSouls();
     this.sandboxGodMode = this.gameMode === 'sandbox';
     this.sandboxInfiniteUlt = false;
     this.sandboxInfiniteStamina = false;
@@ -352,6 +352,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      MetaProgressManager.getInstance().finalizeRunSouls();
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
     });

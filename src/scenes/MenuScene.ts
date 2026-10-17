@@ -23,6 +23,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Garante que todas as almas de partidas anteriores sejam bancadas antes de exibir o saldo
+    MetaProgressManager.getInstance().finalizeRunSouls();
+
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
