@@ -12,6 +12,7 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
   private bobTimer: number = 0;
   private baseY: number = 0;
   private shadow!: Phaser.GameObjects.Ellipse;
+  private greenGlow!: Phaser.GameObjects.Ellipse;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: MapItemType) {
     const textureKey = type === 'chalice' ? 'item-chalice' : type === 'magnet' ? 'item-magnet' : 'item-chest';
@@ -32,7 +33,21 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
 
     // Sombra oval escura no chão que se ajusta com a levitação
     this.shadow = scene.add.ellipse(x, y + 18, 26, 12, 0x000000, 0.45);
-    this.shadow.setDepth(14);
+    this.shadow.setDepth(13);
+
+    // Brilho verde suave de fundo para destacar o item no cenário
+    this.greenGlow = scene.add.ellipse(x, y + 4, 38, 26, 0x10b981, 0.42);
+    this.greenGlow.setDepth(14);
+    scene.tweens.add({
+      targets: this.greenGlow,
+      alpha: { from: 0.28, to: 0.58 },
+      scaleX: { from: 0.92, to: 1.15 },
+      scaleY: { from: 0.92, to: 1.15 },
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
   }
 
   public updateItem(deltaMs: number): void {
@@ -47,6 +62,10 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
       const shadowScale = 1 - (offset / 18);
       this.shadow.setScale(shadowScale, shadowScale);
     }
+
+    if (this.greenGlow && this.greenGlow.active) {
+      this.greenGlow.setPosition(this.x, this.y + 4);
+    }
   }
 
   public collect(player: BaseCharacter, gameScene: any): void {
@@ -56,6 +75,9 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
 
     if (this.shadow && this.shadow.active) {
       this.shadow.destroy();
+    }
+    if (this.greenGlow && this.greenGlow.active) {
+      this.greenGlow.destroy();
     }
 
     const uiScene = this.scene.scene.get('UIScene') as UIScene;
@@ -155,6 +177,9 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
   public override destroy(fromScene?: boolean): void {
     if (this.shadow && this.shadow.active) {
       this.shadow.destroy();
+    }
+    if (this.greenGlow && this.greenGlow.active) {
+      this.greenGlow.destroy();
     }
     super.destroy(fromScene);
   }

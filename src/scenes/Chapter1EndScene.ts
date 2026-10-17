@@ -6,7 +6,7 @@ import { MetaProgressManager } from '../systems/MetaProgressManager';
 
 interface DialogueStep {
   bgKey: string;
-  speaker: 'nixy' | 'succubus' | 'narrator';
+  speaker: 'nixy' | 'rosalin' | 'narrator';
   speakerName: string;
   text: string;
   action?: (scene: Chapter1EndScene) => void;
@@ -29,6 +29,7 @@ export class Chapter1EndScene extends Phaser.Scene {
   // Efeitos de Tela e Câmera
   private blackOverlay!: Phaser.GameObjects.Rectangle;
   private slashGraphics!: Phaser.GameObjects.Graphics;
+  private cutPromptText!: Phaser.GameObjects.Text;
   private skipBtnContainer!: Phaser.GameObjects.Container;
   private skipTxt!: Phaser.GameObjects.Text;
 
@@ -40,8 +41,8 @@ export class Chapter1EndScene extends Phaser.Scene {
   private dialogueText!: Phaser.GameObjects.Text;
   private promptText!: Phaser.GameObjects.Text;
 
-  private readonly BOX_W = 960;
-  private readonly BOX_H = 150;
+  private readonly BOX_W = 920;
+  private readonly BOX_H = 145;
 
   // Controle de Sequência e Digitação
   private steps: DialogueStep[] = [];
@@ -52,9 +53,9 @@ export class Chapter1EndScene extends Phaser.Scene {
   private typeTimer?: Phaser.Time.TimerEvent;
   private isEnding: boolean = false;
   private isSlashCutPlaying: boolean = false;
+  private isWaitingAfterCut: boolean = false;
   private lastAdvanceTime: number = 0;
   private currentControlScheme: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
-  private wasKeyboardPressed: boolean = false;
 
   // Modal de Vitória Pós-Cena
   private victoryContainer?: Phaser.GameObjects.Container;
@@ -72,6 +73,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.currentStepIndex = 0;
     this.isEnding = false;
     this.isSlashCutPlaying = false;
+    this.isWaitingAfterCut = false;
     this.isTyping = false;
     this.currentBgKey = 'endchap1-1';
     this.isBgAActive = true;
@@ -84,26 +86,15 @@ export class Chapter1EndScene extends Phaser.Scene {
 
     SoundManager.getInstance().setScene(this);
     SoundManager.getInstance().stopMusic(1000);
-    // Toca a música da cena com fade-in suave bem baixinha de fundo
-    SoundManager.getInstance().playSpookyMusic(2000);
+    // Toca a trilha assombrosa bem baixinha de fundo com fade-in suave em loop
+    SoundManager.getInstance().playSpookyMusic(2500);
 
-    // 1. Camadas de Fundo (A e B) para transições suaves de cena
+    // 1. Camadas de Fundo (A e B) para transições sem bordas pretas
     this.bgImageA = this.add.image(width / 2, height / 2, 'endchap1-1').setDepth(0);
     this.fitBackground(this.bgImageA);
 
     this.bgImageB = this.add.image(width / 2, height / 2, 'endchap1-1').setDepth(1).setAlpha(0);
     this.fitBackground(this.bgImageB);
-
-    // Efeito sutil de respiração da câmera
-    this.tweens.add({
-      targets: [this.bgImageA, this.bgImageB],
-      scaleX: '+=0.015',
-      scaleY: '+=0.015',
-      duration: 12000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
 
     // 2. Gráficos de Corte da Execução
     this.slashGraphics = this.add.graphics().setDepth(45);
@@ -112,7 +103,25 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.blackOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0);
     this.blackOverlay.setDepth(40);
 
-    // 4. Caixa de Diálogo
+    // Texto de prompt no escuro após o corte
+    this.cutPromptText = this.add.text(width / 2, height - 70, 'ESPAÇO P/ CONTINUAR ▶', {
+      fontFamily: pixelFont,
+      fontSize: '13px',
+      fontStyle: 'bold',
+      color: '#ffd60a',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(46).setVisible(false);
+
+    this.tweens.add({
+      targets: this.cutPromptText,
+      alpha: 0.35,
+      duration: 550,
+      yoyo: true,
+      repeat: -1
+    });
+
+    // 4. Caixa de Diálogo Visual Novel Persona 5
     const boxX = (width - this.BOX_W) / 2;
     const boxY = height - this.BOX_H - 24;
 
@@ -124,30 +133,30 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.nameplateGraphics = this.add.graphics();
     this.boxContainer.add(this.nameplateGraphics);
 
-    this.nameText = this.add.text(48, -14, 'NIXY', {
+    this.nameText = this.add.text(35, -22, 'NIXY', {
       fontFamily: pixelFont,
-      fontSize: '15px',
+      fontSize: '16px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 3
-    }).setOrigin(0, 0.5);
+    }).setOrigin(0, 0);
     this.boxContainer.add(this.nameText);
 
-    this.dialogueText = this.add.text(36, 32, '', {
+    this.dialogueText = this.add.text(35, 26, '', {
       fontFamily: pixelFont,
-      fontSize: '13px',
-      color: '#ffffff',
+      fontSize: '17px',
+      color: '#f8f9fa',
       stroke: '#000000',
       strokeThickness: 2,
-      wordWrap: { width: this.BOX_W - 72, useAdvancedWrap: true },
-      lineSpacing: 8
+      wordWrap: { width: this.BOX_W - 70, useAdvancedWrap: true },
+      lineSpacing: 6
     });
     this.boxContainer.add(this.dialogueText);
 
-    this.promptText = this.add.text(this.BOX_W - 28, this.BOX_H - 18, 'ESPAÇO ▶', {
+    this.promptText = this.add.text(this.BOX_W - 25, this.BOX_H - 18, 'ESPAÇO ▶', {
       fontFamily: pixelFont,
-      fontSize: '10px',
+      fontSize: '11px',
       color: '#f3d17a',
       stroke: '#000000',
       strokeThickness: 2
@@ -176,7 +185,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.tweens.add({
       targets: this.blackOverlay,
       alpha: 0,
-      duration: 800,
+      duration: 700,
       ease: 'Power2',
       onComplete: () => {
         this.startStep(0);
@@ -184,13 +193,15 @@ export class Chapter1EndScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Garante que a imagem preencha 100% da tela sem esticar e sem bordas pretas
+   */
   private fitBackground(img: Phaser.GameObjects.Image): void {
     const { width, height } = this.scale;
+    this.tweens.killTweensOf(img);
+    const scale = Math.max(width / img.width, height / img.height);
+    img.setScale(scale);
     img.setPosition(width / 2, height / 2);
-    const scaleX = width / img.width;
-    const scaleY = height / img.height;
-    const maxScale = Math.max(scaleX, scaleY);
-    img.setScale(maxScale);
   }
 
   private setupSkipButton(): void {
@@ -246,12 +257,15 @@ export class Chapter1EndScene extends Phaser.Scene {
     if (this.currentControlScheme === 'gamepad') {
       this.promptText.setText('(A) AVANÇAR ▶');
       this.skipTxt.setText('[(B)] PULAR CENA');
+      this.cutPromptText.setText('(A) AVANÇAR ▶');
     } else if (this.currentControlScheme === 'touch') {
       this.promptText.setText('TOQUE P/ AVANÇAR ▶');
       this.skipTxt.setText('PULAR CENA');
+      this.cutPromptText.setText('TOQUE P/ AVANÇAR ▶');
     } else {
       this.promptText.setText('ESPAÇO ▶');
       this.skipTxt.setText('[ESC] PULAR CENA');
+      this.cutPromptText.setText('ESPAÇO P/ CONTINUAR ▶');
     }
   }
 
@@ -352,13 +366,13 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-1',
         speaker: 'narrator',
         speakerName: '',
-        text: '*(A Succubus cai de joelhos. Suas asas estão feridas, sua respiração é irregular e o brilho de seus olhos começa a enfraquecer. Nixy se aproxima, limpando o sangue das mãos.)*'
+        text: '*(Rosalin cai de joelhos. Suas asas estão feridas, sua respiração é irregular e o brilho de seus olhos começa a enfraquecer. Nixy se aproxima, limpando o sangue das mãos.)*'
       },
       {
         bgKey: 'endchap1-1',
-        speaker: 'succubus',
-        speakerName: 'SUCCUBUS',
-        text: 'Ah... Como assim?\n\nNão... Não pode ser...'
+        speaker: 'rosalin',
+        speakerName: 'ROSALIN',
+        text: 'Ah... Como assim?\nNão... Não pode ser...'
       },
       {
         bgKey: 'endchap1-1',
@@ -368,21 +382,21 @@ export class Chapter1EndScene extends Phaser.Scene {
       },
       {
         bgKey: 'endchap1-1',
-        speaker: 'succubus',
-        speakerName: 'SUCCUBUS',
+        speaker: 'rosalin',
+        speakerName: 'ROSALIN',
         text: 'Sua...'
       },
       {
         bgKey: 'endchap1-1',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Na-na-ni-na-não!\n\n*(Nixy ergue um dedo diante do rosto dela.)*'
+        text: 'Na-na-ni-na-não!\n*(Nixy ergue um dedo diante do rosto dela.)*'
       },
       {
         bgKey: 'endchap1-1',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Você não está em posição de dizer absolutamente PORRA NENHUMA! Hahahaha!\n\n*(Ela ri por alguns segundos. Então, seu sorriso começa a desaparecer.)*',
+        text: 'Você não está em posição de dizer absolutamente PORRA NENHUMA! Hahahaha!\n*(Ela ri por alguns segundos. Então, seu sorriso começa a desaparecer.)*',
         action: () => {
           this.cameras.main.shake(200, 0.008);
         }
@@ -393,7 +407,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Sabe o que é engraçado?\n\nDepois de tantos séculos aguentando tudo calada...'
+        text: 'Sabe o que é engraçado?\nDepois de tantos séculos aguentando tudo calada...'
       },
       {
         bgKey: 'endchap1-2',
@@ -405,13 +419,13 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Enquanto você saía mais cedo para VIÇAR, seduzindo meio inferno e abanando essa bunda por aí...\n\nEU ficava com todo o trabalho pesado!'
+        text: 'Enquanto você saía mais cedo para VIÇAR, seduzindo meio inferno e abanando essa bunda por aí...\nEU ficava com todo o trabalho pesado!'
       },
       {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: '*(Nixy aponta para ela, com a voz cada vez mais carregada.)*\n\nVocê sabe o quanto eu me sacrifiquei por aquele lugar?!\n\nSABE?!',
+        text: '*(Nixy aponta para ela, com a voz cada vez mais carregada.)*\nVocê sabe o quanto eu me sacrifiquei por aquele lugar?!\nSABE?!',
         action: () => {
           this.cameras.main.shake(250, 0.012);
           SoundManager.getInstance().playRageBoom();
@@ -421,7 +435,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: '*(Silêncio.)*\n\nNão...\n\nÉ CLARO QUE NÃO!'
+        text: '*(Silêncio.)*\nNão...\nÉ CLARO QUE NÃO!'
       },
       {
         bgKey: 'endchap1-2',
@@ -431,51 +445,51 @@ export class Chapter1EndScene extends Phaser.Scene {
       },
       {
         bgKey: 'endchap1-2',
-        speaker: 'succubus',
-        speakerName: 'SUCCUBUS',
+        speaker: 'rosalin',
+        speakerName: 'ROSALIN',
         text: 'Nixy...'
       },
       {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'NÃO! Agora você vai me ouvir!\n\nPassei séculos acreditando que, se trabalhasse duro o suficiente, se obedecesse a todas as regras imbecis e fizesse tudo exatamente como mandavam, um dia finalmente teria o direito de viver a minha própria vida!'
+        text: 'NÃO! Agora você vai me ouvir!\nPassei séculos acreditando que, se trabalhasse duro o suficiente, se obedecesse a todas as regras imbecis e fizesse tudo exatamente como mandavam, um dia finalmente teria o direito de viver a minha própria vida!'
       },
       {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'E sabe o que eu ganhei?\n\nMAIS QUINHENTOS ANOS!\n\n*(Ela solta uma risada curta, amarga.)*'
+        text: 'E sabe o que eu ganhei?\nMAIS QUINHENTOS ANOS!\n*(Ela solta uma risada curta, amarga.)*'
       },
       {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Hahaha... Meu Deus, eu sou uma idiota.\n\nMil anos da minha vida... jogados fora porque acreditei na palavra de um bando de demônios engravatados!'
+        text: 'Hahaha... Meu Deus, eu sou uma idiota.\nMil anos da minha vida... jogados fora porque acreditei na palavra de um bando de demônios engravatados!'
       },
       {
         bgKey: 'endchap1-2',
-        speaker: 'succubus',
-        speakerName: 'SUCCUBUS',
-        text: 'Nixy, escuta. Se você realmente acha que vai conseguir sair daqui sozinha...\n\nVocê está muito enganada.'
+        speaker: 'rosalin',
+        speakerName: 'ROSALIN',
+        text: 'Nixy, escuta. Se você realmente acha que vai conseguir sair daqui sozinha...\nVocê está muito enganada.'
       },
       {
         bgKey: 'endchap1-2',
-        speaker: 'succubus',
-        speakerName: 'SUCCUBUS',
+        speaker: 'rosalin',
+        speakerName: 'ROSALIN',
         text: 'Você não faz ideia do quanto eles são poderosos. O que aconteceu hoje não foi nada comparado ao que te espera quando descobrirem o que você planeja.'
       },
       {
         bgKey: 'endchap1-2',
-        speaker: 'succubus',
-        speakerName: 'SUCCUBUS',
-        text: '*(A Succubus tenta se levantar, mas suas pernas cedem.)*\n\nPor favor... Volte para lá. Podemos esquecer o que aconteceu aqui. Eu posso tentar conversar com eles, conseguir que reduzam seu tempo aqui...\n\nAcredite em mim, eu posso ajudar você...'
+        speaker: 'rosalin',
+        speakerName: 'ROSALIN',
+        text: '*(Rosalin tenta se levantar, mas suas pernas cedem.)*\nPor favor... Volte para lá. Podemos esquecer o que aconteceu aqui. Eu posso tentar conversar com eles, conseguir que reduzam seu tempo aqui...\nAcredite em mim, eu posso ajudar você...'
       },
       {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'CALA A BOCA!\n\n*(A voz de Nixy ecoa pelo corredor. A Succubus se encolhe.)*',
+        text: 'CALA A BOCA!\n*(A voz de Nixy ecoa no ambiente. Rosalin se encolhe.)*',
         action: () => {
           this.cameras.main.shake(300, 0.015);
           SoundManager.getInstance().playRageBoom();
@@ -485,19 +499,19 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'EU JÁ CANSEI DESSE PAPINHO DE PUTA!\n\nCansei de ouvir o que posso ou não posso fazer! Cansei de receber ordens! Cansei de gente que nunca esteve no meu lugar tentando decidir o que é melhor para mim!'
+        text: 'EU JÁ CANSEI DESSE PAPINHO DE PUTA!\nCansei de ouvir o que posso ou não posso fazer! Cansei de receber ordens! Cansei de gente que nunca esteve no meu lugar tentando decidir o que é melhor para mim!'
       },
       {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'VOCÊ NÃO SABE O QUE É MELHOR PRA MIM!\n\nNINGUÉM SABE!'
+        text: 'VOCÊ NÃO SABE O QUE É MELHOR PRA MIM!\nNINGUÉM SABE!'
       },
       {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: '*(Nixy respira fundo. Seus punhos tremem, mas ela não desvia o olhar.)*\n\nPassei mil anos vivendo a vida que vocês escolheram para mim.\n\nMil anos obedecendo. Mil anos esperando. Mil anos acreditando que, se fosse uma boa funcionária, alguém finalmente cumpriria a porra da promessa!\n\n*(Ela se vira e começa a caminhar.)*'
+        text: '*(Nixy respira fundo. Seus punhos tremem, mas ela não desvia o olhar.)*\nPassei mil anos vivendo a vida que vocês escolheram para mim.\nMil anos obedecendo. Mil anos esperando. Mil anos acreditando que, se fosse uma boa funcionária, alguém finalmente cumpriria a porra da promessa!\n*(Ela se vira e começa a caminhar.)*'
       },
 
       // ==================== IMAGEM 3 ====================
@@ -505,18 +519,18 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-3',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Mas acabou.\n\nA partir de agora, eu faço as minhas próprias regras.\n\nSe o próximo andar está trancado, eu arrombo a porta.\n\nSe colocarem guardas no meu caminho, eu passo por cima deles.'
+        text: 'Mas acabou.\nA partir de agora, eu faço as minhas próprias regras.\nSe o próximo andar está trancado, eu arrombo a porta.\nSe colocarem guardas no meu caminho, eu passo por cima deles.'
       },
       {
         bgKey: 'endchap1-3',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Se os chefes desse inferno acham que podem me manter aqui para sempre...\n\n*(Nixy olha por cima do ombro, com um sorriso torto.)*\n\n...então eles que vão ter quinhentos anos de atraso para compensar.\n\nE eu pretendo cobrar cada segundo.'
+        text: 'Se os chefes desse inferno acham que podem me manter aqui para sempre...\n*(Nixy olha por cima do ombro, com um sorriso torto.)*\n...então eles que vão ter quinhentos anos de atraso para compensar.\nE eu pretendo cobrar cada segundo.'
       },
       {
         bgKey: 'endchap1-3',
-        speaker: 'succubus',
-        speakerName: 'SUCCUBUS',
+        speaker: 'rosalin',
+        speakerName: 'ROSALIN',
         text: 'Nixy, espere!'
       },
 
@@ -525,7 +539,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-4',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Argh, sangue de demonio é nojento...\n\nSerá que meu sangue é assim também?'
+        text: 'Argh, sangue de demonio é nojento...\nSerá que meu sangue é assim também?'
       },
 
       // ==================== IMAGEM 5 ====================
@@ -544,9 +558,9 @@ export class Chapter1EndScene extends Phaser.Scene {
           // (camera da um zoom mais pra esquerda da imagem onde ela ta)
           this.tweens.add({
             targets: this.cameras.main,
-            zoom: 1.32,
-            scrollX: -130,
-            scrollY: 15,
+            zoom: 1.30,
+            scrollX: -140,
+            scrollY: 10,
             duration: 1200,
             ease: 'Cubic.easeOut'
           });
@@ -556,7 +570,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-5',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: '"...então eles que vão ter quinhentos anos de atraso para compensar."\n\nhahaha essa frase farmou aura demais...',
+        text: '"...então eles que vão ter quinhentos anos de atraso para compensar."\nhahaha essa frase farmou aura demais...',
         action: () => {
           // (camera fica escura)
           this.tweens.add({
@@ -579,7 +593,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.currentStepIndex = index;
     const step = this.steps[index];
 
-    // Verifica se precisa acionar a transição cinematográfica especial de execução
+    // Se estiver saindo da imagem 3 para a imagem 4, dispara o corte dramático de anime
     if (step.bgKey === 'endchap1-4' && this.currentBgKey === 'endchap1-3') {
       this.playSlashExecutionCut(() => {
         this.renderStepContent(step);
@@ -587,7 +601,7 @@ export class Chapter1EndScene extends Phaser.Scene {
       return;
     }
 
-    // Troca de Fundo com Crossfade suave se for outra imagem
+    // Troca de Fundo com Crossfade suave sem bordas vazias
     if (step.bgKey !== this.currentBgKey) {
       this.crossfadeBackground(step.bgKey);
     }
@@ -597,18 +611,16 @@ export class Chapter1EndScene extends Phaser.Scene {
 
   private renderStepContent(step: DialogueStep): void {
     this.boxContainer.setVisible(true);
-    this.drawDialogueBox(step.speaker);
+    this.drawSlantedBox(step.speaker);
+    this.drawNameplate(step.speaker, step.speakerName);
 
     if (step.speaker === 'narrator') {
-      this.nameText.setText('');
       this.dialogueText.setColor('#ffd8a8');
       this.dialogueText.setFontStyle('italic');
-    } else if (step.speaker === 'succubus') {
-      this.nameText.setText(step.speakerName);
+    } else if (step.speaker === 'rosalin') {
       this.dialogueText.setColor('#ffccd5');
       this.dialogueText.setFontStyle('normal');
     } else {
-      this.nameText.setText(step.speakerName);
       this.dialogueText.setColor('#ffffff');
       this.dialogueText.setFontStyle('normal');
     }
@@ -628,7 +640,7 @@ export class Chapter1EndScene extends Phaser.Scene {
 
     let charIndex = 0;
     this.typeTimer = this.time.addEvent({
-      delay: 22,
+      delay: 20,
       repeat: this.fullText.length - 1,
       callback: () => {
         charIndex++;
@@ -652,22 +664,23 @@ export class Chapter1EndScene extends Phaser.Scene {
   }
 
   /**
-   * Transição dramática da execução: tela preta, treme, linha branca rápida e som de corte de lâmina
+   * Transição dramática de anime: escurece a tela, passa a linha cortante com som de lâmina e trepidação,
+   * permanece no escuro em suspense até o jogador apertar para avançar e revelar a próxima cena!
    */
-  private playSlashExecutionCut(onComplete: () => void): void {
+  private playSlashExecutionCut(onContinueToNextScene: () => void): void {
     this.isSlashCutPlaying = true;
     this.boxContainer.setVisible(false);
 
-    // 1. Tela preta instantânea
+    // 1. Tela escurece instantaneamente (Fade to Black)
     this.blackOverlay.setAlpha(1.0);
 
-    // 2. Treme fortemente a câmera
-    this.cameras.main.shake(450, 0.025);
+    // 2. Câmera treme com grande intensidade
+    this.cameras.main.shake(450, 0.026);
 
-    // 3. Som de corte cortante e sub-grave
+    // 3. Som de corte metálico e sub-grave
     SoundManager.getInstance().playExecutionSlash();
 
-    // 4. Linha branca atravessando a tela em diagonal
+    // 4. Linha branca e vermelha rasga a tela na escuridão
     const { width, height } = this.scale;
     this.slashGraphics.clear();
 
@@ -681,78 +694,149 @@ export class Chapter1EndScene extends Phaser.Scene {
         this.slashGraphics.clear();
         const startX = width * 0.85 - slashProgress.t * width * 0.7;
         const startY = height * 0.15 + slashProgress.t * height * 0.7;
-        const len = 350;
+        const len = 380;
 
-        // Brilho externo vermelho
-        this.slashGraphics.lineStyle(8, 0xff0044, 0.8);
+        // Brilho exterior vermelho carmesim
+        this.slashGraphics.lineStyle(9, 0xff0044, 0.85);
         this.slashGraphics.lineBetween(startX - len * 0.5, startY - len * 0.4, startX + len * 0.5, startY + len * 0.4);
 
-        // Núcleo branco ofuscante
-        this.slashGraphics.lineStyle(3, 0xffffff, 1.0);
+        // Lâmina branca afiada central
+        this.slashGraphics.lineStyle(3.5, 0xffffff, 1.0);
         this.slashGraphics.lineBetween(startX - len * 0.5, startY - len * 0.4, startX + len * 0.5, startY + len * 0.4);
       },
       onComplete: () => {
         this.slashGraphics.clear();
 
-        // 5. Flash vermelho de sangue rápido
-        const bloodFlash = this.add.rectangle(width / 2, height / 2, width, height, 0x660011, 0.6).setDepth(42);
+        // 5. Flash suave de sangue que logo se apaga
+        const bloodFlash = this.add.rectangle(width / 2, height / 2, width, height, 0x660011, 0.65).setDepth(42);
         this.tweens.add({
           targets: bloodFlash,
           alpha: 0,
-          duration: 250,
+          duration: 300,
           onComplete: () => bloodFlash.destroy()
         });
 
-        // 6. Atualiza fundo para imagem 4 e revela suavemente
-        this.crossfadeBackground('endchap1-4', 300);
+        // 6. Atualiza o fundo por baixo da escuridão para a imagem 4 (com escala perfeita sem bordas vazias)
+        this.crossfadeBackground('endchap1-4', 0);
 
-        this.time.delayedCall(400, () => {
-          this.tweens.add({
-            targets: this.blackOverlay,
-            alpha: 0,
-            duration: 500,
-            onComplete: () => {
-              this.isSlashCutPlaying = false;
-              onComplete();
-            }
-          });
+        // 7. Permanece no escuro dramático e aguarda o jogador apertar para avançar!
+        this.time.delayedCall(450, () => {
+          this.isSlashCutPlaying = false;
+          this.isWaitingAfterCut = true;
+          this.cutPromptText.setVisible(true);
+
+          // Função que será chamada quando o jogador apertar
+          this.onCutConfirmed = () => {
+            this.isWaitingAfterCut = false;
+            this.cutPromptText.setVisible(false);
+
+            // Abre a imagem 4 com transição suave da escuridão
+            this.tweens.add({
+              targets: this.blackOverlay,
+              alpha: 0,
+              duration: 650,
+              ease: 'Power2',
+              onComplete: () => {
+                onContinueToNextScene();
+              }
+            });
+          };
         });
       }
     });
   }
 
-  private drawDialogueBox(speaker: 'nixy' | 'succubus' | 'narrator'): void {
-    this.boxGraphics.clear();
-    this.nameplateGraphics.clear();
+  private onCutConfirmed?: () => void;
 
-    const w = this.BOX_W;
-    const h = this.BOX_H;
+  /**
+   * Caixa Angular Estilo Persona 5 / Mangá (idêntica ao padrão de qualidade da Intro)
+   */
+  private drawSlantedBox(speaker: 'nixy' | 'rosalin' | 'narrator'): void {
+    const g = this.boxGraphics;
+    g.clear();
 
-    // Fundo da caixa Persona 5 / Visual Novel
-    this.boxGraphics.fillStyle(0x0e0207, 0.94);
-    this.boxGraphics.fillRoundedRect(0, 0, w, h, 10);
+    const boxW = this.BOX_W;
+    const boxH = this.BOX_H;
+    const slant = speaker === 'rosalin' ? -12 : (speaker === 'narrator' ? 0 : 12);
 
-    const borderColor = speaker === 'succubus' ? 0xd90429 : 0xff2a55;
-    const innerBorder = speaker === 'succubus' ? 0x720026 : 0xf3d17a;
+    // 1. Sombra projetada preta
+    g.fillStyle(0x000000, 0.78);
+    g.beginPath();
+    g.moveTo(6, 6 - slant);
+    g.lineTo(boxW + 6, 6);
+    g.lineTo(boxW + 6, boxH + 6);
+    g.lineTo(6, boxH + 6 - slant);
+    g.closePath();
+    g.fill();
 
-    this.boxGraphics.lineStyle(2.5, borderColor, 0.95);
-    this.boxGraphics.strokeRoundedRect(0, 0, w, h, 10);
-
-    this.boxGraphics.lineStyle(1.0, innerBorder, 0.4);
-    this.boxGraphics.strokeRoundedRect(4, 4, w - 8, h - 8, 8);
-
-    // Placa de Nome
-    if (speaker !== 'narrator') {
-      const plateW = 160;
-      const plateH = 28;
-      const plateX = 32;
-      const plateY = -14;
-
-      this.nameplateGraphics.fillStyle(speaker === 'succubus' ? 0x590d22 : 0x800f2f, 0.98);
-      this.nameplateGraphics.fillRoundedRect(plateX, plateY, plateW, plateH, 6);
-      this.nameplateGraphics.lineStyle(2, innerBorder, 1);
-      this.nameplateGraphics.strokeRoundedRect(plateX, plateY, plateW, plateH, 6);
+    // 2. Fundo interno (Carmesim escuro para Nixy / Roxo Escuro para Rosalin / Ônix para Narrador)
+    let bgColor = 0x160207;
+    let accentColor = 0xc59b27;
+    if (speaker === 'rosalin') {
+      bgColor = 0x180214;
+      accentColor = 0xff0055;
+    } else if (speaker === 'narrator') {
+      bgColor = 0x0c070e;
+      accentColor = 0x887799;
     }
+
+    g.fillStyle(bgColor, 0.96);
+    g.beginPath();
+    g.moveTo(0, -slant);
+    g.lineTo(boxW, 0);
+    g.lineTo(boxW, boxH);
+    g.lineTo(0, boxH - slant);
+    g.closePath();
+    g.fill();
+
+    // 3. Moldura Branca Estilo Persona 5
+    g.lineStyle(3.0, 0xffffff, 1);
+    g.stroke();
+
+    // 4. Filete interno chanfrado dourado/carmesim
+    g.lineStyle(1.5, accentColor, 0.85);
+    g.beginPath();
+    g.moveTo(4, -slant + 4);
+    g.lineTo(boxW - 4, 4);
+    g.lineTo(boxW - 4, boxH - 4);
+    g.lineTo(4, boxH - 4 - slant);
+    g.closePath();
+    g.stroke();
+  }
+
+  /**
+   * Plaqueta de Nome Recortada e Alinhada com Perfeição
+   */
+  private drawNameplate(speaker: 'nixy' | 'rosalin' | 'narrator', name: string): void {
+    const g = this.nameplateGraphics;
+    g.clear();
+
+    if (speaker === 'narrator' || !name) {
+      this.nameText.setText('');
+      return;
+    }
+
+    const isRosalin = speaker === 'rosalin';
+    const nW = Math.max(160, name.length * 15 + 40);
+    const nH = 34;
+    const nX = isRosalin ? this.BOX_W - nW - 25 : 25;
+    const nY = -28;
+
+    const plateColor = isRosalin ? 0x6a0056 : 0x9d0208;
+    g.fillStyle(plateColor, 1);
+    g.beginPath();
+    g.moveTo(nX, nY);
+    g.lineTo(nX + nW, nY - 4);
+    g.lineTo(nX + nW - 12, nY + nH);
+    g.lineTo(nX - 10, nY + nH);
+    g.closePath();
+    g.fill();
+
+    g.lineStyle(2.5, 0xffffff, 1);
+    g.stroke();
+
+    this.nameText.setText(name.toUpperCase());
+    this.nameText.setPosition(nX + 16, nY + 6);
   }
 
   private crossfadeBackground(newKey: string, duration: number = 700): void {
@@ -761,31 +845,45 @@ export class Chapter1EndScene extends Phaser.Scene {
     const activeBg = this.isBgAActive ? this.bgImageA : this.bgImageB;
     const nextBg = this.isBgAActive ? this.bgImageB : this.bgImageA;
 
+    this.tweens.killTweensOf(nextBg);
+    this.tweens.killTweensOf(activeBg);
+
     nextBg.setTexture(newKey);
     this.fitBackground(nextBg);
     nextBg.setAlpha(0);
+    nextBg.setDepth(2);
+    activeBg.setDepth(1);
+
+    if (duration <= 0) {
+      nextBg.setAlpha(1);
+      activeBg.setAlpha(0);
+      this.isBgAActive = !this.isBgAActive;
+      return;
+    }
 
     this.tweens.add({
       targets: nextBg,
       alpha: 1,
       duration,
-      ease: 'Power2'
+      ease: 'Cubic.easeInOut',
+      onComplete: () => {
+        activeBg.setAlpha(0);
+        this.isBgAActive = !this.isBgAActive;
+      }
     });
-
-    this.tweens.add({
-      targets: activeBg,
-      alpha: 0,
-      duration,
-      ease: 'Power2'
-    });
-
-    this.isBgAActive = !this.isBgAActive;
   }
 
   private handleAdvance(): void {
     const now = Date.now();
     if (now - this.lastAdvanceTime < 180) return;
     this.lastAdvanceTime = now;
+
+    // Se estiver aguardando após o corte na escuridão, confirma e revela a cena seguinte!
+    if (this.isWaitingAfterCut && this.onCutConfirmed) {
+      this.onCutConfirmed();
+      this.onCutConfirmed = undefined;
+      return;
+    }
 
     // Se estiver digitando, completa a frase imediatamente
     if (this.isTyping) {
@@ -812,6 +910,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     if (this.typeTimer) this.typeTimer.remove();
     this.boxContainer.setVisible(false);
     this.skipBtnContainer.setVisible(false);
+    this.cutPromptText.setVisible(false);
 
     // Grava progresso da partida
     const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
@@ -825,7 +924,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     // Fade para o modal de vitória
     this.tweens.add({
       targets: this.blackOverlay,
-      alpha: 0.90,
+      alpha: 0.92,
       duration: 600,
       onComplete: () => {
         this.showVictoryModal();
@@ -867,7 +966,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.victoryContainer.add(title);
 
-    const subtitle = this.add.text(panelX, panelY - 95, 'A SUCCUBUS FOI DERROTADA', {
+    const subtitle = this.add.text(panelX, panelY - 95, 'ROSALIN FOI DERROTADA', {
       fontFamily: pixelFont,
       fontSize: '11px',
       fontStyle: 'bold',
@@ -884,7 +983,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     const soulsInfo = typeof this.runStats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${this.runStats.soulsEarned}` : '';
 
     const statsText = this.add.text(panelX, panelY - 20,
-      `Inimigos Abatidos: ${this.runStats.kills}\nNível Alcançado: ${this.runStats.level}\nTempo de Sobrevivência: ${timeFormatted}\nChefe do Círculo: Succubus (DERROTADA)${soulsInfo}`, {
+      `Inimigos Abatidos: ${this.runStats.kills}\nNível Alcançado: ${this.runStats.level}\nTempo de Sobrevivência: ${timeFormatted}\nChefe do Círculo: Rosalin (DERROTADA)${soulsInfo}`, {
       fontFamily: pixelFont,
       fontSize: '12px',
       color: '#ffffff',

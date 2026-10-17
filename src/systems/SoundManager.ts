@@ -623,7 +623,7 @@ export class SoundManager {
       osc2.start(now);
       osc1.stop(now + 0.19);
       osc2.stop(now + 0.19);
-    } else if (sLower === 'succubus') {
+    } else if (sLower === 'succubus' || sLower === 'rosalin' || sLower === 'chefe') {
       // Succubus / Boss: Tom demoníaco cavernoso e gutural (grave com filtro passa-baixa)
       const osc = ctx.createOscillator();
       const filter = ctx.createBiquadFilter();
