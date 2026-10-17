@@ -77,8 +77,20 @@ export class UIScene extends Phaser.Scene {
   private soulsIcon!: Phaser.GameObjects.Image;
   private soulsText!: Phaser.GameObjects.Text;
 
-  // Controles
+  // Controles e Legenda Dinâmica (Teclado vs Gamepad)
   private controlsText!: Phaser.GameObjects.Text;
+  private currentControlScheme: 'keyboard' | 'gamepad' = 'keyboard';
+  private wasKeyboardKeyPressed: boolean = false;
+
+  // Cursor Virtual para Gamepad no Menu de Pausa (ESC)
+  private pauseZones: Phaser.GameObjects.Zone[] = [];
+  private pauseCursorX: number = 0;
+  private pauseCursorY: number = 0;
+  private pauseCursorGraphics?: Phaser.GameObjects.Graphics;
+  private pauseCursorHintText?: Phaser.GameObjects.Text;
+  private hoveredPauseZone: Phaser.GameObjects.Zone | null = null;
+  private prevPadConfirm: boolean = false;
+  private prevPadCancelOrStart: boolean = false;
 
   // Radar Tático / Minimapa Circular (Canto Superior Esquerdo)
   private radarFrameGraphics!: Phaser.GameObjects.Graphics;
@@ -416,11 +428,25 @@ export class UIScene extends Phaser.Scene {
       });
     }
 
+    // Captura qualquer tecla pressionada para restaurar a legenda para o Teclado
+    if (this.input.keyboard) {
+      this.input.keyboard.on('keydown', () => {
+        this.wasKeyboardKeyPressed = true;
+      });
+
+      this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => {
+        const gs = this.scene.get('GameScene') as any;
+        if (gs) {
+          this.togglePause(gs);
+        }
+      });
+    }
+
     // ==========================================
     // 6. CANTO INFERIOR ESQUERDO: CONTROLES
     // ==========================================
     this.controlsText = this.add.text(20, height - 36,
-      '[WASD] Mover  |  [Shift] Sprint  |  Auto-Aim  |  [E] Ultimate', {
+      '[WASD] Mover  |  [Shift] Sprint  |  [E] Ultimate  |  [ESC] Pausa', {
       fontFamily: pixelFont,
       fontSize: '10px',
       color: '#e0aaff',
@@ -660,9 +686,19 @@ export class UIScene extends Phaser.Scene {
     if (this.sandboxPanel) {
       this.sandboxPanel.update(delta);
     }
+
+    // 1. Atualização da Legenda Dinâmica de Controles (Teclado vs Gamepad)
+    this.updateControlsHint();
+
+    // 2. Processa navegação por cursor virtual do gamepad caso o jogo esteja pausado no ESC
+    const gameScene = this.scene.get('GameScene') as any;
+    if (this.isPaused && this.pauseModalContainer) {
+      this.updatePauseCursor(delta, gameScene);
+      return;
+    }
+
     if (this.isDialogueActive() || !this.isHUDVisibleState) return;
 
-    const gameScene = this.scene.get('GameScene') as any;
     if (!gameScene || !gameScene.player || (!gameScene.scene.isActive() && !gameScene.scene.isPaused())) return;
 
     const p = gameScene.player;
@@ -1978,6 +2014,12 @@ export class UIScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
+    this.cleanupPauseCursor();
+    this.pauseZones = [];
+    this.hoveredPauseZone = null;
+    this.prevPadConfirm = false;
+    this.prevPadCancelOrStart = false;
+
     this.pauseModalContainer = this.add.container(0, 0);
     this.pauseModalContainer.setDepth(3500);
 
@@ -2069,18 +2111,15 @@ export class UIScene extends Phaser.Scene {
       const barW = 188;
       const barH = 14;
 
-      // Fundo escuro do medidor
       bgmBarGraphics.fillStyle(0x280d15, 1);
       bgmBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
 
-      // Preenchimento proporcional
       const fillW = Math.max(0, barW * vol);
       if (fillW > 0) {
         bgmBarGraphics.fillStyle(0xff7700, 1);
         bgmBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
       }
 
-      // Borda dourada
       bgmBarGraphics.lineStyle(1.5, 0xc59b27, 0.85);
       bgmBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
     };
@@ -2134,18 +2173,15 @@ export class UIScene extends Phaser.Scene {
       const barW = 188;
       const barH = 14;
 
-      // Fundo escuro do medidor
       sfxBarGraphics.fillStyle(0x280d15, 1);
       sfxBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
 
-      // Preenchimento ciano
       const fillW = Math.max(0, barW * vol);
       if (fillW > 0) {
         sfxBarGraphics.fillStyle(0x00f5d4, 1);
         sfxBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
       }
 
-      // Borda dourada
       sfxBarGraphics.lineStyle(1.5, 0xc59b27, 0.85);
       sfxBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
     };
@@ -2153,14 +2189,14 @@ export class UIScene extends Phaser.Scene {
 
     this.createPauseStepperBtn(panelX - 125, sfxRowY + 10, '-', () => {
       const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setMusicVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
+      SoundManager.getInstance().setSfxVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
       updateSfxDisplay();
       SoundManager.getInstance().playEnemyHit();
     });
 
     this.createPauseStepperBtn(panelX + 112, sfxRowY + 10, '+', () => {
       const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setMusicVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
+      SoundManager.getInstance().setSfxVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
       updateSfxDisplay();
       SoundManager.getInstance().playEnemyHit();
     });
@@ -2180,6 +2216,7 @@ export class UIScene extends Phaser.Scene {
     this.createPauseActionBtn(bStartX + (bW + bSpacing), btnY, bW, bH, 'REINICIAR', 0x553311, 0xffaa00, () => {
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.isPaused = false;
+      this.cleanupPauseCursor();
       if (this.pauseModalContainer) {
         this.pauseModalContainer.destroy();
         this.pauseModalContainer = undefined;
@@ -2191,6 +2228,7 @@ export class UIScene extends Phaser.Scene {
     this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, 'MENU', 0x551122, 0xff0055, () => {
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.isPaused = false;
+      this.cleanupPauseCursor();
       if (this.pauseModalContainer) {
         this.pauseModalContainer.destroy();
         this.pauseModalContainer = undefined;
@@ -2199,11 +2237,31 @@ export class UIScene extends Phaser.Scene {
       gameScene.scene.stop('GameScene');
       this.scene.start('MenuScene');
     });
+
+    // 8. Cursor Virtual (Ponto/Mira) para controle com Analógico / Gamepad no Menu de Pausa
+    this.pauseCursorX = width / 2;
+    this.pauseCursorY = height / 2;
+
+    this.pauseCursorGraphics = this.add.graphics();
+    this.pauseCursorGraphics.setDepth(3700);
+
+    this.pauseCursorHintText = this.add.text(this.pauseCursorX + 16, this.pauseCursorY - 12, '[A] SELECIONAR', {
+      fontFamily: pixelFont,
+      fontSize: '9px',
+      fontStyle: 'bold',
+      color: '#00f5d4',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0, 0.5).setDepth(3701);
+    this.pauseCursorHintText.setVisible(false);
+
+    this.drawPauseCursor(false);
   }
 
   public resumeGame(gameScene: any): void {
     if (!this.isPaused) return;
     SoundManager.getInstance().playMenuClick();
+    this.cleanupPauseCursor();
     if (this.pauseModalContainer) {
       this.pauseModalContainer.destroy();
       this.pauseModalContainer = undefined;
@@ -2239,7 +2297,7 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.pauseModalContainer.add(txt);
 
-    const zone = this.add.zone(x, y, 30, 30);
+    const zone = this.add.zone(x, y, 36, 36);
     zone.setInteractive({ useHandCursor: true });
     this.pauseModalContainer.add(zone);
 
@@ -2249,6 +2307,8 @@ export class UIScene extends Phaser.Scene {
     });
     zone.on('pointerout', () => render(false));
     zone.on('pointerdown', () => onClick());
+
+    this.pauseZones.push(zone);
   }
 
   private createPauseActionBtn(
@@ -2299,5 +2359,223 @@ export class UIScene extends Phaser.Scene {
       txt.setColor('#ffffff');
     });
     zone.on('pointerdown', () => onClick());
+
+    this.pauseZones.push(zone);
+  }
+
+  /**
+   * Atualiza a legenda de controles no canto inferior esquerdo dinamicamente
+   * Alterna entre Teclado e Gamepad conforme a última entrada detectada
+   */
+  private updateControlsHint(): void {
+    if (!this.controlsText) return;
+
+    const pad = GamepadManager.getInstance().getActivePad(this);
+    let isGamepadInput = false;
+
+    if (pad && pad.connected) {
+      const stickActive =
+        Math.abs(pad.leftStick.x) > 0.15 ||
+        Math.abs(pad.leftStick.y) > 0.15 ||
+        pad.left || pad.right || pad.up || pad.down;
+
+      let btnActive = false;
+      for (let i = 0; i < pad.buttons.length; i++) {
+        if (pad.buttons[i] && pad.buttons[i].pressed) {
+          btnActive = true;
+          break;
+        }
+      }
+
+      if (stickActive || btnActive) {
+        isGamepadInput = true;
+      }
+    }
+
+    if (isGamepadInput && this.currentControlScheme !== 'gamepad') {
+      this.currentControlScheme = 'gamepad';
+      this.controlsText.setText('[LS] Mover  |  [LT/RT / (B)] Sprint  |  [(Y)/(X)] Ultimate  |  [Start] Pausa');
+    } else if (!isGamepadInput && this.currentControlScheme === 'gamepad') {
+      if (this.wasKeyboardKeyPressed) {
+        this.currentControlScheme = 'keyboard';
+        this.wasKeyboardKeyPressed = false;
+        this.controlsText.setText('[WASD] Mover  |  [Shift] Sprint  |  [E] Ultimate  |  [ESC] Pausa');
+      }
+    }
+  }
+
+  /**
+   * Renderiza visualmente o ponto / retículo do cursor virtual para Gamepad
+   */
+  private drawPauseCursor(isHovering: boolean): void {
+    if (!this.pauseCursorGraphics) return;
+    const g = this.pauseCursorGraphics;
+    g.clear();
+
+    const x = this.pauseCursorX;
+    const y = this.pauseCursorY;
+
+    if (isHovering) {
+      const pulse = Math.sin(this.time.now * 0.012) * 2;
+      g.lineStyle(2, 0x00f5d4, 0.9);
+      g.strokeCircle(x, y, 14 + pulse);
+
+      g.lineStyle(1.5, 0xffd60a, 0.95);
+      g.lineBetween(x - 18, y, x - 8, y);
+      g.lineBetween(x + 8, y, x + 18, y);
+      g.lineBetween(x, y - 18, x, y - 8);
+      g.lineBetween(x, y + 8, x, y + 18);
+
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(x, y, 4.5);
+    } else {
+      g.lineStyle(2, 0xff0055, 0.85);
+      g.strokeCircle(x, y, 10);
+
+      g.lineStyle(1, 0xff77a9, 0.65);
+      g.lineBetween(x - 13, y, x - 6, y);
+      g.lineBetween(x + 6, y, x + 13, y);
+      g.lineBetween(x, y - 13, x, y - 6);
+      g.lineBetween(x, y + 6, x, y + 13);
+
+      g.fillStyle(0xff0055, 1);
+      g.fillCircle(x, y, 3.5);
+      g.fillStyle(0xffffff, 0.9);
+      g.fillCircle(x, y, 1.5);
+    }
+  }
+
+  /**
+   * Move o cursor virtual pelo analógico/D-Pad, detecta sobreposição com botões e dispara clique com Botão (A)
+   */
+  private updatePauseCursor(delta: number, gameScene: any): void {
+    if (!this.isPaused || !this.pauseModalContainer) return;
+
+    const pad = GamepadManager.getInstance().getActivePad(this);
+    if (!pad) {
+      if (this.pauseCursorGraphics) this.pauseCursorGraphics.setVisible(false);
+      if (this.pauseCursorHintText) this.pauseCursorHintText.setVisible(false);
+      return;
+    }
+
+    const deadzone = 0.18;
+    let stickX = pad.leftStick.x;
+    let stickY = pad.leftStick.y;
+    if (Math.abs(stickX) < deadzone) stickX = 0;
+    if (Math.abs(stickY) < deadzone) stickY = 0;
+
+    let dpadX = 0;
+    let dpadY = 0;
+    if (pad.left) dpadX -= 1;
+    if (pad.right) dpadX += 1;
+    if (pad.up) dpadY -= 1;
+    if (pad.down) dpadY += 1;
+
+    let moveX = dpadX !== 0 ? dpadX : stickX;
+    let moveY = dpadY !== 0 ? dpadY : stickY;
+
+    const mag = Math.hypot(moveX, moveY);
+    if (mag > 1) {
+      moveX /= mag;
+      moveY /= mag;
+    }
+
+    const speed = 540;
+    const dt = delta / 1000;
+    this.pauseCursorX += moveX * speed * dt;
+    this.pauseCursorY += moveY * speed * dt;
+
+    const { width, height } = this.scale;
+    this.pauseCursorX = Phaser.Math.Clamp(this.pauseCursorX, 20, width - 20);
+    this.pauseCursorY = Phaser.Math.Clamp(this.pauseCursorY, 20, height - 20);
+
+    if (this.pauseCursorGraphics) this.pauseCursorGraphics.setVisible(true);
+
+    let foundZone: Phaser.GameObjects.Zone | null = null;
+    for (const zone of this.pauseZones) {
+      if (!zone.active || !zone.visible) continue;
+      const hw = zone.width / 2;
+      const hh = zone.height / 2;
+      if (
+        this.pauseCursorX >= zone.x - hw &&
+        this.pauseCursorX <= zone.x + hw &&
+        this.pauseCursorY >= zone.y - hh &&
+        this.pauseCursorY <= zone.y + hh
+      ) {
+        foundZone = zone;
+        break;
+      }
+    }
+
+    const isHovering = foundZone !== null;
+    if (foundZone !== this.hoveredPauseZone) {
+      if (this.hoveredPauseZone) {
+        try { this.hoveredPauseZone.emit('pointerout'); } catch {}
+      }
+      this.hoveredPauseZone = foundZone;
+      if (this.hoveredPauseZone) {
+        try { this.hoveredPauseZone.emit('pointerover'); } catch {}
+      }
+    }
+
+    this.drawPauseCursor(isHovering);
+
+    if (this.pauseCursorHintText) {
+      if (isHovering) {
+        this.pauseCursorHintText.setVisible(true);
+        this.pauseCursorHintText.setPosition(this.pauseCursorX + 16, this.pauseCursorY - 12);
+      } else {
+        this.pauseCursorHintText.setVisible(false);
+      }
+    }
+
+    const isPadAPressed = Boolean(
+      pad.A ||
+      (pad.buttons[0] && pad.buttons[0].pressed)
+    );
+    const justDownA = isPadAPressed && !this.prevPadConfirm;
+    this.prevPadConfirm = isPadAPressed;
+
+    if (justDownA && this.hoveredPauseZone) {
+      try {
+        this.hoveredPauseZone.emit('pointerdown');
+      } catch {}
+    }
+
+    const isPadBPressed = Boolean(
+      pad.B ||
+      (pad.buttons[1] && pad.buttons[1].pressed)
+    );
+    const isPadStartPressed = Boolean(
+      (pad.buttons[9] && pad.buttons[9].pressed) ||
+      (pad.buttons[8] && pad.buttons[8].pressed)
+    );
+    if (isPadBPressed || isPadStartPressed) {
+      if (!this.prevPadCancelOrStart) {
+        this.prevPadCancelOrStart = true;
+        this.resumeGame(gameScene);
+      }
+    } else {
+      this.prevPadCancelOrStart = false;
+    }
+  }
+
+  /**
+   * Limpa referências, eventos e objetos do cursor virtual de pausa
+   */
+  private cleanupPauseCursor(): void {
+    if (this.hoveredPauseZone) {
+      try { this.hoveredPauseZone.emit('pointerout'); } catch {}
+      this.hoveredPauseZone = null;
+    }
+    this.pauseZones = [];
+    if (this.pauseCursorGraphics) {
+      this.pauseCursorGraphics.destroy();
+      this.pauseCursorGraphics = undefined;
+    }
+    if (this.pauseCursorHintText) {
+      this.pauseCursorHintText.destroy();
+      this.pauseCursorHintText = undefined;
+    }
   }
 }

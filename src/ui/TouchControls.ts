@@ -59,9 +59,9 @@ export class TouchControls {
     this.container = scene.add.container(0, 0);
     this.container.setDepth(1200);
 
-    // Detecção: ativa se o dispositivo suportar touch ou em mobile
-    const hasTouch = scene.sys.game.device.input.touch || (typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
-    this.isActive = Boolean(hasTouch);
+    // Ativa automaticamente apenas se for dispositivo mobile real (não desktop)
+    const isDesktop = Boolean(scene.sys.game.device.os.desktop);
+    this.isActive = !isDesktop;
 
     // Posicionamento Ergonômico dos Botões
     this.baseX = Math.round(width * 0.14);
@@ -120,7 +120,7 @@ export class TouchControls {
       fontFamily: pixelFont,
       fontSize: '11px',
       fontStyle: 'bold',
-      color: '#f3d17a',
+      color: '#ff4d6d',
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
@@ -145,15 +145,19 @@ export class TouchControls {
     g.clear();
 
     // Círculo base gótico escuro translúcido
-    g.fillStyle(0x0e0308, 0.45);
+    g.fillStyle(0x0e0308, 0.5);
     g.fillCircle(this.baseX, this.baseY, this.BASE_RADIUS);
 
-    // Anel externo em ouro envelhecido
-    g.lineStyle(2, 0xc59b27, 0.7);
+    // Anel externo rubi carmesim
+    g.lineStyle(2, 0x9d0208, 0.85);
     g.strokeCircle(this.baseX, this.baseY, this.BASE_RADIUS);
 
+    // Filete interno fino
+    g.lineStyle(1, 0xef233c, 0.45);
+    g.strokeCircle(this.baseX, this.baseY, this.BASE_RADIUS - 3);
+
     // Marcadores em cruz nos eixos principais
-    g.lineStyle(1.5, 0xf3d17a, 0.4);
+    g.lineStyle(1.5, 0xff4d6d, 0.4);
     g.lineBetween(this.baseX - 10, this.baseY, this.baseX + 10, this.baseY);
     g.lineBetween(this.baseX, this.baseY - 10, this.baseX, this.baseY + 10);
   }
@@ -174,8 +178,8 @@ export class TouchControls {
     g.fillStyle(0xd90429, 0.95);
     g.fillCircle(this.knobX, this.knobY - 3, this.KNOB_RADIUS * 0.65);
 
-    // Borda fina dourada
-    g.lineStyle(1.5, 0xffd60a, 0.8);
+    // Borda fina dourada/rubi
+    g.lineStyle(1.5, 0xffd60a, 0.85);
     g.strokeCircle(this.knobX, this.knobY, this.KNOB_RADIUS);
   }
 
@@ -183,39 +187,49 @@ export class TouchControls {
     const g = this.sprintBtnGraphics;
     g.clear();
 
-    // Fundo
-    g.fillStyle(isPressed ? 0x00f5d4 : 0x140409, isPressed ? 0.9 : 0.65);
+    // Fundo vermelho carmesim / rubi
+    g.fillStyle(isPressed ? 0xff0054 : 0x220308, isPressed ? 0.95 : 0.75);
     g.fillCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS);
 
-    // Borda Ciano / Dourado
-    g.lineStyle(2, isPressed ? 0xffffff : 0x00f5d4, 0.9);
+    // Borda vermelha viva / carmesim
+    g.lineStyle(2.5, isPressed ? 0xffffff : 0xff1744, 0.95);
     g.strokeCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS);
 
-    this.sprintBtnText.setColor(isPressed ? '#050106' : '#ffffff');
+    // Filete interno sutil em vinho
+    g.lineStyle(1, 0x800f2f, 0.6);
+    g.strokeCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS - 3);
+
+    this.sprintBtnText.setColor(isPressed ? '#ffffff' : '#ffb3c1');
   }
 
   private drawUltButton(isPressed: boolean, isReady: boolean): void {
     const g = this.ultBtnGraphics;
     g.clear();
 
-    const bgColor = isPressed ? 0xffd60a : (isReady ? 0xd90429 : 0x3d0014);
-    g.fillStyle(bgColor, isReady ? 0.9 : 0.6);
+    const bgColor = isPressed ? 0xff0054 : (isReady ? 0xd90429 : 0x220308);
+    g.fillStyle(bgColor, isReady ? 0.95 : 0.68);
     g.fillCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS);
 
-    // Borda pulsante ou dourada viva
-    const borderColor = isReady ? 0xffd60a : 0x6a040f;
-    g.lineStyle(2.5, borderColor, isReady ? 1 : 0.6);
+    // Borda pulsante dourada/rubi quando pronta, ou vermelha escura quando carregando
+    const borderColor = isReady ? 0xffd60a : 0x800f2f;
+    g.lineStyle(2.5, borderColor, isReady ? 1 : 0.7);
     g.strokeCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS);
 
-    this.ultBtnText.setColor(isPressed ? '#000000' : (isReady ? '#ffd60a' : '#888888'));
+    if (isReady) {
+      // Anel externo de pulso vermelho
+      g.lineStyle(1.5, 0xff0054, 0.85);
+      g.strokeCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS + 3);
+    }
+
+    this.ultBtnText.setColor(isPressed ? '#ffffff' : (isReady ? '#ffd60a' : '#888888'));
   }
 
   private drawPauseButton(x: number, y: number): void {
     const g = this.pauseBtnGraphics;
     g.clear();
-    g.fillStyle(0x140409, 0.65);
+    g.fillStyle(0x220308, 0.75);
     g.fillCircle(x, y, 16);
-    g.lineStyle(1.5, 0xc59b27, 0.8);
+    g.lineStyle(1.5, 0xff1744, 0.85);
     g.strokeCircle(x, y, 16);
   }
 
@@ -223,12 +237,22 @@ export class TouchControls {
     const input = this.scene.input;
     const { width, height } = this.scene.scale;
 
-    // Detecta primeiro toque na tela para habilitar imediatamente
+    // Detecta primeiro toque na tela para habilitar apenas se for touch real
     input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isActive) {
-        this.isActive = true;
-        this.container.setVisible(this.isVisibleState);
+      const isRealTouch = Boolean(pointer.wasTouch || (pointer.event && (pointer.event as any).pointerType === 'touch'));
+
+      // Se estiver no desktop (PC), nunca ativa touch por clique de mouse
+      if (!this.isActive && !this.forceEnabled) {
+        if (isRealTouch) {
+          this.isActive = true;
+          this.container.setVisible(this.isVisibleState);
+        } else {
+          return;
+        }
       }
+
+      if (!this.isActive && !this.forceEnabled) return;
+      if (!isRealTouch && !this.forceEnabled) return;
 
       // Zona Esquerda: Joystick (Floating / Dinâmico)
       if (pointer.x < width * 0.45 && pointer.y > 100) {
@@ -273,6 +297,7 @@ export class TouchControls {
     });
 
     input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.isActive && !this.forceEnabled) return;
       if (this.joystickPointer && pointer.id === this.joystickPointer.id) {
         const diffX = pointer.x - this.baseX;
         const diffY = pointer.y - this.baseY;
@@ -296,6 +321,8 @@ export class TouchControls {
     });
 
     const onPointerUp = (pointer: Phaser.Input.Pointer) => {
+      if (!this.isActive && !this.forceEnabled) return;
+
       // Libera Joystick
       if (this.joystickPointer && pointer.id === this.joystickPointer.id) {
         this.joystickPointer = null;
