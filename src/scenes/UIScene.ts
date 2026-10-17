@@ -180,19 +180,19 @@ export class UIScene extends Phaser.Scene {
     const nameW = 220;
     const nameH = 100;
     const nameCenterX = hudCenterX;
-    const nameCenterY = this.panelY + 22;
+    const nameCenterY = this.panelY + 40;
 
     this.charNameImage = this.add.image(nameCenterX, nameCenterY, charNameTexture);
     this.charNameImage.setDisplaySize(nameW, nameH);
     this.charNameImage.setDepth(62);
 
     // Medidor de Suprema: Ult Gauge posicionado no lado esquerdo da cavidade
-    this.vialX = this.panelX + Math.round(36 * hudScale) + 29;
-    this.vialY = this.panelY + Math.round(64 * hudScale) + 29;
+    this.vialX = this.panelX + Math.round(36 * hudScale) + 40;
+    this.vialY = this.panelY + 125;
 
-    this.barsX = this.vialX + 29 + 22;
-    this.barsW = 238;
-    this.hpBarY = this.vialY - 29 + 16;
+    this.barsX = this.vialX + 56;
+    this.barsW = 230;
+    this.hpBarY = this.vialY - 9;
     this.stBarY = this.hpBarY + 24;
 
     // Desenho base dos slots das barras (Depth 35)
@@ -202,19 +202,19 @@ export class UIScene extends Phaser.Scene {
 
     // Medidor de Suprema: Ult Gauge (Fundo, Barra Líquida Dinâmica e Moldura Ornamental)
     this.ultGaugeBg = this.add.image(this.vialX, this.vialY, 'ult-gauge-bg');
-    this.ultGaugeBg.setScale(1.45).setOrigin(0.5).setDepth(48);
+    this.ultGaugeBg.setScale(2.0).setOrigin(0.5).setDepth(48);
 
     this.vialGraphics = this.add.graphics();
     this.vialGraphics.setDepth(50);
     this.drawUltimateOrb(0, false);
 
     this.ultGaugeFrame = this.add.image(this.vialX, this.vialY, 'ult-gauge-frame');
-    this.ultGaugeFrame.setScale(1.45).setOrigin(0.5).setDepth(52);
+    this.ultGaugeFrame.setScale(2.0).setOrigin(0.5).setDepth(52);
 
     // Texto de porcentagem centralizado durante o carregamento
     this.ultimatePctText = this.add.text(this.vialX, this.vialY, '0%', {
       fontFamily: pixelFont,
-      fontSize: '11px',
+      fontSize: '13px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
@@ -224,7 +224,7 @@ export class UIScene extends Phaser.Scene {
     // Prompt [E] pulsante no centro do medidor quando 100% pronta
     this.ultimateReadyBadge = this.add.text(this.vialX, this.vialY, '[E]', {
       fontFamily: pixelFont,
-      fontSize: '15px',
+      fontSize: '18px',
       fontStyle: 'bold',
       color: '#ffd60a',
       stroke: '#000000',
@@ -241,7 +241,7 @@ export class UIScene extends Phaser.Scene {
     this.ultimateReadyBadge.setVisible(false);
 
     // Zona interativa sobre o frasco para ativar por clique de mouse
-    const vialZone = this.add.zone(this.vialX, this.vialY, 56, 56);
+    const vialZone = this.add.zone(this.vialX, this.vialY, 74, 74);
     vialZone.setOrigin(0.5);
     vialZone.setInteractive({ useHandCursor: true });
     vialZone.on('pointerdown', () => {
@@ -271,7 +271,7 @@ export class UIScene extends Phaser.Scene {
     this.staminaBarFill.setDepth(40);
 
     // Nível: LVL 1 em ouro antigo com contorno preto
-    this.levelTag = this.add.text(this.barsX, this.hpBarY - 16, 'LVL 1', {
+    this.levelTag = this.add.text(this.barsX, this.hpBarY - 18, 'LVL 1', {
       fontFamily: pixelFont,
       fontSize: '13px',
       fontStyle: 'bold',
@@ -606,12 +606,12 @@ export class UIScene extends Phaser.Scene {
     const cx = this.vialX;
     const cy = this.vialY;
 
-    // Dimensões da janela interna transparente da moldura (40x40 escalado em 1.45x)
-    const winW = 34;
-    const winH = 34;
+    // Dimensões da janela interna transparente da moldura (40x40 escalado em 2.0x)
+    const winW = 46;
+    const winH = 46;
     const winLeft = cx - winW / 2;
-    const winBottom = cy + 16;
-    const winTop = cy - 18;
+    const winBottom = cy + 22;
+    const winTop = cy - 24;
 
     const clampedRatio = Phaser.Math.Clamp(chargeRatio, 0, 1);
 
@@ -619,10 +619,10 @@ export class UIScene extends Phaser.Scene {
     if (isReady) {
       const now = this.time.now;
       const pulse = Math.sin(now * 0.008);
-      g.lineStyle(2.5, 0xff0055, 0.7 + pulse * 0.3);
-      g.strokeRoundedRect(cx - 30 - pulse, cy - 30 - pulse, 60 + pulse * 2, 60 + pulse * 2, 8);
-      g.lineStyle(1.5, 0xffd60a, 0.85);
-      g.strokeRoundedRect(cx - 28, cy - 28, 56, 56, 6);
+      g.lineStyle(3, 0xff0055, 0.7 + pulse * 0.3);
+      g.strokeRoundedRect(cx - 40 - pulse, cy - 40 - pulse, 80 + pulse * 2, 80 + pulse * 2, 10);
+      g.lineStyle(1.5, 0xffd60a, 0.9);
+      g.strokeRoundedRect(cx - 38, cy - 38, 76, 76, 8);
     }
 
     // Líquido místico subindo verticalmente enquanto carrega
@@ -639,9 +639,9 @@ export class UIScene extends Phaser.Scene {
       g.fillRect(winLeft + 3, fillY + 2, winW - 6, Math.max(0, fillH - 4));
 
       // 3. Onda / menisco de energia na superfície do líquido
-      const wave = isReady ? 0 : Math.sin(this.time.now * 0.007) * 1.2;
+      const wave = isReady ? 0 : Math.sin(this.time.now * 0.007) * 1.5;
       g.fillStyle(isReady ? 0xffd60a : 0x00f5d4, 1);
-      g.fillRect(winLeft, Math.max(winTop, fillY + wave), winW, 2.5);
+      g.fillRect(winLeft, Math.max(winTop, fillY + wave), winW, 3);
     }
   }
 
