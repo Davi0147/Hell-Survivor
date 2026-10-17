@@ -180,7 +180,15 @@ export class SoundManager {
     this.playMusicTrack('bgm-boss', this.musicVolume * 1.15, fadeInMs);
   }
 
-  private readonly ALL_BGM_KEYS = ['bgm-menu', 'bgm-battle', 'bgm-boss', 'bgm-intro'];
+  /**
+   * Toca a música da cena pós-chefe ("Spooky Halloween") bem baixinha de fundo
+   */
+  public playSpookyMusic(fadeInMs: number = 2500): void {
+    const lowVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.06);
+    this.playMusicTrack('bgm-spooky', lowVol, fadeInMs);
+  }
+
+  private readonly ALL_BGM_KEYS = ['bgm-menu', 'bgm-battle', 'bgm-boss', 'bgm-intro', 'bgm-spooky'];
 
   private playMusicTrack(key: string, targetVolume: number, fadeInMs: number): void {
     if (!this.scene || !this.scene.sound) return;
@@ -1349,6 +1357,46 @@ export class SoundManager {
     gain.connect(this.sfxGainNode || ctx.destination);
     osc.start(now);
     osc.stop(now + 0.085);
+  }
+
+  /**
+   * Corte cinematográfico de execução: sibilo metálico rápido e impacto sub-grave pesado
+   */
+  public playExecutionSlash(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Sibilo cortante da lâmina em alta frequência
+    const slashOsc = ctx.createOscillator();
+    const slashGain = ctx.createGain();
+    slashOsc.type = 'sawtooth';
+    slashOsc.frequency.setValueAtTime(3200, now);
+    slashOsc.frequency.exponentialRampToValueAtTime(180, now + 0.18);
+
+    slashGain.gain.setValueAtTime(0.35 * this.sfxVolume, now);
+    slashGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    slashOsc.connect(slashGain);
+    slashGain.connect(this.sfxGainNode || ctx.destination);
+    slashOsc.start(now);
+    slashOsc.stop(now + 0.23);
+
+    // 2. Impacto de sub-grave pesado
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(130, now);
+    subOsc.frequency.exponentialRampToValueAtTime(28, now + 0.35);
+
+    subGain.gain.setValueAtTime(0.40 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGainNode || ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.40);
   }
 
   /**

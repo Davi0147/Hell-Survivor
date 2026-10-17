@@ -13,6 +13,7 @@ export class BootScene extends Phaser.Scene {
     this.sound.removeByKey('bgm-boss');
     this.sound.removeByKey('bgm-menu');
     this.sound.removeByKey('bgm-intro');
+    this.sound.removeByKey('bgm-spooky');
     this.textures.remove('menu-background');
     // Limpeza profunda de texturas e animações anteriores para permitir hot-reload sob demanda
     for (const dir of DIRECTIONS_8) {
@@ -383,11 +384,21 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm-battle', 'assets/audio/eternal-shadow.mp3');
     this.load.audio('bgm-boss', 'assets/audio/orchestral-overture.mp3');
     this.load.audio('bgm-intro', 'assets/audio/halloween.mp3');
+    this.load.audio('bgm-spooky', 'assets/audio/spooky-halloween.mp3');
 
     // 17. Cenas Cinematográficas da Introdução (Intro 1 a 6) e Retrato do Chefe
     for (let i = 1; i <= 6; i++) {
       this.load.image(`intro-${i}`, `assets/scenes/intro/Intro%20${i}.jpg?t=${cacheBuster}`);
     }
+
+    // 18. Cenas do Desfecho do Capítulo 1 (EndChap1 1 a 5)
+    for (let i = 1; i <= 5; i++) {
+      this.load.image(`endchap1-${i}`, `assets/scenes/chapter1/EndChap1_${i}.jpg?t=${cacheBuster}`);
+    }
+
+    // 19. Projétil Ataque de Coração da Succubus (HeartAttack)
+    this.load.image('projectile-heart-attack', `assets/sprites/items/HeartAttack.png?t=${cacheBuster}`);
+
     this.load.image('chat-boss', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);
     this.load.image('chat-chefe', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);
   }

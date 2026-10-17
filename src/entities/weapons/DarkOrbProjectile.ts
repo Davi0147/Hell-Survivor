@@ -6,21 +6,23 @@ export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
   private lifespanMs: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'dark-orb');
+    const textureKey = scene.textures.exists('projectile-heart-attack') ? 'projectile-heart-attack' : 'dark-orb';
+    super(scene, x, y, textureKey);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(26);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
-      body.setCircle(7, 3, 3);
+      body.setCircle(11, 9, 9);
     }
   }
 
   public fire(startX: number, startY: number, angle: number, speed: number = 220, damage: number = 16): void {
     this.setPosition(startX, startY);
+    this.setRotation(angle);
     this.damage = damage;
-    this.lifespanMs = 3000;
+    this.lifespanMs = 3200;
     this.setActive(true);
     this.setVisible(true);
 

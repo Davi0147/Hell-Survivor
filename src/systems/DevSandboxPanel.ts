@@ -591,14 +591,14 @@ export class DevSandboxPanel {
       y + 30,
       colW,
       44,
-      'INICIAR LUTA CONTRA ROSALIN (DIRETO)',
+      'INICIAR LUTA CONTRA SUCCUBUS (DIRETO)',
       0x881337,
       0xf43f5e,
       '#ffe4e6',
       () => {
         this.togglePanel(false);
         gs.sandboxSpawnBoss(false);
-        this.showToast('CHEFE ROSALIN INVOCADA!', '#fb7185');
+        this.showToast('CHEFE SUCCUBUS INVOCADA!', '#fb7185');
       }
     );
 
@@ -607,7 +607,7 @@ export class DevSandboxPanel {
       y + 84,
       colW,
       44,
-      'INICIAR ROSALIN (COM DIÁLOGO DE INTRO)',
+      'INICIAR SUCCUBUS (COM DIÁLOGO)',
       0x581c87,
       0xc084fc,
       '#f3e8ff',
@@ -622,13 +622,36 @@ export class DevSandboxPanel {
       y + 138,
       colW,
       44,
-      'REMOVER / DERROTAR ROSALIN (RESTAURAR BGM)',
+      'TESTAR CENA FINAL CAP. 1 (VISUAL NOVEL)',
+      0x701a75,
+      0xf472b6,
+      '#fdf2f8',
+      () => {
+        this.togglePanel(false);
+        gs.scene.stop('UIScene');
+        gs.scene.start('Chapter1EndScene', {
+          runStats: {
+            kills: 412,
+            level: 14,
+            timeSec: 360,
+            soulsEarned: 80
+          }
+        });
+      }
+    );
+
+    this.createActionButton(
+      col2X,
+      y + 192,
+      colW,
+      44,
+      'REMOVER / DERROTAR SUCCUBUS',
       0x1e293b,
       0x94a3b8,
       '#e2e8f0',
       () => {
         gs.sandboxRemoveBoss();
-        this.showToast('ROSALIN REMOVIDA E MÚSICA DE BATALHA RESTAURADA!', '#38bdf8');
+        this.showToast('SUCCUBUS REMOVIDA E MÚSICA RESTAURADA!', '#38bdf8');
       }
     );
 

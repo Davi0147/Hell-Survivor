@@ -5,6 +5,7 @@ import { IntroScene } from '../scenes/IntroScene';
 import { GameScene } from '../scenes/GameScene';
 import { UIScene } from '../scenes/UIScene';
 import { UpgradeScene } from '../scenes/UpgradeScene';
+import { Chapter1EndScene } from '../scenes/Chapter1EndScene';
 
 export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -29,5 +30,5 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
     gamepad: true
   },
   backgroundColor: '#0d0b0e',
-  scene: [BootScene, MenuScene, IntroScene, GameScene, UIScene, UpgradeScene]
+  scene: [BootScene, MenuScene, IntroScene, GameScene, UIScene, UpgradeScene, Chapter1EndScene]
 };

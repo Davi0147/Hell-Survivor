@@ -377,7 +377,7 @@ export class UIScene extends Phaser.Scene {
     this.bossBarGraphics.setDepth(115);
     this.bossBarGraphics.setVisible(false);
 
-    this.bossNameText = this.add.text(width / 2, 17, 'ROSALIN [CHEFE DO CAPÍTULO 1]', {
+    this.bossNameText = this.add.text(width / 2, 17, 'SUCCUBUS [CHEFE DO CAPÍTULO 1]', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -1345,22 +1345,22 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5);
     modal.add(title);
 
-    const subtitle = this.add.text(panelX, panelY - 70, 'AS CATACUMBAS FORAM PURIFICADAS', {
+    const subtitle = this.add.text(panelX, panelY - 70, 'A SUCCUBUS FOI DERROTADA', {
       fontFamily: pixelFont,
       fontSize: '12px',
       fontStyle: 'bold',
-      color: '#ffffff',
+      color: '#ff7b95',
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
     modal.add(subtitle);
 
     const soulsInfo = typeof stats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${stats.soulsEarned}` : '';
-    const statsText = this.add.text(panelX, panelY, 
-      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Rosalin (DERROTADA)${soulsInfo}`, {
+    const statsText = this.add.text(panelX, panelY - 10, 
+      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Succubus (DERROTADA)${soulsInfo}`, {
       fontFamily: pixelFont,
       fontSize: '12px',
-      color: '#e0aaff',
+      color: '#ffffff',
       stroke: '#100306',
       strokeThickness: 2,
       align: 'center',
@@ -1368,40 +1368,69 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5);
     modal.add(statsText);
 
-    // Botão Voltar ao Menu
-    const btnW = 300;
-    const btnH = 40;
-    const btnX = panelX;
-    const btnY = panelY + 110;
+    // Botão 1: Próximo Capítulo
+    const btnW = 200;
+    const btnH = 38;
+    const btnY = panelY + 95;
+    const btn1X = panelX - 110;
+    const btn2X = panelX + 110;
 
-    const btnBg = this.add.graphics();
-    const renderBtn = (hover: boolean) => {
-      btnBg.clear();
-      btnBg.fillStyle(hover ? 0xff0055 : 0x720012, 1);
-      btnBg.fillRoundedRect(btnX - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-      btnBg.lineStyle(2, hover ? 0xffffff : 0xf3d17a, 1);
-      btnBg.strokeRoundedRect(btnX - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+    const btn1Bg = this.add.graphics();
+    const renderBtn1 = (hover: boolean) => {
+      btn1Bg.clear();
+      btn1Bg.fillStyle(hover ? 0x6a040f : 0x370617, 1);
+      btn1Bg.fillRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+      btn1Bg.lineStyle(2, hover ? 0xffd60a : 0x9d0208, 1);
+      btn1Bg.strokeRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
     };
-    renderBtn(false);
-    modal.add(btnBg);
+    renderBtn1(false);
+    modal.add(btn1Bg);
 
-    const btnText = this.add.text(btnX, btnY, 'VOLTAR AO MENU', {
+    const btn1Text = this.add.text(btn1X, btnY, 'PRÓXIMO CAPÍTULO', {
       fontFamily: pixelFont,
-      fontSize: '12px',
+      fontSize: '10px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 2
     }).setOrigin(0.5);
-    modal.add(btnText);
+    modal.add(btn1Text);
 
-    const btnZone = this.add.zone(btnX, btnY, btnW, btnH);
-    btnZone.setInteractive({ useHandCursor: true });
-    modal.add(btnZone);
+    const btn1Zone = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
+    modal.add(btn1Zone);
+    btn1Zone.on('pointerover', () => renderBtn1(true));
+    btn1Zone.on('pointerout', () => renderBtn1(false));
+    btn1Zone.on('pointerdown', () => {
+      this.showWaveAlert('Capítulo 2 em desenvolvimento nas próximas atualizações!', 3000);
+    });
 
-    btnZone.on('pointerover', () => renderBtn(true));
-    btnZone.on('pointerout', () => renderBtn(false));
-    btnZone.on('pointerdown', onReturnToMenu);
+    // Botão 2: Voltar ao Menu
+    const btn2Bg = this.add.graphics();
+    const renderBtn2 = (hover: boolean) => {
+      btn2Bg.clear();
+      btn2Bg.fillStyle(hover ? 0xff0055 : 0x720012, 1);
+      btn2Bg.fillRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+      btn2Bg.lineStyle(2, hover ? 0xffffff : 0xf3d17a, 1);
+      btn2Bg.strokeRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+    };
+    renderBtn2(false);
+    modal.add(btn2Bg);
+
+    const btn2Text = this.add.text(btn2X, btnY, 'VOLTAR AO MENU', {
+      fontFamily: pixelFont,
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    modal.add(btn2Text);
+
+    const btn2Zone = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
+    modal.add(btn2Zone);
+    btn2Zone.on('pointerover', () => renderBtn2(true));
+    btn2Zone.on('pointerout', () => renderBtn2(false));
+    btn2Zone.on('pointerdown', onReturnToMenu);
   }
 
   public formatTime(totalSec: number): string {
