@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
+import { GamepadManager } from '../systems/GamepadManager';
 
 interface IntroStep {
   bgKey?: string;
@@ -22,6 +23,7 @@ export class IntroScene extends Phaser.Scene {
   private paperParticles!: Phaser.GameObjects.Group;
   private blackFadeOverlay!: Phaser.GameObjects.Rectangle;
   private skipBtnContainer!: Phaser.GameObjects.Container;
+  private skipTxt!: Phaser.GameObjects.Text;
 
   // Bustos dos Personagens
   private leftBust!: Phaser.GameObjects.Image;
@@ -50,6 +52,9 @@ export class IntroScene extends Phaser.Scene {
   private displayedText: string = '';
   private typeTimer?: Phaser.Time.TimerEvent;
   private isEnding: boolean = false;
+  private lastAdvanceTime: number = 0;
+  private currentControlScheme: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
+  private wasKeyboardPressed: boolean = false;
 
   constructor() {
     super('IntroScene');
@@ -171,7 +176,7 @@ export class IntroScene extends Phaser.Scene {
     renderSkip(false);
     skipBtn.add(skipG);
 
-    const skipTxt = this.add.text(0, 0, '[ESC] PULAR INTRO', {
+    this.skipTxt = this.add.text(0, 0, '[ESC] PULAR INTRO', {
       fontFamily: pixelFont,
       fontSize: '11px',
       fontStyle: 'bold',
@@ -179,7 +184,7 @@ export class IntroScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2
     }).setOrigin(0.5);
-    skipBtn.add(skipTxt);
+    skipBtn.add(this.skipTxt);
 
     const skipZone = this.add.zone(0, 0, btnW, btnH).setInteractive({ useHandCursor: true });
     skipBtn.add(skipZone);
@@ -193,13 +198,16 @@ export class IntroScene extends Phaser.Scene {
 
     this.skipBtnContainer = skipBtn;
 
-    // 7. Controles de Avanço (Clique, Espaço, Enter, ESC)
+    // 7. Controles de Avanço (Clique, Espaço, Enter, ESC, Toque)
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[]) => {
       if (gameObjects.includes(skipZone)) return;
       this.handleAdvance();
     });
 
     if (this.input.keyboard) {
+      this.input.keyboard.on('keydown', () => {
+        this.wasKeyboardPressed = true;
+      });
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', () => this.handleAdvance());
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER).on('down', () => this.handleAdvance());
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => this.skipIntro());
@@ -479,6 +487,10 @@ export class IntroScene extends Phaser.Scene {
   public handleAdvance(): void {
     if (this.isEnding) return;
 
+    const now = Date.now();
+    if (now - this.lastAdvanceTime < 180) return;
+    this.lastAdvanceTime = now;
+
     SoundManager.getInstance().playMenuClick();
 
     if (this.isTyping) {
@@ -490,6 +502,54 @@ export class IntroScene extends Phaser.Scene {
     } else {
       // Avança para o próximo passo
       this.displayStep(this.currentStepIndex + 1);
+    }
+  }
+
+  update(_time: number, _delta: number): void {
+    if (this.isEnding) return;
+
+    const pad = GamepadManager.getInstance().getActivePad(this);
+    const isTouch = Boolean(this.sys.game.device.input.touch && !this.sys.game.device.os.desktop);
+
+    if (pad && pad.connected) {
+      const stickActive =
+        Math.abs(pad.leftStick.x) > 0.15 ||
+        Math.abs(pad.leftStick.y) > 0.15 ||
+        pad.left || pad.right || pad.up || pad.down;
+
+      let btnActive = false;
+      for (let i = 0; i < pad.buttons.length; i++) {
+        if (pad.buttons[i] && pad.buttons[i].pressed) {
+          btnActive = true;
+          break;
+        }
+      }
+
+      if (stickActive || btnActive) {
+        if (this.currentControlScheme !== 'gamepad') {
+          this.currentControlScheme = 'gamepad';
+          if (this.promptText) this.promptText.setText('▶ (A) AVANÇAR');
+          if (this.skipTxt) this.skipTxt.setText('[(B)] PULAR INTRO');
+        }
+      }
+    } else if (isTouch && this.currentControlScheme !== 'touch') {
+      this.currentControlScheme = 'touch';
+      if (this.promptText) this.promptText.setText('▶ TOQUE P/ AVANÇAR');
+      if (this.skipTxt) this.skipTxt.setText('PULAR INTRO');
+    }
+
+    if (this.wasKeyboardPressed && this.currentControlScheme !== 'keyboard') {
+      this.currentControlScheme = 'keyboard';
+      this.wasKeyboardPressed = false;
+      if (this.promptText) this.promptText.setText('▶ ESPAÇO / CLIQUE');
+      if (this.skipTxt) this.skipTxt.setText('[ESC] PULAR INTRO');
+    }
+
+    const nav = GamepadManager.getInstance().getMenuNavigation(this);
+    if (nav.confirm) {
+      this.handleAdvance();
+    } else if (nav.cancel) {
+      this.skipIntro();
     }
   }
 

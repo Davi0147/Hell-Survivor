@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SoundManager } from './SoundManager';
 import { enableCensoredTextHighlight } from './TextHighlight';
+import { GamepadManager } from './GamepadManager';
 
 export interface DialogueLine {
   speaker: string; // 'nixy', 'succubus', ou futuros NPCs
@@ -18,6 +19,9 @@ export class DialogueSystem {
   private currentDisplayedText: string = '';
   private typeTimer?: Phaser.Time.TimerEvent;
   private onCompleteCallback?: () => void;
+  private lastAdvanceTime: number = 0;
+  private currentControlScheme: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
+  private wasKeyboardPressed: boolean = false;
 
   // Elementos Visuais Principais
   private container!: Phaser.GameObjects.Container;
@@ -138,10 +142,17 @@ export class DialogueSystem {
       repeat: -1
     });
 
-    // 5. Controles de Teclado e Clique
+    // 5. Controles de Teclado, Toque e Clique
     dimBg.on('pointerdown', () => this.handleAdvance());
 
+    this.scene.input.on('pointerdown', () => {
+      if (this.container.visible) this.handleAdvance();
+    });
+
     if (this.scene.input.keyboard) {
+      this.scene.input.keyboard.on('keydown', () => {
+        this.wasKeyboardPressed = true;
+      });
       this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', () => {
         if (this.container.visible) this.handleAdvance();
       });
@@ -420,6 +431,10 @@ export class DialogueSystem {
   public handleAdvance(): void {
     if (!this.container.visible) return;
 
+    const now = Date.now();
+    if (now - this.lastAdvanceTime < 180) return;
+    this.lastAdvanceTime = now;
+
     SoundManager.getInstance().playMenuClick();
 
     if (this.isTyping) {
@@ -436,6 +451,51 @@ export class DialogueSystem {
       } else {
         this.finishDialogue();
       }
+    }
+  }
+
+  public update(_delta: number): void {
+    if (!this.container.visible) return;
+
+    const pad = GamepadManager.getInstance().getActivePad(this.scene);
+    const isTouch = Boolean(this.scene.sys.game.device.input.touch && !this.scene.sys.game.device.os.desktop);
+
+    if (pad && pad.connected) {
+      const stickActive =
+        Math.abs(pad.leftStick.x) > 0.15 ||
+        Math.abs(pad.leftStick.y) > 0.15 ||
+        pad.left || pad.right || pad.up || pad.down;
+
+      let btnActive = false;
+      for (let i = 0; i < pad.buttons.length; i++) {
+        if (pad.buttons[i] && pad.buttons[i].pressed) {
+          btnActive = true;
+          break;
+        }
+      }
+
+      if (stickActive || btnActive) {
+        if (this.currentControlScheme !== 'gamepad') {
+          this.currentControlScheme = 'gamepad';
+          if (this.promptText) this.promptText.setText('▶ (A) AVANÇAR  |  (B) PULAR');
+        }
+      }
+    } else if (isTouch && this.currentControlScheme !== 'touch') {
+      this.currentControlScheme = 'touch';
+      if (this.promptText) this.promptText.setText('▶ TOQUE P/ AVANÇAR');
+    }
+
+    if (this.wasKeyboardPressed && this.currentControlScheme !== 'keyboard') {
+      this.currentControlScheme = 'keyboard';
+      this.wasKeyboardPressed = false;
+      if (this.promptText) this.promptText.setText('▶ ESPAÇO / CLIQUE  |  [ESC] PULAR');
+    }
+
+    const nav = GamepadManager.getInstance().getMenuNavigation(this.scene);
+    if (nav.confirm) {
+      this.handleAdvance();
+    } else if (nav.cancel) {
+      this.skipAll();
     }
   }
 

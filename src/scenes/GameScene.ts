@@ -216,7 +216,7 @@ export class GameScene extends Phaser.Scene {
       });
 
       keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => {
-        if (!this.isGameOver && !this.isChapterCompleted) {
+        if (!this.isGameOver && !this.isChapterCompleted && !this.scene.isActive('UpgradeScene')) {
           const uiScene = this.scene.get('UIScene') as UIScene;
           if (uiScene) {
             uiScene.togglePause(this);
@@ -546,7 +546,7 @@ export class GameScene extends Phaser.Scene {
         if (padInput.isUltimate && this.player.isUltimateReady && !this.isGameOver) {
           this.triggerUltimate();
         }
-        if (padInput.isPause && !this.isGameOver && !this.isChapterCompleted) {
+        if (padInput.isPause && !this.isGameOver && !this.isChapterCompleted && !this.scene.isActive('UpgradeScene')) {
           const uiScene = this.scene.get('UIScene') as UIScene;
           if (uiScene) uiScene.togglePause(this);
         }

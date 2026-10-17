@@ -82,7 +82,7 @@ export class UIScene extends Phaser.Scene {
   private currentControlScheme: 'keyboard' | 'gamepad' = 'keyboard';
   private wasKeyboardKeyPressed: boolean = false;
 
-  // Cursor Virtual para Gamepad no Menu de Pausa (ESC)
+  // Cursor Virtual para Gamepad no Menu de Pausa (ESC) e Fim da Jornada
   private pauseZones: Phaser.GameObjects.Zone[] = [];
   private pauseCursorX: number = 0;
   private pauseCursorY: number = 0;
@@ -91,6 +91,15 @@ export class UIScene extends Phaser.Scene {
   private hoveredPauseZone: Phaser.GameObjects.Zone | null = null;
   private prevPadConfirm: boolean = false;
   private prevPadCancelOrStart: boolean = false;
+  private keyEsc?: Phaser.Input.Keyboard.Key;
+  private lastPauseToggleTime: number = 0;
+
+  // Estado e Navegação do Modal FIM DA JORNADA (Gamepad / Teclado)
+  public isGameOverModalOpen: boolean = false;
+  private gameOverSelectedIndex: number = 0;
+  private gameOverModalContainer?: Phaser.GameObjects.Container;
+  private gameOverBtnRenders: ((h: boolean) => void)[] = [];
+  private gameOverBtnActions: (() => void)[] = [];
 
   // Radar Tático / Minimapa Circular (Canto Superior Esquerdo)
   private radarFrameGraphics!: Phaser.GameObjects.Graphics;
@@ -433,13 +442,7 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard.on('keydown', () => {
         this.wasKeyboardKeyPressed = true;
       });
-
-      this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => {
-        const gs = this.scene.get('GameScene') as any;
-        if (gs) {
-          this.togglePause(gs);
-        }
-      });
+      this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     }
 
     // ==========================================
@@ -690,14 +693,29 @@ export class UIScene extends Phaser.Scene {
     // 1. Atualização da Legenda Dinâmica de Controles (Teclado vs Gamepad)
     this.updateControlsHint();
 
-    // 2. Processa navegação por cursor virtual do gamepad caso o jogo esteja pausado no ESC
-    const gameScene = this.scene.get('GameScene') as any;
-    if (this.isPaused && this.pauseModalContainer) {
-      this.updatePauseCursor(delta, gameScene);
+    // 2. Se diálogo estiver ativo, processa navegação por Gamepad e Touch
+    if (this.dialogueSystem && this.dialogueSystem.isDialogueActive()) {
+      this.dialogueSystem.update(delta);
       return;
     }
 
-    if (this.isDialogueActive() || !this.isHUDVisibleState) return;
+    // 3. Se o modal Fim da Jornada (Game Over) estiver aberto, processa controles
+    if (this.isGameOverModalOpen && this.gameOverModalContainer) {
+      this.updateGameOverControls(delta);
+      return;
+    }
+
+    // 4. Processa navegação por cursor virtual do gamepad caso o jogo esteja pausado no ESC
+    const gameScene = this.scene.get('GameScene') as any;
+    if (this.isPaused && this.pauseModalContainer) {
+      this.updatePauseCursor(delta, gameScene);
+      if (this.keyEsc && Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
+        this.resumeGame(gameScene);
+      }
+      return;
+    }
+
+    if (!this.isHUDVisibleState) return;
 
     if (!gameScene || !gameScene.player || (!gameScene.scene.isActive() && !gameScene.scene.isPaused())) return;
 
@@ -1950,10 +1968,32 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5);
     modal.add(btn1Text);
 
+    const onRetryWrapped = () => {
+      this.isGameOverModalOpen = false;
+      this.cleanupPauseCursor();
+      if (this.gameOverModalContainer) {
+        this.gameOverModalContainer.destroy();
+        this.gameOverModalContainer = undefined;
+      }
+      onRetry();
+    };
+
+    const onReturnToMenuWrapped = () => {
+      this.isGameOverModalOpen = false;
+      this.cleanupPauseCursor();
+      if (this.gameOverModalContainer) {
+        this.gameOverModalContainer.destroy();
+        this.gameOverModalContainer = undefined;
+      }
+      onReturnToMenu();
+    };
+
     const btn1Zone = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    btn1Zone.on('pointerover', () => renderBtn1(true));
-    btn1Zone.on('pointerout', () => renderBtn1(false));
-    btn1Zone.on('pointerdown', onRetry);
+    btn1Zone.on('pointerover', () => {
+      this.selectGameOverBtn(0);
+    });
+    btn1Zone.on('pointerout', () => renderBtn1(this.gameOverSelectedIndex === 0));
+    btn1Zone.on('pointerdown', onRetryWrapped);
     modal.add(btn1Zone);
 
     // Botão 2: Voltar ao Menu
@@ -1979,10 +2019,44 @@ export class UIScene extends Phaser.Scene {
     modal.add(btn2Text);
 
     const btn2Zone = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    btn2Zone.on('pointerover', () => renderBtn2(true));
-    btn2Zone.on('pointerout', () => renderBtn2(false));
-    btn2Zone.on('pointerdown', onReturnToMenu);
+    btn2Zone.on('pointerover', () => {
+      this.selectGameOverBtn(1);
+    });
+    btn2Zone.on('pointerout', () => renderBtn2(this.gameOverSelectedIndex === 1));
+    btn2Zone.on('pointerdown', onReturnToMenuWrapped);
     modal.add(btn2Zone);
+
+    this.isGameOverModalOpen = true;
+    this.gameOverSelectedIndex = 0;
+    this.gameOverModalContainer = modal;
+    this.gameOverBtnRenders = [renderBtn1, renderBtn2];
+    this.gameOverBtnActions = [onRetryWrapped, onReturnToMenuWrapped];
+
+    // Destaque inicial no Botão 1
+    renderBtn1(true);
+    renderBtn2(false);
+
+    // Configura o cursor virtual sobre os botões para Gamepad
+    this.cleanupPauseCursor();
+    this.pauseZones = [btn1Zone, btn2Zone];
+    this.pauseCursorX = btn1X;
+    this.pauseCursorY = btnY;
+    this.prevPadConfirm = false;
+
+    this.pauseCursorGraphics = this.add.graphics();
+    this.pauseCursorGraphics.setDepth(3700);
+
+    this.pauseCursorHintText = this.add.text(this.pauseCursorX + 16, this.pauseCursorY - 12, '[A] SELECIONAR', {
+      fontFamily: pixelFont,
+      fontSize: '9px',
+      fontStyle: 'bold',
+      color: '#00f5d4',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0, 0.5).setDepth(3701);
+    this.pauseCursorHintText.setVisible(false);
+
+    this.drawPauseCursor(true);
   }
 
   // ==========================================
@@ -1990,10 +2064,19 @@ export class UIScene extends Phaser.Scene {
   // ==========================================
   public togglePause(gameScene: any): void {
     if (this.dialogueSystem && this.dialogueSystem.isDialogueActive()) return;
+    if (this.scene.isActive('UpgradeScene')) return; // NUNCA pausar/despausar durante a escolha de cartas!
+    if (this.isChestRouletteOpen) return;
+    if (this.isGameOverModalOpen) return;
+    if (gameScene.isGameOver || gameScene.isChapterCompleted) return;
     if (this.sandboxPanel && this.sandboxPanel.isOpen) {
       this.sandboxPanel.togglePanel();
       return;
     }
+
+    const now = Date.now();
+    if (now - this.lastPauseToggleTime < 320) return;
+    this.lastPauseToggleTime = now;
+
     if (this.isPaused) {
       this.resumeGame(gameScene);
     } else {
@@ -2018,7 +2101,7 @@ export class UIScene extends Phaser.Scene {
     this.pauseZones = [];
     this.hoveredPauseZone = null;
     this.prevPadConfirm = false;
-    this.prevPadCancelOrStart = false;
+    this.prevPadCancelOrStart = true;
 
     this.pauseModalContainer = this.add.container(0, 0);
     this.pauseModalContainer.setDepth(3500);
@@ -2553,11 +2636,72 @@ export class UIScene extends Phaser.Scene {
     if (isPadBPressed || isPadStartPressed) {
       if (!this.prevPadCancelOrStart) {
         this.prevPadCancelOrStart = true;
-        this.resumeGame(gameScene);
+        if (gameScene) {
+          this.resumeGame(gameScene);
+        }
       }
     } else {
       this.prevPadCancelOrStart = false;
     }
+  }
+
+  /**
+   * Processa entrada de Gamepad, Teclado e Analógico para a tela Fim da Jornada
+   */
+  private updateGameOverControls(delta: number): void {
+    if (!this.isGameOverModalOpen || !this.gameOverModalContainer) return;
+
+    const nav = GamepadManager.getInstance().getMenuNavigation(this);
+    const k = this.input.keyboard;
+
+    const leftPressed = nav.left || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.A))
+    ));
+    const rightPressed = nav.right || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.D))
+    ));
+
+    if (leftPressed && this.gameOverSelectedIndex !== 0) {
+      this.selectGameOverBtn(0);
+    } else if (rightPressed && this.gameOverSelectedIndex !== 1) {
+      this.selectGameOverBtn(1);
+    }
+
+    const confirmPressed = nav.confirm || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))
+    ));
+
+    if (confirmPressed) {
+      SoundManager.getInstance().playMenuClick();
+      this.triggerGameOverChoice(this.gameOverSelectedIndex);
+      return;
+    }
+
+    // Também atualiza o cursor virtual do analógico se o jogador preferir mirar livremente
+    this.updatePauseCursor(delta, null);
+  }
+
+  private selectGameOverBtn(index: number): void {
+    if (this.gameOverSelectedIndex !== index) {
+      SoundManager.getInstance().playMenuHover();
+    }
+    this.gameOverSelectedIndex = index;
+    if (this.gameOverBtnRenders[0]) this.gameOverBtnRenders[0](index === 0);
+    if (this.gameOverBtnRenders[1]) this.gameOverBtnRenders[1](index === 1);
+  }
+
+  private triggerGameOverChoice(index: number): void {
+    this.isGameOverModalOpen = false;
+    this.cleanupPauseCursor();
+    if (this.gameOverModalContainer) {
+      this.gameOverModalContainer.destroy();
+      this.gameOverModalContainer = undefined;
+    }
+    const action = this.gameOverBtnActions[index];
+    if (action) action();
   }
 
   /**
