@@ -163,6 +163,10 @@ export class GameScene extends Phaser.Scene {
     this.time.timeScale = 1;
     if (this.physics?.world) {
       this.physics.world.timeScale = 1;
+      this.physics.resume();
+    }
+    if (this.input.keyboard) {
+      this.input.keyboard.resetKeys();
     }
 
     SoundManager.getInstance().setScene(this);
@@ -1797,11 +1801,17 @@ export class GameScene extends Phaser.Scene {
           },
           () => {
             // Reiniciar o modo e capítulo atuais com mecânica de ressurreição (Hades)
+            if (this.physics?.world) {
+              this.physics.resume();
+            }
             this.scene.stop('UIScene');
-            this.scene.restart({ mode: this.gameMode, isRevival: true, chapter: this.currentChapter });
+            this.scene.start('GameScene', { mode: this.gameMode, isRevival: true, chapter: this.currentChapter });
           },
           () => {
             // Retornar ao Menu Principal
+            if (this.physics?.world) {
+              this.physics.resume();
+            }
             this.scene.stop('UIScene');
             this.scene.stop('GameScene');
             this.scene.start('MenuScene');
@@ -1811,8 +1821,11 @@ export class GameScene extends Phaser.Scene {
         if (AutoPlayTestAgent.getInstance().isEnabled) {
           // Se o Bot IA estiver jogando sozinho para testes contínuos, reinicia após 1.5s
           this.time.delayedCall(1500, () => {
+            if (this.physics?.world) {
+              this.physics.resume();
+            }
             this.scene.stop('UIScene');
-            this.scene.restart({ mode: this.gameMode, isRevival: true, chapter: this.currentChapter });
+            this.scene.start('GameScene', { mode: this.gameMode, isRevival: true, chapter: this.currentChapter });
           });
         }
       }
@@ -2910,6 +2923,14 @@ export class GameScene extends Phaser.Scene {
       SoundManager.getInstance().finishAzazelIntroAndTransition(
         // onMidStart: Toca o mid.mp3 (~2s), Azazel levanta a mão e grita em destaque "SUA ALMA É MINHA!"
         () => {
+          // Diminui o zoom da câmera suavemente para 1.35x para dar visão ampla de todos os raios e investidas
+          this.tweens.add({
+            targets: this.cameras.main,
+            zoom: 1.35,
+            duration: 1200,
+            ease: 'Cubic.easeInOut'
+          });
+
           if (this.azazelBoss && this.azazelBoss.active) {
             this.azazelBoss.playMidPrepareScream(this.player);
           }
@@ -2946,6 +2967,15 @@ export class GameScene extends Phaser.Scene {
     this.azazelBoss.setDepth(22);
     this.enemiesGroup.add(this.azazelBoss);
     this.azazelBoss.spawn(bossX, bossY, 16000, 138, 42, 1.65, isCinematicIntro);
+
+    if (!isCinematicIntro) {
+      this.tweens.add({
+        targets: this.cameras.main,
+        zoom: 1.35,
+        duration: 900,
+        ease: 'Cubic.easeOut'
+      });
+    }
 
     // Eventos de controle de câmera, movimento, HUD e fases de Azazel
     this.azazelBoss.on('azazel-lock-player', (locked: boolean) => {
@@ -2997,7 +3027,7 @@ export class GameScene extends Phaser.Scene {
   /**
    * Fase 3 de Azazel (20% HP):
    * Teleporta Nixy para o novo mapa com o piso chao2.jpg, restaura a HUD,
-   * spawna monstros em grandes quantidades e faz surgir os 3 Cristais de Azazel (5s cada).
+   * spawna monstros em grandes quantidades e faz surgir 3 Cristais de Azazel em posições aleatórias (5s cada).
    */
   public startAzazelPhase3Dimension(): void {
     const uiScene = this.scene.get('UIScene') as UIScene;
@@ -3014,17 +3044,19 @@ export class GameScene extends Phaser.Scene {
     this.setArenaFloorTexture('floor-tile-2');
     this.playRespawnStarEffect();
 
-    // 2. Remove cristais anteriores se houver e instancia os 3 Cristais de Azazel
+    // 2. Remove cristais anteriores se houver e gera 3 Cristais em posições aleatórias ao redor
     this.clearAzazelCrystals();
     this.azazelCrystalsCaptured = 0;
 
-    const crystalCoords = dimMap.azazelCrystals && dimMap.azazelCrystals.length >= 3
-      ? dimMap.azazelCrystals.slice(0, 3)
-      : [
-          { x: 0, y: -480 },
-          { x: -460, y: 320 },
-          { x: 460, y: 320 }
-        ];
+    const baseAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const crystalCoords: { x: number; y: number }[] = [];
+    for (let i = 0; i < 3; i++) {
+      const angle = baseAngle + (i * (Math.PI * 2 / 3)) + Phaser.Math.FloatBetween(-0.32, 0.32);
+      const dist = Phaser.Math.Between(290, 480);
+      const rawX = this.player.x + Math.cos(angle) * dist;
+      const rawY = this.player.y + Math.sin(angle) * dist;
+      crystalCoords.push(this.clampToArena(rawX, rawY, 200));
+    }
 
     crystalCoords.forEach((pt) => {
       const crystal = new AzazelCrystal(this, pt.x, pt.y);
@@ -3083,7 +3115,9 @@ export class GameScene extends Phaser.Scene {
 
   public clearAzazelCrystals(): void {
     for (const c of this.azazelCrystals) {
-      if (c) c.destroy();
+      if (c && !c.isDestroyed && c.active) {
+        c.destroy();
+      }
     }
     this.azazelCrystals = [];
   }
@@ -3093,6 +3127,14 @@ export class GameScene extends Phaser.Scene {
     this.isPlayerMovementLocked = false;
     this.isAzazelPhase3HordeActive = false;
     this.clearAzazelCrystals();
+
+    // Restaura o zoom padrão da câmera para 2.0x
+    this.tweens.add({
+      targets: this.cameras.main,
+      zoom: 2.0,
+      duration: 1000,
+      ease: 'Cubic.easeInOut'
+    });
 
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene) {
@@ -3574,7 +3616,13 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Restaura a música de batalha sem conflito
+    // Restaura a música de batalha sem conflito e o zoom normal da câmera
+    this.tweens.add({
+      targets: this.cameras.main,
+      zoom: 2.0,
+      duration: 600,
+      ease: 'Cubic.easeOut'
+    });
     SoundManager.getInstance().playBattleMusic(1500);
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Boss removido via Sandbox e música restaurada.');
   }

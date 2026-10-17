@@ -220,22 +220,22 @@ export class SoundManager {
   }
 
   /**
-   * Toca a Parte 1 da música de Azazel (intro.mp3) em loop e volume baixo durante o diálogo
+   * Toca a Parte 1 da música de Azazel (intro.mp3) em loop e volume adequado durante o diálogo
    */
   public playAzazelIntroMusic(fadeInMs: number = 900): void {
     this.bgmBoostMultiplier = 1.0;
     this.clearAzazelTransitionTimers();
-    const lowVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.07);
-    this.playMusicTrack('bgm-azazel-intro', lowVol, fadeInMs);
+    const introVol = Phaser.Math.Clamp(this.musicVolume * 3.2, 0.18, 0.65);
+    this.playMusicTrack('bgm-azazel-intro', introVol, fadeInMs);
   }
 
   /**
-   * Toca diretamente a música de batalha de Azazel (fight.mp3) em loop
+   * Toca diretamente a música de batalha de Azazel (fight.mp3) em loop com volume épico
    */
   public playAzazelFightMusic(fadeInMs: number = 0): void {
     this.bgmBoostMultiplier = 1.0;
     this.clearAzazelTransitionTimers();
-    const fightVol = Phaser.Math.Clamp(this.musicVolume * 1.15 * this.bgmBoostMultiplier, 0, 1);
+    const fightVol = Phaser.Math.Clamp(this.musicVolume * 3.8 * this.bgmBoostMultiplier, 0.25, 1);
     this.playMusicTrack('bgm-azazel-fight', fightVol, fadeInMs);
   }
 
@@ -245,7 +245,7 @@ export class SoundManager {
   public boostCurrentMusicVolume(multiplier: number = 1.3): void {
     this.bgmBoostMultiplier = multiplier;
     if (this.currentBgm && (this.currentBgm as any).setVolume) {
-      const targetVol = Phaser.Math.Clamp(this.musicVolume * 1.15 * this.bgmBoostMultiplier, 0, 1);
+      const targetVol = Phaser.Math.Clamp(this.musicVolume * 3.8 * this.bgmBoostMultiplier, 0, 1);
       if (this.scene?.tweens) {
         this.killBgmTweens();
         this.currentBgmTween = this.scene.tweens.add({
@@ -313,7 +313,7 @@ export class SoundManager {
       let midDurationMs = 2050;
       if (this.scene && this.scene.sound && this.scene.cache.audio.exists('bgm-azazel-mid')) {
         try {
-          const midVol = Phaser.Math.Clamp(this.musicVolume * 1.20, 0, 1);
+          const midVol = Phaser.Math.Clamp(this.musicVolume * 4.2, 0.28, 1);
           const midBgm = this.scene.sound.add('bgm-azazel-mid', {
             loop: false,
             volume: midVol

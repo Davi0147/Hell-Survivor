@@ -1,14 +1,16 @@
 import Phaser from 'phaser';
 import { GameScene } from '../scenes/GameScene';
-import { ChapterMapConfig, MapEntityProp, MapStorageManager, DEFAULT_CHAPTER_1_MAP } from '../config/mapData';
+import { ChapterMapConfig, MapEntityProp, MapStorageManager } from '../config/mapData';
 import { ARENA_CONFIG } from '../config/balance';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 
+export type EditorCategory = 'structures' | 'props' | 'floor' | 'checklist';
+
 export interface EditorPaletteItem {
   id: string;
   name: string;
-  category: 'spawns' | 'props' | 'tools';
+  category: 'structures' | 'props' | 'tools';
   texture?: string;
   scale?: number;
   icon: string;
@@ -21,6 +23,7 @@ export class MapEditorSystem {
   private editingChapter: number = 1; // 1 = Cap 1, 2 = Cap 2, 202 = Dimensão Azazel (chao2)
   private currentMap: ChapterMapConfig;
   private currentTool: string = 'select';
+  private activeCategory: EditorCategory = 'structures';
   private gridSnap: number = 32; // 0 = livre, 32, 64
 
   // Elementos do DOM Overlay do Editor
@@ -29,6 +32,9 @@ export class MapEditorSystem {
   private gridButton?: HTMLButtonElement;
   private mapSwitchButton?: HTMLButtonElement;
   private activeToolButtons: Map<string, HTMLButtonElement> = new Map();
+  private categoryTabButtons: Map<EditorCategory, HTMLButtonElement> = new Map();
+  private dynamicPaletteContainer?: HTMLDivElement;
+  private checklistBadge?: HTMLSpanElement;
 
   // Controle de Câmera Livre
   private savedCameraPos: { x: number; y: number; zoom: number } = { x: 0, y: 0, zoom: 1 };
@@ -51,32 +57,25 @@ export class MapEditorSystem {
   private editorDisplayGroup?: Phaser.GameObjects.Group;
   private ghostPreview?: Phaser.GameObjects.Container;
   private ghostSprite?: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image;
-  private gridGraphics?: Phaser.GameObjects.Graphics;
 
-  // Catálogo Completo e Extensível de Objetos do Editor
-  public static readonly PALETTE: EditorPaletteItem[] = [
-    // 1. Spawns e Zonas Especiais
-    { id: 'player_spawn', name: 'Spawn da Nixy', category: 'spawns', icon: '👤', texture: 'nixy-idle-south', scale: 1.0 },
-    { id: 'boss_portal', name: 'Altar de Invocação', category: 'spawns', icon: '🏛️', texture: 'altar-invoc-inactive', scale: 0.75 },
-    { id: 'boss_spawn', name: 'Área da Chefe (Rosalin)', category: 'spawns', icon: '👑', texture: 'succubus-idle-south', scale: 1.2 },
-    { id: 'azazel_spawn', name: 'Área do Chefe (Azazel)', category: 'spawns', icon: '😈', texture: 'azazel-idle-south', scale: 1.2 },
-    { id: 'azazel_crystal_spawn', name: 'Cristal Azazel (Fase 3)', category: 'spawns', icon: '🔮', texture: 'azazel-crystal', scale: 0.65 },
-    { id: 'item_spawner', name: 'Item Aleatório (Exploração)', category: 'spawns', icon: '🎁', texture: 'item-chest', scale: 1.0 },
+  // Paleta de Objetos e Estruturas Filtrada e Balanceada
+  public static readonly BASE_PALETTE: EditorPaletteItem[] = [
+    // 1. Estruturas e Altares
+    { id: 'player_spawn', name: 'Spawn da Nixy', category: 'structures', icon: '👤', texture: 'nixy-idle-south', scale: 1.0 },
+    { id: 'boss_portal', name: 'Altar do Chefe (Portal)', category: 'structures', icon: '🏛️', texture: 'altar-invoc-inactive', scale: 0.75 },
+    { id: 'altar-1', name: 'Altar de Ascensão', category: 'structures', icon: '✨', texture: 'altar-1', scale: 0.55 },
+    { id: 'item_spawner', name: 'Item Aleatório (Exploração)', category: 'structures', icon: '🎁', texture: 'item-chest', scale: 1.0 },
 
     // 2. Props de Cenário e Ambientação
     { id: 'scenery-tocha', name: 'Tocha Iluminada', category: 'props', icon: '🔥', texture: 'scenery-tocha', scale: 0.5 },
     { id: 'scenery-rocha', name: 'Rocha Comum (1)', category: 'props', icon: '🪨', texture: 'scenery-rocha', scale: 1.0 },
     { id: 'scenery-rocha-2', name: 'Rocha Grande (2)', category: 'props', icon: '⛰️', texture: 'scenery-rocha-2', scale: 1.5 },
-    { id: 'scenery-cristal', name: 'Cristais Abissais', category: 'props', icon: '💎', texture: 'scenery-cristal', scale: 0.5 },
-    { id: 'azazel-crystal', name: 'Cristal Azazel (Cenário)', category: 'props', icon: '🔮', texture: 'azazel-crystal', scale: 0.55 },
     { id: 'scenery-ossos', name: 'Pilha de Ossos', category: 'props', icon: '💀', texture: 'scenery-ossos', scale: 1.0 },
     { id: 'scenery-cogumelos', name: 'Cogumelos Infernais', category: 'props', icon: '🍄', texture: 'scenery-cogumelos', scale: 1.0 },
-    { id: 'altar-1', name: 'Altar de Ascensão 1', category: 'props', icon: '✨', texture: 'altar-1', scale: 0.55 },
-    { id: 'altar-2', name: 'Altar de Ascensão 2', category: 'props', icon: '🌟', texture: 'altar-2', scale: 0.55 },
-    { id: 'altar-3', name: 'Altar de Ascensão 3', category: 'props', icon: '⚡', texture: 'altar-3', scale: 0.55 },
+    { id: 'scenery-cristal', name: 'Cristais Abissais', category: 'props', icon: '💎', texture: 'scenery-cristal', scale: 0.5 },
 
-    // 3. Ferramentas
-    { id: 'select', name: 'Navegar / Mão', category: 'tools', icon: '🖐️' },
+    // 3. Ferramentas Utilitárias
+    { id: 'select', name: 'Mão / Mover Câmera', category: 'tools', icon: '🖐️' },
     { id: 'eraser', name: 'Borracha / Deletar', category: 'tools', icon: '🧹' }
   ];
 
@@ -104,7 +103,7 @@ export class MapEditorSystem {
     if (this.isOpen) return;
     this.isOpen = true;
 
-    // 1. Oculta todos os props, altares e itens da cena para evitar duplicatas ou visual sobreposto
+    // 1. Oculta todos os props, altares e itens da cena para visão limpa do editor
     this.scene.setSceneryPropsVisible(false);
     if (this.scene.player) {
       this.scene.player.setVisible(false);
@@ -112,7 +111,7 @@ export class MapEditorSystem {
     this.scene.setMapEditorLauncherButtonVisible(false);
     this.scene.testShowroomSystem?.setVisible(false);
 
-    // 2. Oculta o HUD de jogo (UIScene) para visão 100% livre e limpa do editor
+    // 2. Oculta o HUD de jogo (UIScene)
     const uiScene = this.scene.scene.get('UIScene') as any;
     if (uiScene && typeof uiScene.setHUDVisible === 'function') {
       uiScene.setHUDVisible(false);
@@ -121,7 +120,9 @@ export class MapEditorSystem {
     // 3. Carrega o mapa ativo e monta os elementos editáveis
     this.currentMap = MapStorageManager.getActiveMap(this.editingChapter);
     if ((this.scene as any).setArenaFloorTexture) {
-      (this.scene as any).setArenaFloorTexture(this.currentMap.floorTexture || (this.editingChapter === 202 ? 'floor-tile-2' : 'floor-tile'));
+      (this.scene as any).setArenaFloorTexture(
+        this.currentMap.floorTexture || (this.editingChapter === 202 ? 'floor-tile-2' : 'floor-tile')
+      );
     }
     this.saveCameraState();
     this.setupCameraControls();
@@ -129,7 +130,6 @@ export class MapEditorSystem {
     this.renderAllMapEntities();
     this.createGhostPreview();
 
-    // Se estiver tocando música de combate, reduz levemente volume para foco
     SoundManager.getInstance().playLevelUp();
     DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Editor de Mapas Aberto.');
   }
@@ -162,9 +162,6 @@ export class MapEditorSystem {
     DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Editor de Mapas Fechado.');
   }
 
-  /**
-   * Salva estado inicial da câmera para restauração ao fechar
-   */
   private saveCameraState(): void {
     const cam = this.scene.cameras.main;
     this.savedCameraPos = {
@@ -174,15 +171,11 @@ export class MapEditorSystem {
     };
     cam.stopFollow();
     cam.removeBounds();
-    // Se a câmera estava fora da arena (ex: na sala de teste isolada), foca no spawn da arena
     if (this.savedCameraPos.y < ARENA_CONFIG.MIN_Y || this.savedCameraPos.y > ARENA_CONFIG.MAX_Y) {
       cam.centerOn(this.currentMap.playerSpawn.x, this.currentMap.playerSpawn.y);
     }
   }
 
-  /**
-   * Restaura a câmera acompanhando a heroína
-   */
   private restoreCameraState(): void {
     const cam = this.scene.cameras.main;
     cam.setBounds(ARENA_CONFIG.MIN_X, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.WIDTH, ARENA_CONFIG.HEIGHT);
@@ -192,9 +185,6 @@ export class MapEditorSystem {
     }
   }
 
-  /**
-   * Configura teclas de voo livre da câmera e eventos de mouse
-   */
   private setupCameraControls(): void {
     if (!this.scene.input.keyboard) return;
 
@@ -210,29 +200,33 @@ export class MapEditorSystem {
       shift: this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
     };
 
-    // Zoom via roda do mouse
-    this.scene.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: any, _deltaX: number, deltaY: number) => {
+    // Zoom da Câmera Livre com a Roda do Mouse
+    this.scene.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
       if (!this.isOpen) return;
       const cam = this.scene.cameras.main;
-      const zoomDelta = deltaY > 0 ? -0.1 : 0.1;
-      cam.setZoom(Phaser.Math.Clamp(cam.zoom + zoomDelta, 0.4, 2.0));
+      const zoomFactor = deltaY > 0 ? 0.9 : 1.1;
+      cam.setZoom(Phaser.Math.Clamp(cam.zoom * zoomFactor, 0.35, 3.0));
       this.updateHudBadges();
     });
 
-    // Pressionar e arrastar com botão do meio ou esquerdo (ferramenta mão)
+    // Clique no mundo: Botão Esquerdo = Inserir/Mover | Botão Direito = Apagar
     this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!this.isOpen) return;
 
-      if (pointer.middleButtonDown() || (pointer.leftButtonDown() && this.currentTool === 'select')) {
+      if (pointer.rightButtonDown()) {
+        const worldPoint = this.getWorldPointer(pointer);
+        this.deleteAtWorldPosition(worldPoint.x, worldPoint.y);
+        return;
+      }
+
+      if (pointer.middleButtonDown() || this.currentTool === 'select') {
         this.isMiddleMouseDown = true;
         this.lastDragX = pointer.x;
         this.lastDragY = pointer.y;
-      } else if (pointer.rightButtonDown()) {
-        // EXCLUSÃO INSTANTÂNEA COM BOTÃO DIREITO DO MOUSE
-        const worldPoint = this.getWorldPointer(pointer);
-        this.deleteAtWorldPosition(worldPoint.x, worldPoint.y);
-      } else if (pointer.leftButtonDown()) {
-        // COLOCAR OBJETO OU DELETAR COM BORRACHA
+        return;
+      }
+
+      if (pointer.leftButtonDown()) {
         const worldPoint = this.getWorldPointer(pointer);
         this.handleWorldClick(worldPoint.x, worldPoint.y);
       }
@@ -242,11 +236,10 @@ export class MapEditorSystem {
       if (!this.isOpen) return;
 
       if (this.isMiddleMouseDown) {
-        const cam = this.scene.cameras.main;
-        const dx = (pointer.x - this.lastDragX) / cam.zoom;
-        const dy = (pointer.y - this.lastDragY) / cam.zoom;
-        cam.scrollX -= dx;
-        cam.scrollY -= dy;
+        const dx = (pointer.x - this.lastDragX) / this.scene.cameras.main.zoom;
+        const dy = (pointer.y - this.lastDragY) / this.scene.cameras.main.zoom;
+        this.scene.cameras.main.scrollX -= dx;
+        this.scene.cameras.main.scrollY -= dy;
         this.lastDragX = pointer.x;
         this.lastDragY = pointer.y;
       }
@@ -259,7 +252,6 @@ export class MapEditorSystem {
       this.isMiddleMouseDown = false;
     });
 
-    // Desativa menu de contexto padrão do navegador para permitir botão direito livre
     this.scene.game.canvas.oncontextmenu = (e) => {
       if (this.isOpen) {
         e.preventDefault();
@@ -268,9 +260,6 @@ export class MapEditorSystem {
     };
   }
 
-  /**
-   * Converte a posição da tela para coordenadas de mundo considerando grid snap
-   */
   private getWorldPointer(pointer: Phaser.Input.Pointer): { x: number; y: number } {
     const rawX = pointer.worldX;
     const rawY = pointer.worldY;
@@ -289,64 +278,60 @@ export class MapEditorSystem {
    * Trata o clique no chão do mundo com a ferramenta selecionada
    */
   private handleWorldClick(worldX: number, worldY: number): void {
-    if (this.currentTool === 'select') {
-      return;
-    }
+    if (this.currentTool === 'select') return;
 
     if (this.currentTool === 'eraser') {
       this.deleteAtWorldPosition(worldX, worldY);
       return;
     }
 
-    // 1. Spawns Especiais Únicos
+    // 1. Spawn da Nixy (Exatamente 1 por mapa)
     if (this.currentTool === 'player_spawn') {
       this.currentMap.playerSpawn = { x: worldX, y: worldY };
       MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
+      this.updateChecklistStatus();
       this.showToast(`Ponto de Spawn da Nixy reposicionado para (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
       return;
     }
 
+    // 2. Altar do Chefe do Capítulo (Exatamente 1 por mapa - define portal e spawn do chefe)
     if (this.currentTool === 'boss_portal') {
       this.currentMap.bossPortal = { x: worldX, y: worldY };
+      this.currentMap.bossSpawn = { x: worldX, y: worldY - 15 };
       MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
-      this.showToast(`Altar / Portal de Invocação posicionado em (${worldX}, ${worldY})`);
+      this.updateChecklistStatus();
+      const bossName = this.editingChapter >= 2 ? 'Azazel' : 'Rosalin';
+      this.showToast(`Altar de Invocação de ${bossName} posicionado em (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
       return;
     }
 
-    if (this.currentTool === 'boss_spawn' || this.currentTool === 'azazel_spawn') {
-      this.currentMap.bossSpawn = { x: worldX, y: worldY };
-      MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
-      this.renderAllMapEntities();
-      const bossName = this.currentTool === 'azazel_spawn' ? 'Azazel' : 'Rosalin';
-      this.showToast(`Área de Combate de ${bossName} posicionada em (${worldX}, ${worldY})`);
-      SoundManager.getInstance().playLevelUp();
-      return;
-    }
-
-    if (this.currentTool === 'azazel_crystal_spawn') {
-      if (!this.currentMap.azazelCrystals) {
-        this.currentMap.azazelCrystals = [];
-      }
-      const exists = this.currentMap.azazelCrystals.some(
-        (c) => Math.hypot(c.x - worldX, c.y - worldY) < 40
+    // 3. Altar de Ascensão / Evolução de Armas (apenas altar-1)
+    if (this.currentTool === 'altar-1') {
+      const tooClose = this.currentMap.props.some(
+        (p) => p.type === 'altar-1' && Math.hypot(p.x - worldX, p.y - worldY) < 60
       );
-      if (!exists) {
-        this.currentMap.azazelCrystals.push({ x: worldX, y: worldY });
+      if (!tooClose) {
+        this.currentMap.props.push({
+          type: 'altar-1',
+          x: worldX,
+          y: worldY,
+          scale: 0.55
+        });
         MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.renderAllMapEntities();
-        this.showToast(`Cristal de Azazel (Fase 3) adicionado em (${worldX}, ${worldY})`);
-        SoundManager.getInstance().playGemCollect();
+        this.updateChecklistStatus();
+        this.showToast(`Altar de Ascensão adicionado em (${worldX}, ${worldY})`);
+        SoundManager.getInstance().playWeaponEvolve();
       }
       return;
     }
 
-    // 2. Quadrado de Spawn de Item Aleatório (Exploração)
+    // 4. Spawner de Item Aleatório (Exploração)
     if (this.currentTool === 'item_spawner') {
-      // Evita duplicatas exatas na mesma célula
       const exists = this.currentMap.itemSpawners.some(
         (sp) => Math.hypot(sp.x - worldX, sp.y - worldY) < 30
       );
@@ -354,16 +339,16 @@ export class MapEditorSystem {
         this.currentMap.itemSpawners.push({ x: worldX, y: worldY });
         MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.renderAllMapEntities();
-        this.showToast(`Novo Spawner de Item Aleatório criado em (${worldX}, ${worldY})`);
+        this.updateChecklistStatus();
+        this.showToast(`Spawner de Item Aleatório criado em (${worldX}, ${worldY})`);
         SoundManager.getInstance().playGemCollect();
       }
       return;
     }
 
-    // 3. Props de Cenário Comuns
-    const paletteDef = MapEditorSystem.PALETTE.find((p) => p.id === this.currentTool);
+    // 5. Props de Cenário Comuns
+    const paletteDef = MapEditorSystem.BASE_PALETTE.find((p) => p.id === this.currentTool);
     if (paletteDef && paletteDef.category === 'props') {
-      // Verifica se já não existe um prop idêntico sobreposto
       const tooClose = this.currentMap.props.some(
         (p) => Math.hypot(p.x - worldX, p.y - worldY) < 22
       );
@@ -377,6 +362,7 @@ export class MapEditorSystem {
         this.currentMap.props.push(newProp);
         MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.renderAllMapEntities();
+        this.updateChecklistStatus();
         SoundManager.getInstance().playCardCashSelect();
       }
     }
@@ -388,21 +374,6 @@ export class MapEditorSystem {
   private deleteAtWorldPosition(worldX: number, worldY: number): void {
     const clickRadius = 40;
 
-    // 0. Tenta deletar Cristal de Azazel (Fase 3)
-    if (this.currentMap.azazelCrystals) {
-      const cIdx = this.currentMap.azazelCrystals.findIndex(
-        (c) => Math.hypot(c.x - worldX, c.y - worldY) <= clickRadius
-      );
-      if (cIdx !== -1) {
-        this.currentMap.azazelCrystals.splice(cIdx, 1);
-        MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
-        this.renderAllMapEntities();
-        this.showToast('Cristal de Azazel (Fase 3) removido!');
-        SoundManager.getInstance().playPlayerHurt();
-        return;
-      }
-    }
-
     // 1. Tenta deletar spawner de item
     const spawnerIdx = this.currentMap.itemSpawners.findIndex(
       (sp) => Math.hypot(sp.x - worldX, sp.y - worldY) <= clickRadius
@@ -411,12 +382,13 @@ export class MapEditorSystem {
       this.currentMap.itemSpawners.splice(spawnerIdx, 1);
       MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
+      this.updateChecklistStatus();
       this.showToast('Spawner de Item Aleatório removido!');
       SoundManager.getInstance().playPlayerHurt();
       return;
     }
 
-    // 2. Tenta deletar prop de cenário
+    // 2. Tenta deletar prop de cenário ou altar de ascensão
     const propIdx = this.currentMap.props.findIndex(
       (p) => Math.hypot(p.x - worldX, p.y - worldY) <= clickRadius
     );
@@ -424,6 +396,7 @@ export class MapEditorSystem {
       const removed = this.currentMap.props.splice(propIdx, 1)[0];
       MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
+      this.updateChecklistStatus();
       this.showToast(`Objeto [${removed.type}] removido do mapa!`);
       SoundManager.getInstance().playPlayerHurt();
       return;
@@ -440,9 +413,6 @@ export class MapEditorSystem {
     }
   }
 
-  /**
-   * Cria o Ghost Preview semitransparente que acompanha o cursor
-   */
   private createGhostPreview(): void {
     this.destroyGhostPreview();
 
@@ -454,9 +424,6 @@ export class MapEditorSystem {
     this.ghostPreview.add(this.ghostSprite);
   }
 
-  /**
-   * Atualiza a posição e sprite do ghost preview conforme a ferramenta ativa
-   */
   private updateGhostPreview(pointer: Phaser.Input.Pointer): void {
     if (!this.ghostPreview || !this.ghostSprite) return;
 
@@ -469,7 +436,7 @@ export class MapEditorSystem {
     const worldPoint = this.getWorldPointer(pointer);
     this.ghostPreview.setPosition(worldPoint.x, worldPoint.y);
 
-    const paletteDef = MapEditorSystem.PALETTE.find((p) => p.id === this.currentTool);
+    const paletteDef = MapEditorSystem.BASE_PALETTE.find((p) => p.id === this.currentTool);
     if (paletteDef && paletteDef.texture && this.scene.textures.exists(paletteDef.texture)) {
       this.ghostSprite.setTexture(paletteDef.texture);
       this.ghostSprite.setScale(paletteDef.scale ?? 1.0);
@@ -492,9 +459,7 @@ export class MapEditorSystem {
    */
   private renderAllMapEntities(): void {
     this.clearEditorDisplay();
-
     this.editorDisplayGroup = this.scene.add.group();
-
     const pixelFont = 'Pixelzone, Silkscreen, monospace';
 
     // 1. Marcador do Spawn da Nixy com SPRITE EM TAMANHO REAL (1.0x) e Anel Místico
@@ -506,7 +471,7 @@ export class MapEditorSystem {
     const playerSprite = this.scene.add.sprite(ps.x, ps.y, 'nixy-idle-south');
     playerSprite.setOrigin(0.5, 0.5);
     playerSprite.setDepth(20);
-    playerSprite.setScale(1.0); // Tamanho real in-game
+    playerSprite.setScale(1.0);
 
     const playerLabel = this.scene.add.text(ps.x, ps.y - 48, 'SPAWN DA NIXY', {
       fontFamily: pixelFont,
@@ -518,10 +483,11 @@ export class MapEditorSystem {
 
     this.editorDisplayGroup.addMultiple([playerBase, playerSprite, playerLabel]);
 
-    // 2. Marcador do Altar / Portal de Invocação
+    // 2. Marcador do Altar / Portal de Invocação do Chefe (único)
     const bp = this.currentMap.bossPortal;
-    const portalBase = this.scene.add.circle(bp.x, bp.y, 45, 0x8b5cf6, 0.4);
-    portalBase.setStrokeStyle(3, 0xc084fc, 0.95);
+    const isAzazelMap = this.editingChapter >= 2;
+    const portalBase = this.scene.add.circle(bp.x, bp.y, 45, isAzazelMap ? 0x9d4edd : 0x8b5cf6, 0.4);
+    portalBase.setStrokeStyle(3, isAzazelMap ? 0xc084fc : 0xa855f7, 0.95);
     portalBase.setDepth(18);
 
     const portalSprite = this.scene.add.sprite(bp.x, bp.y - 10, 'altar-invoc-inactive');
@@ -529,21 +495,21 @@ export class MapEditorSystem {
     portalSprite.setDepth(19);
     portalSprite.setScale(0.75);
 
-    const portalLabel = this.scene.add.text(bp.x, bp.y - 68, 'ALTAR DE INVOCAÇÃO (PORTAL)', {
+    const portalLabelText = isAzazelMap ? 'ALTAR DE INVOCAÇÃO (AZAZEL)' : 'ALTAR DE INVOCAÇÃO (ROSALIN)';
+    const portalLabel = this.scene.add.text(bp.x, bp.y - 68, portalLabelText, {
       fontFamily: pixelFont,
       fontSize: '10px',
-      color: '#c084fc',
+      color: isAzazelMap ? '#e0aaff' : '#c084fc',
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5).setDepth(25);
 
     this.editorDisplayGroup.addMultiple([portalBase, portalSprite, portalLabel]);
 
-    // 3. Marcador da Área de Encontro do Chefe (Rosalin no Cap 1 ou Azazel no Cap 2 / Dimensão)
-    const bs = this.currentMap.bossSpawn;
-    const isAzazelMap = this.editingChapter >= 2;
-    const bossZone = this.scene.add.circle(bs.x, bs.y, 60, 0xef4444, 0.25);
-    bossZone.setStrokeStyle(3, 0xf87171, 0.9);
+    // 3. Marcador da Área do Chefe (acoplada ao Altar)
+    const bs = this.currentMap.bossSpawn || { x: bp.x, y: bp.y - 15 };
+    const bossZone = this.scene.add.circle(bs.x, bs.y, 60, 0xef4444, 0.22);
+    bossZone.setStrokeStyle(2.5, 0xf87171, 0.85);
     bossZone.setDepth(17);
 
     const bossTex = isAzazelMap && this.scene.textures.exists('azazel-idle-south') ? 'azazel-idle-south' : 'succubus-idle-south';
@@ -552,38 +518,7 @@ export class MapEditorSystem {
     bossSprite.setDepth(19);
     bossSprite.setScale(1.2);
 
-    const bossLabel = this.scene.add.text(bs.x, bs.y - 65, isAzazelMap ? 'ÁREA DO CONFRONTO (AZAZEL)' : 'ÁREA DO CONFRONTO (ROSALIN)', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#f87171',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(25);
-
-    this.editorDisplayGroup.addMultiple([bossZone, bossSprite, bossLabel]);
-
-    // 3.5. Marcadores dos Cristais de Azazel (Fase 3)
-    if (this.currentMap.azazelCrystals) {
-      for (const c of this.currentMap.azazelCrystals) {
-        const cZone = this.scene.add.circle(c.x, c.y, 75, 0xff0055, 0.2);
-        cZone.setStrokeStyle(2.5, 0xff3388, 0.9);
-        cZone.setDepth(16);
-
-        const cSprite = this.scene.add.image(c.x, c.y - 6, 'azazel-crystal');
-        cSprite.setScale(0.65);
-        cSprite.setDepth(18);
-
-        const cTag = this.scene.add.text(c.x, c.y - 52, 'CRISTAL DE AZAZEL (5s)', {
-          fontFamily: pixelFont,
-          fontSize: '9px',
-          color: '#ff66aa',
-          stroke: '#000000',
-          strokeThickness: 3
-        }).setOrigin(0.5).setDepth(25);
-
-        this.editorDisplayGroup.addMultiple([cZone, cSprite, cTag]);
-      }
-    }
+    this.editorDisplayGroup.addMultiple([bossZone, bossSprite]);
 
     // 4. Quadrados de Spawn de Item Aleatório
     for (const sp of this.currentMap.itemSpawners) {
@@ -606,7 +541,7 @@ export class MapEditorSystem {
       this.editorDisplayGroup.addMultiple([box, icon, tag]);
     }
 
-    // 5. Props de Cenário Salvos
+    // 5. Props de Cenário e Altares de Ascensão
     for (const prop of this.currentMap.props) {
       if (this.scene.textures.exists(prop.type)) {
         const sprite = this.scene.add.image(prop.x, prop.y, prop.type);
@@ -616,7 +551,6 @@ export class MapEditorSystem {
 
         this.editorDisplayGroup.add(sprite);
 
-        // Se for tocha, renderiza halo de iluminação
         if (prop.type === 'scenery-tocha') {
           const halo = this.scene.add.image(prop.x, prop.y - 9, 'torch-light');
           halo.setOrigin(0.5, 0.5);
@@ -625,6 +559,15 @@ export class MapEditorSystem {
           halo.setBlendMode(Phaser.BlendModes.ADD);
           halo.setAlpha(0.68);
           this.editorDisplayGroup.add(halo);
+        } else if (prop.type === 'altar-1') {
+          const tag = this.scene.add.text(prop.x, prop.y - 48, 'ALTAR DE ASCENSÃO', {
+            fontFamily: pixelFont,
+            fontSize: '9px',
+            color: '#00f5d4',
+            stroke: '#000000',
+            strokeThickness: 2
+          }).setOrigin(0.5).setDepth(22);
+          this.editorDisplayGroup.add(tag);
         }
       }
     }
@@ -637,35 +580,23 @@ export class MapEditorSystem {
     }
   }
 
-  /**
-   * Atualização frame-a-frame (move câmera livremente com WASD)
-   */
   public update(delta: number): void {
     if (!this.isOpen || !this.cameraKeys) return;
 
     const cam = this.scene.cameras.main;
     const speed = (this.cameraKeys.shift.isDown ? 1100 : 550) * (delta / 1000) / cam.zoom;
 
-    if (this.cameraKeys.w.isDown || this.cameraKeys.up.isDown) {
-      cam.scrollY -= speed;
-    }
-    if (this.cameraKeys.s.isDown || this.cameraKeys.down.isDown) {
-      cam.scrollY += speed;
-    }
-    if (this.cameraKeys.a.isDown || this.cameraKeys.left.isDown) {
-      cam.scrollX -= speed;
-    }
-    if (this.cameraKeys.d.isDown || this.cameraKeys.right.isDown) {
-      cam.scrollX += speed;
-    }
+    if (this.cameraKeys.w.isDown || this.cameraKeys.up.isDown) cam.scrollY -= speed;
+    if (this.cameraKeys.s.isDown || this.cameraKeys.down.isDown) cam.scrollY += speed;
+    if (this.cameraKeys.a.isDown || this.cameraKeys.left.isDown) cam.scrollX -= speed;
+    if (this.cameraKeys.d.isDown || this.cameraKeys.right.isDown) cam.scrollX += speed;
 
-    // Trava câmera dentro dos limites da arena de 6400x6400
     cam.scrollX = Phaser.Math.Clamp(cam.scrollX, ARENA_CONFIG.MIN_X, ARENA_CONFIG.MAX_X - cam.width);
     cam.scrollY = Phaser.Math.Clamp(cam.scrollY, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.MAX_Y - cam.height);
   }
 
   /**
-   * Constrói a interface moderna do Editor com DOM Overlay
+   * Constrói a interface moderna e categorizada do Editor com DOM Overlay
    */
   private createDomOverlay(): void {
     this.destroyDomOverlay();
@@ -682,14 +613,14 @@ export class MapEditorSystem {
       user-select: none;
     `;
 
-    // 1. BARRA SUPERIOR (AÇÕES, COORDENADAS E FERRAMENTAS)
+    // 1. BARRA SUPERIOR
     const topBar = document.createElement('div');
     topBar.style.cssText = `
       position: absolute;
       top: 10px;
       left: 14px;
       right: 14px;
-      background: rgba(15, 12, 25, 0.94);
+      background: rgba(15, 12, 25, 0.95);
       border: 2px solid #8b5cf6;
       box-shadow: 0 4px 25px rgba(139, 92, 246, 0.35);
       border-radius: 8px;
@@ -703,10 +634,10 @@ export class MapEditorSystem {
     `;
 
     const leftSection = document.createElement('div');
-    leftSection.style.cssText = `display: flex; align-items: center; gap: 12px;`;
+    leftSection.style.cssText = `display: flex; align-items: center; gap: 10px; flex-wrap: wrap;`;
 
     const titleBadge = document.createElement('span');
-    titleBadge.textContent = '🗺️ EDITOR DE MAPA';
+    titleBadge.textContent = '🗺️ CRIADOR DE MAPAS';
     titleBadge.style.cssText = `
       font-size: 13px;
       font-weight: bold;
@@ -727,7 +658,7 @@ export class MapEditorSystem {
     `;
     leftSection.appendChild(this.coordBadge);
 
-    // Botão de alternar grade
+    // Botão de Grade
     this.gridButton = document.createElement('button');
     this.gridButton.textContent = `🔲 GRADE: ${this.gridSnap}px`;
     this.gridButton.style.cssText = this.getActionButtonStyle('#38bdf8');
@@ -741,11 +672,11 @@ export class MapEditorSystem {
     };
     leftSection.appendChild(this.gridButton);
 
-    // Botão de alternar qual Mapa está editando (Cap 1 / Cap 2 / Dimensão Azazel chao2)
+    // Seletor de Capítulo
     const getMapLabel = (ch: number) => {
-      if (ch === 2) return '🗺️ MAPA: CAPÍTULO 2 (AZAZEL)';
-      if (ch === 202) return '🗺️ MAPA: DIMENSÃO AZAZEL (CHAO 2)';
-      return '🗺️ MAPA: CAPÍTULO 1 (ROSALIN)';
+      if (ch === 2) return 'MAPA: CAPÍTULO 2 (AZAZEL)';
+      if (ch === 202) return 'MAPA: DIMENSÃO AZAZEL (CHAO 2)';
+      return 'MAPA: CAPÍTULO 1 (ROSALIN)';
     };
     this.mapSwitchButton = document.createElement('button');
     this.mapSwitchButton.textContent = getMapLabel(this.editingChapter);
@@ -762,82 +693,82 @@ export class MapEditorSystem {
           this.currentMap.floorTexture || (this.editingChapter === 202 ? 'floor-tile-2' : 'floor-tile')
         );
       }
-      this.scene.clearAllSceneryProps();
       this.renderAllMapEntities();
+      this.renderDynamicPalette();
+      this.updateChecklistStatus();
       this.showToast(`Editando: ${getMapLabel(this.editingChapter)}`, '#f43f5e');
     };
     leftSection.appendChild(this.mapSwitchButton);
 
     topBar.appendChild(leftSection);
 
-    // BOTOES DE AÇÃO PRINCIPAIS
+    // BOTÕES DE AÇÃO SUPERIORES
     const actionGroup = document.createElement('div');
     actionGroup.style.cssText = `display: flex; align-items: center; gap: 8px; flex-wrap: wrap;`;
 
-    // 1. Botão Testar Mapa
+    // Testar Mapa
     const playBtn = document.createElement('button');
     playBtn.textContent = '⚔️ TESTAR MAPA';
     playBtn.style.cssText = this.getActionButtonStyle('#10b981', true);
     playBtn.onclick = () => this.applyAndTestCurrentMap();
     actionGroup.appendChild(playBtn);
 
-    // 2. Botão Exportar Arquivo .JSON
+    // Baixar .JSON
     const exportFileBtn = document.createElement('button');
     exportFileBtn.textContent = '💾 BAIXAR .JSON';
     exportFileBtn.style.cssText = this.getActionButtonStyle('#3b82f6');
     exportFileBtn.onclick = () => this.downloadMapJsonFile();
     actionGroup.appendChild(exportFileBtn);
 
-    // 3. Botão Copiar JSON
+    // Copiar JSON
     const copyBtn = document.createElement('button');
     copyBtn.textContent = '📋 COPIAR JSON';
     copyBtn.style.cssText = this.getActionButtonStyle('#a855f7');
     copyBtn.onclick = () => this.copyMapJsonToClipboard();
     actionGroup.appendChild(copyBtn);
 
-    // 4. Botão Carregar / Importar JSON
+    // Importar JSON
     const importBtn = document.createElement('button');
     importBtn.textContent = '📂 IMPORTAR JSON';
     importBtn.style.cssText = this.getActionButtonStyle('#eab308');
     importBtn.onclick = () => this.openImportModal();
     actionGroup.appendChild(importBtn);
 
-    // 5. Botão Limpar Tudo
+    // Limpar Tudo
     const clearBtn = document.createElement('button');
     clearBtn.textContent = '🗑️ LIMPAR TUDO';
     clearBtn.style.cssText = this.getActionButtonStyle('#ef4444');
     clearBtn.onclick = () => {
-      if (confirm('Deseja realmente limpar todos os objetos e spawners do mapa atual?')) {
+      if (confirm('Deseja realmente limpar todos os props e spawners de itens deste mapa?')) {
         this.currentMap.props = [];
         this.currentMap.itemSpawners = [];
-        if (this.currentMap.azazelCrystals) {
-          this.currentMap.azazelCrystals = [];
-        }
         MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.scene.clearAllSceneryProps();
         this.renderAllMapEntities();
-        this.showToast('Mapa limpo! Todos os objetos e spawners foram removidos.', '#ef4444');
+        this.updateChecklistStatus();
+        this.showToast('Mapa limpo! Todos os props e spawners foram removidos.', '#ef4444');
       }
     };
     actionGroup.appendChild(clearBtn);
 
-    // 6. Botão Restaurar Padrão do Mapa Atual
+    // Restaurar Padrão
     const resetBtn = document.createElement('button');
     resetBtn.textContent = '🔄 RESTAURAR PADRÃO';
     resetBtn.style.cssText = this.getActionButtonStyle('#64748b');
     resetBtn.onclick = () => {
-      if (confirm('Restaurar este mapa para o layout padrão original?')) {
+      if (confirm('Restaurar este mapa para o layout padrão original do jogo?')) {
         this.currentMap = MapStorageManager.getDefaultMap(this.editingChapter);
         MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
         this.scene.loadCustomMapLayout(this.currentMap);
         this.scene.setSceneryPropsVisible(false);
         this.renderAllMapEntities();
-        this.showToast('Mapa padrão restaurado!', '#38bdf8');
+        this.updateChecklistStatus();
+        this.showToast('Mapa padrão restaurado com sucesso!', '#38bdf8');
       }
     };
     actionGroup.appendChild(resetBtn);
 
-    // 7. Botão Fechar Editor
+    // Fechar Editor
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '❌ SAIR';
     closeBtn.style.cssText = this.getActionButtonStyle('#94a3b8');
@@ -847,81 +778,286 @@ export class MapEditorSystem {
     topBar.appendChild(actionGroup);
     this.domRoot.appendChild(topBar);
 
-    // 2. PALETA INFERIOR DE OBJETOS E SPAWNERS
+    // 2. PALETA INFERIOR CATEGORIZADA E ORGANIZADA
     const bottomPalette = document.createElement('div');
     bottomPalette.style.cssText = `
       position: absolute;
       bottom: 12px;
       left: 14px;
       right: 14px;
-      background: rgba(15, 12, 25, 0.94);
+      background: rgba(15, 12, 25, 0.96);
       border: 2px solid #8b5cf6;
-      box-shadow: 0 -4px 25px rgba(139, 92, 246, 0.35);
-      border-radius: 8px;
+      box-shadow: 0 -4px 30px rgba(139, 92, 246, 0.4);
+      border-radius: 10px;
       padding: 10px 14px;
       pointer-events: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     `;
 
-    const paletteHeader = document.createElement('div');
-    paletteHeader.style.cssText = `
+    // LINHA DE ABAS CATEGORIZADAS
+    const categoryTabsRow = document.createElement('div');
+    categoryTabsRow.style.cssText = `
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      font-size: 10px;
-      color: #c084fc;
+      gap: 8px;
       border-bottom: 1px solid #33264d;
-      padding-bottom: 4px;
-    `;
-    paletteHeader.innerHTML = `
-      <span>📦 PALETA DE OBJETOS & SPAWNERS (Clique com Botão Esquerdo para Colocar | Botão Direito no Mapa para Apagar)</span>
-      <span style="color:#94a3b8;">Navegue com WASD | Scroll do Mouse para Zoom</span>
-    `;
-    bottomPalette.appendChild(paletteHeader);
-
-    const itemsRow = document.createElement('div');
-    itemsRow.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 4px;
+      padding-bottom: 8px;
+      flex-wrap: wrap;
     `;
 
-    this.activeToolButtons.clear();
+    const categories: { id: EditorCategory; label: string; icon: string; color: string }[] = [
+      { id: 'structures', label: 'ESTRUTURAS & ALTARES', icon: '🏛️', color: '#c084fc' },
+      { id: 'props', label: 'CENÁRIO & PROPS', icon: '🌲', color: '#38bdf8' },
+      { id: 'floor', label: 'TEXTURA DO CHÃO', icon: '🗺️', color: '#fbbf24' },
+      { id: 'checklist', label: 'CHECKLIST OBRIGATÓRIO', icon: '📋', color: '#10b981' }
+    ];
 
-    for (const item of MapEditorSystem.PALETTE) {
-      const btn = document.createElement('button');
-      btn.innerHTML = `<span style="font-size: 15px;">${item.icon}</span> <span style="font-size: 9px;">${item.name}</span>`;
-      btn.style.cssText = this.getPaletteButtonStyle(this.currentTool === item.id);
+    this.categoryTabButtons.clear();
+    for (const cat of categories) {
+      const tabBtn = document.createElement('button');
+      tabBtn.innerHTML = `<span>${cat.icon}</span> <span>${cat.label}</span>`;
+      tabBtn.style.cssText = this.getCategoryTabStyle(this.activeCategory === cat.id, cat.color);
 
-      btn.onclick = () => {
-        this.selectTool(item.id);
+      tabBtn.onclick = () => {
+        this.activeCategory = cat.id;
+        for (const [cId, btn] of this.categoryTabButtons.entries()) {
+          const cfg = categories.find((c) => c.id === cId);
+          btn.style.cssText = this.getCategoryTabStyle(cId === this.activeCategory, cfg?.color || '#8b5cf6');
+        }
+        this.renderDynamicPalette();
       };
 
-      this.activeToolButtons.set(item.id, btn);
-      itemsRow.appendChild(btn);
+      this.categoryTabButtons.set(cat.id, tabBtn);
+      categoryTabsRow.appendChild(tabBtn);
     }
 
-    bottomPalette.appendChild(itemsRow);
-    this.domRoot.appendChild(bottomPalette);
+    // Ferramentas Utilitárias Rápidas (Sempre Visíveis à Direita)
+    const quickToolsSection = document.createElement('div');
+    quickToolsSection.style.cssText = `margin-left: auto; display: flex; gap: 8px; align-items: center;`;
 
+    const selectToolBtn = document.createElement('button');
+    selectToolBtn.innerHTML = `<span>🖐️</span> <span>MÃO / MOVER</span>`;
+    selectToolBtn.style.cssText = this.getPaletteButtonStyle(this.currentTool === 'select');
+    selectToolBtn.onclick = () => this.selectTool('select');
+    this.activeToolButtons.set('select', selectToolBtn);
+    quickToolsSection.appendChild(selectToolBtn);
+
+    const eraserToolBtn = document.createElement('button');
+    eraserToolBtn.innerHTML = `<span>🧹</span> <span>BORRACHA</span>`;
+    eraserToolBtn.style.cssText = this.getPaletteButtonStyle(this.currentTool === 'eraser');
+    eraserToolBtn.onclick = () => this.selectTool('eraser');
+    this.activeToolButtons.set('eraser', eraserToolBtn);
+    quickToolsSection.appendChild(eraserToolBtn);
+
+    categoryTabsRow.appendChild(quickToolsSection);
+    bottomPalette.appendChild(categoryTabsRow);
+
+    // CONTAINER DE FERRAMENTAS DINÂMICAS DA CATEGORIA ATIVA
+    this.dynamicPaletteContainer = document.createElement('div');
+    this.dynamicPaletteContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      min-height: 48px;
+    `;
+    bottomPalette.appendChild(this.dynamicPaletteContainer);
+
+    this.domRoot.appendChild(bottomPalette);
     document.body.appendChild(this.domRoot);
+
+    this.renderDynamicPalette();
+    this.updateChecklistStatus();
   }
 
   /**
-   * Altera a ferramenta ativa e atualiza os botões visuais
+   * Renderiza os itens dentro da categoria atualmente selecionada
    */
+  private renderDynamicPalette(): void {
+    if (!this.dynamicPaletteContainer) return;
+    this.dynamicPaletteContainer.innerHTML = '';
+
+    const isAzazel = this.editingChapter >= 2;
+
+    // ABA 1: ESTRUTURAS & ALTARES
+    if (this.activeCategory === 'structures') {
+      const items: { id: string; name: string; icon: string }[] = [
+        { id: 'player_spawn', name: 'Spawn da Nixy', icon: '👤' },
+        { id: 'boss_portal', name: isAzazel ? 'Altar do Chefe: Azazel' : 'Altar do Chefe: Rosalin', icon: '🏛️' },
+        { id: 'altar-1', name: 'Altar de Ascensão', icon: '✨' },
+        { id: 'item_spawner', name: 'Spawner Item Aleatório', icon: '🎁' }
+      ];
+
+      for (const it of items) {
+        const btn = document.createElement('button');
+        btn.innerHTML = `<span style="font-size: 16px;">${it.icon}</span> <span style="font-size: 10px;">${it.name}</span>`;
+        btn.style.cssText = this.getPaletteButtonStyle(this.currentTool === it.id);
+        btn.onclick = () => this.selectTool(it.id);
+        this.activeToolButtons.set(it.id, btn);
+        this.dynamicPaletteContainer.appendChild(btn);
+      }
+    }
+    // ABA 2: CENÁRIO & PROPS
+    else if (this.activeCategory === 'props') {
+      const props = MapEditorSystem.BASE_PALETTE.filter((p) => p.category === 'props');
+      for (const it of props) {
+        const btn = document.createElement('button');
+        btn.innerHTML = `<span style="font-size: 16px;">${it.icon}</span> <span style="font-size: 10px;">${it.name}</span>`;
+        btn.style.cssText = this.getPaletteButtonStyle(this.currentTool === it.id);
+        btn.onclick = () => this.selectTool(it.id);
+        this.activeToolButtons.set(it.id, btn);
+        this.dynamicPaletteContainer.appendChild(btn);
+      }
+    }
+    // ABA 3: TEXTURA DO CHÃO
+    else if (this.activeCategory === 'floor') {
+      const curFloor = this.currentMap.floorTexture || 'floor-tile';
+
+      const textures = [
+        { key: 'floor-tile', label: 'PISO 1: CATACUMBAS INFERNAIS (PADRÃO)', desc: 'Chão clássico de pedras vulcânicas do Capítulo 1' },
+        { key: 'floor-tile-2', label: 'PISO 2: DIMENSÃO ABISSAL (CHAO 2)', desc: 'Textura corrompida de rochas obscuras do Capítulo 2' }
+      ];
+
+      for (const t of textures) {
+        const isSelected = curFloor === t.key;
+        const btn = document.createElement('button');
+        btn.innerHTML = `
+          <div style="font-weight: bold; font-size: 10px; color: ${isSelected ? '#facc15' : '#ffffff'};">${t.label}</div>
+          <div style="font-size: 8px; color: #94a3b8; margin-top: 2px;">${t.desc}</div>
+        `;
+        btn.style.cssText = `
+          background: ${isSelected ? '#311042' : '#1e1730'};
+          border: 2px solid ${isSelected ? '#facc15' : '#473268'};
+          padding: 8px 14px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-family: 'Silkscreen', monospace;
+          text-align: left;
+          transition: all 0.15s ease;
+        `;
+        btn.onclick = () => {
+          this.currentMap.floorTexture = t.key;
+          MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
+          if ((this.scene as any).setArenaFloorTexture) {
+            (this.scene as any).setArenaFloorTexture(t.key);
+          }
+          this.renderDynamicPalette();
+          this.showToast(`Textura do chão alterada para: ${t.key === 'floor-tile' ? 'Catacumbas' : 'Dimensão Abissal'}!`);
+          SoundManager.getInstance().playLevelUp();
+        };
+        this.dynamicPaletteContainer.appendChild(btn);
+      }
+    }
+    // ABA 4: CHECKLIST OBRIGATÓRIO
+    else if (this.activeCategory === 'checklist') {
+      this.renderChecklistDetails();
+    }
+  }
+
+  /**
+   * Renderiza o painel explicativo da aba Checklist com todos os status em tempo real
+   */
+  private renderChecklistDetails(): void {
+    if (!this.dynamicPaletteContainer) return;
+    this.dynamicPaletteContainer.innerHTML = '';
+
+    const status = this.getMapValidationStatus();
+
+    const container = document.createElement('div');
+    container.style.cssText = `display: flex; align-items: center; gap: 14px; flex-wrap: wrap; width: 100%;`;
+
+    const makeCard = (valid: boolean, title: string, detail: string) => {
+      const card = document.createElement('div');
+      card.style.cssText = `
+        background: ${valid ? '#062d22' : '#3d0a15'};
+        border: 1px solid ${valid ? '#10b981' : '#f43f5e'};
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 9px;
+      `;
+      card.innerHTML = `
+        <div style="font-weight: bold; color: ${valid ? '#34d399' : '#fb7185'};">${valid ? '✅' : '⚠️'} ${title}</div>
+        <div style="color: #cbd5e1; font-size: 8px; margin-top: 2px;">${detail}</div>
+      `;
+      return card;
+    };
+
+    container.appendChild(makeCard(
+      status.hasPlayerSpawn,
+      'SPAWN DA NIXY',
+      status.hasPlayerSpawn ? `Configurado em (${this.currentMap.playerSpawn.x}, ${this.currentMap.playerSpawn.y})` : 'Falta posicionar no mapa!'
+    ));
+
+    const bossName = this.editingChapter >= 2 ? 'Azazel' : 'Rosalin';
+    container.appendChild(makeCard(
+      status.hasBossPortal,
+      `ALTAR DE ${bossName.toUpperCase()}`,
+      status.hasBossPortal ? `Posicionado em (${this.currentMap.bossPortal.x}, ${this.currentMap.bossPortal.y})` : 'Falta posicionar o altar do chefe!'
+    ));
+
+    container.appendChild(makeCard(
+      status.hasAscensionAltar,
+      'ALTAR DE ASCENSÃO',
+      status.hasAscensionAltar ? `${status.ascensionCount} instalado(s) no mapa` : 'Obrigatório ter pelo menos 1 altar de ascensão!'
+    ));
+
+    container.appendChild(makeCard(
+      status.hasEnoughItemSpawners,
+      'SPAWNERS DE ITENS',
+      status.hasEnoughItemSpawners ? `${status.itemSpawnersCount} instalados (Mínimo 4 ✅)` : `${status.itemSpawnersCount}/4 instalados (Faltam ${4 - status.itemSpawnersCount})`
+    ));
+
+    this.dynamicPaletteContainer.appendChild(container);
+  }
+
+  private getMapValidationStatus(): {
+    hasPlayerSpawn: boolean;
+    hasBossPortal: boolean;
+    hasAscensionAltar: boolean;
+    ascensionCount: number;
+    hasEnoughItemSpawners: boolean;
+    itemSpawnersCount: number;
+    isAllValid: boolean;
+  } {
+    const hasPlayerSpawn = Boolean(this.currentMap.playerSpawn && typeof this.currentMap.playerSpawn.x === 'number');
+    const hasBossPortal = Boolean(this.currentMap.bossPortal && typeof this.currentMap.bossPortal.x === 'number');
+    const ascensionCount = this.currentMap.props.filter((p) => p.type === 'altar-1').length;
+    const hasAscensionAltar = ascensionCount >= 1;
+    const itemSpawnersCount = this.currentMap.itemSpawners?.length ?? 0;
+    const hasEnoughItemSpawners = itemSpawnersCount >= 4;
+
+    const isAllValid = hasPlayerSpawn && hasBossPortal && hasAscensionAltar && hasEnoughItemSpawners;
+
+    return {
+      hasPlayerSpawn,
+      hasBossPortal,
+      hasAscensionAltar,
+      ascensionCount,
+      hasEnoughItemSpawners,
+      itemSpawnersCount,
+      isAllValid
+    };
+  }
+
+  private updateChecklistStatus(): void {
+    const status = this.getMapValidationStatus();
+    const checklistTab = this.categoryTabButtons.get('checklist');
+    if (checklistTab) {
+      checklistTab.innerHTML = `<span>📋</span> <span>CHECKLIST ${status.isAllValid ? '✅' : '⚠️'}</span>`;
+    }
+  }
+
   private selectTool(toolId: string): void {
     this.currentTool = toolId;
     for (const [id, btn] of this.activeToolButtons.entries()) {
       btn.style.cssText = this.getPaletteButtonStyle(id === toolId);
     }
-    const def = MapEditorSystem.PALETTE.find((p) => p.id === toolId);
+    const def = MapEditorSystem.BASE_PALETTE.find((p) => p.id === toolId);
     if (def) {
-      this.showToast(`Ferramenta selecionada: [${def.name}]`);
+      this.showToast(`Ferramenta: [${def.name}]`);
     }
   }
 
@@ -938,18 +1074,32 @@ export class MapEditorSystem {
    * Aplica o mapa customizado diretamente no jogo e fecha o editor para teste imediato
    */
   public applyAndTestCurrentMap(): void {
+    const status = this.getMapValidationStatus();
+    if (!status.isAllValid) {
+      const warnings: string[] = [];
+      if (!status.hasPlayerSpawn) warnings.push('Spawn da Nixy');
+      if (!status.hasBossPortal) warnings.push('Altar do Chefe');
+      if (!status.hasAscensionAltar) warnings.push('Altar de Ascensão (altar-1)');
+      if (!status.hasEnoughItemSpawners) warnings.push(`Spawners de Itens (mín. 4, atual: ${status.itemSpawnersCount})`);
+
+      const proceed = confirm(
+        `Atenção! Os seguintes itens obrigatórios estão incompletos:\n- ${warnings.join('\n- ')}\n\nDeseja testar mesmo assim?`
+      );
+      if (!proceed) {
+        this.activeCategory = 'checklist';
+        this.renderDynamicPalette();
+        return;
+      }
+    }
+
     MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
     this.close();
 
-    // Aplica o mapa na cena ativa
     this.scene.loadCustomMapLayout(this.currentMap);
     this.showToast('MAPA CARREGADO COM SUCESSO! BOM JOGO!', '#10b981');
     DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Mapa Customizado Aplicado para Teste.', this.currentMap);
   }
 
-  /**
-   * Faz o download do arquivo .json formatado no computador do usuário
-   */
   public downloadMapJsonFile(): void {
     MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
     const jsonStr = JSON.stringify(this.currentMap, null, 2);
@@ -964,19 +1114,16 @@ export class MapEditorSystem {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    this.showToast('ARQUIVO .JSON BAIXADO COM SUCESSO! Você pode me enviar esse arquivo a qualquer momento.', '#38bdf8');
+    this.showToast('ARQUIVO .JSON BAIXADO COM SUCESSO!', '#38bdf8');
   }
 
-  /**
-   * Copia o código JSON do mapa completo para a área de transferência
-   */
   public copyMapJsonToClipboard(): void {
     MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
     const jsonStr = JSON.stringify(this.currentMap, null, 2);
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(jsonStr).then(() => {
-        this.showToast('CÓDIGO JSON COPIADO! Basta colar aqui no chat para aplicarmos permanentemente.', '#a855f7');
+        this.showToast('CÓDIGO JSON COPIADO! Cole aqui no chat para aplicarmos permanentemente.', '#a855f7');
       }).catch(() => {
         this.fallbackCopyText(jsonStr);
       });
@@ -995,9 +1142,6 @@ export class MapEditorSystem {
     this.showToast('CÓDIGO JSON COPIADO PARA A ÁREA DE TRANSFERÊNCIA!', '#a855f7');
   }
 
-  /**
-   * Modal de Importação de JSON
-   */
   private openImportModal(): void {
     const jsonInput = prompt('Cole aqui o código JSON do mapa que deseja carregar:');
     if (!jsonInput) return;
@@ -1012,6 +1156,7 @@ export class MapEditorSystem {
       this.currentMap = parsed;
       MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
       this.renderAllMapEntities();
+      this.updateChecklistStatus();
       this.showToast('Mapa importado com sucesso a partir do JSON!', '#10b981');
     } catch (e) {
       alert('Erro ao interpretar JSON! Certifique-se de que colou o conteúdo válido.');
@@ -1035,7 +1180,6 @@ export class MapEditorSystem {
       z-index: 100000;
       box-shadow: 0 4px 20px rgba(0,0,0,0.6);
       font-family: 'Silkscreen', 'Press Start 2P', monospace;
-      animation: fadeIn 0.2s ease;
     `;
     document.body.appendChild(toast);
     setTimeout(() => {
@@ -1058,6 +1202,24 @@ export class MapEditorSystem {
       display: flex;
       align-items: center;
       gap: 4px;
+    `;
+  }
+
+  private getCategoryTabStyle(isActive: boolean, accentColor: string): string {
+    return `
+      background: ${isActive ? accentColor : '#1e1730'};
+      color: ${isActive ? '#0b090a' : '#cbd5e1'};
+      border: 2px solid ${accentColor};
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Silkscreen', monospace;
+      font-weight: bold;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
     `;
   }
 
@@ -1084,6 +1246,8 @@ export class MapEditorSystem {
     this.coordBadge = undefined;
     this.gridButton = undefined;
     this.activeToolButtons.clear();
+    this.categoryTabButtons.clear();
+    this.dynamicPaletteContainer = undefined;
   }
 
   public destroy(): void {

@@ -1362,64 +1362,110 @@ export class UIScene extends Phaser.Scene {
   /**
    * Exibe frase dramática de Azazel no centro da tela ("AQUI É O MEU MUNDO", "SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ")
    */
-  public showCenterBossPhrase(phrase: string, durationMs: number = 2100): void {
+  public showCenterBossPhrase(phrase: string, durationMs: number = 2200): void {
     const { width, height } = this.scale;
     const container = this.add.container(0, 0);
     container.setDepth(3600);
 
-    const flashBg = this.add.rectangle(width / 2, height / 2, width, 130, 0x050003, 0.88);
-    container.add(flashBg);
+    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+    const fontSize = phrase.length > 26 ? '20px' : '26px';
 
-    const lineTop = this.add.rectangle(width / 2, height / 2 - 65, width, 3, 0xff0044, 0.9);
-    const lineBot = this.add.rectangle(width / 2, height / 2 + 65, width, 3, 0xff0044, 0.9);
-    container.add(lineTop);
-    container.add(lineBot);
-
-    const text = this.add.text(width / 2, height / 2, phrase, {
-      fontFamily: "'Cinzel', Georgia, serif",
-      fontSize: phrase.length > 26 ? '30px' : '42px',
+    // 1. Texto fantasma de choque (expande e desaparece)
+    const shockGhost = this.add.text(width / 2, height / 2, phrase, {
+      fontFamily: pixelFont,
+      fontSize,
       fontStyle: 'bold',
-      color: '#ff1a4b',
-      stroke: '#000000',
+      color: '#ffffff',
+      stroke: '#ff0055',
+      strokeThickness: 6,
+      align: 'center',
+      wordWrap: { width: width - 140 }
+    }).setOrigin(0.5).setAlpha(0.9);
+    container.add(shockGhost);
+
+    this.tweens.add({
+      targets: shockGhost,
+      scaleX: 1.6,
+      scaleY: 1.6,
+      alpha: 0,
+      duration: 380,
+      ease: 'Quad.easeOut',
+      onComplete: () => shockGhost.destroy()
+    });
+
+    // 2. Texto principal em destaque, totalmente sem moldura/fundo
+    const text = this.add.text(width / 2, height / 2, phrase, {
+      fontFamily: pixelFont,
+      fontSize,
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#3b0764',
       strokeThickness: 8,
       align: 'center',
-      wordWrap: { width: width - 120 },
+      wordWrap: { width: width - 140 },
       shadow: {
         offsetX: 0,
         offsetY: 0,
-        color: '#ff0044',
-        blur: 22,
+        color: '#ff0055',
+        blur: 24,
         stroke: true,
         fill: true
       }
-    }).setOrigin(0.5).setScale(0.4);
+    }).setOrigin(0.5).setScale(2.6).setAlpha(0);
     container.add(text);
 
+    // Efeito de partículas/faíscas místicas flutuando ao redor das palavras
+    for (let i = 0; i < 20; i++) {
+      const px = width / 2 + Phaser.Math.Between(-280, 280);
+      const py = height / 2 + Phaser.Math.Between(-35, 35);
+      const spark = this.add.circle(px, py, Phaser.Math.Between(2, 4), Phaser.Math.RND.pick([0xff0055, 0xc084fc, 0x00f5d4]), 0.85);
+      spark.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(spark);
+
+      this.tweens.add({
+        targets: spark,
+        y: spark.y - Phaser.Math.Between(30, 70),
+        alpha: 0,
+        scale: 0.2,
+        duration: Phaser.Math.Between(600, 1400),
+        ease: 'Quad.easeOut',
+        onComplete: () => spark.destroy()
+      });
+    }
+
+    // Impacto do texto: cai da frente para o centro com som e tremor
     SoundManager.getInstance().playStampImpact();
     SoundManager.getInstance().playDialogueVoice('azazel');
+    this.cameras.main.shake(320, 0.024);
 
     this.tweens.add({
       targets: text,
-      scaleX: 1.05,
-      scaleY: 1.05,
-      duration: 280,
-      ease: 'Back.easeOut'
+      scaleX: 1.0,
+      scaleY: 1.0,
+      alpha: 1,
+      duration: 220,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        // Vibração sutil e intimidadora contínua
+        this.tweens.add({
+          targets: text,
+          x: { from: width / 2 - 2, to: width / 2 + 2 },
+          duration: 45,
+          yoyo: true,
+          repeat: Math.floor(durationMs / 55)
+        });
+      }
     });
 
-    this.tweens.add({
-      targets: text,
-      x: { from: width / 2 - 3, to: width / 2 + 3 },
-      duration: 50,
-      yoyo: true,
-      repeat: Math.floor(durationMs / 60)
-    });
-
-    this.time.delayedCall(Math.max(400, durationMs - 260), () => {
+    this.time.delayedCall(Math.max(500, durationMs - 300), () => {
       if (!container.scene) return;
       this.tweens.add({
         targets: container,
         alpha: 0,
-        duration: 250,
+        scaleX: 1.12,
+        scaleY: 1.12,
+        duration: 280,
+        ease: 'Quad.easeOut',
         onComplete: () => container.destroy()
       });
     });

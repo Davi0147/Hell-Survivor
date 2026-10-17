@@ -89,8 +89,8 @@ export class AzazelCrystal extends Phaser.GameObjects.Container {
 
     if (this.progress >= 100) {
       this.isCompleted = true;
-      this.emit('crystal-completed', this);
       this.explodeAndDestroy();
+      this.emit('crystal-completed', this);
     }
   }
 
@@ -157,13 +157,19 @@ export class AzazelCrystal extends Phaser.GameObjects.Container {
     if (this.isDestroyed) return;
     this.isDestroyed = true;
 
+    const currentScene = this.scene;
+    if (!currentScene || !currentScene.cameras || !currentScene.cameras.main) {
+      this.destroy();
+      return;
+    }
+
     SoundManager.getInstance().playEnemyExplosion();
     SoundManager.getInstance().playWeaponEvolve();
-    this.scene.cameras.main.shake(260, 0.014);
-    this.scene.cameras.main.flash(160, 255, 40, 120);
+    currentScene.cameras.main.shake(260, 0.014);
+    currentScene.cameras.main.flash(160, 255, 40, 120);
 
-    if (this.scene.anims.exists('anim-explosion')) {
-      const exp = this.scene.add.sprite(this.x, this.y, 'explosion-1');
+    if (currentScene.anims.exists('anim-explosion')) {
+      const exp = currentScene.add.sprite(this.x, this.y, 'explosion-1');
       exp.setDepth(20);
       exp.setScale(1.1);
       exp.setTint(0xff3388);
@@ -177,11 +183,11 @@ export class AzazelCrystal extends Phaser.GameObjects.Container {
       const color = Phaser.Math.RND.pick([0xff0055, 0xff66aa, 0x00f5d4, 0xffffff]);
       const size = Phaser.Math.Between(4, 8);
 
-      const shard = this.scene.add.rectangle(this.x, this.y, size, size, color);
+      const shard = currentScene.add.rectangle(this.x, this.y, size, size, color);
       shard.setDepth(19);
       shard.setBlendMode(Phaser.BlendModes.ADD);
 
-      this.scene.tweens.add({
+      currentScene.tweens.add({
         targets: shard,
         x: this.x + Math.cos(angle) * speed,
         y: this.y + Math.sin(angle) * speed,
