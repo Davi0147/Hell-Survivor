@@ -63,5 +63,19 @@ Antes de realizar qualquer edição no código ou na documentação:
     - O Bot Autônomo `[F3]` (`AutoPlayTestAgent`) e testes de jogabilidade visual devem ser executados pelo usuário no navegador: solicite o teste, aguarde o retorno com o log gerado e não dê a tarefa como concluída antes desse feedback.
     - Toda tarefa deve reportar o status real de `npm run check`, compilação, atualização do Livro de Anotações e Changelog.
 
-11. **Regra de Conflito (Parada Obrigatória):**
-    - **Se qualquer instrução de uma tarefa conflitar com este arquivo (`AGENTS.md`) ou com `docs/MECHANICS.md`, PARE imediatamente e pergunte ao usuário antes de escrever código.**
+11. **Avaliação de Viabilidade (Obrigatória antes de Implementar):**
+    - Para todo pedido que crie ou mude mecânica, arquitetura, regra, balanceamento ou estilo (exceto ajustes triviais: texto, cor pontual, bug de causa óbvia), ANTES de editar responda com a FICHA e aguarde "ok":
+      1. Objetivo entendido em 1 frase e o que NÃO entendi.
+      2. Viabilidade técnica com evidência (arquivo/linha ou comando), nunca de memória.
+      3. Impacto: arquivos, risco de regressão, performance (`PERFORMANCE_LIMITS`, 60 FPS, mobile), compatibilidade com saves.
+      4. Conflitos com `AGENTS.md`, `docs/MECHANICS.md` ou decisões anteriores.
+      5. Pelo menos 1 alternativa e quando ela é melhor.
+      6. Recomendação: `FAZER` / `FAZER ADAPTADO` / `NÃO FAZER`, com motivo.
+    - Discordar com argumento é obrigação. É proibido elogiar ou aceitar uma ideia sem análise. Se o pedido parecer ruim, diga e proponha caminho melhor; a decisão final é do dono.
+
+12. **Pedido Não É Regra:**
+    - Pedidos do dono são pontuais por padrão. Nada vira regra em `AGENTS.md`/`docs/MECHANICS.md` ou decisão em `docs/DECISIONS.md` sem o dono dizer "registre como regra" e sem você mostrar antes o texto exato.
+    - Decisões em `docs/DECISIONS.md` têm: Status (`Proposta` | `Aceita`), Data, Contexto, Decisão, Motivo (apenas o dito pelo dono ou comprovado no código; senão `"não informado"`), Rever quando. Nunca invente justificativa. Regras podem ser revisadas: substitua marcando a antiga como "Substituída por ...", não apague.
+
+13. **Regra de Conflito (Parada Obrigatória):**
+    - **Se qualquer instrução de uma tarefa conflitar com este arquivo (`AGENTS.md`), com `docs/MECHANICS.md` ou com `docs/DECISIONS.md`, PARE imediatamente e pergunte ao usuário antes de escrever código.**

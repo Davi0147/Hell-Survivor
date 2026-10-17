@@ -107,8 +107,5 @@
 ---
 
 ## 🏛️ 3. Decisões Técnicas e de Design Tomadas (ADR)
-1. **Reembolso de Bênçãos Fixado em 70%:** Confirmado no código de `MetaProgressManager.ts` (`refundBlessings` calcula `Math.floor(totalSpent * 0.70)` devolvendo estritamente 70% das almas gastas).
-2. **Sala de Teste Isolada em `Y = -20000`:** Posicionada fora da arena (`-3200..3200`) para que os manequins pacíficos e efeitos visuais não interfiram no radar, câmera ou combate da partida real.
-3. **Pacto Demoníaco com Nível Único (`maxLevel: 1`):** *(proposta — aguardando confirmação do dono)* Atualmente configurado com nível único em `BLESSINGS_CATALOG` (`costs: [1200]`).
-4. **Cristais de Azazel Gerados Dinamicamente:** *(proposta — aguardando confirmação do dono)* Implementado no código via geração procedural em 3 posições aleatórias ao redor do jogador na Fase 3 (`GameScene.ts` L3051–3067), com o campo fixo `azazelCrystals` em `mapData.ts` mantido como dado morto `@deprecated`.
-5. **Abertura de Câmera no Azazel (`Zoom 1.35x`):** *(proposta — aguardando confirmação do dono)* Implementado via tween suave de `2.0x` para `1.35x` na `GameScene.ts` para ampliar a visão de combate.
+O registro formal de decisões de arquitetura e design foi migrado para [`docs/DECISIONS.md`](docs/DECISIONS.md) conforme estipulado pela Regra 12 de `AGENTS.md`. Consulte esse documento para visualizar o histórico completo de propostas e decisões aceitas.
+
