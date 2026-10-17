@@ -1,5 +1,7 @@
 # Regras de Desenvolvimento, Arquitetura & Workflow — Hell Survivor
 
+> ⚠️ **AVISO DE UNIFICAÇÃO:** Todas as regras deste documento foram consolidadas e ampliadas em **[`AGENTS.md`](../AGENTS.md)** (a fonte única oficial de regras do projeto). Este arquivo é mantido temporariamente para referência histórica e será convertido em link após validação.
+
 Este documento oficializa os padrões técnicos e protocolos obrigatórios que regem o desenvolvimento do **Hell Survivor**.
 
 ---

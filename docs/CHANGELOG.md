@@ -4,6 +4,21 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ---
 
+## [Pacote 0.5 — Refinamento de Documentação & Alinhamento com Código Real] — 2026-10-17
+### Corrigido
+- Corrigida referência de propriedade de mapas em `docs/MECHANICS.md`: `itemSpawners` (e não `itemSpawns`).
+- Corrigidos nomes reais de métodos de áudio de diálogo no `SoundManager`: `playDialogueVoice(speaker)` e `playDialogueTypewriter(char)`.
+- Documentado o comportamento real dos Cristais de Azazel (geração dinâmica em 3 pontos aleatórios ao redor da heroína na Fase 3) e identificado que `azazelCrystals` em `DEFAULT_AZAZEL_DIM_MAP` é dado morto na configuração.
+- Esclarecida a mecânica de geração de altares (Altar de Ascensão `EvolutionAltar` surge dinamicamente por timer na `GameScene`; props `altar-1` no mapa são meras imagens decorativas de cenário).
+- Removidos números mágicos de balanceamento hardcoded em `docs/MECHANICS.md` e `docs/ARCHITECTURE.md`, apontando para suas constantes em `src/config/balance.ts`.
+
+### Atualizado
+- `AGENTS.md` fortalecido com regras adicionais: proibição de novo `any`, honestidade de testes (não simular aprovação), preservação de integridade do Git (proibido force push/tag -f/reset hard), protocolo obrigatório de leitura no início de cada sessão e marcação explícita de `CHAPTER_CONFIG`, `STORAGE_KEYS` e `theme.ts` como *(a criar no Pacote 2)*.
+- `LIVRO_DE_ANOTACOES.md` enriquecido com a restauração de detalhes úteis das 5 abas do Sandbox, efeitos visuais/sonoros de cartas arcanas e scripts de inicialização `.bat`.
+- `docs/DEVELOPMENT_RULES.md` anotado com aviso de consolidação unificada em `AGENTS.md`.
+
+---
+
 ## [Pacote 0 — Baseline & Documentação Arquitetural] — 2026-10-17
 ### Adicionado
 - Criada tag de segurança `baseline-pre-refactor` e branch dedicada `refactor/blindagem`.
