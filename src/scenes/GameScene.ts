@@ -380,40 +380,13 @@ export class GameScene extends Phaser.Scene {
         let dialogueLines: DialogueLine[] = [];
 
         if (this.isRevival) {
-          // Mecânica de Ressurreição Estilo Hades
-          const hasSeenRevival = localStorage.getItem('hell_survivor_has_revived') === 'true';
+          // Mecânica de Ressurreição Estilo Hades com Ódio Crescente a cada morte
+          const deathCount = Math.max(1, MetaProgressManager.getInstance().getStoryDeathCount());
+          dialogueLines = this.getStoryRevivalDialogue(deathCount);
 
-          if (!hasSeenRevival) {
-            try {
-              localStorage.setItem('hell_survivor_has_revived', 'true');
-            } catch {}
-            dialogueLines = [
-              {
-                speaker: 'nixy',
-                speakerName: 'Nixy',
-                portraitKey: 'chat-nixy',
-                text: 'De volta do mundo dos mortos... É claro. Eu já estou morta, seus idiotas!'
-              },
-              {
-                speaker: 'nixy',
-                speakerName: 'Nixy',
-                portraitKey: 'chat-nixy',
-                text: 'Vocês não podem me matar duas vezes! Nem que eu tenha que morrer mil vezes, eu vou sair dessa merda!'
-              }
-            ];
-          } else {
-            dialogueLines = [
-              {
-                speaker: 'nixy',
-                speakerName: 'Nixy',
-                portraitKey: 'chat-nixy',
-                text: 'De volta das cinzas... Podem mandar quantos quiserem, o inferno não vai me segurar aqui!'
-              }
-            ];
-          }
-
-          this.cameras.main.flash(350, 180, 0, 70);
-          this.cameras.main.shake(250, 0.018);
+          const rageIntensity = Math.min(0.032, 0.016 + deathCount * 0.002);
+          this.cameras.main.flash(350 + Math.min(250, deathCount * 25), 180, 0, 70);
+          this.cameras.main.shake(260 + Math.min(200, deathCount * 20), rageIntensity);
         } else {
           // Chegada inicial logo após chutar a mesa e fugir do escritório
           dialogueLines = [
@@ -441,6 +414,202 @@ export class GameScene extends Phaser.Scene {
         });
       });
     }
+  }
+
+  /**
+   * Retorna falas de ressurreição da Nixy com o ódio escalando progressivamente a cada morte no Modo História
+   */
+  private getStoryRevivalDialogue(deathCount: number): DialogueLine[] {
+    if (deathCount <= 1) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'De volta do mundo dos mortos... É claro. Eu já estou morta, seus idiotas!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Vocês não podem me matar duas vezes! Nem que eu tenha que morrer mil vezes, eu vou sair dessa merda!'
+        }
+      ];
+    }
+
+    if (deathCount === 2) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Argh... Minha cabeça... Então é assim que funciona? Eu caio e o purgatório me cospe de volta pro mesmo buraco?!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Ótimo! Porque agora eu tô começando a ficar REALMENTE puta!'
+        }
+      ];
+    }
+
+    if (deathCount === 3) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'De novo essa merda?! Esses desgraçados acham mesmo que vão me vencer pelo cansaço?!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Eu passei mil anos carimbando papel no escuro, seus [CENSURADO]! Teimosia é o meu sobrenome!'
+        }
+      ];
+    }
+
+    if (deathCount === 4) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'CARALHO! Doeu pra cacete dessa vez!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Quem foi o filho da puta que me cercou?! Eu vou arrancar a espinha de cada um de vocês com os dentes!'
+        }
+      ];
+    }
+
+    if (deathCount === 5) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'CINCO VEZES?! Vocês tão de sacanagem comigo?!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Esquece a saída! Agora é pessoal! Eu não vou deixar uma única alma inteira nesse corredor!'
+        }
+      ];
+    }
+
+    if (deathCount === 6) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'EU ODEIO ESSE LUGAR! EU ODEIO ESSES MONSTROS! EU ODEIO A PORRA DO MEU EX-CHEFE!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Saiam da minha frente antes que eu engula vocês vivos, seus lixos do inferno!'
+        }
+      ];
+    }
+
+    if (deathCount === 7) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Meu sangue tá fervendo tanto que até o chão tá derretendo...'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Podem vir em bando, podem vir em mil! Cada vez que eu volto, o meu ódio dobra de tamanho!'
+        }
+      ];
+    }
+
+    if (deathCount === 8) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Hahahaha... Sabe o que é engraçado? Eu nem sinto mais dor. Só vontade de MATAR.'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Vem cá, seus cachorros sarnentos... A titia Nixy trouxe massacre pra todo mundo!'
+        }
+      ];
+    }
+
+    if (deathCount === 9) {
+      return [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'NOVE VEZES NESSE INFERNO! Eu juro que quando eu colocar as mãos no pescoço daqueles engravatados...'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'NADA VAI SOBRAR! NEM AS CINZAS!'
+        }
+      ];
+    }
+
+    // 10+ Mortes: Ódio Máximo Absoluto com variações ferozes
+    const maxRageVariations: DialogueLine[][] = [
+      [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'EU SOU IMORRÍVEL, SEUS [CENSURADO]! O próprio inferno vai pedir arrego antes de eu desistir!'
+        }
+      ],
+      [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'MAIS UMA VEZ! E eu tô com tanto ódio acumulado que vou explodir esse círculo inteiro no soco!'
+        }
+      ],
+      [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'Vocês criaram um monstro quando me deram mais quinhentos anos... AGORA AGUENTEM A PORRA DA CONSEQUÊNCIA!'
+        }
+      ],
+      [
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'SANGUE! EU QUERO VER SANGUE! Ninguém sai vivo dessa arena hoje, ouviram?! NINGUÉM!'
+        }
+      ]
+    ];
+
+    return maxRageVariations[(deathCount - 10) % maxRageVariations.length];
   }
 
   /**
@@ -1412,6 +1581,9 @@ export class GameScene extends Phaser.Scene {
       this.killCount,
       false
     );
+    if (this.gameMode === 'story') {
+      MetaProgressManager.getInstance().recordStoryDeath(this.isBossFightActive ? 'rosalin' : undefined);
+    }
 
     this.physics.pause();
     this.clearCombatSpeechBubbles();
@@ -1559,7 +1731,7 @@ export class GameScene extends Phaser.Scene {
 
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene) {
-      uiScene.showCenterAnnouncement('O ALTAR DE INVOCAÇÃO FOI INVOCADO!', 'SIGA O MARCADOR PARA O CONFRONTO CONTRA A SUCCUBUS');
+      uiScene.showCenterAnnouncement('O ALTAR DE INVOCAÇÃO FOI INVOCADO!', 'SIGA O MARCADOR PARA O CONFRONTO CONTRA ROSALIN');
     }
     DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Invocação ativado! Hordas pausadas, guiando Nixy ao confronto.');
   }
@@ -1616,204 +1788,271 @@ export class GameScene extends Phaser.Scene {
     this.handleBossSummonTriggered();
   }
 
+  /**
+   * Retorna o diálogo de revanche de um Chefe caso o jogador já tenha sido derrotado por ele anteriormente.
+   * Arquitetura padrão de Lore para todos os Chefes do jogo!
+   */
+  private getBossRematchDialogue(bossId: string, deathsToBoss: number): DialogueLine[] {
+    if (bossId === 'rosalin') {
+      if (deathsToBoss === 1) {
+        return [
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Ora, ora... Olha quem voltou rastejando das cinzas. A surra que eu te dei ainda não foi suficiente para colocar você no seu devido lugar, querida?'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Guarda o fôlego, Rosalin. Da última vez eu só estava aquecendo... Agora eu vim pra arrancar a sua cabeça!'
+          }
+        ];
+      }
+
+      if (deathsToBoss === 2) {
+        return [
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Você de novo?! Hahahaha! Confesso que sua humilhação está se tornando o meu passatempo favorito neste círculo.'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Ri bastante enquanto ainda tem dentes na boca, sua [CENSURADO]! Dessa vez você não escapa!'
+          }
+        ];
+      }
+
+      return [
+        {
+          speaker: 'succubus',
+          speakerName: 'Rosalin',
+          portraitKey: 'chat-succubus',
+          text: 'Quantas vezes mais eu vou precisar pisar na sua cara até você entender que jamais vencerá uma superiora, sua funcionáriazinha patética?!'
+        },
+        {
+          speaker: 'nixy',
+          speakerName: 'Nixy',
+          portraitKey: 'chat-nixy',
+          text: 'CALA A BOCA E LUTA! Eu posso morrer mil vezes, mas eu só preciso te matar UMA!'
+        }
+      ];
+    }
+
+    return [];
+  }
+
   private triggerBossDialogueOnly(): void {
-      this.playDialogue([
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Ora, ora, ora... Olha só quem resolveu sair da sua mesinha de escritório.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Nixy!'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'O que aconteceu, querida? Perdeu o emprego ou finalmente perdeu o juízo?'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'Os dois. E adivinha qual dos dois problemas eu vim resolver primeiro?'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Hahaha! Continua com essa boquinha suja, pelo visto.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Vamos facilitar as coisas, querida. Você já causou problemas demais por aqui. Que tal dar meia-volta, retornar ao trabalho e deixar os adultos resolverem essa bagunça?'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'Ow, sua [CENSURADO]! Sai da minha frente antes que eu arranque essas asas de merda e enfie elas no seu [CENSURADO]!'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Nossa! Alguém acordou com o rabinho pegando fogo!'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Sempre soube que você era esquentadinha, mas nunca imaginei que fosse tão desesperada.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Embora... pensando bem, talvez eu devesse ter previsto isso. O chefe sempre teve um talento especial para ignorar as funcionárias problemáticas.'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'Engraçado. Eu sempre achei que ele tivesse um talento especial para promover as [CENSURADO] que dão pra ele.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'C-COMO É QUE É?!'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'Você ouviu, querida. Ou precisa que eu desenhe? Posso até preencher um formulário, se ajudar.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Sua... sua insolente!'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Eu conquistei cada pedaço do poder que tenho! Enquanto você ficava enterrada em papelada, eu estava subindo na hierarquia!'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'Subindo na hierarquia ou subindo no colo do chefe? Porque, sinceramente, com essa sua cara de [CENSURADO], fica difícil distinguir.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Sua inveja é tão patética que chega a ser adorável.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Você passou mil anos rastejando pelos corredores deste inferno, achando que alguém se importava com você. E agora está aqui, fazendo birra porque descobriu que é descartável.'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'E você passou mil anos lambendo as botas de um demônio que nem deve lembrar seu nome quando está de costas.'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'A diferença é que eu sei fazer meu trabalho.'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'Você só sabe abrir as pernas e bater as asas.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: '...'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Muito bem.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Eu ia deixar você voltar para sua insignificante vidinha de funcionária revoltada.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Mas agora...'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Agora vou arrancar cada pedacinho dessa sua arrogância.'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'Vou me deliciar com seu sangue enquanto uso esses chifres ridículos para abrir um buraco tão fundo em você que nem o próprio inferno vai conseguir encontrar o fundo!'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'HAHAHAHAHAHA!'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'Caralho, mulher. Você ensaiou isso na frente do espelho?'
-        },
-        {
-          speaker: 'succubus',
-          speakerName: 'Succubus',
-          portraitKey: 'chat-succubus',
-          text: 'EU VOU MATAR VOCÊ!'
-        },
-        {
-          speaker: 'nixy',
-          speakerName: 'Nixy',
-          portraitKey: 'chat-nixy',
-          text: 'ENTÃO CAI DENTRO, SUA DESGRAÇADA!'
-        }
-      ], () => {
-        this.clearCombatSpeechBubbles();
-        if (!this.bossInstance || !this.bossInstance.active) {
-          this.spawnSuccubusBoss(true, false);
-        } else {
-          // Ativa Rosalin para o combate: ela agora se move, pode levar dano e ataca!
-          this.bossInstance.startCombat();
-          this.startBossCombatBanter();
-        }
-      });
+    const deathsToRosalin = this.gameMode === 'story'
+      ? MetaProgressManager.getInstance().getDeathsToBoss('rosalin')
+      : 0;
+
+    const lines: DialogueLine[] = deathsToRosalin > 0
+      ? this.getBossRematchDialogue('rosalin', deathsToRosalin)
+      : [
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Ora, ora, ora... Olha só quem resolveu sair da sua mesinha de escritório.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Nixy!'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'O que aconteceu, querida? Perdeu o emprego ou finalmente perdeu o juízo?'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Os dois. E adivinha qual dos dois problemas eu vim resolver primeiro?'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Hahaha! Continua com essa boquinha suja, pelo visto.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Vamos facilitar as coisas, querida. Você já causou problemas demais por aqui. Que tal dar meia-volta, retornar ao trabalho e deixar os adultos resolverem essa bagunça?'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Ow, sua [CENSURADO]! Sai da minha frente antes que eu arranque essas asas de merda e enfie elas no seu [CENSURADO]!'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Nossa! Alguém acordou com o rabinho pegando fogo!'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Sempre soube que você era esquentadinha, mas nunca imaginei que fosse tão desesperada.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Embora... pensando bem, talvez eu devesse ter previsto isso. O chefe sempre teve um talento especial para ignorar as funcionárias problemáticas.'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Engraçado. Eu sempre achei que ele tivesse um talento especial para promover as [CENSURADO] que dão pra ele.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'C-COMO É QUE É?!'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Você ouviu, querida. Ou precisa que eu desenhe? Posso até preencher um formulário, se ajudar.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Sua... sua insolente!'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Eu conquistei cada pedaço do poder que tenho! Enquanto você ficava enterrada em papelada, eu estava subindo na hierarquia!'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Subindo na hierarquia ou subindo no colo do chefe? Porque, sinceramente, com essa sua cara de [CENSURADO], fica difícil distinguir.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Sua inveja é tão patética que chega a ser adorável.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Você passou mil anos rastejando pelos corredores deste inferno, achando que alguém se importava com você. E agora está aqui, fazendo birra porque descobriu que é descartável.'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'E você passou mil anos lambendo as botas de um demônio que nem deve lembrar seu nome quando está de costas.'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'A diferença é que eu sei fazer meu trabalho.'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Você só sabe abrir as pernas e bater as asas.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: '...'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Muito bem.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Eu ia deixar você voltar para sua insignificante vidinha de funcionária revoltada.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Mas agora...'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Agora vou arrancar cada pedacinho dessa sua arrogância.'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'Vou me deliciar com seu sangue enquanto uso esses chifres ridículos para abrir um buraco tão fundo em você que nem o próprio inferno vai conseguir encontrar o fundo!'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'HAHAHAHAHAHA!'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'Caralho, mulher. Você ensaiou isso na frente do espelho?'
+          },
+          {
+            speaker: 'succubus',
+            speakerName: 'Rosalin',
+            portraitKey: 'chat-succubus',
+            text: 'EU VOU MATAR VOCÊ!'
+          },
+          {
+            speaker: 'nixy',
+            speakerName: 'Nixy',
+            portraitKey: 'chat-nixy',
+            text: 'ENTÃO CAI DENTRO, SUA DESGRAÇADA!'
+          }
+        ];
+
+    this.playDialogue(lines, () => {
+      this.clearCombatSpeechBubbles();
+      if (!this.bossInstance || !this.bossInstance.active) {
+        this.spawnSuccubusBoss(true, false);
+      } else {
+        // Ativa Rosalin para o combate: ela agora se move, pode levar dano e ataca!
+        this.bossInstance.startCombat();
+        this.startBossCombatBanter();
+      }
+    });
   }
 
   private spawnSuccubusBoss(startBanterImmediate: boolean = true, isCinematicIntro: boolean = false): void {

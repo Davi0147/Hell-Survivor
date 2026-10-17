@@ -10,6 +10,7 @@ export class SoundManager {
   // Gerenciamento de BGM
   private currentBgm?: Phaser.Sound.BaseSound;
   private currentBgmKey?: string;
+  private currentBgmTween?: Phaser.Tweens.Tween;
   private musicVolume: number = 0.10; // Volume padrão das músicas ajustado para 10%
   private sfxVolume: number = 0.60;
 
@@ -190,6 +191,38 @@ export class SoundManager {
 
   private readonly ALL_BGM_KEYS = ['bgm-menu', 'bgm-battle', 'bgm-boss', 'bgm-intro', 'bgm-spooky'];
 
+  /**
+   * Encerra de forma segura qualquer tween ativo de volume de BGM em todas as cenas ativas
+   */
+  private killBgmTweens(): void {
+    if (this.currentBgmTween) {
+      try {
+        this.currentBgmTween.stop();
+        this.currentBgmTween.remove();
+      } catch {}
+      this.currentBgmTween = undefined;
+    }
+
+    if (this.currentBgm) {
+      if (this.scene?.tweens) {
+        try {
+          this.scene.tweens.killTweensOf(this.currentBgm);
+        } catch {}
+      }
+
+      if (this.scene?.game?.scene) {
+        try {
+          const allScenes = this.scene.game.scene.getScenes(true);
+          for (const sc of allScenes) {
+            if (sc && sc.tweens) {
+              sc.tweens.killTweensOf(this.currentBgm);
+            }
+          }
+        } catch {}
+      }
+    }
+  }
+
   private playMusicTrack(key: string, targetVolume: number, fadeInMs: number): void {
     if (!this.scene || !this.scene.sound) return;
 
@@ -210,7 +243,8 @@ export class SoundManager {
       }
     }
 
-    // 2. Destrói o objeto de áudio anterior se existir
+    // 2. Mata qualquer tween ativo e destrói o objeto de áudio anterior se existir
+    this.killBgmTweens();
     if (this.currentBgm) {
       try {
         (this.currentBgm as any).stop();
@@ -231,17 +265,38 @@ export class SoundManager {
         volume: 0
       });
 
+      // Blindagem contra crash de tween "Cannot set properties of null (setting 'volume')" caso o som seja destruído durante fade
+      const soundObj = newBgm as any;
+      const proto = Object.getPrototypeOf(soundObj);
+      const origVolumeDesc = proto ? Object.getOwnPropertyDescriptor(proto, 'volume') : undefined;
+      if (origVolumeDesc && origVolumeDesc.set) {
+        const origSet = origVolumeDesc.set;
+        Object.defineProperty(soundObj, 'volume', {
+          set(val: number) {
+            if (!this.gainNode || !this.audioNode) return;
+            origSet.call(this, val);
+          },
+          get() {
+            return origVolumeDesc.get ? origVolumeDesc.get.call(this) : (this.currentVolume ?? 0);
+          },
+          configurable: true
+        });
+      }
+
       newBgm.play();
       this.currentBgm = newBgm;
       this.currentBgmKey = key;
 
       // Fade-in suave a partir de volume zero
       if (fadeInMs > 0 && this.scene.tweens) {
-        this.scene.tweens.add({
+        this.currentBgmTween = this.scene.tweens.add({
           targets: newBgm,
           volume: targetVolume,
           duration: fadeInMs,
-          ease: 'Linear'
+          ease: 'Linear',
+          onComplete: () => {
+            this.currentBgmTween = undefined;
+          }
         });
       } else {
         (newBgm as any).setVolume(targetVolume);
@@ -256,6 +311,29 @@ export class SoundManager {
    */
   public stopMusic(fadeOutMs: number = 0): void {
     if (!this.scene || !this.scene.sound) return;
+
+    this.killBgmTweens();
+
+    if (fadeOutMs > 0 && this.currentBgm && this.scene.tweens) {
+      const bgmToFade = this.currentBgm;
+      this.currentBgm = undefined;
+      this.currentBgmKey = undefined;
+
+      this.currentBgmTween = this.scene.tweens.add({
+        targets: bgmToFade,
+        volume: 0,
+        duration: fadeOutMs,
+        ease: 'Linear',
+        onComplete: () => {
+          this.currentBgmTween = undefined;
+          try {
+            (bgmToFade as any).stop();
+            (bgmToFade as any).destroy();
+          } catch {}
+        }
+      });
+      return;
+    }
 
     // Interrompe imediatamente todas as faixas de música de fundo
     for (const k of this.ALL_BGM_KEYS) {
@@ -1546,6 +1624,92 @@ export class SoundManager {
     crackGain.connect(this.sfxGainNode || ctx.destination);
     crackOsc.start(now);
     crackOsc.stop(now + 0.32);
+  }
+
+  /**
+   * Som de carimbo/impacto pesado ao colar o título "CAPÍTULO 1 CONCLUÍDO" na tela
+   */
+  public playStampImpact(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Batida grave seca (Sub-thud)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(160, now);
+    subOsc.frequency.exponentialRampToValueAtTime(34, now + 0.18);
+
+    subGain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.21);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGainNode || ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.22);
+
+    // 2. Estalo de impacto na tela (Slap transitório)
+    const slapOsc = ctx.createOscillator();
+    const slapFilter = ctx.createBiquadFilter();
+    const slapGain = ctx.createGain();
+    slapOsc.type = 'triangle';
+    slapOsc.frequency.setValueAtTime(520, now);
+    slapOsc.frequency.exponentialRampToValueAtTime(95, now + 0.09);
+
+    slapFilter.type = 'lowpass';
+    slapFilter.frequency.setValueAtTime(1800, now);
+
+    slapGain.gain.setValueAtTime(0.32 * this.sfxVolume, now);
+    slapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+    slapOsc.connect(slapFilter);
+    slapFilter.connect(slapGain);
+    slapGain.connect(this.sfxGainNode || ctx.destination);
+    slapOsc.start(now);
+    slapOsc.stop(now + 0.12);
+  }
+
+  /**
+   * Som de batida de cada estrela (STAR) na classificação final, subindo o tom a cada estrela
+   */
+  public playStarSlam(starIndex: number = 0): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const pitchMult = 1 + starIndex * 0.10;
+
+    // 1. Impacto físico grave
+    const thudOsc = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    thudOsc.type = 'sine';
+    thudOsc.frequency.setValueAtTime(140 * pitchMult, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+
+    thudGain.gain.setValueAtTime(0.36 * this.sfxVolume, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    thudOsc.connect(thudGain);
+    thudGain.connect(this.sfxGainNode || ctx.destination);
+    thudOsc.start(now);
+    thudOsc.stop(now + 0.17);
+
+    // 2. Brilho metálico estelar (Chime de impacto)
+    const chimeOsc = ctx.createOscillator();
+    const chimeGain = ctx.createGain();
+    chimeOsc.type = 'triangle';
+    chimeOsc.frequency.setValueAtTime(587.33 * pitchMult, now); // D5 escalonado
+    chimeOsc.frequency.exponentialRampToValueAtTime(880 * pitchMult, now + 0.12);
+
+    chimeGain.gain.setValueAtTime(0.24 * this.sfxVolume, now);
+    chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    chimeOsc.connect(chimeGain);
+    chimeGain.connect(this.sfxGainNode || ctx.destination);
+    chimeOsc.start(now);
+    chimeOsc.stop(now + 0.24);
   }
 }
 

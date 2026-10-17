@@ -137,6 +137,9 @@ export class BootScene extends Phaser.Scene {
     this.textures.remove('ult-gauge-bg');
     this.textures.remove('ui-status-hud');
     this.textures.remove('ui-char-name-nixy');
+    this.textures.remove('chat-nixy-damage');
+    this.textures.remove('chat-rosalin-defeated');
+    this.textures.remove('ui-star');
   }
 
   preload(): void {
@@ -398,6 +401,11 @@ export class BootScene extends Phaser.Scene {
 
     // 19. Projétil Ataque de Coração da Succubus (HeartAttack)
     this.load.image('projectile-heart-attack', `assets/sprites/items/HeartAttack.png?t=${cacheBuster}`);
+
+    // 20. Retratos especiais de Visual Novel (Portraits) e Estrela de Classificação (STAR)
+    this.load.image('chat-nixy-damage', `assets/sprites/portraits/Nixy_Damage_Chat.png?t=${cacheBuster}`);
+    this.load.image('chat-rosalin-defeated', `assets/sprites/portraits/Rosalin_Defeated.png?t=${cacheBuster}`);
+    this.load.image('ui-star', `assets/sprites/items/Star.png?t=${cacheBuster}`);
 
     this.load.image('chat-boss', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);
     this.load.image('chat-chefe', `assets/sprites/npcs/Boss.png?t=${cacheBuster}`);

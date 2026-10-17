@@ -171,7 +171,7 @@ export class DialogueSystem {
       return;
     }
 
-    this.lines = lines;
+    this.lines = this.paginateDialogueLines(lines);
     this.currentLineIndex = 0;
     this.onCompleteCallback = onComplete;
     this.currentSpeakerSide = undefined;
@@ -187,6 +187,52 @@ export class DialogueSystem {
 
     this.container.setVisible(true);
     this.displayLine(0);
+  }
+
+  /**
+   * Corta automaticamente palavras/frases que passarem da altura segura da caixa de diálogo
+   * enviando o excedente para a próxima caixa de texto!
+   */
+  private paginateDialogueLines(rawLines: DialogueLine[]): DialogueLine[] {
+    const result: DialogueLine[] = [];
+    const maxTextHeight = 82;
+
+    for (const line of rawLines) {
+      this.dialogueText.setText(line.text);
+      if (this.dialogueText.height <= maxTextHeight) {
+        result.push(line);
+        continue;
+      }
+
+      const tokens = line.text.split(/(\s+)/);
+      let currentChunk = '';
+
+      for (const token of tokens) {
+        const candidate = currentChunk ? currentChunk + token : token.trimStart();
+        if (!candidate) continue;
+
+        this.dialogueText.setText(candidate);
+        if (this.dialogueText.height > maxTextHeight && currentChunk.trim().length > 0) {
+          result.push({
+            ...line,
+            text: currentChunk.trim()
+          });
+          currentChunk = token.trimStart();
+        } else {
+          currentChunk = candidate;
+        }
+      }
+
+      if (currentChunk.trim().length > 0) {
+        result.push({
+          ...line,
+          text: currentChunk.trim()
+        });
+      }
+    }
+
+    this.dialogueText.setText('');
+    return result;
   }
 
   private displayLine(index: number): void {

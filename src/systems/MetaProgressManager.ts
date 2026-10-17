@@ -24,6 +24,8 @@ export interface MetaSaveData {
     highestEndlessTimeSec: number;
     bossesDefeated: number;
     totalSoulsCollected: number;
+    storyDeathCount: number;
+    bossDeaths: Record<string, number>;
   };
 }
 
@@ -242,6 +244,26 @@ export class MetaProgressManager {
     return { ...this.data.stats };
   }
 
+  public recordStoryDeath(bossId?: string): number {
+    this.data.stats.storyDeathCount = (this.data.stats.storyDeathCount || 0) + 1;
+    if (bossId) {
+      if (!this.data.stats.bossDeaths) {
+        this.data.stats.bossDeaths = {};
+      }
+      this.data.stats.bossDeaths[bossId] = (this.data.stats.bossDeaths[bossId] || 0) + 1;
+    }
+    this.save();
+    return this.data.stats.storyDeathCount;
+  }
+
+  public getStoryDeathCount(): number {
+    return this.data.stats.storyDeathCount || 0;
+  }
+
+  public getDeathsToBoss(bossId: string): number {
+    return (this.data.stats.bossDeaths && this.data.stats.bossDeaths[bossId]) || 0;
+  }
+
   // =========================================================================
   // PERSISTÊNCIA (LOCALSTORAGE)
   // =========================================================================
@@ -272,7 +294,9 @@ export class MetaProgressManager {
         totalRuns: 0,
         highestEndlessTimeSec: 0,
         bossesDefeated: 0,
-        totalSoulsCollected: 0
+        totalSoulsCollected: 0,
+        storyDeathCount: 0,
+        bossDeaths: {}
       }
     };
 
@@ -289,7 +313,10 @@ export class MetaProgressManager {
             },
             stats: {
               ...defaultData.stats,
-              ...(parsed.stats || {})
+              ...(parsed.stats || {}),
+              bossDeaths: {
+                ...(parsed.stats?.bossDeaths || {})
+              }
             }
           };
         }

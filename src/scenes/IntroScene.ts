@@ -215,6 +215,7 @@ export class IntroScene extends Phaser.Scene {
 
     // 8. Construir a Lista Completa de Cenas e Diálogos
     this.buildIntroScript();
+    this.paginateIntroSteps();
 
     // 9. Overlay preto de transição (Inicia cobrindo 100% da tela)
     this.blackFadeOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 1.0);
@@ -238,6 +239,52 @@ export class IntroScene extends Phaser.Scene {
         }
       });
     });
+  }
+
+  private paginateIntroSteps(): void {
+    const paginated: IntroStep[] = [];
+    const maxTextHeight = 86;
+
+    for (const step of this.steps) {
+      this.dialogueText.setText(step.text);
+      if (this.dialogueText.height <= maxTextHeight) {
+        paginated.push(step);
+        continue;
+      }
+
+      const tokens = step.text.split(/(\s+)/);
+      let currentChunk = '';
+      let isFirstChunk = true;
+
+      for (const token of tokens) {
+        const candidate = currentChunk ? currentChunk + token : token.trimStart();
+        if (!candidate) continue;
+
+        this.dialogueText.setText(candidate);
+        if (this.dialogueText.height > maxTextHeight && currentChunk.trim().length > 0) {
+          paginated.push({
+            ...step,
+            text: currentChunk.trim(),
+            action: isFirstChunk ? step.action : undefined
+          });
+          isFirstChunk = false;
+          currentChunk = token.trimStart();
+        } else {
+          currentChunk = candidate;
+        }
+      }
+
+      if (currentChunk.trim().length > 0) {
+        paginated.push({
+          ...step,
+          text: currentChunk.trim(),
+          action: isFirstChunk ? step.action : undefined
+        });
+      }
+    }
+
+    this.dialogueText.setText('');
+    this.steps = paginated;
   }
 
   private fitBackground(img: Phaser.GameObjects.Image): void {

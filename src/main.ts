@@ -17,7 +17,8 @@ async function bootstrap() {
     }
   }
 
-  new Phaser.Game(GAME_CONFIG);
+  const game = new Phaser.Game(GAME_CONFIG);
+  (window as any).__PHASER_GAME__ = game;
   initPWAInstallPrompt();
 }
 

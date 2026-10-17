@@ -26,6 +26,14 @@ export class Chapter1EndScene extends Phaser.Scene {
   private bgImageB!: Phaser.GameObjects.Image;
   private isBgAActive: boolean = true;
 
+  // Bustos dos Personagens (Padrão Visual Novel idêntico à Intro)
+  private leftBust!: Phaser.GameObjects.Image;
+  private rightBust!: Phaser.GameObjects.Image;
+  private readonly BUST_W = 430;
+  private readonly BUST_H = 430;
+  private readonly BUST_LEFT_X = 210;
+  private readonly BUST_RIGHT_X = 1070;
+
   // Efeitos de Tela e Câmera
   private blackOverlay!: Phaser.GameObjects.Rectangle;
   private slashGraphics!: Phaser.GameObjects.Graphics;
@@ -54,12 +62,14 @@ export class Chapter1EndScene extends Phaser.Scene {
   private isEnding: boolean = false;
   private isSlashCutPlaying: boolean = false;
   private isWaitingAfterCut: boolean = false;
+  private hasSlashExecuted: boolean = false;
   private lastAdvanceTime: number = 0;
   private currentControlScheme: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
 
-  // Modal de Vitória Pós-Cena
+  // Tela de Vitória Pós-Cena (Sem fundo, alinhada à direita)
   private victoryContainer?: Phaser.GameObjects.Container;
-  private victorySelectedBtnIndex: number = 0;
+  private isVictoryButtonsReady: boolean = false;
+  private victorySelectedBtnIndex: number = 1;
   private victoryButtons: { render: (sel: boolean) => void; onClick: () => void }[] = [];
 
   constructor() {
@@ -74,9 +84,11 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.isEnding = false;
     this.isSlashCutPlaying = false;
     this.isWaitingAfterCut = false;
+    this.hasSlashExecuted = false;
     this.isTyping = false;
     this.currentBgKey = 'endchap1-1';
     this.isBgAActive = true;
+    this.isVictoryButtonsReady = false;
     this.victoryButtons = [];
   }
 
@@ -96,10 +108,24 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.bgImageB = this.add.image(width / 2, height / 2, 'endchap1-1').setDepth(1).setAlpha(0);
     this.fitBackground(this.bgImageB);
 
-    // 2. Gráficos de Corte da Execução
+    // 2. Bustos dos Personagens ao lado do balão (Padrão Visual Novel igual à Intro)
+    // Nixy com sprite Damage UI ('chat-nixy-damage') e Rosalin com 'chat-rosalin-defeated'
+    this.leftBust = this.add.image(this.BUST_LEFT_X, height + 10, 'chat-nixy-damage');
+    this.leftBust.setOrigin(0.5, 1.0);
+    this.leftBust.setDisplaySize(this.BUST_W, this.BUST_H);
+    this.leftBust.setDepth(30);
+    this.leftBust.setAlpha(0);
+
+    this.rightBust = this.add.image(this.BUST_RIGHT_X, height + 10, 'chat-rosalin-defeated');
+    this.rightBust.setOrigin(0.5, 1.0);
+    this.rightBust.setDisplaySize(this.BUST_W, this.BUST_H);
+    this.rightBust.setDepth(30);
+    this.rightBust.setAlpha(0);
+
+    // 3. Gráficos de Corte da Execução
     this.slashGraphics = this.add.graphics().setDepth(45);
 
-    // 3. Overlay preto para escurecimentos e transições
+    // 4. Overlay preto para escurecimentos e transições
     this.blackOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0);
     this.blackOverlay.setDepth(40);
 
@@ -121,7 +147,7 @@ export class Chapter1EndScene extends Phaser.Scene {
       repeat: -1
     });
 
-    // 4. Caixa de Diálogo Visual Novel Persona 5
+    // 5. Caixa de Diálogo Visual Novel Persona 5
     const boxX = (width - this.BOX_W) / 2;
     const boxY = height - this.BOX_H - 24;
 
@@ -143,13 +169,13 @@ export class Chapter1EndScene extends Phaser.Scene {
     }).setOrigin(0, 0);
     this.boxContainer.add(this.nameText);
 
-    this.dialogueText = this.add.text(35, 26, '', {
+    this.dialogueText = this.add.text(35, 24, '', {
       fontFamily: pixelFont,
       fontSize: '17px',
       color: '#f8f9fa',
-      stroke: '#000000',
-      strokeThickness: 2,
-      wordWrap: { width: this.BOX_W - 70, useAdvancedWrap: true },
+      stroke: '#0a0104',
+      strokeThickness: 3,
+      wordWrap: { width: this.BOX_W - 75, useAdvancedWrap: true },
       lineSpacing: 6
     });
     this.boxContainer.add(this.dialogueText);
@@ -171,13 +197,14 @@ export class Chapter1EndScene extends Phaser.Scene {
       repeat: -1
     });
 
-    // 5. Botão de Pular Cena
+    // 6. Botão de Pular Cena
     this.setupSkipButton();
 
-    // 6. Configurar Roteiro da Cena
+    // 7. Configurar Roteiro da Cena e Paginação Automática Anti-Vazamento
     this.setupStorySteps();
+    this.paginateStorySteps();
 
-    // 7. Inputs
+    // 8. Inputs
     this.setupInputs();
 
     // Iniciar Primeiro Diálogo com Fade-in
@@ -202,6 +229,37 @@ export class Chapter1EndScene extends Phaser.Scene {
     const scale = Math.max(width / img.width, height / img.height);
     img.setScale(scale);
     img.setPosition(width / 2, height / 2);
+  }
+
+  /**
+   * Dá o zoom cinematográfico na esquerda da Imagem 5 (onde a Nixy está)
+   * aplicando na própria imagem para não distorcer a interface
+   */
+  private zoomBackgroundLeftOnNixy(duration: number = 1200): void {
+    const { width, height } = this.scale;
+    const activeBg = this.isBgAActive ? this.bgImageA : this.bgImageB;
+    this.tweens.killTweensOf(activeBg);
+
+    const baseScale = Math.max(width / activeBg.width, height / activeBg.height);
+    const targetScale = baseScale * 1.28;
+    const targetX = width / 2 + 165;
+    const targetY = height / 2 - 10;
+
+    if (duration <= 0) {
+      activeBg.setScale(targetScale);
+      activeBg.setPosition(targetX, targetY);
+      return;
+    }
+
+    this.tweens.add({
+      targets: activeBg,
+      scaleX: targetScale,
+      scaleY: targetScale,
+      x: targetX,
+      y: targetY,
+      duration,
+      ease: 'Cubic.easeOut'
+    });
   }
 
   private setupSkipButton(): void {
@@ -277,7 +335,24 @@ export class Chapter1EndScene extends Phaser.Scene {
         this.updateControlPrompts();
       }
 
-      if (this.isEnding || this.isSlashCutPlaying) return;
+      if (this.isEnding) {
+        if (this.isVictoryButtonsReady && this.victoryButtons.length > 0) {
+          if (event.code === 'ArrowLeft' || event.code === 'KeyA' || event.code === 'ArrowUp' || event.code === 'KeyW') {
+            this.victorySelectedBtnIndex = 0;
+            SoundManager.getInstance().playMenuHover();
+            this.renderVictorySelection();
+          } else if (event.code === 'ArrowRight' || event.code === 'KeyD' || event.code === 'ArrowDown' || event.code === 'KeyS') {
+            this.victorySelectedBtnIndex = 1;
+            SoundManager.getInstance().playMenuHover();
+            this.renderVictorySelection();
+          } else if (event.code === 'Space' || event.code === 'Enter') {
+            this.victoryButtons[this.victorySelectedBtnIndex]?.onClick();
+          }
+        }
+        return;
+      }
+
+      if (this.isSlashCutPlaying) return;
 
       if (event.code === 'Escape') {
         this.skipScene();
@@ -339,13 +414,15 @@ export class Chapter1EndScene extends Phaser.Scene {
       }
     }
 
-    // Se o modal de vitória estiver aberto, controla botões pelo gamepad
-    if (this.victoryContainer && this.victoryButtons.length > 0) {
+    // Se as opções de vitória estiverem prontas, controla pelo gamepad
+    if (this.isVictoryButtonsReady && this.victoryButtons.length > 0) {
       if (nav.left || nav.up) {
         this.victorySelectedBtnIndex = 0;
+        SoundManager.getInstance().playMenuHover();
         this.renderVictorySelection();
       } else if (nav.right || nav.down) {
         this.victorySelectedBtnIndex = 1;
+        SoundManager.getInstance().playMenuHover();
         this.renderVictorySelection();
       } else if (nav.confirm) {
         this.victoryButtons[this.victorySelectedBtnIndex]?.onClick();
@@ -453,7 +530,13 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'NÃO! Agora você vai me ouvir!\nPassei séculos acreditando que, se trabalhasse duro o suficiente, se obedecesse a todas as regras imbecis e fizesse tudo exatamente como mandavam, um dia finalmente teria o direito de viver a minha própria vida!'
+        text: 'NÃO! Agora você vai me ouvir!'
+      },
+      {
+        bgKey: 'endchap1-2',
+        speaker: 'nixy',
+        speakerName: 'NIXY',
+        text: 'Passei séculos acreditando que, se trabalhasse duro o suficiente, se obedecesse a todas as regras imbecis e fizesse tudo exatamente como mandavam, um dia finalmente teria o direito de viver a minha própria vida!'
       },
       {
         bgKey: 'endchap1-2',
@@ -481,9 +564,15 @@ export class Chapter1EndScene extends Phaser.Scene {
       },
       {
         bgKey: 'endchap1-2',
+        speaker: 'narrator',
+        speakerName: '',
+        text: '*(Rosalin tenta se levantar, mas suas pernas cedem.)*'
+      },
+      {
+        bgKey: 'endchap1-2',
         speaker: 'rosalin',
         speakerName: 'ROSALIN',
-        text: '*(Rosalin tenta se levantar, mas suas pernas cedem.)*\nPor favor... Volte para lá. Podemos esquecer o que aconteceu aqui. Eu posso tentar conversar com eles, conseguir que reduzam seu tempo aqui...\nAcredite em mim, eu posso ajudar você...'
+        text: 'Por favor... Volte para lá. Podemos esquecer o que aconteceu aqui. Eu posso tentar conversar com eles, conseguir que reduzam seu tempo aqui...\nAcredite em mim, eu posso ajudar você...'
       },
       {
         bgKey: 'endchap1-2',
@@ -509,9 +598,21 @@ export class Chapter1EndScene extends Phaser.Scene {
       },
       {
         bgKey: 'endchap1-2',
+        speaker: 'narrator',
+        speakerName: '',
+        text: '*(Nixy respira fundo. Seus punhos tremem, mas ela não desvia o olhar.)*'
+      },
+      {
+        bgKey: 'endchap1-2',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: '*(Nixy respira fundo. Seus punhos tremem, mas ela não desvia o olhar.)*\nPassei mil anos vivendo a vida que vocês escolheram para mim.\nMil anos obedecendo. Mil anos esperando. Mil anos acreditando que, se fosse uma boa funcionária, alguém finalmente cumpriria a porra da promessa!\n*(Ela se vira e começa a caminhar.)*'
+        text: 'Passei mil anos vivendo a vida que vocês escolheram para mim.\nMil anos obedecendo. Mil anos esperando. Mil anos acreditando que, se fosse uma boa funcionária, alguém finalmente cumpriria a porra da promessa!'
+      },
+      {
+        bgKey: 'endchap1-2',
+        speaker: 'narrator',
+        speakerName: '',
+        text: '*(Ela se vira e começa a caminhar.)*'
       },
 
       // ==================== IMAGEM 3 ====================
@@ -519,13 +620,25 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-3',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Mas acabou.\nA partir de agora, eu faço as minhas próprias regras.\nSe o próximo andar está trancado, eu arrombo a porta.\nSe colocarem guardas no meu caminho, eu passo por cima deles.'
+        text: 'Mas acabou.\nA partir de agora, eu faço as minhas próprias regras.'
       },
       {
         bgKey: 'endchap1-3',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Se os chefes desse inferno acham que podem me manter aqui para sempre...\n*(Nixy olha por cima do ombro, com um sorriso torto.)*\n...então eles que vão ter quinhentos anos de atraso para compensar.\nE eu pretendo cobrar cada segundo.'
+        text: 'Se o próximo andar está trancado, eu arrombo a porta.\nSe colocarem guardas no meu caminho, eu passo por cima deles.'
+      },
+      {
+        bgKey: 'endchap1-3',
+        speaker: 'nixy',
+        speakerName: 'NIXY',
+        text: 'Se os chefes desse inferno acham que podem me manter aqui para sempre...\n*(Nixy olha por cima do ombro, com um sorriso torto.)*'
+      },
+      {
+        bgKey: 'endchap1-3',
+        speaker: 'nixy',
+        speakerName: 'NIXY',
+        text: '...então eles que vão ter quinhentos anos de atraso para compensar.\nE eu pretendo cobrar cada segundo.'
       },
       {
         bgKey: 'endchap1-3',
@@ -539,7 +652,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         bgKey: 'endchap1-4',
         speaker: 'nixy',
         speakerName: 'NIXY',
-        text: 'Argh, sangue de demonio é nojento...\nSerá que meu sangue é assim também?'
+        text: 'Argh, sangue de demônio é nojento...\nSerá que meu sangue é assim também?'
       },
 
       // ==================== IMAGEM 5 ====================
@@ -556,14 +669,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         text: 'Como eu sou foda!',
         action: () => {
           // (camera da um zoom mais pra esquerda da imagem onde ela ta)
-          this.tweens.add({
-            targets: this.cameras.main,
-            zoom: 1.30,
-            scrollX: -140,
-            scrollY: 10,
-            duration: 1200,
-            ease: 'Cubic.easeOut'
-          });
+          this.zoomBackgroundLeftOnNixy(1200);
         }
       },
       {
@@ -575,13 +681,131 @@ export class Chapter1EndScene extends Phaser.Scene {
           // (camera fica escura)
           this.tweens.add({
             targets: this.blackOverlay,
-            alpha: 0.78,
+            alpha: 0.48,
             duration: 900,
             ease: 'Power2'
           });
         }
       }
     ];
+  }
+
+  /**
+   * Garante que nenhuma palavra jamais vaze da caixa de diálogo:
+   * mede a altura real renderizada e corta qualquer excesso para a próxima caixa de texto!
+   */
+  private paginateStorySteps(): void {
+    const paginated: DialogueStep[] = [];
+    const maxTextHeight = 84; // Limite seguro de 3 linhas antes do prompt ESPAÇO ▶
+
+    for (const step of this.steps) {
+      this.dialogueText.setText(step.text);
+      if (this.dialogueText.height <= maxTextHeight) {
+        paginated.push(step);
+        continue;
+      }
+
+      const tokens = step.text.split(/(\s+)/);
+      let currentChunk = '';
+      let isFirstChunk = true;
+
+      for (const token of tokens) {
+        const candidate = currentChunk ? currentChunk + token : token.trimStart();
+        if (!candidate) continue;
+
+        this.dialogueText.setText(candidate);
+        if (this.dialogueText.height > maxTextHeight && currentChunk.trim().length > 0) {
+          paginated.push({
+            ...step,
+            text: currentChunk.trim(),
+            action: isFirstChunk ? step.action : undefined
+          });
+          isFirstChunk = false;
+          currentChunk = token.trimStart();
+        } else {
+          currentChunk = candidate;
+        }
+      }
+
+      if (currentChunk.trim().length > 0) {
+        paginated.push({
+          ...step,
+          text: currentChunk.trim(),
+          action: isFirstChunk ? step.action : undefined
+        });
+      }
+    }
+
+    this.dialogueText.setText('');
+    this.steps = paginated;
+  }
+
+  /**
+   * Atualiza os bustos laterais seguindo o padrão Visual Novel da Intro
+   */
+  private updateBusts(speaker: 'nixy' | 'rosalin' | 'narrator', bgKey: string): void {
+    const { width, height } = this.scale;
+    const isAfterSlash = this.hasSlashExecuted || bgKey === 'endchap1-4' || bgKey === 'endchap1-5';
+
+    if (isAfterSlash) {
+      // Após o corte de execução, Rosalin foi abatida; esconde o busto dela
+      this.tweens.killTweensOf(this.rightBust);
+      this.rightBust.setAlpha(0);
+    }
+
+    if (speaker === 'nixy') {
+      // Destaca Nixy na esquerda (usando o sprite Damage UI)
+      this.leftBust.setTexture('chat-nixy-damage');
+      this.leftBust.setDisplaySize(this.BUST_W, this.BUST_H);
+      this.leftBust.clearTint();
+      this.leftBust.setDepth(35);
+
+      if (this.leftBust.alpha < 0.95) {
+        this.tweens.killTweensOf(this.leftBust);
+        this.leftBust.setPosition(80, height + 10);
+        this.tweens.add({
+          targets: this.leftBust,
+          x: this.BUST_LEFT_X,
+          alpha: 1,
+          duration: 250,
+          ease: 'Back.easeOut'
+        });
+      }
+
+      // Diminui Rosalin se visível antes do corte
+      if (!isAfterSlash && this.rightBust.alpha > 0) {
+        this.rightBust.setTint(0x554455);
+        this.rightBust.setDepth(30);
+      }
+    } else if (speaker === 'rosalin' && !isAfterSlash) {
+      // Destaca Rosalin derrotada na direita
+      this.rightBust.setTexture('chat-rosalin-defeated');
+      this.rightBust.setDisplaySize(this.BUST_W, this.BUST_H);
+      this.rightBust.clearTint();
+      this.rightBust.setDepth(35);
+
+      if (this.rightBust.alpha < 0.95) {
+        this.tweens.killTweensOf(this.rightBust);
+        this.rightBust.setPosition(width - 80, height + 10);
+        this.tweens.add({
+          targets: this.rightBust,
+          x: this.BUST_RIGHT_X,
+          alpha: 1,
+          duration: 250,
+          ease: 'Back.easeOut'
+        });
+      }
+
+      // Diminui Nixy
+      if (this.leftBust.alpha > 0) {
+        this.leftBust.setTint(0x554455);
+        this.leftBust.setDepth(30);
+      }
+    } else {
+      // Narrador: ambos levemente atenuados
+      if (this.leftBust.alpha > 0) this.leftBust.setTint(0x554455);
+      if (!isAfterSlash && this.rightBust.alpha > 0) this.rightBust.setTint(0x554455);
+    }
   }
 
   private startStep(index: number): void {
@@ -613,6 +837,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.boxContainer.setVisible(true);
     this.drawSlantedBox(step.speaker);
     this.drawNameplate(step.speaker, step.speakerName);
+    this.updateBusts(step.speaker, step.bgKey);
 
     if (step.speaker === 'narrator') {
       this.dialogueText.setColor('#ffd8a8');
@@ -628,7 +853,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     // Voz característica do personagem
     SoundManager.getInstance().playDialogueVoice(step.speaker);
 
-    // Efeito de Digitação
+    // Efeito de Digitação com barulho de máquina de escrever em cada letra
     this.fullText = step.text;
     this.displayedText = '';
     this.dialogueText.setText('');
@@ -648,9 +873,7 @@ export class Chapter1EndScene extends Phaser.Scene {
         this.dialogueText.setText(this.displayedText);
         enableCensoredTextHighlight(this.dialogueText);
 
-        if (charIndex % 3 === 0) {
-          SoundManager.getInstance().playDialogueTypewriter(this.fullText[charIndex - 1]);
-        }
+        SoundManager.getInstance().playDialogueTypewriter(this.fullText[charIndex - 1]);
 
         if (charIndex >= this.fullText.length) {
           this.isTyping = false;
@@ -669,7 +892,12 @@ export class Chapter1EndScene extends Phaser.Scene {
    */
   private playSlashExecutionCut(onContinueToNextScene: () => void): void {
     this.isSlashCutPlaying = true;
+    this.hasSlashExecuted = true;
     this.boxContainer.setVisible(false);
+    this.tweens.killTweensOf(this.leftBust);
+    this.tweens.killTweensOf(this.rightBust);
+    this.leftBust.setAlpha(0);
+    this.rightBust.setAlpha(0);
 
     // 1. Tela escurece instantaneamente (Fade to Black)
     this.blackOverlay.setAlpha(1.0);
@@ -911,6 +1139,16 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.boxContainer.setVisible(false);
     this.skipBtnContainer.setVisible(false);
     this.cutPromptText.setVisible(false);
+    this.tweens.killTweensOf(this.leftBust);
+    this.tweens.killTweensOf(this.rightBust);
+    this.leftBust.setAlpha(0);
+    this.rightBust.setAlpha(0);
+
+    // Garante que o fundo final (endchap1-5 com zoom na Nixy à esquerda) esteja posicionado
+    if (this.currentBgKey !== 'endchap1-5') {
+      this.crossfadeBackground('endchap1-5', 0);
+      this.zoomBackgroundLeftOnNixy(0);
+    }
 
     // Grava progresso da partida
     const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
@@ -921,189 +1159,408 @@ export class Chapter1EndScene extends Phaser.Scene {
     );
     this.runStats.soulsEarned = soulsEarned;
 
-    // Fade para o modal de vitória
+    // Escurecimento leve atmosférico mantendo a Nixy visível à esquerda
     this.tweens.add({
       targets: this.blackOverlay,
-      alpha: 0.92,
-      duration: 600,
+      alpha: 0.45,
+      duration: 450,
       onComplete: () => {
-        this.showVictoryModal();
+        this.showVictorySequence();
       }
     });
   }
 
   /**
-   * Tela de Vitória do Capítulo com informações da run e opções de avançar / menu
+   * Calcula a quantidade de estrelas (1 a 5) com base no tempo do Capítulo 1:
+   * <= 7 min (420s): 5 estrelas | <= 8 min: 4 | <= 9 min: 3 | <= 10 min: 2 | > 10 min: 1
    */
-  private showVictoryModal(): void {
+  private calculateChapter1Stars(timeSec: number): number {
+    if (timeSec <= 7 * 60) return 5;
+    if (timeSec <= 8 * 60) return 4;
+    if (timeSec <= 9 * 60) return 3;
+    if (timeSec <= 10 * 60) return 2;
+    return 1;
+  }
+
+  /**
+   * Digita um texto letra por letra com som de máquina de escrever e chama onDone ao concluir
+   */
+  private typeTextLine(
+    textObj: Phaser.GameObjects.Text,
+    fullString: string,
+    charDelayMs: number,
+    onDone: () => void
+  ): void {
+    textObj.setText('');
+    textObj.setVisible(true);
+    let idx = 0;
+
+    if (fullString.length === 0) {
+      onDone();
+      return;
+    }
+
+    this.time.addEvent({
+      delay: charDelayMs,
+      repeat: fullString.length - 1,
+      callback: () => {
+        idx++;
+        textObj.setText(fullString.substring(0, idx));
+        const ch = fullString[idx - 1];
+        SoundManager.getInstance().playDialogueTypewriter(ch);
+
+        if (idx >= fullString.length) {
+          onDone();
+        }
+      }
+    });
+  }
+
+  /**
+   * Sequência de Conclusão do Capítulo 1:
+   * - Sem fundo (apenas tipografia estilizada sobre a cena final)
+   * - Alinhada mais à direita (deixando a Nixy livre à esquerda)
+   * - Título "CAPÍTULO 1 CONCLUÍDO" vem da frente e cola na tela com barulho e tremor
+   * - Estatísticas digitadas uma por uma com barulho de máquina de escrever
+   * - Estrelas (STAR) batendo uma atrás da outra e tremendo a tela
+   * - Opções finais sem fundo algum
+   */
+  private showVictorySequence(): void {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
     this.victoryContainer = this.add.container(0, 0).setDepth(100);
 
-    const panelW = 580;
-    const panelH = 370;
-    const panelX = width / 2;
-    const panelY = height / 2;
+    // Eixo alinhado à direita da tela (deixando o rosto da Nixy livre na esquerda)
+    const rightCenterX = Math.round(width * 0.68); // ~870px em 1280px
+    const titleY = 140;
 
-    const g = this.add.graphics();
-    g.fillStyle(0x14030a, 0.98);
-    g.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(3, 0xf3d17a, 1);
-    g.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(1.5, 0xff0055, 0.6);
-    g.strokeRoundedRect(panelX - panelW / 2 + 5, panelY - panelH / 2 + 5, panelW - 10, panelH - 10, 10);
-    this.victoryContainer.add(g);
-
-    // Título Superior
-    const title = this.add.text(panelX, panelY - 130, 'CAPÍTULO 1 CONCLUÍDO', {
+    // 1. TÍTULO: "CAPÍTULO 1 CONCLUÍDO" (Vem da frente e cola na tela com impacto!)
+    const title = this.add.text(rightCenterX, titleY, 'CAPÍTULO 1 CONCLUÍDO', {
       fontFamily: pixelFont,
-      fontSize: '22px',
+      fontSize: '26px',
       fontStyle: 'bold',
       color: '#ffd60a',
-      stroke: '#4a0e17',
-      strokeThickness: 4
+      stroke: '#000000',
+      strokeThickness: 6,
+      shadow: {
+        offsetX: 0,
+        offsetY: 4,
+        color: '#ff0044',
+        blur: 12,
+        stroke: true,
+        fill: true
+      }
     }).setOrigin(0.5);
+    title.setScale(3.8);
+    title.setAlpha(0);
+    title.setAngle(-4);
     this.victoryContainer.add(title);
 
-    const subtitle = this.add.text(panelX, panelY - 95, 'ROSALIN FOI DERROTADA', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ff7b95',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5);
-    this.victoryContainer.add(subtitle);
+    this.tweens.add({
+      targets: title,
+      scaleX: 1.0,
+      scaleY: 1.0,
+      alpha: 1,
+      angle: 0,
+      duration: 240,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        // Barulhinho de carimbo/batida na tela + tremor
+        SoundManager.getInstance().playStampImpact();
+        this.cameras.main.shake(230, 0.018);
 
-    // Estatísticas da Partida
+        // Onda fantasma de impacto do título
+        const titleGhost = this.add.text(rightCenterX, titleY, 'CAPÍTULO 1 CONCLUÍDO', {
+          fontFamily: pixelFont,
+          fontSize: '26px',
+          fontStyle: 'bold',
+          color: '#ffffff',
+          stroke: '#ffd60a',
+          strokeThickness: 4
+        }).setOrigin(0.5).setDepth(99);
+        this.victoryContainer?.add(titleGhost);
+
+        this.tweens.add({
+          targets: titleGhost,
+          scaleX: 1.35,
+          scaleY: 1.35,
+          alpha: 0,
+          duration: 280,
+          ease: 'Quad.easeOut',
+          onComplete: () => titleGhost.destroy()
+        });
+
+        // 2. Após o impacto do título, digita as estatísticas uma por uma!
+        this.time.delayedCall(320, () => {
+          this.typeStatsSequentially(rightCenterX, pixelFont);
+        });
+      }
+    });
+  }
+
+  private typeStatsSequentially(rightCenterX: number, pixelFont: string): void {
+    if (!this.victoryContainer) return;
+
     const mins = Math.floor(this.runStats.timeSec / 60);
     const secs = this.runStats.timeSec % 60;
     const timeFormatted = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    const soulsInfo = typeof this.runStats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${this.runStats.soulsEarned}` : '';
+    const soulsEarned = this.runStats.soulsEarned ?? 0;
 
-    const statsText = this.add.text(panelX, panelY - 20,
-      `Inimigos Abatidos: ${this.runStats.kills}\nNível Alcançado: ${this.runStats.level}\nTempo de Sobrevivência: ${timeFormatted}\nChefe do Círculo: Rosalin (DERROTADA)${soulsInfo}`, {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      color: '#ffffff',
-      stroke: '#100306',
-      strokeThickness: 2,
-      align: 'center',
-      lineSpacing: 10
-    }).setOrigin(0.5);
-    this.victoryContainer.add(statsText);
+    const statLines = [
+      { text: `NÍVEL: ${this.runStats.level}`, color: '#ffffff', y: 215 },
+      { text: `MONSTROS DERROTADOS: ${this.runStats.kills}`, color: '#ffffff', y: 255 },
+      { text: `ALMAS PEGAS: +${soulsEarned}`, color: '#c084fc', y: 295 },
+      { text: `TEMPO: ${timeFormatted}`, color: '#00f5d4', y: 335 }
+    ];
 
-    // Mensagem de aviso flutuante para Próximo Capítulo
-    const toastNotice = this.add.text(panelX, panelY + 52, '', {
+    const stepStat = (idx: number) => {
+      if (!this.victoryContainer) return;
+      if (idx >= statLines.length) {
+        // Terminou os textos de status -> Inicia a batida das estrelas (STAR)!
+        this.time.delayedCall(220, () => {
+          this.slamStarsSequentially(rightCenterX, 405, pixelFont);
+        });
+        return;
+      }
+
+      const item = statLines[idx];
+      const lineText = this.add.text(rightCenterX, item.y, '', {
+        fontFamily: pixelFont,
+        fontSize: '16px',
+        fontStyle: 'bold',
+        color: item.color,
+        stroke: '#000000',
+        strokeThickness: 5,
+        shadow: {
+          offsetX: 0,
+          offsetY: 3,
+          color: '#000000',
+          blur: 6,
+          stroke: true,
+          fill: true
+        }
+      }).setOrigin(0.5);
+      this.victoryContainer.add(lineText);
+
+      this.typeTextLine(lineText, item.text, 24, () => {
+        this.time.delayedCall(160, () => {
+          stepStat(idx + 1);
+        });
+      });
+    };
+
+    stepStat(0);
+  }
+
+  private slamStarsSequentially(rightCenterX: number, starsY: number, pixelFont: string): void {
+    if (!this.victoryContainer) return;
+
+    const starsEarned = this.calculateChapter1Stars(this.runStats.timeSec);
+    const spacing = 58;
+    const startX = rightCenterX - ((starsEarned - 1) * spacing) / 2;
+
+    const slamNextStar = (starIdx: number) => {
+      if (!this.victoryContainer) return;
+      if (starIdx >= starsEarned) {
+        // Todas as estrelas bateram -> Exibe as opções finais sem fundo!
+        this.time.delayedCall(320, () => {
+          this.showFramelessVictoryOptions(rightCenterX, starsY + 115, pixelFont);
+        });
+        return;
+      }
+
+      const starX = startX + starIdx * spacing;
+
+      // Sombra preta projetada da estrela para contraste
+      const starShadow = this.add.image(starX + 3, starsY + 4, 'ui-star');
+      starShadow.setDisplaySize(46, 46);
+      starShadow.setTint(0x000000);
+      starShadow.setAlpha(0);
+      this.victoryContainer.add(starShadow);
+
+      // Sprite oficial STAR
+      const starSprite = this.add.image(starX, starsY, 'ui-star');
+      starSprite.setTint(0xffd60a);
+      starSprite.setScale(3.4);
+      starSprite.setAlpha(0);
+      starSprite.setAngle(-22);
+      this.victoryContainer.add(starSprite);
+
+      this.tweens.add({
+        targets: starSprite,
+        scaleX: 1.15,
+        scaleY: 1.15,
+        alpha: 1,
+        angle: 0,
+        duration: 170,
+        ease: 'Cubic.easeIn',
+        onComplete: () => {
+          starShadow.setAlpha(0.75);
+
+          // Som de batida da estrela + tremor na tela a cada estrela que bate!
+          SoundManager.getInstance().playStarSlam(starIdx);
+          this.cameras.main.shake(170, 0.012 + starIdx * 0.0025);
+
+          // Efeito fantasma de impacto da estrela
+          const burstStar = this.add.image(starX, starsY, 'ui-star');
+          burstStar.setTint(0xffffff);
+          burstStar.setScale(1.2);
+          burstStar.setAlpha(0.9);
+          this.victoryContainer?.add(burstStar);
+
+          this.tweens.add({
+            targets: burstStar,
+            scaleX: 2.1,
+            scaleY: 2.1,
+            alpha: 0,
+            duration: 240,
+            ease: 'Quad.easeOut',
+            onComplete: () => burstStar.destroy()
+          });
+
+          this.time.delayedCall(190, () => {
+            slamNextStar(starIdx + 1);
+          });
+        }
+      });
+    };
+
+    slamNextStar(0);
+  }
+
+  /**
+   * Exibe as opções "PRÓXIMO CAPÍTULO" e "VOLTAR AO MENU" sem nenhuma forma de fundo,
+   * digitadas com barulho de máquina de escrever!
+   */
+  private showFramelessVictoryOptions(rightCenterX: number, optionsY: number, pixelFont: string): void {
+    if (!this.victoryContainer) return;
+
+    // Aviso flutuante caso clique em Próximo Capítulo
+    const toastNotice = this.add.text(rightCenterX, optionsY - 46, '', {
       fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#f3d17a',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffd60a',
       stroke: '#000000',
-      strokeThickness: 2
+      strokeThickness: 4
     }).setOrigin(0.5).setAlpha(0);
     this.victoryContainer.add(toastNotice);
 
-    // Botões: PRÓXIMO CAPÍTULO e VOLTAR AO MENU
-    const btnW = 220;
-    const btnH = 42;
-    const btnY = panelY + 115;
-    const btn1X = panelX - 125;
-    const btn2X = panelX + 125;
+    const btn1X = rightCenterX - 155;
+    const btn2X = rightCenterX + 155;
 
-    // Botão 1: Próximo Capítulo
-    const btn1Bg = this.add.graphics();
-    const renderBtn1 = (selected: boolean) => {
-      btn1Bg.clear();
-      btn1Bg.fillStyle(selected ? 0x6a040f : 0x370617, 1);
-      btn1Bg.fillRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-      btn1Bg.lineStyle(2, selected ? 0xffd60a : 0x9d0208, 1);
-      btn1Bg.strokeRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-    };
-    renderBtn1(false);
-    this.victoryContainer.add(btn1Bg);
-
-    const btn1Text = this.add.text(btn1X, btnY, 'PRÓXIMO CAPÍTULO', {
+    const btn1Text = this.add.text(btn1X, optionsY, '', {
       fontFamily: pixelFont,
-      fontSize: '11px',
+      fontSize: '15px',
       fontStyle: 'bold',
-      color: '#ffffff',
+      color: '#d8d8e8',
       stroke: '#000000',
-      strokeThickness: 2
+      strokeThickness: 5,
+      shadow: {
+        offsetX: 0,
+        offsetY: 3,
+        color: '#000000',
+        blur: 6,
+        stroke: true,
+        fill: true
+      }
     }).setOrigin(0.5);
     this.victoryContainer.add(btn1Text);
 
-    const btn1Zone = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    this.victoryContainer.add(btn1Zone);
-
-    const handleNextChapter = () => {
-      SoundManager.getInstance().playMenuClick();
-      toastNotice.setText('Capítulo 2 em desenvolvimento nas próximas atualizações!');
-      toastNotice.setAlpha(1);
-      this.tweens.killTweensOf(toastNotice);
-      this.tweens.add({
-        targets: toastNotice,
-        alpha: 0,
-        delay: 2500,
-        duration: 800
-      });
-    };
-
-    btn1Zone.on('pointerover', () => {
-      this.victorySelectedBtnIndex = 0;
-      this.renderVictorySelection();
-    });
-    btn1Zone.on('pointerdown', handleNextChapter);
-
-    // Botão 2: Voltar ao Menu
-    const btn2Bg = this.add.graphics();
-    const renderBtn2 = (selected: boolean) => {
-      btn2Bg.clear();
-      btn2Bg.fillStyle(selected ? 0xff0055 : 0x720012, 1);
-      btn2Bg.fillRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-      btn2Bg.lineStyle(2, selected ? 0xffffff : 0xf3d17a, 1);
-      btn2Bg.strokeRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-    };
-    renderBtn2(false);
-    this.victoryContainer.add(btn2Bg);
-
-    const btn2Text = this.add.text(btn2X, btnY, 'VOLTAR AO MENU', {
+    const btn2Text = this.add.text(btn2X, optionsY, '', {
       fontFamily: pixelFont,
-      fontSize: '11px',
+      fontSize: '15px',
       fontStyle: 'bold',
-      color: '#ffffff',
+      color: '#d8d8e8',
       stroke: '#000000',
-      strokeThickness: 2
+      strokeThickness: 5,
+      shadow: {
+        offsetX: 0,
+        offsetY: 3,
+        color: '#000000',
+        blur: 6,
+        stroke: true,
+        fill: true
+      }
     }).setOrigin(0.5);
     this.victoryContainer.add(btn2Text);
 
-    const btn2Zone = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    this.victoryContainer.add(btn2Zone);
+    // Digita a opção 1 e depois a opção 2 com barulho de máquina de escrever
+    this.typeTextLine(btn1Text, 'PRÓXIMO CAPÍTULO', 22, () => {
+      this.typeTextLine(btn2Text, 'VOLTAR AO MENU', 22, () => {
+        if (!this.victoryContainer) return;
 
-    const handleReturnToMenu = () => {
-      SoundManager.getInstance().playMenuClick();
-      SoundManager.getInstance().stopMusic(800);
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.stop('Chapter1EndScene');
-        this.scene.stop('GameScene');
-        this.scene.stop('UIScene');
-        this.scene.start('MenuScene');
+        const renderBtn1 = (selected: boolean) => {
+          btn1Text.setText(selected ? '▸ PRÓXIMO CAPÍTULO ◂' : 'PRÓXIMO CAPÍTULO');
+          btn1Text.setColor(selected ? '#ffd60a' : '#c8c8d8');
+          btn1Text.setScale(selected ? 1.10 : 1.0);
+        };
+
+        const renderBtn2 = (selected: boolean) => {
+          btn2Text.setText(selected ? '▸ VOLTAR AO MENU ◂' : 'VOLTAR AO MENU');
+          btn2Text.setColor(selected ? '#ff2a55' : '#c8c8d8');
+          btn2Text.setScale(selected ? 1.10 : 1.0);
+        };
+
+        const handleNextChapter = () => {
+          SoundManager.getInstance().playMenuClick();
+          toastNotice.setText('');
+          toastNotice.setAlpha(1);
+          this.tweens.killTweensOf(toastNotice);
+          this.typeTextLine(toastNotice, 'CAPÍTULO 2 EM BREVE NAS PRÓXIMAS ATUALIZAÇÕES!', 18, () => {
+            this.tweens.add({
+              targets: toastNotice,
+              alpha: 0,
+              delay: 2200,
+              duration: 700
+            });
+          });
+        };
+
+        const handleReturnToMenu = () => {
+          SoundManager.getInstance().playMenuClick();
+          SoundManager.getInstance().stopMusic(800);
+          this.cameras.main.fadeOut(500, 0, 0, 0);
+          this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.stop('Chapter1EndScene');
+            this.scene.stop('GameScene');
+            this.scene.stop('UIScene');
+            this.scene.start('MenuScene');
+          });
+        };
+
+        const btn1Zone = this.add.zone(btn1X, optionsY, 260, 44).setInteractive({ useHandCursor: true });
+        this.victoryContainer.add(btn1Zone);
+        btn1Zone.on('pointerover', () => {
+          if (this.victorySelectedBtnIndex !== 0) {
+            SoundManager.getInstance().playMenuHover();
+          }
+          this.victorySelectedBtnIndex = 0;
+          this.renderVictorySelection();
+        });
+        btn1Zone.on('pointerdown', handleNextChapter);
+
+        const btn2Zone = this.add.zone(btn2X, optionsY, 260, 44).setInteractive({ useHandCursor: true });
+        this.victoryContainer.add(btn2Zone);
+        btn2Zone.on('pointerover', () => {
+          if (this.victorySelectedBtnIndex !== 1) {
+            SoundManager.getInstance().playMenuHover();
+          }
+          this.victorySelectedBtnIndex = 1;
+          this.renderVictorySelection();
+        });
+        btn2Zone.on('pointerdown', handleReturnToMenu);
+
+        this.victoryButtons = [
+          { render: renderBtn1, onClick: handleNextChapter },
+          { render: renderBtn2, onClick: handleReturnToMenu }
+        ];
+
+        this.isVictoryButtonsReady = true;
+        this.victorySelectedBtnIndex = 1;
+        this.renderVictorySelection();
       });
-    };
-
-    btn2Zone.on('pointerover', () => {
-      this.victorySelectedBtnIndex = 1;
-      this.renderVictorySelection();
     });
-    btn2Zone.on('pointerdown', handleReturnToMenu);
-
-    this.victoryButtons = [
-      { render: renderBtn1, onClick: handleNextChapter },
-      { render: renderBtn2, onClick: handleReturnToMenu }
-    ];
-
-    this.victorySelectedBtnIndex = 1; // Foco inicial padrão em Voltar ao Menu
-    this.renderVictorySelection();
   }
 }

@@ -137,6 +137,13 @@ export class UIScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
+    this.isPaused = false;
+    this.isChestRouletteOpen = false;
+    this.isGameOverModalOpen = false;
+    this.pauseModalContainer = undefined;
+    this.gameOverModalContainer = undefined;
+    this.lastPauseToggleTime = 0;
+
     // 0. Vinheta de Alerta de Vida Baixa (Depth 200 - acima da HUD e abaixo de modais)
     this.lowHpVignetteGraphics = this.add.graphics();
     this.lowHpVignetteGraphics.setDepth(200);
@@ -377,7 +384,7 @@ export class UIScene extends Phaser.Scene {
     this.bossBarGraphics.setDepth(115);
     this.bossBarGraphics.setVisible(false);
 
-    this.bossNameText = this.add.text(width / 2, 17, 'SUCCUBUS [CHEFE DO CAPÍTULO 1]', {
+    this.bossNameText = this.add.text(width / 2, 17, 'ROSALIN [CHEFE DO CAPÍTULO 1]', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -437,12 +444,18 @@ export class UIScene extends Phaser.Scene {
       });
     }
 
-    // Captura qualquer tecla pressionada para restaurar a legenda para o Teclado
+    // Captura qualquer tecla pressionada para restaurar a legenda para o Teclado e tecla ESC unificada
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown', () => {
         this.wasKeyboardKeyPressed = true;
       });
       this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+      this.keyEsc.on('down', () => {
+        const gs = this.scene.get('GameScene') as any;
+        if (gs && !gs.isGameOver && !gs.isChapterCompleted && !this.scene.isActive('UpgradeScene')) {
+          this.togglePause(gs);
+        }
+      });
     }
 
     // ==========================================
@@ -709,9 +722,6 @@ export class UIScene extends Phaser.Scene {
     const gameScene = this.scene.get('GameScene') as any;
     if (this.isPaused && this.pauseModalContainer) {
       this.updatePauseCursor(delta, gameScene);
-      if (this.keyEsc && Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
-        this.resumeGame(gameScene);
-      }
       return;
     }
 
