@@ -416,7 +416,6 @@ export class BootScene extends Phaser.Scene {
     this.load.image('scenery-ossos', `assets/sprites/items/Pilha%20de%20Ossos.png?t=${cacheBuster}`);
     this.load.image('scenery-rocha', `assets/sprites/items/Rocha.png?t=${cacheBuster}`);
     this.load.image('scenery-rocha-2', `assets/sprites/items/Rocha2.png?t=${cacheBuster}`);
-    this.load.image('scenery-rocha-3', `assets/sprites/items/Rocha3.png?t=${cacheBuster}`);
     this.load.image('scenery-tocha', `assets/sprites/items/Tocha.png?t=${cacheBuster}`);
 
     // 22. Animação da Estrela de Respawn (Pentagrama de Invocação - 6 frames)

@@ -8,7 +8,7 @@ export class PoisonPuddle extends Phaser.GameObjects.Sprite {
   public radiusPx: number;
   public lifespanMs: number;
   public maxLifespanMs: number;
-  public damagePerTick: number = 4;
+  public damagePerTick: number = 5;
   public lastDamageTime: number = 0;
 
   constructor(
@@ -84,7 +84,7 @@ export class MummyEnemy extends BaseEnemy {
     y: number,
     hp: number = 130,
     speed: number = 58,
-    damage: number = 14,
+    damage: number = 15,
     customDrop?: GemType
   ): void {
     super.spawn(x, y, hp, speed, damage);

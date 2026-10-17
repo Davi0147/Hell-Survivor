@@ -29,7 +29,7 @@ export class BloodBat extends BaseEnemy {
     y: number,
     hp: number = 14,
     speed: number = 155,
-    damage: number = 4,
+    damage: number = 5,
     customDrop?: GemType
   ): void {
     super.spawn(x, y, hp, speed, damage);

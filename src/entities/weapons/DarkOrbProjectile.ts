@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Nixy } from '../characters/Nixy';
 
 export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
-  public damage: number = 16;
+  public damage: number = 18;
   private lifespanMs: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -18,7 +18,7 @@ export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  public fire(startX: number, startY: number, angle: number, speed: number = 220, damage: number = 16): void {
+  public fire(startX: number, startY: number, angle: number, speed: number = 220, damage: number = 18): void {
     this.setPosition(startX, startY);
     this.setRotation(angle);
     this.damage = damage;

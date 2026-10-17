@@ -931,7 +931,7 @@ export class GameScene extends Phaser.Scene {
         for (let i = 0; i < 2; i++) {
           const a = Phaser.Math.FloatBetween(0, Math.PI * 2);
           const p = this.clampToArena(this.bossInstance.x + Math.cos(a) * 150, this.bossInstance.y + Math.sin(a) * 150);
-          this.spawnZombieDogAt(p.x, p.y, 45, 95, 10);
+          this.spawnZombieDogAt(p.x, p.y, 45, 95, 11);
         }
         this.spawnBloodBatFlock(3);
       }
@@ -961,7 +961,7 @@ export class GameScene extends Phaser.Scene {
     y: number,
     hp: number = 35,
     speed: number = 85,
-    damage: number = 8,
+    damage: number = 9,
     isElite: boolean = false,
     eliteScale: number = 1.0,
     customDrop?: GemType
@@ -1081,7 +1081,7 @@ export class GameScene extends Phaser.Scene {
     const minutes = this.survivalTimeMs / 60000;
     const hp = Math.floor(14 + (this.gameMode === 'endless' ? minutes * 3 : 0));
     const speed = Math.floor(155 + (this.gameMode === 'endless' ? minutes * 5 : 0));
-    enemy.spawn(x, y, hp, speed, 4);
+    enemy.spawn(x, y, hp, speed, 5);
   }
 
   /**
@@ -1105,7 +1105,7 @@ export class GameScene extends Phaser.Scene {
     y: number,
     hp: number = 130,
     speed: number = 58,
-    damage: number = 14
+    damage: number = 15
   ): void {
     const clamped = this.clampToArena(x, y);
     x = clamped.x;
@@ -1440,7 +1440,7 @@ export class GameScene extends Phaser.Scene {
         const dist = Phaser.Math.Between(320, 440);
         const hp = Math.floor(130 * scaling.hpMultiplier);
         const speed = Math.floor(58 * scaling.speedMultiplier);
-        const dmg = Math.floor(14 * scaling.damageMultiplier);
+        const dmg = Math.floor(15 * scaling.damageMultiplier);
         this.spawnMummyAt(this.player.x + Math.cos(angle) * dist, this.player.y + Math.sin(angle) * dist, hp, speed, dmg);
       }
     }
@@ -1469,12 +1469,12 @@ export class GameScene extends Phaser.Scene {
       if (isElite) {
         const eliteHp = Math.floor(140 * scaling.hpMultiplier);
         const eliteSpeed = Math.floor(90 * scaling.speedMultiplier);
-        const eliteDmg = Math.floor(12 * scaling.damageMultiplier);
+        const eliteDmg = Math.floor(13 * scaling.damageMultiplier);
         this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
       } else {
         const hp = Math.floor(35 * scaling.hpMultiplier);
         const speed = Math.floor(85 * scaling.speedMultiplier);
-        const dmg = Math.floor(8 * scaling.damageMultiplier);
+        const dmg = Math.floor(9 * scaling.damageMultiplier);
         this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
       }
     }
@@ -1494,7 +1494,7 @@ export class GameScene extends Phaser.Scene {
     titan.setDepth(15);
     this.enemiesGroup.add(titan);
 
-    titan.spawn(x, y, 1400, 95, 18, true, 1.85, 'purple');
+    titan.spawn(x, y, 1400, 95, 20, true, 1.85, 'purple');
 
     titan.on('enemy-killed', (ex: number, ey: number) => {
       this.killCount++;
@@ -1524,7 +1524,7 @@ export class GameScene extends Phaser.Scene {
     matriarch.setDepth(21);
     this.enemiesGroup.add(matriarch);
 
-    matriarch.spawn(x, y, 2400, 115, 22, 1.45);
+    matriarch.spawn(x, y, 2400, 115, 24, 1.45);
     matriarch.setTint(0xff758f);
 
     matriarch.on('boss-defeated', () => {
@@ -1555,7 +1555,7 @@ export class GameScene extends Phaser.Scene {
     this.bossInstance.setDepth(25);
     this.enemiesGroup.add(this.bossInstance);
 
-    this.bossInstance.spawn(bossX, bossY, 12000, 135, 36, 1.85);
+    this.bossInstance.spawn(bossX, bossY, 12000, 135, 40, 1.85);
 
     this.cameras.main.flash(300, 255, 0, 85);
     this.cameras.main.shake(400, 0.025);
@@ -1758,12 +1758,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private addSceneryRock(x: number, y: number, variation?: number): void {
-    const rockKeys = ['scenery-rocha', 'scenery-rocha-2', 'scenery-rocha-3'];
+    const rockKeys = ['scenery-rocha', 'scenery-rocha-2'];
     const key = variation !== undefined && rockKeys[variation] ? rockKeys[variation] : rockKeys[Phaser.Math.Between(0, rockKeys.length - 1)];
     const rock = this.add.image(x, y, key);
     rock.setOrigin(0.5, 0.7);
     rock.setDepth(-10); // Decorativo sem colisão: permite trânsito 100% desobstruído para Nixy e monstros
-    rock.setScale(0.85 + Math.random() * 0.25);
+    const baseScale = 0.85 + Math.random() * 0.25;
+    // Rocha 2 aumentada em 50% conforme solicitado (1.5x)
+    const scale = key === 'scenery-rocha-2' ? baseScale * 1.5 : baseScale;
+    rock.setScale(scale);
     this.sceneryProps.push(rock);
   }
 
@@ -1771,20 +1774,21 @@ export class GameScene extends Phaser.Scene {
     const torch = this.add.image(x, y, 'scenery-tocha');
     torch.setOrigin(0.5, 0.7);
     torch.setDepth(-10); // Decorativo sem colisão: evita prender Nixy ou monstros
+    torch.setScale(0.5); // Diminuído pela metade conforme solicitado
     this.sceneryProps.push(torch);
 
     // Halo de Luz Quente e Suave (Âmbar / Dourado) com Pulsação de Chama Crepitando
-    const halo = this.add.image(x, y - 18, 'torch-light');
+    const halo = this.add.image(x, y - 9, 'torch-light');
     halo.setOrigin(0.5, 0.5);
     halo.setDepth(-11);
     halo.setBlendMode(Phaser.BlendModes.ADD);
     halo.setAlpha(0.72);
-    halo.setScale(0.92);
+    halo.setScale(0.46);
 
     this.tweens.add({
       targets: halo,
-      scaleX: { from: 0.88, to: 1.06 },
-      scaleY: { from: 0.88, to: 1.06 },
+      scaleX: { from: 0.44, to: 0.53 },
+      scaleY: { from: 0.44, to: 0.53 },
       alpha: { from: 0.58, to: 0.82 },
       duration: 380 + Math.random() * 220,
       yoyo: true,
@@ -1820,23 +1824,63 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * Instancia agrupamentos temáticos de cenário (rochas variadas, tochas com luz, cogumelos, cristais e ossos abundantes)
+   * com espaçamento defensivo garantido para que nenhum sprite fique colado ou sobreposto.
    */
   private spawnSceneryProps(): void {
+    const placedProps: { x: number; y: number; radius: number }[] = [];
+
+    const placeSafely = (
+      x: number,
+      y: number,
+      radius: number,
+      addCallback: (px: number, py: number) => void
+    ): boolean => {
+      // Garante distância segura entre qualquer elemento para que não fiquem colados
+      for (const p of placedProps) {
+        const dist = Math.hypot(p.x - x, p.y - y);
+        if (dist < p.radius + radius + 18) {
+          return false;
+        }
+      }
+      placedProps.push({ x, y, radius });
+      addCallback(x, y);
+      return true;
+    };
+
+    const placeInArea = (
+      cx: number,
+      cy: number,
+      maxSpread: number,
+      radius: number,
+      addCallback: (px: number, py: number) => void
+    ): boolean => {
+      for (let attempt = 0; attempt < 35; attempt++) {
+        const ang = Math.random() * Math.PI * 2;
+        const r = 40 + Math.random() * maxSpread;
+        const px = cx + Math.cos(ang) * r;
+        const py = cy + Math.sin(ang) * r;
+        if (placeSafely(px, py, radius, addCallback)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     // 1. Santuário das Tochas ao redor do Altar de Invocação (1450, -1200)
     const altarX = 1450;
     const altarY = -1200;
-    this.addSceneryTorch(altarX - 130, altarY + 120);
-    this.addSceneryTorch(altarX + 130, altarY + 120);
-    this.addSceneryCrystal(altarX - 160, altarY - 80);
-    this.addSceneryCrystal(altarX + 160, altarY - 80);
-    this.addSceneryCrystal(altarX - 110, altarY - 140);
-    this.addSceneryCrystal(altarX + 110, altarY - 140);
-    this.addSceneryBones(altarX - 180, altarY + 40);
-    this.addSceneryBones(altarX + 180, altarY + 40);
-    this.addSceneryBones(altarX - 140, altarY + 160);
-    this.addSceneryBones(altarX + 140, altarY + 160);
-    this.addSceneryRock(altarX - 220, altarY - 100, 0);
-    this.addSceneryRock(altarX + 220, altarY - 100, 1);
+    placeSafely(altarX - 140, altarY + 130, 20, (x, y) => this.addSceneryTorch(x, y));
+    placeSafely(altarX + 140, altarY + 130, 20, (x, y) => this.addSceneryTorch(x, y));
+    placeSafely(altarX - 180, altarY - 90, 38, (x, y) => this.addSceneryCrystal(x, y));
+    placeSafely(altarX + 180, altarY - 90, 38, (x, y) => this.addSceneryCrystal(x, y));
+    placeSafely(altarX - 110, altarY - 170, 38, (x, y) => this.addSceneryCrystal(x, y));
+    placeSafely(altarX + 110, altarY - 170, 38, (x, y) => this.addSceneryCrystal(x, y));
+    placeSafely(altarX - 220, altarY + 50, 38, (x, y) => this.addSceneryBones(x, y));
+    placeSafely(altarX + 220, altarY + 50, 38, (x, y) => this.addSceneryBones(x, y));
+    placeSafely(altarX - 150, altarY + 230, 38, (x, y) => this.addSceneryBones(x, y));
+    placeSafely(altarX + 150, altarY + 230, 38, (x, y) => this.addSceneryBones(x, y));
+    placeSafely(altarX - 280, altarY - 120, 40, (x, y) => this.addSceneryRock(x, y, 0));
+    placeSafely(altarX + 280, altarY - 120, 60, (x, y) => this.addSceneryRock(x, y, 1));
 
     // 2. Trilhas de Tochas guiando para áreas estratégicas da arena com rochas e ossos dispersos
     const trailCoords = [
@@ -1850,32 +1894,28 @@ export class GameScene extends Phaser.Scene {
       { x: 800, y: 0 }
     ];
     for (const t of trailCoords) {
-      this.addSceneryTorch(t.x, t.y);
-      this.addSceneryRock(t.x + (Math.random() > 0.5 ? 45 : -45), t.y + (Math.random() > 0.5 ? 30 : -30));
-      this.addSceneryBones(t.x + (Math.random() > 0.5 ? 55 : -55), t.y + (Math.random() > 0.5 ? 45 : -45));
+      placeSafely(t.x, t.y, 20, (x, y) => this.addSceneryTorch(x, y));
+      placeInArea(t.x, t.y, 140, 50, (x, y) => this.addSceneryRock(x, y));
+      placeInArea(t.x, t.y, 160, 38, (x, y) => this.addSceneryBones(x, y));
     }
 
     // 3. Postos Avançados ao redor da clareira central (raio de 450px do centro totalmente limpo)
-    this.addSceneryMushroom(-520, -480);
-    this.addSceneryMushroom(-560, -450);
-    this.addSceneryCrystal(-490, -530);
-    this.addSceneryRock(-580, -520, 2);
+    placeSafely(-520, -450, 38, (x, y) => this.addSceneryMushroom(x, y));
+    placeSafely(-440, -530, 38, (x, y) => this.addSceneryCrystal(x, y));
+    placeSafely(-620, -540, 60, (x, y) => this.addSceneryRock(x, y, 1));
 
-    this.addSceneryCrystal(520, -480);
-    this.addSceneryCrystal(560, -510);
-    this.addSceneryMushroom(490, -440);
-    this.addSceneryRock(580, -520, 1);
+    placeSafely(520, -450, 38, (x, y) => this.addSceneryCrystal(x, y));
+    placeSafely(440, -530, 38, (x, y) => this.addSceneryMushroom(x, y));
+    placeSafely(620, -540, 40, (x, y) => this.addSceneryRock(x, y, 0));
 
-    this.addSceneryBones(-520, 520);
-    this.addSceneryBones(-570, 480);
-    this.addSceneryBones(-540, 550);
-    this.addSceneryRock(-600, 560, 0);
+    placeSafely(-520, 520, 38, (x, y) => this.addSceneryBones(x, y));
+    placeSafely(-610, 450, 38, (x, y) => this.addSceneryBones(x, y));
+    placeSafely(-640, 560, 40, (x, y) => this.addSceneryRock(x, y, 0));
 
-    this.addSceneryMushroom(520, 520);
-    this.addSceneryCrystal(560, 480);
-    this.addSceneryBones(600, 550);
-    this.addSceneryBones(630, 520);
-    this.addSceneryRock(640, 560, 2);
+    placeSafely(520, 520, 38, (x, y) => this.addSceneryMushroom(x, y));
+    placeSafely(610, 480, 38, (x, y) => this.addSceneryCrystal(x, y));
+    placeSafely(540, 620, 38, (x, y) => this.addSceneryBones(x, y));
+    placeSafely(650, 580, 60, (x, y) => this.addSceneryRock(x, y, 1));
 
     // 4. Clusters Temáticos Grandes pelos 4 Quadrantes da Arena (com grande quantidade de ossos)
     const clusterCenters = [
@@ -1908,65 +1948,43 @@ export class GameScene extends Phaser.Scene {
 
     for (const c of clusterCenters) {
       if (c.type === 'nature') {
-        this.addSceneryTorch(c.x, c.y);
-        this.addSceneryRock(c.x + 60, c.y - 40);
+        placeSafely(c.x, c.y, 20, (x, y) => this.addSceneryTorch(x, y));
+        placeInArea(c.x, c.y, 160, 50, (x, y) => this.addSceneryRock(x, y));
         for (let i = 0; i < 5; i++) {
-          const ox = Phaser.Math.Between(-110, 110);
-          const oy = Phaser.Math.Between(-110, 110);
-          this.addSceneryMushroom(c.x + ox, c.y + oy);
+          placeInArea(c.x, c.y, 180, 38, (x, y) => this.addSceneryMushroom(x, y));
         }
         for (let i = 0; i < 3; i++) {
-          const ox = Phaser.Math.Between(-100, 100);
-          const oy = Phaser.Math.Between(-100, 100);
-          this.addSceneryCrystal(c.x + ox, c.y + oy);
+          placeInArea(c.x, c.y, 180, 38, (x, y) => this.addSceneryCrystal(x, y));
         }
-        // Ossos dispersos na vegetação
-        for (let i = 0; i < 3; i++) {
-          const ox = Phaser.Math.Between(-120, 120);
-          const oy = Phaser.Math.Between(-120, 120);
-          this.addSceneryBones(c.x + ox, c.y + oy);
+        for (let i = 0; i < 4; i++) {
+          placeInArea(c.x, c.y, 200, 38, (x, y) => this.addSceneryBones(x, y));
         }
       } else if (c.type === 'crystals') {
-        this.addSceneryRock(c.x - 45, c.y - 30, 1);
-        this.addSceneryRock(c.x + 55, c.y + 40, 2);
+        placeInArea(c.x, c.y, 160, 40, (x, y) => this.addSceneryRock(x, y, 0));
+        placeInArea(c.x, c.y, 180, 60, (x, y) => this.addSceneryRock(x, y, 1));
         for (let i = 0; i < 6; i++) {
-          const ox = Phaser.Math.Between(-120, 120);
-          const oy = Phaser.Math.Between(-120, 120);
-          this.addSceneryCrystal(c.x + ox, c.y + oy);
+          placeInArea(c.x, c.y, 200, 38, (x, y) => this.addSceneryCrystal(x, y));
         }
         for (let i = 0; i < 2; i++) {
-          const ox = Phaser.Math.Between(-90, 90);
-          const oy = Phaser.Math.Between(-90, 90);
-          this.addSceneryMushroom(c.x + ox, c.y + oy);
+          placeInArea(c.x, c.y, 180, 38, (x, y) => this.addSceneryMushroom(x, y));
         }
         for (let i = 0; i < 3; i++) {
-          const ox = Phaser.Math.Between(-110, 110);
-          const oy = Phaser.Math.Between(-110, 110);
-          this.addSceneryBones(c.x + ox, c.y + oy);
+          placeInArea(c.x, c.y, 200, 38, (x, y) => this.addSceneryBones(x, y));
         }
       } else if (c.type === 'graveyard') {
-        // Cemitérios com grande concentração de ossos e pedras variadas
-        this.addSceneryTorch(c.x, c.y);
-        this.addSceneryRock(c.x - 65, c.y + 25, 0);
-        this.addSceneryRock(c.x + 75, c.y - 50, 1);
-        this.addSceneryRock(c.x + 20, c.y + 80, 2);
-
-        // Grande pilha e dispersão de ossos (12 a 15 pilhas por cemitério)
+        placeSafely(c.x, c.y, 20, (x, y) => this.addSceneryTorch(x, y));
+        placeInArea(c.x, c.y, 180, 40, (x, y) => this.addSceneryRock(x, y, 0));
+        placeInArea(c.x, c.y, 200, 60, (x, y) => this.addSceneryRock(x, y, 1));
         for (let i = 0; i < 14; i++) {
-          const ox = Phaser.Math.Between(-140, 140);
-          const oy = Phaser.Math.Between(-140, 140);
-          this.addSceneryBones(c.x + ox, c.y + oy);
+          placeInArea(c.x, c.y, 220, 38, (x, y) => this.addSceneryBones(x, y));
         }
       } else if (c.type === 'rocks') {
-        // Formação rochosa densa com os 3 tipos de pedra, tocha e ossos
-        this.addSceneryRock(c.x - 50, c.y, 0);
-        this.addSceneryRock(c.x + 50, c.y - 20, 1);
-        this.addSceneryRock(c.x, c.y + 55, 2);
-        this.addSceneryTorch(c.x + 10, c.y - 45);
+        placeSafely(c.x, c.y, 20, (x, y) => this.addSceneryTorch(x, y));
+        placeInArea(c.x, c.y, 160, 40, (x, y) => this.addSceneryRock(x, y, 0));
+        placeInArea(c.x, c.y, 180, 60, (x, y) => this.addSceneryRock(x, y, 1));
+        placeInArea(c.x, c.y, 200, 50, (x, y) => this.addSceneryRock(x, y));
         for (let i = 0; i < 6; i++) {
-          const ox = Phaser.Math.Between(-120, 120);
-          const oy = Phaser.Math.Between(-120, 120);
-          this.addSceneryBones(c.x + ox, c.y + oy);
+          placeInArea(c.x, c.y, 200, 38, (x, y) => this.addSceneryBones(x, y));
         }
       }
     }
@@ -2375,7 +2393,7 @@ export class GameScene extends Phaser.Scene {
     this.bossInstance = new SuccubusBoss(this, bossX, bossY);
     this.bossInstance.setDepth(22);
     this.enemiesGroup.add(this.bossInstance);
-    this.bossInstance.spawn(bossX, bossY, 9000, 125, 32, 1.75, isCinematicIntro);
+    this.bossInstance.spawn(bossX, bossY, 9000, 125, 35, 1.75, isCinematicIntro);
 
     this.cameras.main.flash(260, 255, 0, 85);
     this.cameras.main.shake(300, 0.022);
@@ -2714,13 +2732,13 @@ export class GameScene extends Phaser.Scene {
       const sy = this.player.y + Math.sin(angle) * dist;
 
       if (type === 'dog') {
-        this.spawnZombieDogAt(sx, sy, 35, 85, 8);
+        this.spawnZombieDogAt(sx, sy, 35, 85, 9);
       } else if (type === 'elite_dog') {
-        this.spawnZombieDogAt(sx, sy, 180, 96, 14, true, 1.35);
+        this.spawnZombieDogAt(sx, sy, 180, 96, 15, true, 1.35);
       } else if (type === 'slime') {
         this.spawnSkullSlimeAt(sx, sy);
       } else if (type === 'mummy') {
-        this.spawnMummyAt(sx, sy, 130, 58, 14);
+        this.spawnMummyAt(sx, sy, 130, 58, 15);
       }
     }
   }

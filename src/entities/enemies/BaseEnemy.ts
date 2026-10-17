@@ -5,7 +5,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   public maxHp: number = 30;
   public hp: number = 30;
   public speed: number = 75;
-  public damage: number = 10;
+  public damage: number = 11;
   public isDead: boolean = false;
   public stunTimer: number = 0;
 
@@ -24,7 +24,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  public spawn(x: number, y: number, hp: number = 30, speed: number = 75, damage: number = 10): void {
+  public spawn(x: number, y: number, hp: number = 30, speed: number = 75, damage: number = 11): void {
     this.setPosition(x, y);
     this.maxHp = hp;
     this.hp = hp;

@@ -18,8 +18,8 @@ export class SkullSlime extends BaseEnemy {
   private readonly DASH_SPEED = 300;
   private readonly DASH_TRIGGER_DIST = 135;
   private readonly EXPLOSION_RADIUS = 52;
-  private readonly DASH_IMPACT_DAMAGE = 14;
-  private readonly EXPLOSION_DAMAGE = 22;
+  private readonly DASH_IMPACT_DAMAGE = 15;
+  private readonly EXPLOSION_DAMAGE = 24;
 
   public customDrop?: GemType;
 
@@ -39,7 +39,7 @@ export class SkullSlime extends BaseEnemy {
     y: number,
     hp: number = 160,
     speed: number = 46,
-    damage: number = 10,
+    damage: number = 11,
     customDrop?: GemType
   ): void {
     super.spawn(x, y, hp, speed, damage);

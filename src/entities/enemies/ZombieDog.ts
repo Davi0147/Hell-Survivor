@@ -24,7 +24,7 @@ export class ZombieDog extends BaseEnemy {
     y: number,
     hp: number = 35,
     speed: number = 85,
-    damage: number = 8,
+    damage: number = 9,
     isElite: boolean = false,
     eliteScale: number = 1.0,
     customDrop?: GemType

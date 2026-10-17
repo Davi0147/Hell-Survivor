@@ -19,7 +19,7 @@ export class SuccubusBoss extends BaseEnemy {
   public maxHp: number = 9000;
   public hp: number = 9000;
   public speed: number = 125;
-  public damage: number = 32;
+  public damage: number = 35;
   public isBoss: boolean = true;
   public isInvulnerable: boolean = false;
 
@@ -81,7 +81,7 @@ export class SuccubusBoss extends BaseEnemy {
     y: number,
     hp: number = 9000,
     speed: number = 125,
-    damage: number = 32,
+    damage: number = 35,
     customScale: number = 1.75,
     isCinematicIntro: boolean = false
   ): void {
@@ -311,7 +311,7 @@ export class SuccubusBoss extends BaseEnemy {
     // Checa colisão destrutiva com a Nixy durante a investida
     const distToPlayer = Math.hypot(this.x - player.x, this.y - player.y);
     if (distToPlayer <= 44) {
-      player.takeDamage(48); // Dano pesado de investida proporcional
+      player.takeDamage(53); // Dano pesado de investida proporcional
       this.scene.cameras.main.shake(180, 0.018);
       this.endDash();
       return;
@@ -358,7 +358,7 @@ export class SuccubusBoss extends BaseEnemy {
           this.projectilesGroup.add(proj);
         }
 
-        proj.fire(this.x, this.y, baseAngle + offset, 275, 24);
+        proj.fire(this.x, this.y, baseAngle + offset, 275, 26);
       });
     });
   }
@@ -464,7 +464,7 @@ export class SuccubusBoss extends BaseEnemy {
         // Aplicação do dano massivo se a Nixy for pega pelo círculo
         const distToNixy = Math.hypot(tx - player.x, ty - player.y);
         if (distToNixy <= this.SLAM_MAX_RADIUS) {
-          player.takeDamage(70);
+          player.takeDamage(77);
         }
 
         // Fica parada e vulnerável no centro até a recuperação

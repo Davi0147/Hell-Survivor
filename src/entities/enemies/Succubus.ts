@@ -25,7 +25,7 @@ export class Succubus extends BaseEnemy {
     this.maxHp = 85;
     this.hp = 85;
     this.speed = 115; // Mais rápida que o Zombie Dog (85 px/s)
-    this.damage = 16; // Causa o dobro de dano do Zombie Dog (8)
+    this.damage = 18; // Causa dano proporcionalmente superior ao Zombie Dog
     this.setDepth(8); // Voando acima de inimigos terrestres (5), mas abaixo da heroína (20)
 
     // Corpo de colisão focado no torso humanoide (92x92 sprite)
@@ -36,7 +36,7 @@ export class Succubus extends BaseEnemy {
     }
   }
 
-  public spawn(x: number, y: number, hp: number = 85, speed: number = 115, damage: number = 16): void {
+  public spawn(x: number, y: number, hp: number = 85, speed: number = 115, damage: number = 18): void {
     super.spawn(x, y, hp, speed, damage);
     this.currentDir = 'south';
     this.play('succubus-fly-south', true);
