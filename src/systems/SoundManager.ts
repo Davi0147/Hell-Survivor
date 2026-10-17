@@ -55,8 +55,26 @@ export class SoundManager {
     try {
       localStorage.setItem('hell_survivor_bgm_vol', this.musicVolume.toString());
     } catch {}
+
+    // Cancela qualquer tween de fade-in ativo para o ajuste manual ter efeito imediato
+    if (this.currentBgmTween) {
+      try {
+        this.currentBgmTween.stop();
+        this.currentBgmTween.remove();
+      } catch {}
+      this.currentBgmTween = undefined;
+    }
+
     if (this.currentBgm && (this.currentBgm as any).setVolume) {
-      (this.currentBgm as any).setVolume(this.musicVolume);
+      let targetVol = this.musicVolume;
+      if (this.currentBgmKey === 'bgm-boss') {
+        targetVol = this.musicVolume * 1.15;
+      } else if (this.currentBgmKey === 'bgm-intro') {
+        targetVol = Phaser.Math.Clamp(this.musicVolume * 0.50, 0.02, 0.06);
+      } else if (this.currentBgmKey === 'bgm-spooky') {
+        targetVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.06);
+      }
+      (this.currentBgm as any).setVolume(targetVol);
     }
   }
 
@@ -273,11 +291,12 @@ export class SoundManager {
         const origSet = origVolumeDesc.set;
         Object.defineProperty(soundObj, 'volume', {
           set(val: number) {
-            if (!this.gainNode || !this.audioNode) return;
+            // Se o som foi destruído pelo Phaser, volumeNode fica nulo; evita lançar erro
+            if (!this.volumeNode || !this.volumeNode.gain) return;
             origSet.call(this, val);
           },
           get() {
-            return origVolumeDesc.get ? origVolumeDesc.get.call(this) : (this.currentVolume ?? 0);
+            return origVolumeDesc.get ? origVolumeDesc.get.call(this) : (this.volumeNode?.gain?.value ?? this.currentConfig?.volume ?? 0);
           },
           configurable: true
         });

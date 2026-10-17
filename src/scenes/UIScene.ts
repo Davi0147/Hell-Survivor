@@ -82,15 +82,21 @@ export class UIScene extends Phaser.Scene {
   private currentControlScheme: 'keyboard' | 'gamepad' = 'keyboard';
   private wasKeyboardKeyPressed: boolean = false;
 
-  // Cursor Virtual para Gamepad no Menu de Pausa (ESC) e Fim da Jornada
+  // Navegação no Menu de Pausa (ESC / Gamepad / Teclado)
   private pauseZones: Phaser.GameObjects.Zone[] = [];
-  private pauseCursorX: number = 0;
-  private pauseCursorY: number = 0;
-  private pauseCursorGraphics?: Phaser.GameObjects.Graphics;
-  private pauseCursorHintText?: Phaser.GameObjects.Text;
-  private hoveredPauseZone: Phaser.GameObjects.Zone | null = null;
+  private pauseSelectedRow: number = 2; // 0 = BGM, 1 = SFX, 2 = Action Buttons
+  private pauseSelectedActionIdx: number = 0; // 0 = CONTINUAR, 1 = REINICIAR, 2 = MENU
+  private pauseActionBtnRenders: ((h: boolean) => void)[] = [];
+  private pauseActionBtnActions: (() => void)[] = [];
+  private pauseRowIndicators: Phaser.GameObjects.Text[] = [];
+  private updatePauseBgmDisplay?: () => void;
+  private updatePauseSfxDisplay?: () => void;
   private prevPadConfirm: boolean = false;
   private prevPadCancelOrStart: boolean = false;
+  private prevPadUp: boolean = false;
+  private prevPadDown: boolean = false;
+  private prevPadLeft: boolean = false;
+  private prevPadRight: boolean = false;
   private keyEsc?: Phaser.Input.Keyboard.Key;
   private lastPauseToggleTime: number = 0;
 
@@ -718,10 +724,10 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    // 4. Processa navegação por cursor virtual do gamepad caso o jogo esteja pausado no ESC
+    // 4. Processa navegação por gamepad / teclado caso o jogo esteja pausado no ESC
     const gameScene = this.scene.get('GameScene') as any;
     if (this.isPaused && this.pauseModalContainer) {
-      this.updatePauseCursor(delta, gameScene);
+      this.updatePauseControls(delta, gameScene);
       return;
     }
 
@@ -2124,9 +2130,17 @@ export class UIScene extends Phaser.Scene {
 
     this.cleanupPauseCursor();
     this.pauseZones = [];
-    this.hoveredPauseZone = null;
+    this.pauseActionBtnRenders = [];
+    this.pauseActionBtnActions = [];
+    this.pauseRowIndicators = [];
+    this.pauseSelectedRow = 2; // Inicia com foco nos botões de ação (CONTINUAR)
+    this.pauseSelectedActionIdx = 0;
     this.prevPadConfirm = false;
     this.prevPadCancelOrStart = true;
+    this.prevPadUp = false;
+    this.prevPadDown = false;
+    this.prevPadLeft = false;
+    this.prevPadRight = false;
 
     this.pauseModalContainer = this.add.container(0, 0);
     this.pauseModalContainer.setDepth(3500);
@@ -2185,6 +2199,15 @@ export class UIScene extends Phaser.Scene {
 
     // 5. Volume de Música (ao vivo na partida)
     const bgmRowY = panelY - 30;
+    const bgmIndicator = this.add.text(panelX - 118, bgmRowY - 18, '▶', {
+      fontFamily: pixelFont,
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: '#ff7700'
+    }).setOrigin(1, 0.5).setVisible(false);
+    this.pauseModalContainer.add(bgmIndicator);
+    this.pauseRowIndicators.push(bgmIndicator);
+
     const bgmLabel = this.add.text(panelX, bgmRowY - 18, 'VOLUME DA MÚSICA', {
       fontFamily: pixelFont,
       fontSize: '11px',
@@ -2228,18 +2251,20 @@ export class UIScene extends Phaser.Scene {
         bgmBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
       }
 
-      bgmBarGraphics.lineStyle(1.5, 0xc59b27, 0.85);
+      const isSelected = this.pauseSelectedRow === 0;
+      bgmBarGraphics.lineStyle(isSelected ? 2.5 : 1.5, isSelected ? 0xffffff : 0xc59b27, 1);
       bgmBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
     };
+    this.updatePauseBgmDisplay = updateBgmDisplay;
     updateBgmDisplay();
 
-    this.createPauseStepperBtn(panelX - 125, bgmRowY + 10, '-', () => {
+    this.createPauseStepperBtn(panelX - 125, bgmRowY + 10, '-', 0, () => {
       const cur = SoundManager.getInstance().getMusicVolume();
       SoundManager.getInstance().setMusicVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
       updateBgmDisplay();
     });
 
-    this.createPauseStepperBtn(panelX + 112, bgmRowY + 10, '+', () => {
+    this.createPauseStepperBtn(panelX + 112, bgmRowY + 10, '+', 0, () => {
       const cur = SoundManager.getInstance().getMusicVolume();
       SoundManager.getInstance().setMusicVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
       updateBgmDisplay();
@@ -2247,6 +2272,15 @@ export class UIScene extends Phaser.Scene {
 
     // 6. Volume de SFX (ao vivo na partida)
     const sfxRowY = panelY + 40;
+    const sfxIndicator = this.add.text(panelX - 148, sfxRowY - 18, '▶', {
+      fontFamily: pixelFont,
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: '#00f5d4'
+    }).setOrigin(1, 0.5).setVisible(false);
+    this.pauseModalContainer.add(sfxIndicator);
+    this.pauseRowIndicators.push(sfxIndicator);
+
     const sfxLabel = this.add.text(panelX, sfxRowY - 18, 'VOLUME DE EFEITOS (SFX)', {
       fontFamily: pixelFont,
       fontSize: '11px',
@@ -2290,19 +2324,21 @@ export class UIScene extends Phaser.Scene {
         sfxBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
       }
 
-      sfxBarGraphics.lineStyle(1.5, 0xc59b27, 0.85);
+      const isSelected = this.pauseSelectedRow === 1;
+      sfxBarGraphics.lineStyle(isSelected ? 2.5 : 1.5, isSelected ? 0xffffff : 0xc59b27, 1);
       sfxBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
     };
+    this.updatePauseSfxDisplay = updateSfxDisplay;
     updateSfxDisplay();
 
-    this.createPauseStepperBtn(panelX - 125, sfxRowY + 10, '-', () => {
+    this.createPauseStepperBtn(panelX - 125, sfxRowY + 10, '-', 1, () => {
       const cur = SoundManager.getInstance().getSfxVolume();
       SoundManager.getInstance().setSfxVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
       updateSfxDisplay();
       SoundManager.getInstance().playEnemyHit();
     });
 
-    this.createPauseStepperBtn(panelX + 112, sfxRowY + 10, '+', () => {
+    this.createPauseStepperBtn(panelX + 112, sfxRowY + 10, '+', 1, () => {
       const cur = SoundManager.getInstance().getSfxVolume();
       SoundManager.getInstance().setSfxVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
       updateSfxDisplay();
@@ -2346,24 +2382,7 @@ export class UIScene extends Phaser.Scene {
       this.scene.start('MenuScene');
     });
 
-    // 8. Cursor Virtual (Ponto/Mira) para controle com Analógico / Gamepad no Menu de Pausa
-    this.pauseCursorX = width / 2;
-    this.pauseCursorY = height / 2;
-
-    this.pauseCursorGraphics = this.add.graphics();
-    this.pauseCursorGraphics.setDepth(3700);
-
-    this.pauseCursorHintText = this.add.text(this.pauseCursorX + 16, this.pauseCursorY - 12, '[A] SELECIONAR', {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#00f5d4',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0, 0.5).setDepth(3701);
-    this.pauseCursorHintText.setVisible(false);
-
-    this.drawPauseCursor(false);
+    this.updatePauseVisualSelection();
   }
 
   public resumeGame(gameScene: any): void {
@@ -2382,7 +2401,13 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
-  private createPauseStepperBtn(x: number, y: number, symbol: string, onClick: () => void): void {
+  private createPauseStepperBtn(
+    x: number,
+    y: number,
+    symbol: string,
+    rowIndex: number,
+    onClick: () => void
+  ): void {
     if (!this.pauseModalContainer) return;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
@@ -2411,6 +2436,10 @@ export class UIScene extends Phaser.Scene {
 
     zone.on('pointerover', () => {
       render(true);
+      if (this.pauseSelectedRow !== rowIndex) {
+        this.pauseSelectedRow = rowIndex;
+        this.updatePauseVisualSelection();
+      }
       SoundManager.getInstance().playMenuHover();
     });
     zone.on('pointerout', () => render(false));
@@ -2431,18 +2460,9 @@ export class UIScene extends Phaser.Scene {
   ): void {
     if (!this.pauseModalContainer) return;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+    const btnIndex = this.pauseActionBtnRenders.length;
 
     const bg = this.add.graphics();
-    const render = (hover: boolean) => {
-      bg.clear();
-      bg.fillStyle(hover ? borderCol : bgCol, 1);
-      bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 6);
-      bg.lineStyle(1.5, hover ? 0xffffff : borderCol, 1);
-      bg.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 6);
-    };
-    render(false);
-    this.pauseModalContainer.add(bg);
-
     const txt = this.add.text(x, y, label, {
       fontFamily: pixelFont,
       fontSize: '10px',
@@ -2451,22 +2471,36 @@ export class UIScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2
     }).setOrigin(0.5);
+
+    const render = (hover: boolean) => {
+      bg.clear();
+      bg.fillStyle(hover ? borderCol : bgCol, 1);
+      bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 6);
+      bg.lineStyle(hover ? 2.5 : 1.5, hover ? 0xffffff : borderCol, 1);
+      bg.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 6);
+      txt.setColor(hover ? '#000000' : '#ffffff');
+    };
+    render(false);
+    this.pauseModalContainer.add(bg);
     this.pauseModalContainer.add(txt);
+
+    this.pauseActionBtnRenders.push(render);
+    this.pauseActionBtnActions.push(onClick);
 
     const zone = this.add.zone(x, y, w, h);
     zone.setInteractive({ useHandCursor: true });
     this.pauseModalContainer.add(zone);
 
     zone.on('pointerover', () => {
-      render(true);
-      txt.setColor('#000000');
+      this.pauseSelectedRow = 2;
+      this.pauseSelectedActionIdx = btnIndex;
+      this.updatePauseVisualSelection();
       SoundManager.getInstance().playMenuHover();
     });
-    zone.on('pointerout', () => {
-      render(false);
-      txt.setColor('#ffffff');
+    zone.on('pointerdown', () => {
+      SoundManager.getInstance().playMenuClick();
+      onClick();
     });
-    zone.on('pointerdown', () => onClick());
 
     this.pauseZones.push(zone);
   }
@@ -2513,160 +2547,139 @@ export class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Renderiza visualmente o ponto / retículo do cursor virtual para Gamepad
+   * Atualiza a seleção visual do menu de pausa (indicadores de linha, contornos e botões)
    */
-  private drawPauseCursor(isHovering: boolean): void {
-    if (!this.pauseCursorGraphics) return;
-    const g = this.pauseCursorGraphics;
-    g.clear();
+  private updatePauseVisualSelection(): void {
+    // 1. Atualizar indicadores de linha (setas ▶)
+    if (this.pauseRowIndicators && this.pauseRowIndicators.length >= 2) {
+      this.pauseRowIndicators[0].setVisible(this.pauseSelectedRow === 0);
+      this.pauseRowIndicators[1].setVisible(this.pauseSelectedRow === 1);
+    }
 
-    const x = this.pauseCursorX;
-    const y = this.pauseCursorY;
+    // 2. Atualizar contornos visuais das barras de volume
+    if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
+    if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
 
-    if (isHovering) {
-      const pulse = Math.sin(this.time.now * 0.012) * 2;
-      g.lineStyle(2, 0x00f5d4, 0.9);
-      g.strokeCircle(x, y, 14 + pulse);
-
-      g.lineStyle(1.5, 0xffd60a, 0.95);
-      g.lineBetween(x - 18, y, x - 8, y);
-      g.lineBetween(x + 8, y, x + 18, y);
-      g.lineBetween(x, y - 18, x, y - 8);
-      g.lineBetween(x, y + 8, x, y + 18);
-
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(x, y, 4.5);
-    } else {
-      g.lineStyle(2, 0xff0055, 0.85);
-      g.strokeCircle(x, y, 10);
-
-      g.lineStyle(1, 0xff77a9, 0.65);
-      g.lineBetween(x - 13, y, x - 6, y);
-      g.lineBetween(x + 6, y, x + 13, y);
-      g.lineBetween(x, y - 13, x, y - 6);
-      g.lineBetween(x, y + 6, x, y + 13);
-
-      g.fillStyle(0xff0055, 1);
-      g.fillCircle(x, y, 3.5);
-      g.fillStyle(0xffffff, 0.9);
-      g.fillCircle(x, y, 1.5);
+    // 3. Atualizar botões de ação inferiores (Row 2)
+    for (let i = 0; i < this.pauseActionBtnRenders.length; i++) {
+      const isSelected = this.pauseSelectedRow === 2 && this.pauseSelectedActionIdx === i;
+      this.pauseActionBtnRenders[i](isSelected);
     }
   }
 
   /**
-   * Move o cursor virtual pelo analógico/D-Pad, detecta sobreposição com botões e dispara clique com Botão (A)
+   * Processa entrada de Gamepad e Teclado para o Menu de Pausa (Navegação discreta por linhas)
    */
-  private updatePauseCursor(delta: number, gameScene: any): void {
+  private updatePauseControls(_delta: number, gameScene: any): void {
     if (!this.isPaused || !this.pauseModalContainer) return;
 
+    const nav = GamepadManager.getInstance().getMenuNavigation(this);
+    const k = this.input.keyboard;
+    const now = Date.now();
+
+    // 1. Fechar Pausa / Retomar (ESC no teclado, B ou Start no Gamepad)
+    const escPressed = Boolean(k && Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.ESC)));
     const pad = GamepadManager.getInstance().getActivePad(this);
-    if (!pad) {
-      if (this.pauseCursorGraphics) this.pauseCursorGraphics.setVisible(false);
-      if (this.pauseCursorHintText) this.pauseCursorHintText.setVisible(false);
-      return;
-    }
-
-    const deadzone = 0.18;
-    let stickX = pad.leftStick.x;
-    let stickY = pad.leftStick.y;
-    if (Math.abs(stickX) < deadzone) stickX = 0;
-    if (Math.abs(stickY) < deadzone) stickY = 0;
-
-    let dpadX = 0;
-    let dpadY = 0;
-    if (pad.left) dpadX -= 1;
-    if (pad.right) dpadX += 1;
-    if (pad.up) dpadY -= 1;
-    if (pad.down) dpadY += 1;
-
-    let moveX = dpadX !== 0 ? dpadX : stickX;
-    let moveY = dpadY !== 0 ? dpadY : stickY;
-
-    const mag = Math.hypot(moveX, moveY);
-    if (mag > 1) {
-      moveX /= mag;
-      moveY /= mag;
-    }
-
-    const speed = 540;
-    const dt = delta / 1000;
-    this.pauseCursorX += moveX * speed * dt;
-    this.pauseCursorY += moveY * speed * dt;
-
-    const { width, height } = this.scale;
-    this.pauseCursorX = Phaser.Math.Clamp(this.pauseCursorX, 20, width - 20);
-    this.pauseCursorY = Phaser.Math.Clamp(this.pauseCursorY, 20, height - 20);
-
-    if (this.pauseCursorGraphics) this.pauseCursorGraphics.setVisible(true);
-
-    let foundZone: Phaser.GameObjects.Zone | null = null;
-    for (const zone of this.pauseZones) {
-      if (!zone.active || !zone.visible) continue;
-      const hw = zone.width / 2;
-      const hh = zone.height / 2;
-      if (
-        this.pauseCursorX >= zone.x - hw &&
-        this.pauseCursorX <= zone.x + hw &&
-        this.pauseCursorY >= zone.y - hh &&
-        this.pauseCursorY <= zone.y + hh
-      ) {
-        foundZone = zone;
-        break;
-      }
-    }
-
-    const isHovering = foundZone !== null;
-    if (foundZone !== this.hoveredPauseZone) {
-      if (this.hoveredPauseZone) {
-        try { this.hoveredPauseZone.emit('pointerout'); } catch {}
-      }
-      this.hoveredPauseZone = foundZone;
-      if (this.hoveredPauseZone) {
-        try { this.hoveredPauseZone.emit('pointerover'); } catch {}
-      }
-    }
-
-    this.drawPauseCursor(isHovering);
-
-    if (this.pauseCursorHintText) {
-      if (isHovering) {
-        this.pauseCursorHintText.setVisible(true);
-        this.pauseCursorHintText.setPosition(this.pauseCursorX + 16, this.pauseCursorY - 12);
-      } else {
-        this.pauseCursorHintText.setVisible(false);
-      }
-    }
-
-    const isPadAPressed = Boolean(
-      pad.A ||
-      (pad.buttons[0] && pad.buttons[0].pressed)
-    );
-    const justDownA = isPadAPressed && !this.prevPadConfirm;
-    this.prevPadConfirm = isPadAPressed;
-
-    if (justDownA && this.hoveredPauseZone) {
-      try {
-        this.hoveredPauseZone.emit('pointerdown');
-      } catch {}
-    }
-
-    const isPadBPressed = Boolean(
-      pad.B ||
-      (pad.buttons[1] && pad.buttons[1].pressed)
-    );
-    const isPadStartPressed = Boolean(
+    const padStartCurrent = Boolean(pad && (
       (pad.buttons[9] && pad.buttons[9].pressed) ||
       (pad.buttons[8] && pad.buttons[8].pressed)
-    );
-    if (isPadBPressed || isPadStartPressed) {
-      if (!this.prevPadCancelOrStart) {
-        this.prevPadCancelOrStart = true;
-        if (gameScene) {
-          this.resumeGame(gameScene);
-        }
+    ));
+    const padStartJustDown = padStartCurrent && !this.prevPadCancelOrStart;
+    this.prevPadCancelOrStart = padStartCurrent;
+
+    if (escPressed || nav.cancel || padStartJustDown) {
+      if (now - this.lastPauseToggleTime > 250) {
+        this.lastPauseToggleTime = now;
+        this.resumeGame(gameScene);
+        return;
       }
-    } else {
-      this.prevPadCancelOrStart = false;
+    }
+
+    // 2. Direções Verticais (Mudar Linha: 0 = BGM, 1 = SFX, 2 = Ações)
+    const upPressed = nav.up || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.UP)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.W))
+    ));
+    const downPressed = nav.down || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.S))
+    ));
+
+    if (upPressed && this.pauseSelectedRow > 0) {
+      this.pauseSelectedRow--;
+      SoundManager.getInstance().playMenuHover();
+      this.updatePauseVisualSelection();
+    } else if (downPressed && this.pauseSelectedRow < 2) {
+      this.pauseSelectedRow++;
+      SoundManager.getInstance().playMenuHover();
+      this.updatePauseVisualSelection();
+    }
+
+    // 3. Direções Horizontais (Ajustar Volume ou Mudar Botão de Ação)
+    const leftPressed = nav.left || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.A))
+    ));
+    const rightPressed = nav.right || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.D))
+    ));
+
+    if (this.pauseSelectedRow === 0) {
+      // Ajuste de Volume de Música
+      if (leftPressed) {
+        const cur = SoundManager.getInstance().getMusicVolume();
+        const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
+        SoundManager.getInstance().setMusicVolume(next);
+        if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
+        SoundManager.getInstance().playMenuHover();
+      } else if (rightPressed) {
+        const cur = SoundManager.getInstance().getMusicVolume();
+        const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
+        SoundManager.getInstance().setMusicVolume(next);
+        if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
+        SoundManager.getInstance().playMenuHover();
+      }
+    } else if (this.pauseSelectedRow === 1) {
+      // Ajuste de Volume de Efeitos (SFX)
+      if (leftPressed) {
+        const cur = SoundManager.getInstance().getSfxVolume();
+        const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
+        SoundManager.getInstance().setSfxVolume(next);
+        if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
+        SoundManager.getInstance().playEnemyHit();
+      } else if (rightPressed) {
+        const cur = SoundManager.getInstance().getSfxVolume();
+        const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
+        SoundManager.getInstance().setSfxVolume(next);
+        if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
+        SoundManager.getInstance().playEnemyHit();
+      }
+    } else if (this.pauseSelectedRow === 2) {
+      // Navegação entre botões de ação (0 = CONTINUAR, 1 = REINICIAR, 2 = MENU)
+      if (leftPressed) {
+        this.pauseSelectedActionIdx = (this.pauseSelectedActionIdx - 1 + 3) % 3;
+        SoundManager.getInstance().playMenuHover();
+        this.updatePauseVisualSelection();
+      } else if (rightPressed) {
+        this.pauseSelectedActionIdx = (this.pauseSelectedActionIdx + 1) % 3;
+        SoundManager.getInstance().playMenuHover();
+        this.updatePauseVisualSelection();
+      }
+    }
+
+    // 4. Confirmação (Enter / Espaço / Botão A do Gamepad)
+    const confirmPressed = nav.confirm || Boolean(k && (
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)) ||
+      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))
+    ));
+
+    if (confirmPressed) {
+      if (this.pauseSelectedRow === 2) {
+        SoundManager.getInstance().playMenuClick();
+        const action = this.pauseActionBtnActions[this.pauseSelectedActionIdx];
+        if (action) action();
+      }
     }
   }
 
@@ -2727,21 +2740,14 @@ export class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Limpa referências, eventos e objetos do cursor virtual de pausa
+   * Limpa referências e listas de navegação do menu de pausa
    */
   private cleanupPauseCursor(): void {
-    if (this.hoveredPauseZone) {
-      try { this.hoveredPauseZone.emit('pointerout'); } catch {}
-      this.hoveredPauseZone = null;
-    }
     this.pauseZones = [];
-    if (this.pauseCursorGraphics) {
-      this.pauseCursorGraphics.destroy();
-      this.pauseCursorGraphics = undefined;
-    }
-    if (this.pauseCursorHintText) {
-      this.pauseCursorHintText.destroy();
-      this.pauseCursorHintText = undefined;
-    }
+    this.pauseActionBtnRenders = [];
+    this.pauseActionBtnActions = [];
+    this.pauseRowIndicators = [];
+    this.updatePauseBgmDisplay = undefined;
+    this.updatePauseSfxDisplay = undefined;
   }
 }
