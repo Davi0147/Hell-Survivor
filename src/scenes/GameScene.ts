@@ -80,9 +80,8 @@ export class GameScene extends Phaser.Scene {
   private playerInvulnerableTimer: number = 0;
   public poisonPuddles: any[] = [];
 
-  // Elementos de Cenário e Fumaça nas Bordas
-  private sceneryColliders!: Phaser.Physics.Arcade.StaticGroup;
-  private sceneryProps: (Phaser.GameObjects.GameObject | Phaser.Physics.Arcade.Sprite)[] = [];
+  // Elementos de Cenário e Fumaça nas Bordas (100% sem colisão física para movimentação fluida)
+  private sceneryProps: Phaser.GameObjects.GameObject[] = [];
   private borderMistEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
   private lastMistCheckTime: number = 0;
 
@@ -177,9 +176,7 @@ export class GameScene extends Phaser.Scene {
     // 3.2. Desenha o abismo e a bruma mística nas bordas da arena
     this.drawArenaBorders();
 
-    // 3.3. Instancia os Obstáculos Físicos e Elementos Decorativos de Cenário
-    this.sceneryColliders = this.physics.add.staticGroup();
-    this.physics.add.collider(this.player, this.sceneryColliders);
+    // 3.3. Instancia os Elementos Decorativos de Cenário (sem colisão física para trânsito livre de Nixy e monstros)
     this.spawnSceneryProps();
 
     // 3.4. Instancia o Altar de Invocação do Chefe (inicialmente inativo no mapa)
@@ -255,7 +252,6 @@ export class GameScene extends Phaser.Scene {
       classType: BaseEnemy,
       runChildUpdate: false
     });
-    this.physics.add.collider(this.enemiesGroup, this.sceneryColliders);
 
     this.gemsGroup = this.add.group({
       classType: SoulGem,
@@ -1761,35 +1757,26 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private addSceneryRock(x: number, y: number): void {
-    const rock = this.sceneryColliders.create(x, y, 'scenery-rocha') as Phaser.Physics.Arcade.Sprite;
+  private addSceneryRock(x: number, y: number, variation?: number): void {
+    const rockKeys = ['scenery-rocha', 'scenery-rocha-2', 'scenery-rocha-3'];
+    const key = variation !== undefined && rockKeys[variation] ? rockKeys[variation] : rockKeys[Phaser.Math.Between(0, rockKeys.length - 1)];
+    const rock = this.add.image(x, y, key);
     rock.setOrigin(0.5, 0.7);
-    rock.setDepth(12);
-    const body = rock.body as Phaser.Physics.Arcade.StaticBody;
-    if (body) {
-      body.setSize(36, 24);
-      body.setOffset(22, 50);
-      body.updateFromGameObject();
-    }
+    rock.setDepth(-10); // Decorativo sem colisão: permite trânsito 100% desobstruído para Nixy e monstros
+    rock.setScale(0.85 + Math.random() * 0.25);
     this.sceneryProps.push(rock);
   }
 
   private addSceneryTorch(x: number, y: number): void {
-    const torch = this.sceneryColliders.create(x, y, 'scenery-tocha') as Phaser.Physics.Arcade.Sprite;
+    const torch = this.add.image(x, y, 'scenery-tocha');
     torch.setOrigin(0.5, 0.7);
-    torch.setDepth(12);
-    const body = torch.body as Phaser.Physics.Arcade.StaticBody;
-    if (body) {
-      body.setSize(20, 16);
-      body.setOffset(30, 60);
-      body.updateFromGameObject();
-    }
+    torch.setDepth(-10); // Decorativo sem colisão: evita prender Nixy ou monstros
     this.sceneryProps.push(torch);
 
     // Halo de Luz Quente e Suave (Âmbar / Dourado) com Pulsação de Chama Crepitando
     const halo = this.add.image(x, y - 18, 'torch-light');
     halo.setOrigin(0.5, 0.5);
-    halo.setDepth(11);
+    halo.setDepth(-11);
     halo.setBlendMode(Phaser.BlendModes.ADD);
     halo.setAlpha(0.72);
     halo.setScale(0.92);
@@ -1827,12 +1814,12 @@ export class GameScene extends Phaser.Scene {
     const bones = this.add.image(x, y, 'scenery-ossos');
     bones.setOrigin(0.5, 0.65);
     bones.setDepth(-15);
-    bones.setScale(0.85 + Math.random() * 0.25);
+    bones.setScale(0.80 + Math.random() * 0.35);
     this.sceneryProps.push(bones);
   }
 
   /**
-   * Instancia agrupamentos temáticos de cenário (rochas, tochas com luz, cogumelos, cristais e ossos)
+   * Instancia agrupamentos temáticos de cenário (rochas variadas, tochas com luz, cogumelos, cristais e ossos abundantes)
    */
   private spawnSceneryProps(): void {
     // 1. Santuário das Tochas ao redor do Altar de Invocação (1450, -1200)
@@ -1846,10 +1833,12 @@ export class GameScene extends Phaser.Scene {
     this.addSceneryCrystal(altarX + 110, altarY - 140);
     this.addSceneryBones(altarX - 180, altarY + 40);
     this.addSceneryBones(altarX + 180, altarY + 40);
-    this.addSceneryRock(altarX - 220, altarY - 100);
-    this.addSceneryRock(altarX + 220, altarY - 100);
+    this.addSceneryBones(altarX - 140, altarY + 160);
+    this.addSceneryBones(altarX + 140, altarY + 160);
+    this.addSceneryRock(altarX - 220, altarY - 100, 0);
+    this.addSceneryRock(altarX + 220, altarY - 100, 1);
 
-    // 2. Trilhas de Tochas guiando para áreas estratégicas da arena
+    // 2. Trilhas de Tochas guiando para áreas estratégicas da arena com rochas e ossos dispersos
     const trailCoords = [
       { x: 950, y: -750 },
       { x: 1150, y: -950 },
@@ -1862,50 +1851,56 @@ export class GameScene extends Phaser.Scene {
     ];
     for (const t of trailCoords) {
       this.addSceneryTorch(t.x, t.y);
-      if (Math.random() > 0.4) {
-        this.addSceneryRock(t.x + (Math.random() > 0.5 ? 45 : -45), t.y + (Math.random() > 0.5 ? 30 : -30));
-      }
+      this.addSceneryRock(t.x + (Math.random() > 0.5 ? 45 : -45), t.y + (Math.random() > 0.5 ? 30 : -30));
+      this.addSceneryBones(t.x + (Math.random() > 0.5 ? 55 : -55), t.y + (Math.random() > 0.5 ? 45 : -45));
     }
 
-    // 3. Postos Avançados ao redor da clareira central (mantendo raio de 450px do centro totalmente limpo)
+    // 3. Postos Avançados ao redor da clareira central (raio de 450px do centro totalmente limpo)
     this.addSceneryMushroom(-520, -480);
     this.addSceneryMushroom(-560, -450);
     this.addSceneryCrystal(-490, -530);
+    this.addSceneryRock(-580, -520, 2);
 
     this.addSceneryCrystal(520, -480);
     this.addSceneryCrystal(560, -510);
     this.addSceneryMushroom(490, -440);
+    this.addSceneryRock(580, -520, 1);
 
     this.addSceneryBones(-520, 520);
     this.addSceneryBones(-570, 480);
-    this.addSceneryRock(-600, 560);
+    this.addSceneryBones(-540, 550);
+    this.addSceneryRock(-600, 560, 0);
 
     this.addSceneryMushroom(520, 520);
     this.addSceneryCrystal(560, 480);
     this.addSceneryBones(600, 550);
+    this.addSceneryBones(630, 520);
+    this.addSceneryRock(640, 560, 2);
 
-    // 4. Clusters Temáticos Grandes pelos 4 Quadrantes da Arena
+    // 4. Clusters Temáticos Grandes pelos 4 Quadrantes da Arena (com grande quantidade de ossos)
     const clusterCenters = [
-      // Noroeste (Bosques Místicos e Cavernas de Cristal)
+      // Noroeste (Bosques Místicos, Cavernas de Cristal e Ossuários)
       { x: -1500, y: -1100, type: 'nature' },
       { x: -2200, y: -2000, type: 'crystals' },
       { x: -1100, y: -2300, type: 'graveyard' },
       { x: -2500, y: -900,  type: 'rocks' },
 
-      // Sudoeste (Cemitérios e Cumes Sombrios)
+      // Sudoeste (Cemitérios das Almas e Cumes Sombrios)
       { x: -1400, y: 1400,  type: 'graveyard' },
+      { x: -2400, y: 400,   type: 'graveyard' },
       { x: -2300, y: 1200,  type: 'rocks' },
       { x: -1700, y: 2200,  type: 'nature' },
       { x: -900,  y: 1900,  type: 'crystals' },
 
-      // Sudeste (Jardins Demoníacos e Ossuários)
+      // Sudeste (Jardins Demoníacos e Ossuários dos Condenados)
       { x: 1500,  y: 1500,  type: 'nature' },
       { x: 2300,  y: 1700,  type: 'graveyard' },
       { x: 1100,  y: 2200,  type: 'crystals' },
       { x: 2400,  y: 900,   type: 'rocks' },
 
-      // Nordeste (Vale das Sombras e Picos Rúnicos)
+      // Nordeste (Vale das Sombras, Fossa dos Martirizados e Picos Rúnicos)
       { x: 2200,  y: -1700, type: 'graveyard' },
+      { x: 2100,  y: -2100, type: 'graveyard' },
       { x: 2100,  y: -700,  type: 'crystals' },
       { x: 900,   y: -2200, type: 'nature' },
       { x: 2500,  y: -2400, type: 'rocks' }
@@ -1925,9 +1920,15 @@ export class GameScene extends Phaser.Scene {
           const oy = Phaser.Math.Between(-100, 100);
           this.addSceneryCrystal(c.x + ox, c.y + oy);
         }
+        // Ossos dispersos na vegetação
+        for (let i = 0; i < 3; i++) {
+          const ox = Phaser.Math.Between(-120, 120);
+          const oy = Phaser.Math.Between(-120, 120);
+          this.addSceneryBones(c.x + ox, c.y + oy);
+        }
       } else if (c.type === 'crystals') {
-        this.addSceneryRock(c.x - 45, c.y - 30);
-        this.addSceneryRock(c.x + 55, c.y + 40);
+        this.addSceneryRock(c.x - 45, c.y - 30, 1);
+        this.addSceneryRock(c.x + 55, c.y + 40, 2);
         for (let i = 0; i < 6; i++) {
           const ox = Phaser.Math.Between(-120, 120);
           const oy = Phaser.Math.Between(-120, 120);
@@ -1938,25 +1939,33 @@ export class GameScene extends Phaser.Scene {
           const oy = Phaser.Math.Between(-90, 90);
           this.addSceneryMushroom(c.x + ox, c.y + oy);
         }
+        for (let i = 0; i < 3; i++) {
+          const ox = Phaser.Math.Between(-110, 110);
+          const oy = Phaser.Math.Between(-110, 110);
+          this.addSceneryBones(c.x + ox, c.y + oy);
+        }
       } else if (c.type === 'graveyard') {
+        // Cemitérios com grande concentração de ossos e pedras variadas
         this.addSceneryTorch(c.x, c.y);
-        this.addSceneryRock(c.x - 65, c.y + 25);
+        this.addSceneryRock(c.x - 65, c.y + 25, 0);
+        this.addSceneryRock(c.x + 75, c.y - 50, 1);
+        this.addSceneryRock(c.x + 20, c.y + 80, 2);
+
+        // Grande pilha e dispersão de ossos (12 a 15 pilhas por cemitério)
+        for (let i = 0; i < 14; i++) {
+          const ox = Phaser.Math.Between(-140, 140);
+          const oy = Phaser.Math.Between(-140, 140);
+          this.addSceneryBones(c.x + ox, c.y + oy);
+        }
+      } else if (c.type === 'rocks') {
+        // Formação rochosa densa com os 3 tipos de pedra, tocha e ossos
+        this.addSceneryRock(c.x - 50, c.y, 0);
+        this.addSceneryRock(c.x + 50, c.y - 20, 1);
+        this.addSceneryRock(c.x, c.y + 55, 2);
+        this.addSceneryTorch(c.x + 10, c.y - 45);
         for (let i = 0; i < 6; i++) {
           const ox = Phaser.Math.Between(-120, 120);
           const oy = Phaser.Math.Between(-120, 120);
-          this.addSceneryBones(c.x + ox, c.y + oy);
-        }
-        if (Math.random() > 0.5) {
-          this.addSceneryRock(c.x + 75, c.y - 50);
-        }
-      } else if (c.type === 'rocks') {
-        this.addSceneryRock(c.x - 50, c.y);
-        this.addSceneryRock(c.x + 50, c.y - 20);
-        this.addSceneryRock(c.x, c.y + 55);
-        this.addSceneryTorch(c.x + 10, c.y - 45);
-        for (let i = 0; i < 3; i++) {
-          const ox = Phaser.Math.Between(-100, 100);
-          const oy = Phaser.Math.Between(-100, 100);
           this.addSceneryBones(c.x + ox, c.y + oy);
         }
       }
