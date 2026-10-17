@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from './config/gameConfig';
+import { initPWAInstallPrompt } from './systems/PWAInstallPrompt';
 
 async function bootstrap() {
   if (document.fonts) {
@@ -17,6 +18,7 @@ async function bootstrap() {
   }
 
   new Phaser.Game(GAME_CONFIG);
+  initPWAInstallPrompt();
 }
 
 if (document.readyState === 'loading') {
