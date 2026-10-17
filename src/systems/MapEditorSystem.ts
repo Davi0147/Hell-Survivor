@@ -98,7 +98,21 @@ export class MapEditorSystem {
     if (this.isOpen) return;
     this.isOpen = true;
 
-    // Pausa monstros e Nixy para edição segura sem interferências
+    // 1. Oculta todos os props, altares e itens da cena para evitar duplicatas ou visual sobreposto
+    this.scene.setSceneryPropsVisible(false);
+    if (this.scene.player) {
+      this.scene.player.setVisible(false);
+    }
+    this.scene.setMapEditorLauncherButtonVisible(false);
+    this.scene.testShowroomSystem?.setVisible(false);
+
+    // 2. Oculta o HUD de jogo (UIScene) para visão 100% livre e limpa do editor
+    const uiScene = this.scene.scene.get('UIScene') as any;
+    if (uiScene && typeof uiScene.setHUDVisible === 'function') {
+      uiScene.setHUDVisible(false);
+    }
+
+    // 3. Carrega o mapa ativo e monta os elementos editáveis
     this.currentMap = MapStorageManager.getActiveMap();
     this.saveCameraState();
     this.setupCameraControls();
@@ -120,8 +134,22 @@ export class MapEditorSystem {
 
     this.destroyDomOverlay();
     this.clearEditorDisplay();
-    this.restoreCameraState();
 
+    // 1. Aplica o mapa atualizado à cena do jogo e restaura a visibilidade de tudo
+    this.scene.loadCustomMapLayout(this.currentMap);
+    this.scene.setSceneryPropsVisible(true);
+    if (this.scene.player) {
+      this.scene.player.setVisible(true);
+    }
+    this.scene.setMapEditorLauncherButtonVisible(true);
+    this.scene.testShowroomSystem?.setVisible(true);
+
+    const uiScene = this.scene.scene.get('UIScene') as any;
+    if (uiScene && typeof uiScene.setHUDVisible === 'function') {
+      uiScene.setHUDVisible(true);
+    }
+
+    this.restoreCameraState();
     DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Editor de Mapas Fechado.');
   }
 
@@ -136,6 +164,11 @@ export class MapEditorSystem {
       zoom: cam.zoom
     };
     cam.stopFollow();
+    cam.removeBounds();
+    // Se a câmera estava fora da arena (ex: na sala de teste isolada), foca no spawn da arena
+    if (this.savedCameraPos.y < ARENA_CONFIG.MIN_Y || this.savedCameraPos.y > ARENA_CONFIG.MAX_Y) {
+      cam.centerOn(this.currentMap.playerSpawn.x, this.currentMap.playerSpawn.y);
+    }
   }
 
   /**
@@ -143,7 +176,8 @@ export class MapEditorSystem {
    */
   private restoreCameraState(): void {
     const cam = this.scene.cameras.main;
-    cam.setZoom(1);
+    cam.setBounds(ARENA_CONFIG.MIN_X, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.WIDTH, ARENA_CONFIG.HEIGHT);
+    cam.setZoom(2);
     if (this.scene.player) {
       cam.startFollow(this.scene.player, true, 0.1, 0.1);
     }
@@ -258,6 +292,7 @@ export class MapEditorSystem {
     // 1. Spawns Especiais Únicos
     if (this.currentTool === 'player_spawn') {
       this.currentMap.playerSpawn = { x: worldX, y: worldY };
+      MapStorageManager.saveCustomMap(this.currentMap);
       this.renderAllMapEntities();
       this.showToast(`Ponto de Spawn da Nixy reposicionado para (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
@@ -266,6 +301,7 @@ export class MapEditorSystem {
 
     if (this.currentTool === 'boss_portal') {
       this.currentMap.bossPortal = { x: worldX, y: worldY };
+      MapStorageManager.saveCustomMap(this.currentMap);
       this.renderAllMapEntities();
       this.showToast(`Altar / Portal de Invocação posicionado em (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
@@ -274,6 +310,7 @@ export class MapEditorSystem {
 
     if (this.currentTool === 'boss_spawn') {
       this.currentMap.bossSpawn = { x: worldX, y: worldY };
+      MapStorageManager.saveCustomMap(this.currentMap);
       this.renderAllMapEntities();
       this.showToast(`Área de Combate da Rosalin posicionada em (${worldX}, ${worldY})`);
       SoundManager.getInstance().playLevelUp();
@@ -288,6 +325,7 @@ export class MapEditorSystem {
       );
       if (!exists) {
         this.currentMap.itemSpawners.push({ x: worldX, y: worldY });
+        MapStorageManager.saveCustomMap(this.currentMap);
         this.renderAllMapEntities();
         this.showToast(`Novo Spawner de Item Aleatório criado em (${worldX}, ${worldY})`);
         SoundManager.getInstance().playGemCollect();
@@ -310,6 +348,7 @@ export class MapEditorSystem {
           scale: paletteDef.scale ?? 1.0
         };
         this.currentMap.props.push(newProp);
+        MapStorageManager.saveCustomMap(this.currentMap);
         this.renderAllMapEntities();
         SoundManager.getInstance().playCardCashSelect();
       }
@@ -328,6 +367,7 @@ export class MapEditorSystem {
     );
     if (spawnerIdx !== -1) {
       this.currentMap.itemSpawners.splice(spawnerIdx, 1);
+      MapStorageManager.saveCustomMap(this.currentMap);
       this.renderAllMapEntities();
       this.showToast('Spawner de Item Aleatório removido!');
       SoundManager.getInstance().playPlayerHurt();
@@ -340,6 +380,7 @@ export class MapEditorSystem {
     );
     if (propIdx !== -1) {
       const removed = this.currentMap.props.splice(propIdx, 1)[0];
+      MapStorageManager.saveCustomMap(this.currentMap);
       this.renderAllMapEntities();
       this.showToast(`Objeto [${removed.type}] removido do mapa!`);
       SoundManager.getInstance().playPlayerHurt();
@@ -676,8 +717,10 @@ export class MapEditorSystem {
       if (confirm('Deseja realmente limpar todos os objetos e spawners do mapa?')) {
         this.currentMap.props = [];
         this.currentMap.itemSpawners = [];
+        MapStorageManager.saveCustomMap(this.currentMap);
+        this.scene.clearAllSceneryProps();
         this.renderAllMapEntities();
-        this.showToast('Mapa limpo! Posicione os novos elementos como desejar.');
+        this.showToast('Mapa limpo! Todos os objetos e spawners foram removidos.', '#ef4444');
       }
     };
     actionGroup.appendChild(clearBtn);
@@ -690,8 +733,10 @@ export class MapEditorSystem {
       if (confirm('Restaurar o mapa para o layout padrão original do Capítulo 1?')) {
         this.currentMap = JSON.parse(JSON.stringify(DEFAULT_CHAPTER_1_MAP));
         MapStorageManager.saveCustomMap(this.currentMap);
+        this.scene.loadCustomMapLayout(this.currentMap);
+        this.scene.setSceneryPropsVisible(false);
         this.renderAllMapEntities();
-        this.showToast('Mapa padrão do Capítulo 1 restaurado!');
+        this.showToast('Mapa padrão do Capítulo 1 restaurado!', '#38bdf8');
       }
     };
     actionGroup.appendChild(resetBtn);

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameScene } from '../scenes/GameScene';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
+import { ARENA_CONFIG } from '../config/balance';
 
 export interface ShowroomItemConfig {
   name: string;
@@ -24,9 +25,9 @@ export class TestShowroomSystem {
   private scene: GameScene;
   private isBuilt: boolean = false;
 
-  // Coordenadas centrais da Galeria Showroom
+  // Coordenadas centrais da Galeria Showroom (isolada 20.000 pixels ao norte fora da arena de combate)
   public static readonly SHOWROOM_CENTER_X = 0;
-  public static readonly SHOWROOM_CENTER_Y = -2550;
+  public static readonly SHOWROOM_CENTER_Y = -20000;
   public static readonly SHOWROOM_WIDTH = 1450;
   public static readonly SHOWROOM_HEIGHT = 1000;
 
@@ -36,11 +37,11 @@ export class TestShowroomSystem {
 
   // Posição do Portal de Retorno dentro da sala
   public static readonly RETURN_PAD_X = 0;
-  public static readonly RETURN_PAD_Y = -2080;
+  public static readonly RETURN_PAD_Y = -19530;
 
   // Posição de destino ao entrar na sala
   public static readonly SHOWROOM_ENTRY_X = 0;
-  public static readonly SHOWROOM_ENTRY_Y = -2150;
+  public static readonly SHOWROOM_ENTRY_Y = -19600;
 
   // Posição de destino ao retornar ao spawn central
   public static readonly SPAWN_DEST_X = 60;
@@ -411,7 +412,7 @@ export class TestShowroomSystem {
    * Atualização contínua (detecta aproximação de Nixy aos quadrados de teleporte e pulsa visuais)
    */
   public update(delta: number): void {
-    if (!this.isBuilt || !this.scene.player) return;
+    if (!this.isBuilt || !this.scene.player || this.scene.mapEditorSystem?.isOpen) return;
 
     if (this.teleportCooldown > 0) {
       this.teleportCooldown -= delta;
@@ -432,11 +433,7 @@ export class TestShowroomSystem {
     );
 
     if (distToSpawnPad <= 48 && this.teleportCooldown <= 0) {
-      this.teleportTo(
-        TestShowroomSystem.SHOWROOM_ENTRY_X,
-        TestShowroomSystem.SHOWROOM_ENTRY_Y,
-        'TELEPORTADO PARA A ÁREA DE TESTE (GALERIA DE SPRITES)'
-      );
+      this.teleportToShowroom();
       return;
     }
 
@@ -447,11 +444,57 @@ export class TestShowroomSystem {
     );
 
     if (distToReturnPad <= 48 && this.teleportCooldown <= 0) {
-      this.teleportTo(
-        TestShowroomSystem.SPAWN_DEST_X,
-        TestShowroomSystem.SPAWN_DEST_Y,
-        'RETORNADO AO SPAWN CENTRAL'
-      );
+      this.teleportToSpawn();
+    }
+  }
+
+  public teleportToShowroom(): void {
+    // 1. Define limites de física e câmera para o quarto isolado da galeria
+    this.scene.physics.world.setBounds(
+      TestShowroomSystem.SHOWROOM_CENTER_X - 1000,
+      TestShowroomSystem.SHOWROOM_CENTER_Y - 700,
+      2000,
+      1400
+    );
+    this.scene.cameras.main.setBounds(
+      TestShowroomSystem.SHOWROOM_CENTER_X - 1000,
+      TestShowroomSystem.SHOWROOM_CENTER_Y - 700,
+      2000,
+      1400
+    );
+    this.teleportTo(
+      TestShowroomSystem.SHOWROOM_ENTRY_X,
+      TestShowroomSystem.SHOWROOM_ENTRY_Y,
+      'TELEPORTADO PARA A ÁREA DE TESTE (GALERIA DE SPRITES)'
+    );
+  }
+
+  public teleportToSpawn(): void {
+    // 2. Restaura os limites da arena de combate ao retornar ao spawn
+    this.scene.physics.world.setBounds(ARENA_CONFIG.MIN_X, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.WIDTH, ARENA_CONFIG.HEIGHT);
+    this.scene.cameras.main.setBounds(ARENA_CONFIG.MIN_X, ARENA_CONFIG.MIN_Y, ARENA_CONFIG.WIDTH, ARENA_CONFIG.HEIGHT);
+    this.teleportTo(
+      TestShowroomSystem.SPAWN_DEST_X,
+      TestShowroomSystem.SPAWN_DEST_Y,
+      'RETORNADO AO SPAWN CENTRAL'
+    );
+  }
+
+  /**
+   * Altera a visibilidade de todos os componentes da galeria e dos pads de teleporte
+   */
+  public setVisible(visible: boolean): void {
+    if (this.spawnPadGraphics) this.spawnPadGraphics.setVisible(visible);
+    if (this.spawnPadText) this.spawnPadText.setVisible(visible);
+    if (this.spawnPadSubtext) this.spawnPadSubtext.setVisible(visible);
+    if (this.returnPadGraphics) this.returnPadGraphics.setVisible(visible);
+    if (this.returnPadText) this.returnPadText.setVisible(visible);
+    if (this.returnPadSubtext) this.returnPadSubtext.setVisible(visible);
+    if (this.floorGraphics) this.floorGraphics.setVisible(visible);
+    for (const el of this.showroomElements) {
+      if (el && 'setVisible' in el) {
+        (el as any).setVisible(visible);
+      }
     }
   }
 

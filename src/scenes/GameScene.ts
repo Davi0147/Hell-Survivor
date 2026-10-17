@@ -187,14 +187,8 @@ export class GameScene extends Phaser.Scene {
     // 3.2. Desenha o abismo e a bruma mística nas bordas da arena
     this.drawArenaBorders();
 
-    // 3.3. Instancia os Elementos de Cenário e Altar respeitando o layout do mapa
-    const customMap = MapStorageManager.loadCustomMap();
-    if (customMap) {
-      this.loadCustomMapLayout(customMap);
-    } else {
-      this.spawnSceneryProps();
-      this.spawnBossSummonAltar();
-    }
+    // 3.3. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
+    this.loadCustomMapLayout(activeMap);
 
     // Sincronizar o chão infinito no POST_UPDATE compensando o scroll da câmera
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
@@ -396,13 +390,7 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Spawns Iniciais de Itens no Mapa (exploração e auxílio inicial)
-    if (!customMap || !customMap.itemSpawners || customMap.itemSpawners.length === 0) {
-      const angle1 = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const angle2 = angle1 + Math.PI * 0.75;
-      this.spawnMapItem(this.player.x + Math.cos(angle1) * 450, this.player.y + Math.sin(angle1) * 450, 'chalice');
-      this.spawnMapItem(this.player.x + Math.cos(angle2) * 520, this.player.y + Math.sin(angle2) * 520, 'chest');
-    }
+    // Os itens iniciais de exploração são instanciados exclusivamente via loadCustomMapLayout(activeMap)
 
     // Spawns Iniciais de Monstros (apenas Cães Zumbis no início de História/Infinito; limpo no Sandbox)
     if (this.gameMode === 'sandbox') {
@@ -1885,13 +1873,6 @@ export class GameScene extends Phaser.Scene {
       radius: number,
       addCallback: (px: number, py: number) => void
     ): boolean => {
-      // No Modo Sandbox: mantém a Galeria Showroom (-750 a 750, -3100 a -2000) 100% limpa e exclusiva
-      if (this.gameMode === 'sandbox') {
-        if (x >= -750 && x <= 750 && y >= -3100 && y <= -2000) {
-          return false;
-        }
-      }
-
       // Garante distância segura entre qualquer elemento para que não fiquem colados
       for (const p of placedProps) {
         const dist = Math.hypot(p.x - x, p.y - y);
@@ -2110,16 +2091,66 @@ export class GameScene extends Phaser.Scene {
     }
 
     // 5. Spawna itens de exploração se definidos nas zonas de item
-    if (map.itemSpawners && Array.isArray(map.itemSpawners) && map.itemSpawners.length > 0) {
+    if (this.mapItemsGroup) {
       const oldItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (let i = oldItems.length - 1; i >= 0; i--) {
         oldItems[i].destroy();
       }
-      for (const sp of map.itemSpawners) {
-        const types: ('chalice' | 'chest' | 'magnet')[] = ['chalice', 'chest', 'magnet'];
-        const chosen = Phaser.Math.RND.pick(types);
-        this.spawnMapItem(sp.x, sp.y, chosen);
+      if (map.itemSpawners && Array.isArray(map.itemSpawners)) {
+        for (const sp of map.itemSpawners) {
+          const types: ('chalice' | 'chest' | 'magnet')[] = ['chalice', 'chest', 'magnet'];
+          const chosen = Phaser.Math.RND.pick(types);
+          this.spawnMapItem(sp.x, sp.y, chosen);
+        }
       }
+    }
+  }
+
+  /**
+   * Remove e destrói 100% de todos os props de cenário e itens de mapa da cena
+   */
+  public clearAllSceneryProps(): void {
+    for (const prop of this.sceneryProps) {
+      if (prop && (prop as any).destroy) {
+        (prop as any).destroy();
+      }
+    }
+    this.sceneryProps = [];
+
+    if (this.mapItemsGroup) {
+      const mapItems = this.mapItemsGroup.getChildren() as MapItem[];
+      for (let i = mapItems.length - 1; i >= 0; i--) {
+        mapItems[i].destroy();
+      }
+    }
+  }
+
+  /**
+   * Altera a visibilidade de todos os elementos de cenário e altar do jogo real
+   */
+  public setSceneryPropsVisible(visible: boolean): void {
+    for (const prop of this.sceneryProps) {
+      if (prop && 'setVisible' in prop) {
+        (prop as any).setVisible(visible);
+      }
+    }
+    if (this.bossSummonAltar) {
+      this.bossSummonAltar.setVisible(visible);
+    }
+    if (this.mapItemsGroup) {
+      const mapItems = this.mapItemsGroup.getChildren() as MapItem[];
+      for (const item of mapItems) {
+        item.setVisible(visible);
+      }
+    }
+  }
+
+  /**
+   * Altera a visibilidade do botão flutuante de abrir o Editor
+   */
+  public setMapEditorLauncherButtonVisible(visible: boolean): void {
+    if (this.mapEditorLauncherButton) {
+      this.mapEditorLauncherButton.setVisible(visible);
     }
   }
 
