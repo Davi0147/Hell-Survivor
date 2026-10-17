@@ -24,6 +24,10 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
+  input: {
+    activePointers: 4,
+    gamepad: true
+  },
   backgroundColor: '#0d0b0e',
   scene: [BootScene, MenuScene, IntroScene, GameScene, UIScene, UpgradeScene]
 };

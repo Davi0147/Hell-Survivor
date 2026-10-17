@@ -26,6 +26,7 @@ import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG } from '../config/balance';
 import { UIScene } from './UIScene';
+import { GamepadManager } from '../systems/GamepadManager';
 
 export class GameScene extends Phaser.Scene {
   public player!: Nixy;
@@ -329,6 +330,7 @@ export class GameScene extends Phaser.Scene {
             hpRestante: Math.ceil(this.player.currentHp)
           });
           this.cameras.main.shake(120, 0.005);
+          GamepadManager.getInstance().vibrate(this, 180, 0.4, 0.6);
           this.player.setTint(0xff3333);
           this.time.delayedCall(150, () => {
             if (!this.isGameOver) {
@@ -524,11 +526,44 @@ export class GameScene extends Phaser.Scene {
       dy = aiInput.dy;
       isSprintRequested = aiInput.isSprint;
     } else {
+      // 1.1 Teclado (WASD / Setas + Shift / Espaço)
       if (this.keyA?.isDown || this.keyLeft?.isDown) dx -= 1;
       if (this.keyD?.isDown || this.keyRight?.isDown) dx += 1;
       if (this.keyW?.isDown || this.keyUp?.isDown) dy -= 1;
       if (this.keyS?.isDown || this.keyDown?.isDown) dy += 1;
       isSprintRequested = Boolean(this.keyShift?.isDown || this.keySpace?.isDown);
+
+      // 1.2 Gamepad Físico (Xbox, PlayStation, Controles USB)
+      const padInput = GamepadManager.getInstance().getGameplayInput(this);
+      if (padInput.isActive) {
+        if (Math.abs(padInput.dx) > 0.05 || Math.abs(padInput.dy) > 0.05) {
+          dx = padInput.dx;
+          dy = padInput.dy;
+        }
+        if (padInput.isSprint) {
+          isSprintRequested = true;
+        }
+        if (padInput.isUltimate && this.player.isUltimateReady && !this.isGameOver) {
+          this.triggerUltimate();
+        }
+        if (padInput.isPause && !this.isGameOver && !this.isChapterCompleted) {
+          const uiScene = this.scene.get('UIScene') as UIScene;
+          if (uiScene) uiScene.togglePause(this);
+        }
+      }
+
+      // 1.3 Controles Touch na Tela (Mobile / Tablet)
+      const uiScene = this.scene.get('UIScene') as any;
+      if (uiScene && uiScene.touchControls && (uiScene.touchControls.isActive || uiScene.touchControls.forceEnabled)) {
+        const touchInput = uiScene.touchControls.getInput();
+        if (touchInput.hasMovement) {
+          dx = touchInput.dx;
+          dy = touchInput.dy;
+        }
+        if (touchInput.isSprint) {
+          isSprintRequested = true;
+        }
+      }
     }
 
     // 2. Atualizar lógica e animações da Nixy
@@ -1906,6 +1941,7 @@ export class GameScene extends Phaser.Scene {
   public triggerUltimate(): void {
     if (!this.player.isUltimateReady || this.player.isUltimateActive) return;
     SoundManager.getInstance().playUltimateCast();
+    GamepadManager.getInstance().vibrate(this, 350, 0.7, 1.0);
     UltimateSystem.execute(this, this.player, this.enemiesGroup);
   }
 

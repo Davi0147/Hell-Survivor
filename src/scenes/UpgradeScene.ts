@@ -7,6 +7,7 @@ import { BloodDaggersWeapon } from '../entities/weapons/BloodDaggersWeapon';
 import { AbyssalChainsWeapon } from '../entities/weapons/AbyssalChainsWeapon';
 import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
 import { SoundManager } from '../systems/SoundManager';
+import { GamepadManager } from '../systems/GamepadManager';
 
 export interface RichTextSegment {
   text: string;
@@ -57,6 +58,7 @@ export class UpgradeScene extends Phaser.Scene {
   private onAltarChosen?: () => void;
   private cardContainers: Phaser.GameObjects.Container[] = [];
   private currentCardIds: string[] = [];
+  private selectedCardIndex: number = 0;
   private rerollBtnContainer?: Phaser.GameObjects.Container;
   private rerollText?: Phaser.GameObjects.Text;
   private rerollBg?: Phaser.GameObjects.Graphics;
@@ -177,6 +179,11 @@ export class UpgradeScene extends Phaser.Scene {
       const cx = Math.round(startX + index * (cardW + spacing));
       this.createCard(cx, cardY, cardW, cardH, cardScale, card, index);
     });
+
+    this.selectedCardIndex = 0;
+    if (this.cardContainers[0]) {
+      this.cardContainers[0].emit('pointerover');
+    }
   }
 
   private createTacticalFooter(width: number, height: number, pixelFont: string): void {
@@ -250,7 +257,7 @@ export class UpgradeScene extends Phaser.Scene {
     drawSkipBg(false);
     skipContainer.add(skipBg);
 
-    const skipText = this.add.text(0, 0, '[ESPAÇO] CANALIZAR (+20 HP)', {
+    const skipText = this.add.text(0, 0, '[ESPAÇO / (B)] CANALIZAR (+20 HP)', {
       fontFamily: pixelFont,
       fontSize: '10px',
       fontStyle: 'bold',
@@ -292,7 +299,7 @@ export class UpgradeScene extends Phaser.Scene {
       this.rerollBg.fillRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
       this.rerollBg.lineStyle(1.5, hover ? 0xffffff : 0x00f5d4, 1);
       this.rerollBg.strokeRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
-      this.rerollText.setText(`[R] RE-ROLAR CARTAS (${this.player.rerollsRemaining})`);
+      this.rerollText.setText(`[R / (X)] RE-ROLAR CARTAS (${this.player.rerollsRemaining})`);
       this.rerollText.setColor(hover ? '#ffffff' : '#00f5d4');
     } else {
       this.rerollBg.fillStyle(0x111115, 0.75);
@@ -1446,4 +1453,35 @@ export class UpgradeScene extends Phaser.Scene {
       });
     }
   }
+
+  update(): void {
+    if (this.isClosing) return;
+    const nav = GamepadManager.getInstance().getMenuNavigation(this);
+    if (this.cardContainers.length > 0) {
+      if (nav.left) {
+        const prev = this.selectedCardIndex;
+        this.selectedCardIndex = (this.selectedCardIndex - 1 + this.cardContainers.length) % this.cardContainers.length;
+        if (this.cardContainers[prev]) this.cardContainers[prev].emit('pointerout');
+        if (this.cardContainers[this.selectedCardIndex]) this.cardContainers[this.selectedCardIndex].emit('pointerover');
+      } else if (nav.right) {
+        const prev = this.selectedCardIndex;
+        this.selectedCardIndex = (this.selectedCardIndex + 1) % this.cardContainers.length;
+        if (this.cardContainers[prev]) this.cardContainers[prev].emit('pointerout');
+        if (this.cardContainers[this.selectedCardIndex]) this.cardContainers[this.selectedCardIndex].emit('pointerover');
+      }
+      if (nav.confirm) {
+        if (this.cardContainers[this.selectedCardIndex]) {
+          this.cardContainers[this.selectedCardIndex].emit('pointerdown');
+        }
+      }
+    }
+    if (!this.isAltar) {
+      if (nav.reroll) {
+        this.handleReroll();
+      } else if (nav.cancel) {
+        this.handleSkipAndHeal();
+      }
+    }
+  }
 }
+

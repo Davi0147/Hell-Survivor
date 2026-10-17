@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
 import { isDevSandboxEnabled } from '../config/balance';
 import { MetaProgressManager, BLESSINGS_CATALOG, BlessingId } from '../systems/MetaProgressManager';
+import { GamepadManager } from '../systems/GamepadManager';
 
 interface MenuItem {
   label: string;
@@ -1131,5 +1132,29 @@ export class MenuScene extends Phaser.Scene {
         this.scene.start('GameScene', { mode });
       }
     });
+  }
+
+  update(): void {
+    const nav = GamepadManager.getInstance().getMenuNavigation(this);
+    if (!this.isModalOpen) {
+      if (nav.up) {
+        this.selectedIndex = (this.selectedIndex - 1 + this.menuItems.length) % this.menuItems.length;
+        SoundManager.getInstance().playMenuHover();
+        this.updateMenuVisuals();
+      } else if (nav.down) {
+        this.selectedIndex = (this.selectedIndex + 1) % this.menuItems.length;
+        SoundManager.getInstance().playMenuHover();
+        this.updateMenuVisuals();
+      }
+      if (nav.confirm) {
+        SoundManager.getInstance().playMenuClick();
+        this.menuItems[this.selectedIndex].action();
+      }
+    } else {
+      if (nav.cancel) {
+        SoundManager.getInstance().playMenuClick();
+        this.closeModal();
+      }
+    }
   }
 }

@@ -8,6 +8,8 @@ import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { DevSandboxPanel } from '../systems/DevSandboxPanel';
 import { isDevSandboxEnabled } from '../config/balance';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
+import { TouchControls } from '../ui/TouchControls';
+import { GamepadManager } from '../systems/GamepadManager';
 
 export class UIScene extends Phaser.Scene {
   // Sistema de Diálogos Estilo Persona 5
@@ -16,6 +18,9 @@ export class UIScene extends Phaser.Scene {
   private isHUDVisibleState: boolean = true;
   private alertTimer?: Phaser.Time.TimerEvent;
   private alertTween?: Phaser.Tweens.Tween;
+
+  // Controles Touch Mobile
+  public touchControls!: TouchControls;
 
   // Estado e Container de Pausa / Sandbox
   public isPaused: boolean = false;
@@ -514,6 +519,11 @@ export class UIScene extends Phaser.Scene {
     if (gameScene && (gameScene.gameMode === 'sandbox' || isDevSandboxEnabled())) {
       this.sandboxPanel = new DevSandboxPanel(this, gameScene);
     }
+
+    // ==========================================
+    // 9. CONTROLES TOUCH NA TELA (MOBILE / TABLET)
+    // ==========================================
+    this.touchControls = new TouchControls(this);
   }
 
   /**
@@ -673,6 +683,10 @@ export class UIScene extends Phaser.Scene {
       this.ultimateReadyBadge.setVisible(false);
       this.ultimatePctText.setVisible(true);
       this.ultimatePctText.setText(`${Math.floor(ultRatio * 100)}%`);
+    }
+
+    if (this.touchControls) {
+      this.touchControls.update(isUltReady);
     }
 
     // Atualizar Barra de Vida (HP) com gradiente carmesim
@@ -1201,6 +1215,9 @@ export class UIScene extends Phaser.Scene {
       if (el && typeof el.setVisible === 'function') {
         el.setVisible(visible);
       }
+    }
+    if (this.touchControls) {
+      this.touchControls.setVisible(visible);
     }
     if (!visible) {
       if (this.radarBlipsGraphics) this.radarBlipsGraphics.clear();
@@ -1954,6 +1971,9 @@ export class UIScene extends Phaser.Scene {
     SoundManager.getInstance().playMenuClick();
     gameScene.physics.pause();
     gameScene.scene.pause();
+    if (this.touchControls) {
+      this.touchControls.setVisible(false);
+    }
 
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
@@ -2191,6 +2211,9 @@ export class UIScene extends Phaser.Scene {
     gameScene.physics.resume();
     gameScene.scene.resume();
     this.isPaused = false;
+    if (this.touchControls) {
+      this.touchControls.setVisible(this.isHUDVisibleState);
+    }
   }
 
   private createPauseStepperBtn(x: number, y: number, symbol: string, onClick: () => void): void {

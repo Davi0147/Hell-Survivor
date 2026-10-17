@@ -340,15 +340,27 @@ export class DevSandboxPanel {
           DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Visualizador de Hitboxes alterado para: ${gs.sandboxShowHitboxes}`);
           this.reRenderCurrentTab();
         }
+      },
+      {
+        label: `SIMULAR CONTROLES TOUCH MOBILE: ${(this.uiScene as any).touchControls?.forceEnabled ? 'ATIVADO' : 'DESATIVADO'}`,
+        active: Boolean((this.uiScene as any).touchControls?.forceEnabled),
+        onClick: () => {
+          const tc = (this.uiScene as any).touchControls;
+          if (tc) {
+            tc.setForceEnabled(!tc.forceEnabled);
+            DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Controles Touch Mobile alterados para: ${tc.forceEnabled}`);
+          }
+          this.reRenderCurrentTab();
+        }
       }
     ];
 
     toggles.forEach((t, i) => {
       this.createActionButton(
         x,
-        y + 30 + i * 48,
+        y + 26 + i * 42,
         colW,
-        38,
+        34,
         t.label,
         t.active ? 0x065f46 : 0x1e293b,
         t.active ? 0x10b981 : 0x475569,
