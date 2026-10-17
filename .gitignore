@@ -34,4 +34,6 @@ Thumbs.db
 # Raw Source Assets (processed into public/)
 Sounds/
 backups/
+backup_*/
+scratch/
 
