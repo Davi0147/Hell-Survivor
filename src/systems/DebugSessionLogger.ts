@@ -63,9 +63,11 @@ export class DebugSessionLogger {
   private constructor() {
     this.sessionStartMs = Date.now();
     this.installGlobalErrorHooks();
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : 'Node';
+    const scr = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'Node';
     this.log('SYSTEM', 'INFO', 'Sessão de Debug iniciada (Flight Recorder ativo)', {
-      userAgent: navigator.userAgent,
-      screen: `${window.innerWidth}x${window.innerHeight}`
+      userAgent: ua,
+      screen: scr
     });
   }
 
@@ -81,6 +83,7 @@ export class DebugSessionLogger {
    */
   private installGlobalErrorHooks(): void {
     if (this.hooksInstalled) return;
+    if (typeof window === 'undefined') return;
     this.hooksInstalled = true;
 
     window.addEventListener('error', (event) => {
