@@ -18,6 +18,7 @@ export interface BlessingConfig {
 }
 
 export interface MetaSaveData {
+  saveVersion: number;
   corruptedSouls: number;
   blessings: Record<BlessingId, number>;
   stats: {
@@ -85,6 +86,8 @@ export const BLESSINGS_CATALOG: Record<BlessingId, BlessingConfig> = {
 export class MetaProgressManager {
   private static instance: MetaProgressManager;
   private readonly STORAGE_KEY = STORAGE_KEYS.META_SAVE;
+  private readonly BACKUP_STORAGE_KEY = STORAGE_KEYS.META_SAVE_BACKUP;
+  public static readonly CURRENT_SAVE_VERSION = 1;
 
   private data: MetaSaveData;
   public runSoulsCollected: number = 0;
@@ -230,13 +233,22 @@ export class MetaProgressManager {
   // ESTATÍSTICAS E RECORDES
   // =========================================================================
 
-  public recordRun(timeSec: number, kills: number, isBossDefeated: boolean): void {
+  public recordRun(
+    timeSec: number,
+    kills: number,
+    isBossDefeated: boolean,
+    mode: 'story' | 'endless' | 'sandbox' = 'story'
+  ): void {
+    // Modo sandbox NÃO altera nenhuma estatística persistente (kills, runs, recordes)
+    if (mode === 'sandbox') return;
+
     this.data.stats.totalRuns += 1;
     this.data.stats.totalKills += kills;
     if (isBossDefeated) {
       this.data.stats.bossesDefeated += 1;
     }
-    if (timeSec > this.data.stats.highestEndlessTimeSec) {
+    // O recorde highestEndlessTimeSec SÓ pode ser atualizado se o modo for 'endless'
+    if (mode === 'endless' && timeSec > this.data.stats.highestEndlessTimeSec) {
       this.data.stats.highestEndlessTimeSec = timeSec;
     }
     this.save();
@@ -282,6 +294,7 @@ export class MetaProgressManager {
 
   private loadInitialData(): MetaSaveData {
     const defaultData: MetaSaveData = {
+      saveVersion: MetaProgressManager.CURRENT_SAVE_VERSION,
       corruptedSouls: 0,
       blessings: {
         vitality: 0,
@@ -307,20 +320,69 @@ export class MetaProgressManager {
         const raw = window.localStorage.getItem(this.STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          return {
-            corruptedSouls: typeof parsed.corruptedSouls === 'number' ? parsed.corruptedSouls : 0,
-            blessings: {
-              ...defaultData.blessings,
-              ...(parsed.blessings || {})
-            },
+
+          // Antes de migrar save legado (sem saveVersion), salva cópia de segurança
+          const isLegacy = typeof parsed.saveVersion !== 'number';
+          if (isLegacy) {
+            try {
+              window.localStorage.setItem(this.BACKUP_STORAGE_KEY, raw);
+            } catch (err) {
+              console.warn('[MetaProgressManager] Erro ao salvar backup de save legado:', err);
+            }
+          }
+
+          // Sanitiza valores numéricos: se for NaN, infinito ou negativo, reverte para 0
+          const sanitizeNum = (val: unknown, fallback: number = 0): number => {
+            if (typeof val !== 'number' || isNaN(val) || !isFinite(val) || val < 0) {
+              return fallback;
+            }
+            return Math.floor(val);
+          };
+
+          const rawBlessings = parsed.blessings || {};
+          const sanitizedBlessings: Record<BlessingId, number> = {
+            vitality: sanitizeNum(rawBlessings.vitality, 0),
+            might: sanitizeNum(rawBlessings.might, 0),
+            magnetism: sanitizeNum(rawBlessings.magnetism, 0),
+            agility: sanitizeNum(rawBlessings.agility, 0),
+            reroll: sanitizeNum(rawBlessings.reroll, 0),
+            revival: sanitizeNum(rawBlessings.revival, 0),
+          };
+
+          const rawStats = parsed.stats || {};
+          const rawBossDeaths = rawStats.bossDeaths || {};
+          const sanitizedBossDeaths: Record<string, number> = {};
+          if (typeof rawBossDeaths === 'object' && rawBossDeaths !== null) {
+            for (const [bossId, count] of Object.entries(rawBossDeaths)) {
+              sanitizedBossDeaths[bossId] = sanitizeNum(count, 0);
+            }
+          }
+
+          const migratedData: MetaSaveData = {
+            saveVersion: MetaProgressManager.CURRENT_SAVE_VERSION,
+            corruptedSouls: sanitizeNum(parsed.corruptedSouls, 0),
+            blessings: sanitizedBlessings,
             stats: {
-              ...defaultData.stats,
-              ...(parsed.stats || {}),
-              bossDeaths: {
-                ...(parsed.stats?.bossDeaths || {})
-              }
+              totalKills: sanitizeNum(rawStats.totalKills, 0),
+              totalRuns: sanitizeNum(rawStats.totalRuns, 0),
+              highestEndlessTimeSec: sanitizeNum(rawStats.highestEndlessTimeSec, 0),
+              bossesDefeated: sanitizeNum(rawStats.bossesDefeated, 0),
+              totalSoulsCollected: sanitizeNum(rawStats.totalSoulsCollected, 0),
+              storyDeathCount: sanitizeNum(rawStats.storyDeathCount, 0),
+              bossDeaths: sanitizedBossDeaths
             }
           };
+
+          // Se migrou de save legado, persiste o formato com saveVersion atualizado
+          if (isLegacy) {
+            try {
+              window.localStorage.setItem(this.STORAGE_KEY, JSON.stringify(migratedData));
+            } catch (err) {
+              console.warn('[MetaProgressManager] Erro ao persistir migração:', err);
+            }
+          }
+
+          return migratedData;
         }
       }
     } catch (e) {

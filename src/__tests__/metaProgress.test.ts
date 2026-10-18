@@ -178,19 +178,98 @@ describe('MetaProgressManager (Lógica Pura de Meta-Progressão e Economia)', ()
   });
 
   // =========================================================================
-  // BUGS CONHECIDOS (A CORRIGIR NO PACOTE 2):
+  // FILTRO POR MODO, MIGRAÇÃO DE SAVE E SANITIZAÇÃO
   // =========================================================================
 
-  it.fails(
-    '[BUG CONHECIDO - Pacote 2] recordRun atualiza highestEndlessTimeSec mesmo no modo história/sandbox',
-    async () => {
+  describe('Filtro por Modo de Jogo em recordRun', () => {
+    it('recordRun só atualiza highestEndlessTimeSec se o modo for estritamente "endless"', async () => {
       const manager = await getFreshManager();
-      // Hoje a assinatura é recordRun(timeSec, kills, isBossDefeated), sem receber o modo.
-      // O teste abaixo falha porque 9999s jogados no modo história sobrescrevem o recorde do modo infinito.
-      manager.recordRun(9999, 10, true);
-      // No Pacote 2, passaremos o modo e o recorde continuará 0 se não for 'endless'.
-      // Como o código atual atualiza sem checar o modo, esperamos 0 para demonstrar a falha:
+
+      // Partida longa no modo história não afeta recorde do modo infinito
+      manager.recordRun(9999, 10, true, 'story');
       expect(manager.getStats().highestEndlessTimeSec).toBe(0);
-    }
-  );
+      expect(manager.getStats().totalRuns).toBe(1);
+      expect(manager.getStats().totalKills).toBe(10);
+
+      // Partida no modo infinito atualiza o recorde
+      manager.recordRun(120, 25, false, 'endless');
+      expect(manager.getStats().highestEndlessTimeSec).toBe(120);
+      expect(manager.getStats().totalRuns).toBe(2);
+      expect(manager.getStats().totalKills).toBe(35);
+
+      // Nova partida menor no infinito não reduz o recorde existente
+      manager.recordRun(90, 10, false, 'endless');
+      expect(manager.getStats().highestEndlessTimeSec).toBe(120);
+    });
+
+    it('modo sandbox NÃO altera nenhuma estatística persistente (kills, runs, recordes)', async () => {
+      const manager = await getFreshManager();
+      const initialStats = { ...manager.getStats() };
+
+      manager.recordRun(500, 100, true, 'sandbox');
+
+      expect(manager.getStats()).toEqual(initialStats);
+      expect(manager.getStats().totalRuns).toBe(0);
+      expect(manager.getStats().totalKills).toBe(0);
+      expect(manager.getStats().highestEndlessTimeSec).toBe(0);
+      expect(manager.getStats().bossesDefeated).toBe(0);
+    });
+  });
+
+  describe('Migração com Backup e Sanitização de Save', () => {
+    it('save legado sem saveVersion é migrado com backup automático prévio e campo saveVersion: 1', async () => {
+      const legacySave = {
+        corruptedSouls: 75,
+        blessings: { vitality: 2, might: 1 },
+        stats: { totalKills: 88, totalRuns: 4 }
+      };
+      memoryStorage.setItem('hell_survivor_meta_save_v1', JSON.stringify(legacySave));
+
+      const manager = await getFreshManager();
+
+      // Dados legados foram lidos corretamente
+      expect(manager.getSouls()).toBe(75);
+      expect(manager.getBlessingLevel('vitality')).toBe(2);
+      expect(manager.getBlessingLevel('might')).toBe(1);
+      expect(manager.getStats().totalKills).toBe(88);
+
+      // Backup automático foi gerado no storage
+      const backupRaw = memoryStorage.getItem('hell_survivor_meta_save_v1_backup');
+      expect(backupRaw).not.toBeNull();
+      expect(JSON.parse(backupRaw!).corruptedSouls).toBe(75);
+
+      // Save ativo no storage foi persistido com saveVersion: 1
+      const activeRaw = memoryStorage.getItem('hell_survivor_meta_save_v1');
+      expect(activeRaw).not.toBeNull();
+      expect(JSON.parse(activeRaw!).saveVersion).toBe(1);
+    });
+
+    it('sanitiza valores corrompidos (NaN, negativos, tipos inválidos) revertendo para zero', async () => {
+      const corruptedSave = {
+        saveVersion: 1,
+        corruptedSouls: -100,
+        blessings: {
+          vitality: -5,
+          might: NaN,
+          agility: 'invalido'
+        },
+        stats: {
+          totalKills: -999,
+          totalRuns: NaN,
+          highestEndlessTimeSec: -30
+        }
+      };
+      memoryStorage.setItem('hell_survivor_meta_save_v1', JSON.stringify(corruptedSave));
+
+      const manager = await getFreshManager();
+
+      expect(manager.getSouls()).toBe(0);
+      expect(manager.getBlessingLevel('vitality')).toBe(0);
+      expect(manager.getBlessingLevel('might')).toBe(0);
+      expect(manager.getBlessingLevel('agility')).toBe(0);
+      expect(manager.getStats().totalKills).toBe(0);
+      expect(manager.getStats().totalRuns).toBe(0);
+      expect(manager.getStats().highestEndlessTimeSec).toBe(0);
+    });
+  });
 });

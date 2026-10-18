@@ -1753,7 +1753,8 @@ export class GameScene extends Phaser.Scene {
     MetaProgressManager.getInstance().recordRun(
       Math.floor(this.survivalTimeMs / 1000),
       this.killCount,
-      false
+      false,
+      this.gameMode
     );
     if (this.gameMode === 'story') {
       const bossId = this.isBossFightActive
@@ -3258,7 +3259,8 @@ export class GameScene extends Phaser.Scene {
     MetaProgressManager.getInstance().recordRun(
       Math.floor(this.survivalTimeMs / 1000),
       this.killCount,
-      true
+      true,
+      this.gameMode
     );
 
     const uiScene = this.scene.get('UIScene') as UIScene;
