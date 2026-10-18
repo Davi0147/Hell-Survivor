@@ -62,7 +62,6 @@ export class GameScene extends Phaser.Scene {
   public isChapterCompleted: boolean = false;
   public isGameOver: boolean = false;
   public miniBoss3mSpawned: boolean = false;
-  public miniBoss6mSpawned: boolean = false;
   public boss10mSpawned: boolean = false;
   public isRevival: boolean = false;
   public hasRevivalUsed: boolean = false;
@@ -137,7 +136,6 @@ export class GameScene extends Phaser.Scene {
     this.isChapterCompleted = false;
     this.isGameOver = false;
     this.miniBoss3mSpawned = false;
-    this.miniBoss6mSpawned = false;
     this.boss10mSpawned = false;
     this.survivalTimeMs = 0;
     this.bossInstance = undefined;
@@ -998,15 +996,6 @@ export class GameScene extends Phaser.Scene {
           this.activateBossSummonAltar();
         }
 
-        // 6:00 (360s): Matriarca Succubus Mini-Boss
-        if (!this.miniBoss6mSpawned && elapsedSec >= 360) {
-          this.miniBoss6mSpawned = true;
-          if (uiScene) {
-            uiScene.showWaveAlert('ALERTA: MATRIARCA SUCCUBUS DETECTADA!', 4500);
-          }
-          this.spawnMatriarchSuccubus();
-        }
-
         // 10:00 (600s): Succubus Desperta (Chefe Suprema do Modo Infinito - não spawna se já houver chefe ativo)
         if (!this.boss10mSpawned && elapsedSec >= 600 && !this.isBossFightActive) {
           this.boss10mSpawned = true;
@@ -1670,7 +1659,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Spawna a Mini-Chefe Matriarca Succubus no Modo Infinito (6:00)
+   * Spawna a Mini-Chefe Matriarca Succubus (disponível via Sandbox / Modo de Teste F1)
    */
   private spawnMatriarchSuccubus(): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
