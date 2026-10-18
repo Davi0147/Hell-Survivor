@@ -13,7 +13,7 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 - **Ajuste de Ergonomia do Banner PWA (`src/main.ts`)**:
   - Reposicionado o card de atualização para o canto superior direito (Opção 2 aprovada pelo dono), liberando a visibilidade central do logotipo "HELL SURVIVOR".
 - **Ratchet de Qualidade (`package.json`)**:
-  - Trava do ESLint rebaixada de `--max-warnings 214` para `--max-warnings 213`.
+  - Trava do ESLint rebaixada de `--max-warnings 214` para `--max-warnings 205` (número real de avisos atuais do projeto).
 - **Governança & Arquitetura (`docs/DECISIONS.md`, `AGENTS.md`, `docs/MECHANICS.md`)**:
   - DEC-006 (Ciclo de Vida de Cenas) e DEC-008 (Resumo simples para o dono) aprovadas e aceitas.
   - Regra 13 e Regra 16 gravadas em `AGENTS.md` e Seção 11 incluída em `docs/MECHANICS.md`.
