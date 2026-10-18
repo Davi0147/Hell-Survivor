@@ -137,14 +137,26 @@ export class UpgradeScene extends Phaser.Scene {
     this.createTacticalFooter(width, height, this.uiFont);
 
     // 5. Atalhos de Teclado (R para Re-rolar, Espaço para Canalizar/Skip)
+    const onKeyDownR = () => {
+      this.handleReroll();
+    };
+    const onKeyDownSpace = () => {
+      this.handleSkipAndHeal();
+    };
+
     if (!this.isAltar && this.input.keyboard) {
-      this.input.keyboard.on('keydown-R', () => {
-        this.handleReroll();
-      });
-      this.input.keyboard.on('keydown-SPACE', () => {
-        this.handleSkipAndHeal();
-      });
+      this.input.keyboard.on('keydown-R', onKeyDownR);
+      this.input.keyboard.on('keydown-SPACE', onKeyDownSpace);
     }
+
+    // 6. Limpeza no Desligamento da Cena (DEC-006 / Anti-Leak)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.input.keyboard) {
+        this.input.keyboard.off('keydown-R', onKeyDownR);
+        this.input.keyboard.off('keydown-SPACE', onKeyDownSpace);
+        this.input.keyboard.removeAllListeners();
+      }
+    });
   }
 
   private dealCards(isReroll: boolean): void {
