@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Hotfix 1 — Ciclo de Vida das Cenas] — 2026-10-18
+### Corrigido
+- **GameScene (Crash de reinicialização e retry)**:
+  - Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) movidos para o início de `create()`, antes da chamada de `loadCustomMapLayout(activeMap)`.
+  - Adicionadas guardas tipadas `if (this.mapItemsGroup && this.mapItemsGroup.children)` em `loadCustomMapLayout`, `clearAllSceneryProps` e `setSceneryPropsVisible`, eliminando `TypeError: Cannot read properties of undefined (reading 'entries')` que ocorria ao reabrir o Sandbox ou clicar em "Tentar Novamente" no modo infinito.
+  - Reset de arrays e campos residuais no `init()`.
+- **IntroScene (Travamento de avanço e pulo da Intro)**:
+  - Implementado `init()` para reinicializar todos os campos (`isEnding = false`, `isTyping = false`, `currentStepIndex = 0`, timers e tweens), impedindo o bloqueio perpétuo de cliques ao iniciar o Modo História pela segunda vez.
+  - Adicionado ouvinte de `SHUTDOWN` limpando timers, tweens e listeners de teclado/ponteiro (`removeAllKeys(true)` e `removeAllListeners()`).
+  - Cancelamento explícito do timer e tween da escuridão inicial ao apertar `ESC`, realizando a transição imediata para `GameScene` se a tela já estiver preta, ou com fade rápido de 250ms durante o diálogo.
+
 ## [Pacote 2A — Correções Pontuais Seguras] — 2026-10-17
 ### Adicionado & Refatorado
 - **Tarefa 0 — Documentação Real do Escalonamento**: Alinhado `docs/MECHANICS.md §2`, `LIVRO_DE_ANOTACOES.md` e `docs/BALANCE_AUDIT.md` com a verdade do código: `ZombieDog` e `MummyEnemy` usam `getEnemyScaling` e multiplicador de capítulo; `BloodBat` e `SkullSlime` usam fórmulas inline lineares; minichefes (`Cerberus`, `SuccubusBoss`) usam atributos estáticos fixos.

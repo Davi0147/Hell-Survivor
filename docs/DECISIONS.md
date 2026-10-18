@@ -65,3 +65,17 @@ Cada decisão registrada deve conter estritamente:
 - **Decisão:** Transicionar suavemente o zoom da câmera de `2.0x` para `1.35x` ao término do diálogo introdutório e início da batalha (`GameScene.ts`).
 - **Motivo:** não informado (proposta — aguardando confirmação do dono).
 - **Rever quando:** O dono do projeto avaliar a visibilidade e o conforto visual do combate em monitores desktop e telas móveis.
+
+---
+
+### DEC-006: Contrato de Ciclo de Vida e Anti-Deadlock de Cenas (Lifecycle Invariants)
+- **Status:** Proposta — aguardando confirmação do dono
+- **Data:** 2026-10-18
+- **Contexto:** Investigação de bugs de reinicialização (`GameScene` crashando por leitura de `.children.entries` em grupos destruídos ao reentrar no Sandbox ou tentar novamente após a morte; e `IntroScene` travando cliques e avanços de diálogo ao iniciar o Modo História pela segunda vez ou pular no ESC).
+- **Decisão:** Adotar três invariantes obrigatórias de ciclo de vida para todas as cenas Phaser:
+  1. **Reinicialização Rigorosa (`init`):** Toda cena com propriedades de controle (`isEnding`, `isTyping`, `isPaused`, arrays de entidades) deve implementar `init()` para redefini-las ao valor padrão, pois o Phaser reutiliza a mesma instância da classe em `scene.start()`.
+  2. **Ordem de Instanciação de Grupos:** Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) devem ser instanciados no início de `create()`, antes de qualquer chamada a métodos de layout (`loadCustomMapLayout`), acompanhados de checagens defensivas (`this.group && this.group.children`).
+  3. **Desligamento e Limpeza (`SHUTDOWN`):** Cenas que registram ouvintes em barramentos globais ou instâncias persistentes (`this.events.on`, `input.keyboard.on`, timers contínuos) devem registrar um ouvinte `SHUTDOWN` para desregistrar/limpar esses elementos, impedindo vazamento de listeners e duplicidade de handlers.
+- **Motivo:** não informado (proposta — aguardando confirmação do dono).
+- **Rever quando:** O dono do projeto homologar as regras formais de ciclo de vida das cenas para inclusão em `AGENTS.md` e `docs/MECHANICS.md`.
+
