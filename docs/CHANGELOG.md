@@ -2,6 +2,25 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote 2B — Centralização de Fontes, Cores e Telegrafia de Chefes] — 2026-10-18
+### Adicionado & Refatorado (DEC-008 / Regra 5)
+- **Centralização Tipográfica, Semântica de Cores e Fórmulas de Telegrafia (`src/config/theme.ts`)**:
+  - `FONTS`: Definição de papéis tipográficos semânticos (`display`: `'Pixelzone'` para títulos, cartas, números de dano e anúncios; `body`: `'Silkscreen'` para texto corrido, lore, diálogos e descrições; `fallback`: `'monospace'`).
+  - `COLORS`: Tokens de cor semânticos preservando os mesmos valores visuais existentes no código (ouro e destaque, carmesim e perigo, neutros, fundos de veludo abissal e utilitários), sem unificar tons parecidos na estética.
+  - `BOSS_TELEGRAPH`: Centralização de fórmulas geométricas e de transparência para telegrafia de investida e área com base no padrão da Succubus (`lineThickness = 3 + progress * 9`, cor `0xff0055`, miolo branco `0xffffff`, borda de área `0xff2266` com `circleBorderThickness = 2 + progress * 3`, preenchimento carmesim e mira em cruz).
+- **Aplicação Controlada do Tema a Sistemas Críticos**:
+  - `DamageTextSystem.ts`: Migração da fonte de números de dano de `'Impact'` para `FONTS.display` (`'Pixelzone'`), mantendo estritamente o contorno preto espesso (`stroke: '#000000'`, 3px) para garantir legibilidade imediata em combate.
+  - `SuccubusBoss.ts`: Conexão da investida e do salto em área (slam) às fórmulas e constantes de `BOSS_TELEGRAPH`.
+  - `AzazelBoss.ts`: Conexão da investida comum, investidas escuras (Dark Five Dashes) e círculos de tempestade de raios às fórmulas e constantes de `BOSS_TELEGRAPH`, mantendo os alcances originais (560px, 620px e raio de 68px).
+- **Catraca Automatizada de Cores (`scripts/verify-theme.mjs` & `scripts/theme-baseline.json`)**:
+  - Script em Node puro que varre todos os arquivos em `src/` fora de `src/config/theme.ts`, detecta literais hexadecimais (`0x......` e `#......`) e compara com a linha de base gravada em `scripts/theme-baseline.json` (baseline inicial fixado em 1194 ocorrências e 361 cores distintas).
+  - Integrado ao comando `npm run check`. Em caso de inserção de novas cores fora de `theme.ts`, o script encerra a execução com código 1 e alerta de violação da Regra 5.
+  - Validação de sensibilidade com prova por mutação gravada em `reports/verify-theme-fail.txt`.
+- **Testes Unitários & Governança (`src/__tests__/theme.test.ts`, `docs/DESIGN_SYSTEM.md`, `AGENTS.md`)**:
+  - 12 novos testes unitários cobrindo papéis de fontes, integridade dos tokens numéricos e CSS de cor, e exatidão das fórmulas matemáticas de telegrafia (total do projeto elevado para 66 testes passando).
+  - Padrões 2.5 (Telegrafia de Chefes) e 2.6 (Números de Dano Flutuantes) promovidos para o status `"Aceita"` em `docs/DESIGN_SYSTEM.md`.
+  - Regra 5 do `AGENTS.md` atualizada para registrar `theme.ts` como ativo e obrigatório para novas cores/fontes.
+
 ## [Pacote H — Arrumação de Documentos, Decisões e Catraca do Lint] — 2026-10-18
 ### Documentação, Governança & Qualidade
 - **Regra 18 no AGENTS.md (Desacoplamento do Personagem Jogável)**:

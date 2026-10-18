@@ -110,23 +110,24 @@ Toda especificação de componente no Design System segue este esquema:
 - **Onde se aplica:** Ataques especiais de chefes em `SuccubusBoss.ts` e `AzazelBoss.ts`
 - **Especificação:**
   - Todo ataque com grande potencial de dano deve desenhar indicadores gráficos no chão (`Phaser.GameObjects.Graphics` com profundidade `depth: 21`) antes de causar dano.
+  - Parâmetros centralizados em `BOSS_TELEGRAPH` (`src/config/theme.ts`): cor carmesim `0xff0055`, centro incandescente `0xffffff`, espessura progressiva de linha `3 + progress * 9`, e espessura circular `2 + progress * 3`.
   - **Investidas Lineares (Dash):**
-    - Linha direcional projetada do centro do chefe até o alcance máximo do ataque (480px a 560px).
-    - Camada externa: Linha grossa com espessura progressiva proporcional ao tempo de carga (`lineStyle(3 + progress * 8, 0xff0044, 0.65 + progress * 0.35)`).
-    - Camada interna: Fio branco de alta precisão (`lineStyle(2, 0xffffff, progress)`) indicando o vetor exato de deslocamento.
+    - Linha direcional projetada do centro do chefe até o alcance máximo do ataque (480px a 650px).
+    - Camada externa: Linha carmesim com espessura progressiva proporcional ao tempo de carga (`BOSS_TELEGRAPH.lineThickness(progress)`, `BOSS_TELEGRAPH.color`, `BOSS_TELEGRAPH.alpha(progress)`).
+    - Camada interna: Fio branco de alta precisão (`BOSS_TELEGRAPH.innerThickness`, `BOSS_TELEGRAPH.innerColor`, `BOSS_TELEGRAPH.innerAlpha(progress)`) indicando o vetor exato de deslocamento.
   - **Ataques em Área Circulares (Slam / Tempestade de Raios):**
-    - Círculo de aviso delimitando o raio exato da explosão (`radius = 68px` no raio do Azazel).
-    - Borda externa circular contínua (`lineStyle(3, 0xff2266, 0.85)`).
-    - Preenchimento interno translúcido que se expande do centro para as bordas conforme o tempo esgota (`fillCircle(x, y, radius * progress)`).
-    - Retículo elétrico em cruz branca (`#ffffff`) no centro do ponto de impacto.
-- **Implementação de referência:** [`src/entities/enemies/AzazelBoss.ts:updateTelegraphDash`](../src/entities/enemies/AzazelBoss.ts) e [`src/entities/enemies/AzazelBoss.ts:updateLightningMarkers`](../src/entities/enemies/AzazelBoss.ts)
+    - Círculo de aviso delimitando o raio exato da explosão (`radius = 68px` no raio do Azazel; `135px` na Succubus).
+    - Borda externa circular contínua (`BOSS_TELEGRAPH.circleBorderThickness(progress)`, `BOSS_TELEGRAPH.circleBorderColor`, 0.85–0.9).
+    - Preenchimento interno translúcido que se expande do centro para as bordas conforme o tempo esgota (`BOSS_TELEGRAPH.circleFillColor`, `BOSS_TELEGRAPH.circleFillAlpha(progress)`).
+    - Retículo elétrico/mira em cruz (`BOSS_TELEGRAPH.crosshairThickness`).
+- **Implementação de referência:** [`src/config/theme.ts:BOSS_TELEGRAPH`](../src/config/theme.ts), [`src/entities/enemies/SuccubusBoss.ts`](../src/entities/enemies/SuccubusBoss.ts) e [`src/entities/enemies/AzazelBoss.ts`](../src/entities/enemies/AzazelBoss.ts)
 - **Fazer:**
   - Limpar sempre o objeto `Graphics` (`g.clear()`) na conclusão do ataque, interrupção ou morte do chefe.
   - Oferecer uma janela de telegrafia mínima justa para reação humana (mínimo de 650ms para investidas e 1000ms para raios).
 - **Não fazer:**
   - NUNCA aplicar dano ou colisão antes do indicador atingir 100% de preenchimento (`progress >= 1.0`).
 - **Como verificar:** Jogar contra Rosalin no Cap. 1 (observar a linha de investida e o círculo do salto) ou Azazel no Cap. 2 (observar a tempestade de 7 raios).
-- **Status:** Proposta (extraído do código, aguardando confirmação do dono)
+- **Status:** Aceita (aprovado pelo dono no Pacote 2B com unificação em `BOSS_TELEGRAPH`)
 
 ---
 
@@ -134,8 +135,9 @@ Toda especificação de componente no Design System segue este esquema:
 - **Nome do Padrão:** Dano Flutuante Arcade com Elevação e Fade
 - **Onde se aplica:** Disparos e acertos em entidades em [`DamageTextSystem.ts`](../src/systems/DamageTextSystem.ts)
 - **Especificação:**
+  - Tipografia: Fonte pixel art oficial `FONTS.display` (`Pixelzone`) centralizada em `src/config/theme.ts`, substituindo a antiga fonte `Impact` para unificação gótica arcade.
   - Texto gerado na coordenada de impacto com jitter aleatório sutil (`X: -8..8px`, `Y: -5..5px`).
-  - Dano Comum: Cor branca pura (`#ffffff`), tamanho `12px`, negrito, borda preta sólida (`stroke: '#000000'`, espessura 3px).
+  - Dano Comum: Cor branca pura (`#ffffff`), tamanho `12px`, negrito, borda preta sólida (`stroke: '#000000'`, espessura 3px) para manter perfeita legibilidade sobre qualquer fundo.
   - Dano Crítico: Cor amarelo/dourado reluzente (`#ffbe0b`), tamanho ampliado `14px`, negrito, borda preta sólida (`stroke: '#000000'`, espessura 3px).
   - Animação: Subida de 28px no eixo Y, escala suave de 1.3x para 1.0x e fade-out de alfa 1.0 para 0 ao longo de 500ms (`Power1`), com destruição imediata do objeto texto ao término.
 - **Implementação de referência:** [`src/systems/DamageTextSystem.ts:showDamage`](../src/systems/DamageTextSystem.ts)
@@ -144,8 +146,8 @@ Toda especificação de componente no Design System segue este esquema:
   - Destruir o objeto `Text` imediatamente no callback `onComplete` do tween para evitar vazamento de memória.
 - **Não fazer:**
   - NUNCA criar números de dano sem contorno preto espesso, para garantir leitura sobre qualquer bioma ou piso de lava.
-- **Como verificar:** Acertar qualquer inimigo no jogo e observar a cor e o movimento dos números subindo.
-- **Status:** Proposta (extraído do código, aguardando confirmação do dono)
+- **Como verificar:** Acertar qualquer inimigo no jogo e observar a fonte `Pixelzone` e o movimento dos números subindo com contorno preto nítido.
+- **Status:** Aceita (aprovado pelo dono no Pacote 2B: migração de Impact para Pixelzone preservando contorno)
 
 ---
 

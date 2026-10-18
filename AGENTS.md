@@ -36,8 +36,8 @@ Antes de realizar qualquer edição no código ou na documentação:
    - NUNCA hardcode números de balanceamento (HP, dano, velocidade, cooldowns, metas de almas de capítulos, limites de entidades, curvas de XP/escalonamento) dentro de cenas ou entidades. Tudo deve residir em `src/config/balance.ts` (incluindo `BALANCE`, `PERFORMANCE_LIMITS`, `ARENA_CONFIG` e a tabela `CHAPTER_CONFIG` *(a criar no Pacote 2)*).
    - Nunca altere valores de balanceamento já aprovados sem pedido explícito.
 
-5. **Identidade Visual Gótica, Sprites & Tipografia (`theme.ts` *(a criar no Pacote 2)*):**
-   - NUNCA altere estilo visual (cores, fontes, layout de HUD, molduras) sem pedido explícito. Cores e fontes devem ser centralizadas em `src/config/theme.ts` *(a criar no Pacote 2)*.
+5. **Identidade Visual Gótica, Sprites & Tipografia (`src/config/theme.ts` ativo):**
+   - NUNCA altere estilo visual (cores, fontes, layout de HUD, molduras) sem pedido explícito. `src/config/theme.ts` é o ponto de entrada único e central de verdade para papéis de fonte (`FONTS`: `display`, `body`, `fallback`), tokens semânticos de cor (`COLORS`) e fórmulas de telegrafia de chefes (`BOSS_TELEGRAPH`). Nenhum sistema novo de interface ou jogabilidade deve definir literais hexadecimais de cor soltos no código (catraca ativa via `scripts/verify-theme.mjs` no `npm run check`).
    - Padrões visuais de interface, caixas de diálogo, modais e telegrafia estão documentados em [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
    - **Zero Emojis Unicode em Textos WebGL/Canvas do Phaser:** Use apenas as fontes pixel-art do projeto (`Press Start 2P`, `Silkscreen`, `Pixelzone`) e ícones vetoriais/sprites para evitar glifos quebrados.
    - **Preservação de Escala em Troca de Texturas (`setDisplaySize`):** Sempre que substituir texturas dinamicamente em imagens com dimensões fixas (ex: bustos de diálogo em `origin(0.5, 1.0)` ou retratos), chame `image.setDisplaySize(largura, altura)` imediatamente na linha seguinte.
