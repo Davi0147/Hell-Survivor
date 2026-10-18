@@ -117,3 +117,18 @@ Cada decisão registrada deve conter estritamente:
 - **Motivo:** Aprovado formalmente pelo dono no Pacote P1.4 para garantir transparência executiva e facilidade de teste.
 - **Rever quando:** Nunca (regra permanente de comunicação).
 
+---
+
+### DEC-009: Diretrizes do Ciclo de Chefes do Infinito e Ordem de Roadmap
+- **Status:** Proposta — decisão do dono, detalhes a definir
+- **Data:** 2026-10-18
+- **Contexto:** Planejamento do ciclo recorrente de chefes para o Modo Infinito (com a entrada de Azazel e chefes futuros) e sequenciamento técnico dos próximos pacotes de refatoração e expansão.
+- **Decisão:** Adotar quatro diretrizes orientadoras definidas pelo dono para o desenvolvimento futuro:
+  1. **Recompensa por Chefe no Infinito:** A recompensa pela vitória contra chefes no Modo Infinito será "bastante XP" (valor numérico exato a definir posteriormente em etapa de balanceamento, sem números fixados agora).
+  2. **Início do Confronto por Proximidade:** O chefe já nascerá parado em seu ponto designado esperando o jogador; a batalha só tem início quando o jogador se aproximar fisicamente do local (mesmo comportamento e fluxo de ativação do altar atual).
+  3. **Inclusão do Azazel no Ciclo do Infinito:** O chefe Azazel fará parte do ciclo do Infinito, mediante adaptações arquiteturais prévias a serem detalhadas em ficha de viabilidade (especificamente: restaurar o mapa e o piso originais após a Dimensão Corrompida da Fase 3 e implementar o ramo do Modo Infinito em `handleAzazelDefeated` para a run não encerrar como Modo História).
+  4. **Ordem de Precedência Técnica de Pacotes:**
+     `Pacote 2B (Centralização Tipográfica e Cores)` ➔ `Pacote 3 (Modularizar GameScene)` ➔ `Pacote UI (Dividir a UIScene)` ➔ `Sistema de Encontros de Chefe` ➔ `Ciclo de Chefes do Infinito` ➔ `Múltiplos Personagens Jogáveis`.
+- **Motivo:** Decisão explícita do dono do projeto quanto à progressão do jogo e à mitigação de riscos técnicos antes de introduzir novos chefes e heróis.
+- **Rever quando:** Ao iniciar a implementação do sistema de encontros de chefe e elaboração da ficha técnica de adaptação do Azazel.
+
