@@ -2,6 +2,22 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote G — Guarda Automático de Qualidade] — 2026-10-18
+### Adicionado & Blindado (Qualidade, Ferramental & Automação)
+- **Hook de Pre-Commit Automatizado (`.githooks/pre-commit` & `scripts/pre-commit.mjs`)**:
+  - Script em Node puro (sem dependências externas novas) acionado automaticamente a cada tentativa de `git commit`.
+  - Executa a suíte completa de qualidade (`npm run check`): checagem de tipos estritos (`tsc --noEmit`), linter com catraca de warnings (`eslint` travado em 203 avisos), catraca de novas cores fora do tema oficial (`verify-theme.mjs`) e suíte de testes de regressão (`vitest`).
+  - Bloqueia imediatamente o commit com código de saída 1 e mensagem de orientação ao usuário caso qualquer uma das etapas falhe.
+- **Instalação em 1 Clique & Compatibilidade Windows (`scripts/install-hooks.mjs` & `INSTALAR_GUARDA.bat`)**:
+  - Script utilitário em Node puro que configura o repositório local com `git config core.hooksPath .githooks`.
+  - Atalho em lote `INSTALAR_GUARDA.bat` estritamente compatível com Windows (somente caracteres ASCII, quebras de linha CRLF, sem `chcp`, sem `!`), aprovado 100% pelo validador `scripts/verify-bat.mjs`.
+- **Prova de Bloqueio por Mutação e Defesa em Camadas**:
+  - Validação empírica do hook realizada com injeção de warning no ESLint (`theme.test.ts`), gerando 204 avisos (> 203 permitidos) e confirmando o cancelamento imediato do commit.
+  - Confirmação de integridade no fluxo de CI (`.github/workflows/deploy.yml`): qualquer tentativa de ignorar o hook local via `git commit --no-verify` é capturada e bloqueada antes do build e do deploy no GitHub Pages.
+- **Documentação e Governança**:
+  - Atualização do `docs/GUIA_DO_DONO.md` com seção dedicada em linguagem simples explicando a instalação em 1 clique e o significado seguro de commits bloqueados.
+  - Atualização de status em `LIVRO_DE_ANOTACOES.md`.
+
 ## [Pacote 2B — Centralização de Fontes, Cores e Telegrafia de Chefes] — 2026-10-18
 ### Adicionado & Refatorado (DEC-008 / Regra 5)
 - **Centralização Tipográfica, Semântica de Cores e Fórmulas de Telegrafia (`src/config/theme.ts`)**:
