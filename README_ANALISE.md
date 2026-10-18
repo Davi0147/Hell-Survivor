@@ -32,7 +32,7 @@ npm run build
 > **Status Atual de Qualidade**:
 > - TypeScript: **0 erros** (`tsc --noEmit`).
 > - ESLint: **205 avisos** (travado rigidamente na catraca de `--max-warnings 205`; qualquer aviso novo quebra o build com erro 1).
-> - Testes: **50 testes unitários passando** em 7 arquivos de teste cobrindo escalonamento, persistência, capítulos, efeitos de status, validação de mapas e trancamento do sandbox em domínios públicos.
+> - Testes: **54 testes unitários passando** em 8 arquivos de teste cobrindo escalonamento, persistência, capítulos, efeitos de status, validação de mapas, desfecho de derrota de chefes e trancamento do sandbox em domínios públicos.
 > - Build: **100% verificado** com sincronia atômica entre `dist/sw.js` e `dist/index.html` via `scripts/verify-build.mjs`.
 
 ### Atalhos de 1 Clique (.bat para Windows):
@@ -45,12 +45,12 @@ npm run build
 ## 📂 Estrutura do Projeto & Onde Encontrar Cada Coisa
 
 ### 1. Governança, Regras e Especificações (`docs/` e Raiz)
-- **`AGENTS.md`**: As 16 regras invioláveis de engenharia do projeto (isolamento de branches, não quebrar builds, catraca de warnings, zero-any em novas adições, invariantes de ciclo de vida DEC-006, resumo simples DEC-008, etc.).
+- **`AGENTS.md`**: As 17 regras invioláveis de engenharia do projeto (isolamento de branches, não quebrar builds, catraca de warnings, zero-any em novas adições, invariantes de ciclo de vida DEC-006, resumo simples DEC-008, integridade de cache web DEC-007, etc.).
 - **`LIVRO_DE_ANOTACOES.md`**: Status operacional completo do jogo: arsenal (6 armas + 6 evoluções), meta-progressão permanente (almas e bênçãos), chefes (Rosalin e Azazel em 4 fases), controles mobile e backlog pendente.
 - **`docs/ARCHITECTURE.md`**: Mapa arquitetural de cenas Phaser, barramento de eventos, máquinas de estado e hierarquia de entidades.
 - **`docs/MECHANICS.md`**: Especificação matemática das mecânicas, fórmulas de balanceamento, status effects, chefes e Seção 11 com o Contrato de Ciclo de Vida de Cenas.
 - **`docs/DECISIONS.md`**: Registros formais de Decisões de Arquitetura (ADRs: DEC-001 a DEC-008).
-- **`docs/CHANGELOG.md`**: Histórico detalhado de versões e pacotes entregues (P1.1 a P1.4.1).
+- **`docs/CHANGELOG.md`**: Histórico detalhado de versões e pacotes entregues (P1.1 a P1.6 / Release v0.9.0).
 - **`docs/GUIA_DO_DONO.md`**: Manual sem jargões para o dono do projeto interagir com a IA e testar atualizações.
 - **`docs/RELEASE_CHECKLIST.md`**: Auditoria completa de prontidão para publicação online no GitHub Pages.
 - **`reports/`**: Registros e relatórios brutos de validações de build, lint e testes.
@@ -79,7 +79,7 @@ npm run build
   - `MapEditorSystem.ts`: Editor in-game com 4 abas e exportação/importação JSON.
   - `SoundManager.ts`: Gerenciador de áudio com trilhas sincronizadas e síntese procedural.
 - **`src/ui/TouchControls.ts`**: Controles mobile virtuais com novos botões e analógico em pixel art dedicados.
-- **`src/__tests__/`**: 50 testes unitários automatizados em Vitest.
+- **`src/__tests__/`**: 54 testes unitários automatizados em Vitest.
 
 ### 3. Scripts e Infraestrutura (`scripts/` & `public/`)
 - **`public/sw.js`**: Service Worker PWA com injeção de `BUILD_ID`, segregação de estratégias de cache (stale-while-revalidate, cache-first para assets com hash e rede com fallback para sprites/áudio) e recarga controlada fora de combate.
