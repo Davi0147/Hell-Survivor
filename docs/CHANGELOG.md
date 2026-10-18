@@ -2,6 +2,24 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote P1.5 — Correção do Modo Infinito, DEC-007 Aceita & Espera Real no BAT] — 2026-10-18
+### Corrigido & Adicionado
+- **Continuidade do Modo Infinito na Derrota do Chefe (`src/config/balance.ts` & `src/scenes/GameScene.ts`)**:
+  - Extraída a decisão de encerramento para a função pura `getBossDefeatOutcome(gameMode: string): 'chapter-end' | 'continue-run'`, com 4 novos testes unitários e prova por mutação.
+  - No Modo Infinito (`endless`), a derrota da Succubus (invocada pelo altar ou espontânea) não encerra mais o capítulo, não pausa a física e não transiciona para `Chapter1EndScene`; em vez disso, entrega as recompensas supremas de sobrevivência (3 gemas roxas, 60-80 almas, baú de upgrade, aviso na tela, carga de ultimate e retomada das hordas).
+  - Adicionada guarda `!this.isBossFightActive` na invocação da Succubus aos 10:00 (`elapsedSec >= 600`), prevenindo duplicação com confrontos em andamento.
+- **Espera Real de Servidor no `TESTAR_VERSAO_1.bat` (`scripts/esperar-e-abrir.mjs`)**:
+  - Substituído o timeout fixo cego de 2 segundos por monitoramento ativo HTTP na porta 8080 com abertura automática do navegador somente após resposta válida do servidor Vite preview.
+  - Conformidade estrita validada por `scripts/verify-bat.mjs` (ASCII puro, CRLF, sem BOM, sem `!`, sem `chcp`).
+  - Confirmado que `TESTAR_ATUALIZACAO.bat` não possui o problema pois não abre navegador.
+- **Governança & Arquitetura (`docs/DECISIONS.md` & `AGENTS.md`)**:
+  - DEC-007 (Integridade de Cache e Infraestrutura Web) formalmente aceita pelo dono.
+  - Gravada a Regra 17 em `AGENTS.md`.
+- **Ficha de Viabilidade Técnica (`docs/FICHA_CICLO_DE_CHEFES.md`)**:
+  - Análise rigorosa baseada em código sobre o ciclo recorrente de chefes no Infinito, catalogando a inviabilidade do Azazel na forma atual (devido ao banimento dimensional para o mapa 202 com retorno hardcoded para o Capítulo 2) e propondo a variante com poda de fase e escalonamento por ciclo.
+- **Backlog do Bot F3 (`LIVRO_DE_ANOTACOES.md`)**:
+  - Registrada a hipótese técnica de travamento do bot na abertura da `UpgradeScene`.
+
 ## [Pacote P1.4 — Implementação de Decisões do Dono & Blindagem de Segurança] — 2026-10-18
 ### Adicionado & Refatorado
 - **Modo de Teste Limpo (`src/scenes/GameScene.ts`)**:
