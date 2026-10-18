@@ -21,6 +21,9 @@ function getFormattedDate(): string {
   const month = pad(now.getMonth() + 1);
   const hours = pad(now.getHours());
   const minutes = pad(now.getMinutes());
+  if (process.env.INCLUDE_BUILD_SECONDS === '1') {
+    return `${day}/${month} ${hours}:${minutes}:${pad(now.getSeconds())}`;
+  }
   return `${day}/${month} ${hours}:${minutes}`;
 }
 

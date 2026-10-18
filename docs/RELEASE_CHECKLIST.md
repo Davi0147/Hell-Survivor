@@ -407,30 +407,28 @@ Varredura exaustiva comprovada linha a linha no código-fonte. Todas as chaves d
    - **Momento Seguro:** O banner nunca surge no meio do combate ativo (`GameScene` despausada e sem Game Over). Fica em espera até pausa, fim de jogo ou retorno ao menu.
    - **Ação Explícita:** O jogo nunca recarrega automaticamente sozinho durante a partida; a atualização ocorre somente quando o jogador clica em `[ RECARREGAR ]`.
 
-### 12.2 Guia de Teste Local de Ponta a Ponta (E2E)
-Para simular em ambiente local o comportamento exato de deploy no GitHub Pages:
+### 12.2 Passo a Passo de Teste para o Dono (Sem Comandos, Só Cliques)
 
-1. **Compilar o Projeto:**
-   ```powershell
-   npm run build
-   node scripts/verify-build.mjs
-   ```
-2. **Subir Servidor Local de Produção:**
-   ```powershell
-   npx http-server dist -p 8080 -c-1
-   ```
-   *(Ou utilize `npx vite preview --port 8080`)*.
-3. **Validar no Navegador:**
-   - Acesse `http://localhost:8080` (em `localhost`, navegadores modernos registram Service Workers mesmo via HTTP).
-   - Abra o DevTools (`F12`) → Aba **Application** (Aplicativo) → **Service Workers**.
-   - Confirme que o Service Worker está ativo e que na seção **Cache Storage** consta a chave `hell-survivor-<sha> • <data>`.
-   - Inicie uma partida para verificar que o rodapé `#build-version` exibe o identificador correto.
-4. **Simular Chegada de Nova Versão:**
-   - Em outro terminal, faça uma alteração pontual e gere novo build com `npm run build`.
-   - No navegador da partida aberta, clique fora da aba e retorne para focar a aba (disparando `visibilitychange`).
-   - O novo Service Worker será instalado e ficará em estado `waiting`.
-   - Se estiver no menu ou pausado, o banner *"NOVA VERSÃO DISPONÍVEL"* surgirá no topo com a estética carmesim.
-   - Clique em `[ RECARREGAR ]`: o banner mudará para `RECARREGANDO...`, o worker enviará `SKIP_WAITING` e a página recarregará na nova versão, expurgando o cache anterior.
+1. **Abrir a Versão Inicial:**
+   - Na pasta do jogo, dê dois cliques em `TESTAR_VERSAO_1.bat`.
+   - Uma janela preta vai compilar o jogo e abrir a página automaticamente no seu navegador.
+   - **O que olhar na tela:** Olhe no canto inferior direito do jogo (perto do rodapé) e anote o código que aparece (exemplo: `c2ce55d • 18/10 01:50`).
+   - **Importante:** Deixe a janela preta aberta minimizada enquanto testa!
+
+2. **Simular a Publicação de uma Atualização:**
+   - Volte para a pasta do jogo e dê dois cliques em `TESTAR_ATUALIZACAO.bat`.
+   - Uma segunda janela vai rodar e mostrar em verde: *"SUCESSO! NOVA VERSÃO GERADA"*. Pode fechar essa janela quando terminar.
+
+3. **Conferir o Aviso de Atualização no Jogo:**
+   - Volte para a aba do jogo no navegador.
+   - Se você estiver em combate, pause ou aguarde a partida terminar (o aviso nunca atrapalha o tiroteio).
+   - Em poucos segundos, um aviso vermelho com dourado aparecerá no topo da tela:
+     **"NOVA VERSÃO DISPONÍVEL — Atualize para receber correções e novidades"**.
+
+4. **Recarregar e Conferir o Resultado:**
+   - Clique no botão vermelho **[ RECARREGAR ]**.
+   - O botão mudará para *"RECARREGANDO..."* e a página recarregará sozinha.
+   - **O que olhar na tela:** Olhe novamente no canto inferior direito: o código e a data/hora agora mudaram para a nova versão! Se mudou, o sistema de atualização passou 100%!
 
 ### 12.3 Procedimento de Kill-Switch de Emergência
 Se um deploy quebrado for publicado e prender os navegadores dos jogadores:
