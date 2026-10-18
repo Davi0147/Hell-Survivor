@@ -14,12 +14,12 @@ export class BootScene extends Phaser.Scene {
     this.sound.removeByKey('bgm-menu');
     this.sound.removeByKey('bgm-intro');
     this.sound.removeByKey('bgm-spooky');
-    this.textures.remove('menu-background');
+    if (this.textures.exists('menu-background')) this.textures.remove('menu-background');
     // Limpeza profunda de texturas e animações anteriores para permitir hot-reload sob demanda
     for (const dir of DIRECTIONS_8) {
-      this.textures.remove(`nixy-idle-${dir}`);
-      this.textures.remove(`nixy-hurt-${dir}`);
-      this.textures.remove(`nixy-sitting-${dir}`);
+      if (this.textures.exists(`nixy-idle-${dir}`)) this.textures.remove(`nixy-idle-${dir}`);
+      if (this.textures.exists(`nixy-hurt-${dir}`)) this.textures.remove(`nixy-hurt-${dir}`);
+      if (this.textures.exists(`nixy-sitting-${dir}`)) this.textures.remove(`nixy-sitting-${dir}`);
 
       if (this.anims.exists(`nixy-idle-${dir}`)) this.anims.remove(`nixy-idle-${dir}`);
       if (this.anims.exists(`nixy-hurt-${dir}`)) this.anims.remove(`nixy-hurt-${dir}`);
@@ -27,8 +27,8 @@ export class BootScene extends Phaser.Scene {
       if (this.anims.exists(`nixy-sprint-${dir}`)) this.anims.remove(`nixy-sprint-${dir}`);
 
       for (let i = 0; i < 8; i++) {
-        this.textures.remove(`nixy-run-${dir}-${i}`);
-        this.textures.remove(`nixy-sprint-${dir}-${i}`);
+        if (this.textures.exists(`nixy-run-${dir}-${i}`)) this.textures.remove(`nixy-run-${dir}-${i}`);
+        if (this.textures.exists(`nixy-sprint-${dir}-${i}`)) this.textures.remove(`nixy-sprint-${dir}-${i}`);
       }
     }
 
@@ -37,27 +37,27 @@ export class BootScene extends Phaser.Scene {
     for (const dir of DOG_DIRS) {
       if (this.anims.exists(`zombie-dog-run-${dir}`)) this.anims.remove(`zombie-dog-run-${dir}`);
       for (let i = 0; i < 8; i++) {
-        this.textures.remove(`zombie-dog-run-${dir}-${i}`);
+        if (this.textures.exists(`zombie-dog-run-${dir}-${i}`)) this.textures.remove(`zombie-dog-run-${dir}-${i}`);
       }
     }
     for (const dir of DIRECTIONS_8) {
-      this.textures.remove(`zombie-dog-idle-${dir}`);
+      if (this.textures.exists(`zombie-dog-idle-${dir}`)) this.textures.remove(`zombie-dog-idle-${dir}`);
       if (this.anims.exists(`zombie-dog-idle-${dir}`)) this.anims.remove(`zombie-dog-idle-${dir}`);
 
       // Limpar texturas e animações da Succubus
-      this.textures.remove(`succubus-idle-${dir}`);
+      if (this.textures.exists(`succubus-idle-${dir}`)) this.textures.remove(`succubus-idle-${dir}`);
       if (this.anims.exists(`succubus-idle-${dir}`)) this.anims.remove(`succubus-idle-${dir}`);
       if (this.anims.exists(`succubus-fly-${dir}`)) this.anims.remove(`succubus-fly-${dir}`);
       for (let i = 0; i < 5; i++) {
-        this.textures.remove(`succubus-fly-${dir}-${i}`);
+        if (this.textures.exists(`succubus-fly-${dir}-${i}`)) this.textures.remove(`succubus-fly-${dir}-${i}`);
       }
 
       // Limpar texturas e animações do Skull Slime
-      this.textures.remove(`skull-slime-idle-${dir}`);
+      if (this.textures.exists(`skull-slime-idle-${dir}`)) this.textures.remove(`skull-slime-idle-${dir}`);
       if (this.anims.exists(`skull-slime-idle-${dir}`)) this.anims.remove(`skull-slime-idle-${dir}`);
 
       // Limpar texturas e animações do Blood Bat
-      this.textures.remove(`blood-bat-idle-${dir}`);
+      if (this.textures.exists(`blood-bat-idle-${dir}`)) this.textures.remove(`blood-bat-idle-${dir}`);
       if (this.anims.exists(`blood-bat-idle-${dir}`)) this.anims.remove(`blood-bat-idle-${dir}`);
     }
 
@@ -65,101 +65,101 @@ export class BootScene extends Phaser.Scene {
     for (const dir of CARDINALS) {
       if (this.anims.exists(`skull-slime-run-${dir}`)) this.anims.remove(`skull-slime-run-${dir}`);
       for (let i = 0; i < 9; i++) {
-        this.textures.remove(`skull-slime-run-${dir}-${i}`);
+        if (this.textures.exists(`skull-slime-run-${dir}-${i}`)) this.textures.remove(`skull-slime-run-${dir}-${i}`);
       }
 
       if (this.anims.exists(`blood-bat-fly-${dir}`)) this.anims.remove(`blood-bat-fly-${dir}`);
       for (let i = 0; i < 5; i++) {
-        this.textures.remove(`blood-bat-fly-${dir}-${i}`);
+        if (this.textures.exists(`blood-bat-fly-${dir}-${i}`)) this.textures.remove(`blood-bat-fly-${dir}-${i}`);
       }
 
       if (this.anims.exists(`mummy-walk-${dir}`)) this.anims.remove(`mummy-walk-${dir}`);
       for (let i = 0; i < 9; i++) {
-        this.textures.remove(`mummy-walk-${dir}-${i}`);
+        if (this.textures.exists(`mummy-walk-${dir}-${i}`)) this.textures.remove(`mummy-walk-${dir}-${i}`);
       }
     }
 
     for (const dir of DIRECTIONS_8) {
       if (this.anims.exists(`mummy-idle-${dir}`)) this.anims.remove(`mummy-idle-${dir}`);
-      this.textures.remove(`mummy-idle-${dir}`);
+      if (this.textures.exists(`mummy-idle-${dir}`)) this.textures.remove(`mummy-idle-${dir}`);
     }
 
-    this.textures.remove('floor-tile');
-    this.textures.remove('nixy-portrait-idle');
-    this.textures.remove('nixy-portrait-damage');
-    this.textures.remove('nixy-ult-cutin-1');
-    this.textures.remove('nixy-ult-cutin-2');
-    this.textures.remove('nixy-ult-cutin-3');
-    this.textures.remove('chat-succubus');
-    this.textures.remove('chat-nixy');
+    if (this.textures.exists('floor-tile')) this.textures.remove('floor-tile');
+    if (this.textures.exists('nixy-portrait-idle')) this.textures.remove('nixy-portrait-idle');
+    if (this.textures.exists('nixy-portrait-damage')) this.textures.remove('nixy-portrait-damage');
+    if (this.textures.exists('nixy-ult-cutin-1')) this.textures.remove('nixy-ult-cutin-1');
+    if (this.textures.exists('nixy-ult-cutin-2')) this.textures.remove('nixy-ult-cutin-2');
+    if (this.textures.exists('nixy-ult-cutin-3')) this.textures.remove('nixy-ult-cutin-3');
+    if (this.textures.exists('chat-succubus')) this.textures.remove('chat-succubus');
+    if (this.textures.exists('chat-nixy')) this.textures.remove('chat-nixy');
 
-    this.textures.remove('gem-green');
-    this.textures.remove('gem-blue');
-    this.textures.remove('gem-red');
-    this.textures.remove('gem-orange');
-    this.textures.remove('gem-gold');
-    this.textures.remove('item-chalice');
-    this.textures.remove('item-magnet');
-    this.textures.remove('item-chest');
-    this.textures.remove('item-soul');
-    this.textures.remove('void-scythe');
-    this.textures.remove('blood-dagger');
-    this.textures.remove('infernal-meteor');
-    this.textures.remove('card-base');
-    this.textures.remove('card-fire');
-    this.textures.remove('card-gold');
-    this.textures.remove('card-green');
-    this.textures.remove('card-ice');
-    this.textures.remove('card-inferno');
-    this.textures.remove('card-mystic');
-    this.textures.remove('card-obsidian');
-    this.textures.remove('altar-1');
-    this.textures.remove('altar-2');
-    this.textures.remove('altar-3');
-    this.textures.remove('altar-invoc-inactive');
-    this.textures.remove('altar-invoc-active-1');
-    this.textures.remove('altar-invoc-active-2');
-    this.textures.remove('soul-shoot');
-    this.textures.remove('apocalypse-shoot');
-    this.textures.remove('game-title-logo');
+    if (this.textures.exists('gem-green')) this.textures.remove('gem-green');
+    if (this.textures.exists('gem-blue')) this.textures.remove('gem-blue');
+    if (this.textures.exists('gem-red')) this.textures.remove('gem-red');
+    if (this.textures.exists('gem-orange')) this.textures.remove('gem-orange');
+    if (this.textures.exists('gem-gold')) this.textures.remove('gem-gold');
+    if (this.textures.exists('item-chalice')) this.textures.remove('item-chalice');
+    if (this.textures.exists('item-magnet')) this.textures.remove('item-magnet');
+    if (this.textures.exists('item-chest')) this.textures.remove('item-chest');
+    if (this.textures.exists('item-soul')) this.textures.remove('item-soul');
+    if (this.textures.exists('void-scythe')) this.textures.remove('void-scythe');
+    if (this.textures.exists('blood-dagger')) this.textures.remove('blood-dagger');
+    if (this.textures.exists('infernal-meteor')) this.textures.remove('infernal-meteor');
+    if (this.textures.exists('card-base')) this.textures.remove('card-base');
+    if (this.textures.exists('card-fire')) this.textures.remove('card-fire');
+    if (this.textures.exists('card-gold')) this.textures.remove('card-gold');
+    if (this.textures.exists('card-green')) this.textures.remove('card-green');
+    if (this.textures.exists('card-ice')) this.textures.remove('card-ice');
+    if (this.textures.exists('card-inferno')) this.textures.remove('card-inferno');
+    if (this.textures.exists('card-mystic')) this.textures.remove('card-mystic');
+    if (this.textures.exists('card-obsidian')) this.textures.remove('card-obsidian');
+    if (this.textures.exists('altar-1')) this.textures.remove('altar-1');
+    if (this.textures.exists('altar-2')) this.textures.remove('altar-2');
+    if (this.textures.exists('altar-3')) this.textures.remove('altar-3');
+    if (this.textures.exists('altar-invoc-inactive')) this.textures.remove('altar-invoc-inactive');
+    if (this.textures.exists('altar-invoc-active-1')) this.textures.remove('altar-invoc-active-1');
+    if (this.textures.exists('altar-invoc-active-2')) this.textures.remove('altar-invoc-active-2');
+    if (this.textures.exists('soul-shoot')) this.textures.remove('soul-shoot');
+    if (this.textures.exists('apocalypse-shoot')) this.textures.remove('apocalypse-shoot');
+    if (this.textures.exists('game-title-logo')) this.textures.remove('game-title-logo');
     for (let i = 1; i <= 6; i++) {
-      this.textures.remove(`intro-${i}`);
+      if (this.textures.exists(`intro-${i}`)) this.textures.remove(`intro-${i}`);
     }
-    this.textures.remove('chat-boss');
-    this.textures.remove('chat-chefe');
+    if (this.textures.exists('chat-boss')) this.textures.remove('chat-boss');
+    if (this.textures.exists('chat-chefe')) this.textures.remove('chat-chefe');
     for (let i = 1; i <= 5; i++) {
-      this.textures.remove(`explosion-${i}`);
+      if (this.textures.exists(`explosion-${i}`)) this.textures.remove(`explosion-${i}`);
     }
-    this.textures.remove('mummy-poison-gosma');
-    this.textures.remove('ui-kills-icon');
-    this.textures.remove('ui-menu-arrow');
-    this.textures.remove('ult-gauge-frame');
-    this.textures.remove('ult-gauge-bg');
-    this.textures.remove('ui-status-hud');
-    this.textures.remove('ui-char-name-nixy');
+    if (this.textures.exists('mummy-poison-gosma')) this.textures.remove('mummy-poison-gosma');
+    if (this.textures.exists('ui-kills-icon')) this.textures.remove('ui-kills-icon');
+    if (this.textures.exists('ui-menu-arrow')) this.textures.remove('ui-menu-arrow');
+    if (this.textures.exists('ult-gauge-frame')) this.textures.remove('ult-gauge-frame');
+    if (this.textures.exists('ult-gauge-bg')) this.textures.remove('ult-gauge-bg');
+    if (this.textures.exists('ui-status-hud')) this.textures.remove('ui-status-hud');
+    if (this.textures.exists('ui-char-name-nixy')) this.textures.remove('ui-char-name-nixy');
     this.sound.removeByKey('bgm-azazel-intro');
     this.sound.removeByKey('bgm-azazel-mid');
     this.sound.removeByKey('bgm-azazel-fight');
-    this.textures.remove('floor-tile-2');
-    this.textures.remove('azazel-crystal');
-    this.textures.remove('chat-azazel');
-    this.textures.remove('azazel-orb');
-    this.textures.remove('azazel-lightning-bolt');
+    if (this.textures.exists('floor-tile-2')) this.textures.remove('floor-tile-2');
+    if (this.textures.exists('azazel-crystal')) this.textures.remove('azazel-crystal');
+    if (this.textures.exists('chat-azazel')) this.textures.remove('chat-azazel');
+    if (this.textures.exists('azazel-orb')) this.textures.remove('azazel-orb');
+    if (this.textures.exists('azazel-lightning-bolt')) this.textures.remove('azazel-lightning-bolt');
     for (const dir of DIRECTIONS_8) {
-      this.textures.remove(`azazel-idle-${dir}`);
-      this.textures.remove(`azazel-hand-${dir}`);
+      if (this.textures.exists(`azazel-idle-${dir}`)) this.textures.remove(`azazel-idle-${dir}`);
+      if (this.textures.exists(`azazel-hand-${dir}`)) this.textures.remove(`azazel-hand-${dir}`);
       if (this.anims.exists(`azazel-idle-${dir}`)) this.anims.remove(`azazel-idle-${dir}`);
       if (this.anims.exists(`azazel-hand-${dir}`)) this.anims.remove(`azazel-hand-${dir}`);
       if (this.anims.exists(`azazel-run-${dir}`)) this.anims.remove(`azazel-run-${dir}`);
     }
     for (const dir of ['east', 'north', 'south', 'west'] as const) {
       for (let i = 0; i < 8; i++) {
-        this.textures.remove(`azazel-run-${dir}-${i}`);
+        if (this.textures.exists(`azazel-run-${dir}-${i}`)) this.textures.remove(`azazel-run-${dir}-${i}`);
       }
     }
-    this.textures.remove('chat-nixy-damage');
-    this.textures.remove('chat-rosalin-defeated');
-    this.textures.remove('ui-star');
+    if (this.textures.exists('chat-nixy-damage')) this.textures.remove('chat-nixy-damage');
+    if (this.textures.exists('chat-rosalin-defeated')) this.textures.remove('chat-rosalin-defeated');
+    if (this.textures.exists('ui-star')) this.textures.remove('ui-star');
   }
 
   preload(): void {
