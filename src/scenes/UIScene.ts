@@ -573,6 +573,26 @@ export class UIScene extends Phaser.Scene {
     // 9. CONTROLES TOUCH NA TELA (MOBILE / TABLET)
     // ==========================================
     this.touchControls = new TouchControls(this);
+
+    // ==========================================
+    // 10. LIMPEZA NO DESLIGAMENTO DA CENA (DEC-006 / ANTI-LEAK)
+    // ==========================================
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.alertTimer) {
+        this.alertTimer.remove();
+        this.alertTimer = undefined;
+      }
+      if (this.keyEsc) {
+        this.keyEsc.removeAllListeners();
+        this.keyEsc = undefined;
+      }
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+        this.input.keyboard.removeAllListeners();
+      }
+      this.input.removeAllListeners();
+      this.time.removeAllEvents();
+    });
   }
 
   /**
