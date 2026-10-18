@@ -1,52 +1,104 @@
-# Regras Críticas do Projeto — Hell Survivor (`AGENTS.md`)
+# Hell Survivor — Regras Obrigatórias do Projeto (`AGENTS.md`)
 
-## 1. REGRA DE OURO OBRIGATÓRIA: Sincronização com o Modo de Teste & Gravador de Sessão (`Sandbox-First Rule`)
-
-**Qualquer funcionalidade, entidade ou mecânica adicionada ou alterada no jogo DEVE OBRIGATORIAMENTE ser atualizada simultaneamente no Modo de Teste (`src/systems/DevSandboxPanel.ts`) e no Gravador de Sessão (`src/systems/DebugSessionLogger.ts`).**
-
-Sempre que criar ou modificar:
-1. **Nova Arma ou Evolução Suprema:**
-   - Adicione um card correspondente na aba **`[3] ARMAS & EVOLUÇÕES`** do `DevSandboxPanel.ts` com botões para `[ EQUIPAR ]`, `[ +1 NÍV ]`, `[ MAX / EVO ]` e `[ REMOVER ]`, além de incluí-la no botão global `[ EQUIPAR E EVOLUIR TODAS AS 6 ARMAS ]`.
-   - Registre o evento no `DebugSessionLogger.getInstance().log('WEAPON', ...)`.
-2. **Novo Inimigo, Mini-Boss ou Chefe (Boss):**
-   - Adicione um botão de invocação na aba **`[2] HORDAS & BOSS`** do `DevSandboxPanel.ts` e no método `sandboxSpawnHorde()` / `sandboxSpawnBoss()` em `GameScene.ts`.
-   - Garanta que ao remover ou derrotar o Chefe no Modo de Teste, a música de batalha (`SoundManager.getInstance().playBattleMusic(1500)`) seja restaurada sem encerrar a sessão Sandbox e sem conflito de faixas de áudio.
-3. **Nova Bênção Passiva, Atributo ou Moeda/Economia:**
-   - Adicione controles `[ - ]` e `[ + ]` na aba **`[4] BÊNÇÃOS & ITENS`** do `DevSandboxPanel.ts` e inclua o atributo no botão de Reset e no snapshot de estado do `DebugSessionLogger.ts` (`captureSnapshot`).
-4. **Novo Item de Mapa, Evento ou Bioma:**
-   - Adicione um botão de spawn/acionamento imediato próximo à Nixy no `DevSandboxPanel.ts` para que o usuário possa testar a mecânica em 1 clique sem depender de RNG ou espera de tempo.
-5. **Chave de Produção (`ENABLE_DEV_SANDBOX`):**
-   - Mantenha o controle de visibilidade do Modo de Teste centralizado em `ENABLE_DEV_SANDBOX` (`src/config/balance.ts`), permitindo ocultar o modo para jogadores finais no lançamento oficial apenas mudando `ENABLE_DEV_SANDBOX = false`.
+## Stack & Ambiente
+- **Engine:** Phaser 3 (`^3.87.0`) + TypeScript (`strict`) + Vite.
+- **Dependências:** Proibido adicionar pacotes externos sem autorização explícita do usuário. Autorizados como `devDependencies` exclusivamente para o Pacote 1: `vitest`, `eslint` e os pacotes de apoio estritamente necessários para lintar TypeScript (`typescript-eslint`, `@eslint/js`, `globals`). Nenhum outro.
 
 ---
 
-## 2. Preservação de Balanceamento e Regras de Áudio/UI
-- **Nunca altere valores de balanceamento já aprovados** (como vida da Succubus, recarga da Ultimate, etc.) a menos que o usuário peça explicitamente.
-- **Zero Emojis Unicode em Textos do Phaser:** Utilize apenas tipografia pixel art (`Silkscreen`, `Press Start 2P`) e ícones vetoriais/sprites para evitar glifos quebrados no WebGL/Canvas.
-- **Transições de Áudio Limpas:** Ao alternar entre músicas (`bgm-menu`, `bgm-battle`, `bgm-boss`), utilize sempre os métodos do `SoundManager` que interrompem imediatamente qualquer faixa anterior antes de iniciar a nova.
+## 📌 Protocolo de Inicialização de Toda Sessão
+Antes de realizar qualquer edição no código ou na documentação:
+- É **estritamente obrigatório** ler e seguir este [`AGENTS.md`](AGENTS.md), [`docs/MECHANICS.md`](docs/MECHANICS.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e as últimas entradas em [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ---
 
-## 3. REGRA DE OURO OBRIGATÓRIA: Atualização Contínua da Área de Teste / Galeria de Sprites (`Showroom-First Rule`)
+## Regras Invioláveis (Numeradas e Verificáveis)
 
-**Todo e qualquer sprite, textura, prop de cenário, item coletável, arma, projétil, inimigo, chefe, moldura de carta ou efeito visual (VFX) adicionado ou alterado no jogo DEVE OBRIGATORIAMENTE ser registrado na Área de Teste / Galeria de Sprites (`src/systems/TestShowroomSystem.ts`).**
+1. **Escopo Mínimo e Preservação de Comportamento:**
+   - NUNCA remova, reescreva ou refatore código fora do escopo do pacote/tarefa atual.
+   - Refatorações NÃO mudam o comportamento do jogo. Se qualquer mudança de comportamento for necessária, avise e aguarde aprovação antes de editar.
+   - Antes de editar, liste os arquivos que serão tocados e os potenciais riscos. Ao concluir, apresente o resumo do `git diff` confirmando que nada fora do escopo foi alterado.
 
-Diretrizes da Galeria Showroom:
-1. **Organização Lógica por Categorias:** Novos elementos devem ser inseridos em sua respectiva categoria temática (`CENÁRIO & PROPS`, `ITENS & COLETÁVEIS`, `ARMAS & PROJÉTEIS`, `INIMIGOS & CHEFES`, `CARTAS DE BÊNÇÃO`, `ANIMAÇÕES & VFX`, `UI & RETRATOS`) ou em uma nova categoria dedicada se for um sistema inédito.
-2. **Escala e Renderização Fiel In-Game:** O sprite deve ser exibido com a mesma proporção, cor/tint e efeitos complementares (ex: tochas acompanhadas do seu halo crepitante de iluminação; animações rodando em loop contínuo).
-3. **Manequins Pacíficos:** Inimigos e chefes posicionados na galeria são estritamente manequins estáticos para inspeção visual (sem dano de contato, sem knockback, sem agressão ao jogador).
-4. **Espaçamento e Legibilidade:** Manter espaçamento limpo entre os itens com rótulo descritivo sob cada sprite para fácil conferência visual de fidelidade estética.
+2. **Bugs Encontrados Fora do Escopo (Relatar, Jamais Corrigir Silenciosamente):**
+   - Se durante a execução de uma tarefa você identificar qualquer bug, inconsistência lógica ou dado morto fora do escopo imediato da tarefa, é **estritamente proibido** corrigi-lo por conta própria.
+   - Todo problema identificado deve ser **reportado explicitamente no relatório final da tarefa** como pendência para avaliação e decisão do usuário.
 
----
+3. **REGRA DE OURO AMPLIADA (`Sandbox-First` + `Showroom-First` + `Level-Editor-First`):**
+   - **Sandbox & Logger:** Toda nova arma, evolução, bênção passiva, inimigo, mini-boss, chefe, item de mapa ou mecânica DEVE ser integrada simultaneamente ao Modo de Teste (`src/systems/DevSandboxPanel.ts`) e ao Gravador de Sessão (`src/systems/DebugSessionLogger.ts`).
+     - Armas novas entram na aba `[3] ARMAS & EVOLUÇÕES` com botões de equipar, evoluir e remover, além do botão global de equipar todas.
+     - Inimigos e chefes entram na aba `[2] HORDAS & BOSS`. Derrotar/remover chefes no Sandbox deve restaurar `SoundManager.getInstance().playBattleMusic()` sem encerrar a sessão.
+     - Bênçãos entram na aba `[4] BÊNÇÃOS & ITENS` com controles de nível e snapshot no logger.
+     - Visibilidade controlada pela flag `ENABLE_DEV_SANDBOX` em `src/config/balance.ts`.
+   - **Galeria Showroom:** Todo novo sprite, textura, prop, coletável, projétil, inimigo, chefe ou moldura de carta DEVE ser registrado na Área de Teste / Galeria de Sprites (`src/systems/TestShowroomSystem.ts`, isolada em `Y = -20000`) na categoria correspondente (`CENÁRIO & PROPS`, `ITENS & COLETÁVEIS`, `ARMAS & PROJÉTEIS`, `INIMIGOS & CHEFES`, `CARTAS DE BÊNÇÃO`, `ANIMAÇÕES & VFX`, `UI & RETRATOS`), em escala real e como manequim pacífico.
+   - **Editor de Mapas:** Todo novo prop decorativo, altar, spawner ou textura de chão aplicável a fases DEVE ser registrado na paleta do Editor de Mapas (`src/systems/MapEditorSystem.ts`), tipado em `src/config/mapData.ts` e suportado no carregador de fases (`loadCustomMapLayout` em `src/scenes/GameScene.ts`). Props decorativos mantêm `setDepth(-10)` e zero colisão física rígida para não prender entidades.
 
-## 4. REGRA DE OURO OBRIGATÓRIA: Registro Contínuo no Editor de Mapas (`Level-Editor-First Rule`)
+4. **Zero Números Mágicos de Balanceamento (`src/config/balance.ts`):**
+   - NUNCA hardcode números de balanceamento (HP, dano, velocidade, cooldowns, metas de almas de capítulos, limites de entidades, curvas de XP/escalonamento) dentro de cenas ou entidades. Tudo deve residir em `src/config/balance.ts` (incluindo `BALANCE`, `PERFORMANCE_LIMITS`, `ARENA_CONFIG` e a tabela `CHAPTER_CONFIG` *(a criar no Pacote 2)*).
+   - Nunca altere valores de balanceamento já aprovados sem pedido explícito.
 
-**Todo e qualquer novo objeto de cenário, elemento decorativo, portal, armadilha, ponto de spawn ou interativo de mapa adicionado ao jogo DEVE OBRIGATORIAMENTE ser registrado na paleta do Editor de Mapas (`src/systems/MapEditorSystem.ts`), no catálogo de dados (`src/config/mapData.ts`) e no carregador dinâmico de mapas (`loadCustomMapLayout` em `GameScene.ts`).**
+5. **Identidade Visual Gótica, Sprites & Tipografia (`theme.ts` *(a criar no Pacote 2)*):**
+   - NUNCA altere estilo visual (cores, fontes, layout de HUD, molduras) sem pedido explícito. Cores e fontes devem ser centralizadas em `src/config/theme.ts` *(a criar no Pacote 2)*.
+   - Padrões visuais de interface, caixas de diálogo, modais e telegrafia estão documentados em [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+   - **Zero Emojis Unicode em Textos WebGL/Canvas do Phaser:** Use apenas as fontes pixel-art do projeto (`Press Start 2P`, `Silkscreen`, `Pixelzone`) e ícones vetoriais/sprites para evitar glifos quebrados.
+   - **Preservação de Escala em Troca de Texturas (`setDisplaySize`):** Sempre que substituir texturas dinamicamente em imagens com dimensões fixas (ex: bustos de diálogo em `origin(0.5, 1.0)` ou retratos), chame `image.setDisplaySize(largura, altura)` imediatamente na linha seguinte.
+   - **Transições Cinematográficas Condicionais:** As animações de slide/fade dos bustos e o movimento do balão de fala só ocorrem quando o personagem falante muda (`currentSpeakerSide !== newSide`).
+   - Manter a tag discreta `#build-version` no canto inferior direito do `index.html` refletindo a build ativa.
 
-Diretrizes do Editor de Mapas:
-1. **Inclusão Imediata na Paleta:** Adicionar o novo item em `MapEditorSystem.PALETTE` com id único, categoria apropriada (`props` ou `spawns`), ícone descritivo, textura e escala padronizada.
-2. **Zero Colisão Física para Props:** Props de cenário devem sempre manter `setDepth(-10)` e sem corpos físicos rígidos para jamais prender Nixy ou inimigos.
-3. **Compatibilidade com Exportação/Importação JSON:** O formato dos dados de mapa em `src/config/mapData.ts` deve sempre suportar novos tipos de props sem quebrar mapas previamente exportados pelo usuário.
-4. **Renderização Fiel no Editor e In-Game:** Efeitos associados a props (como halos de tochas crepitando, auras de portais e zonas de bosses) devem ser reproduzidos tanto no preview do editor quanto no carregamento do jogo real.
+6. **Timers Seguros e Ciclo de Vida do Phaser:**
+   - NUNCA use `window.setTimeout` ou `window.setInterval` em lógica de gameplay, combate ou cenas. Use sempre `this.time.delayedCall` ou `this.time.addEvent` da cena ativa para respeitar pausas (`scene.pause()`) e evitar vazamentos ao trocar de cena.
+   - **Pausa em Modais/Diálogos:** Ao abrir diálogos, modais de vitória ou menus de seleção, pause a física (`this.physics.pause()`) e congele loops de atualização para evitar dano ou movimentação em segundo plano.
+   - **Limpeza de Cenas:** Ao transicionar entre telas, finalize explicitamente as cenas anteriores (`this.scene.stop()`).
 
+7. **Persistência e Chaves Centralizadas (`STORAGE_KEYS` em `src/config/storageKeys.ts`):**
+   - NUNCA espalhe strings literais de chaves do `localStorage` ou `sessionStorage` pelo código. Todas as chaves devem ser lidas/gravadas exclusivamente via objeto centralizado `STORAGE_KEYS` e suas funções auxiliares (`getChapterMapKey`, `getChapterMapBackupKey`) em [`src/config/storageKeys.ts`](src/config/storageKeys.ts), sempre protegidas por `try / catch` e mantendo compatibilidade e migração defensiva com saves anteriores.
 
+8. **Qualidade de Tipagem (Proibição de `any` Novo):**
+   - É **estritamente proibido** introduzir novas anotações `any` no TypeScript. Use interfaces, tipos discriminados, genéricos ou `unknown` com asserção segura. Ao refatorar arquivos existentes, substitua progressivamente os `any` remanescentes por tipos reais.
+
+9. **Protocolo Seguro de Git (Sem Destruição de Histórico):**
+   - Exatamente **um commit por tarefa** (um pacote de trabalho pode ter múltiplos commits, um para cada tarefa ou extração concluída).
+   - **Proibido:** NUNCA execute `git tag -f`, `git push --force`, `git reset --hard`, `git clean -fd` ou comandos que excluam branches sem solicitação explícita do usuário.
+
+10. **Definição de Pronto (DoD) e Honestidade de Testes:**
+    - NUNCA afirme ou insinue que um teste, build ou verificação passou se ele não tiver sido de fato executado no terminal. Se um passo não foi executado, escreva explicitamente `"NÃO EXECUTADO"` e justifique o motivo.
+    - O Bot Autônomo `[F3]` (`AutoPlayTestAgent`) e testes de jogabilidade visual devem ser executados pelo usuário no navegador: solicite o teste, aguarde o retorno com o log gerado e não dê a tarefa como concluída antes desse feedback.
+    - Toda tarefa deve reportar o status real de `npm run check`, compilação, atualização do Livro de Anotações e Changelog.
+
+11. **Avaliação de Viabilidade (Obrigatória antes de Implementar):**
+    - Para todo pedido que crie ou mude mecânica, arquitetura, regra, balanceamento ou estilo (exceto ajustes triviais: texto, cor pontual, bug de causa óbvia), ANTES de editar responda com a FICHA e aguarde "ok":
+      1. Objetivo entendido em 1 frase e o que NÃO entendi.
+      2. Viabilidade técnica com evidência (arquivo/linha ou comando), nunca de memória.
+      3. Impacto: arquivos, risco de regressão, performance (`PERFORMANCE_LIMITS`, 60 FPS, mobile), compatibilidade com saves.
+      4. Conflitos com `AGENTS.md`, `docs/MECHANICS.md` ou decisões anteriores.
+      5. Pelo menos 1 alternativa e quando ela é melhor.
+      6. Recomendação: `FAZER` / `FAZER ADAPTADO` / `NÃO FAZER`, com motivo.
+    - Discordar com argumento é obrigação. É proibido elogiar ou aceitar uma ideia sem análise. Se o pedido parecer ruim, diga e proponha caminho melhor; a decisão final é do dono.
+
+12. **Pedido Não É Regra:**
+    - Pedidos do dono são pontuais por padrão. Nada vira regra em `AGENTS.md`/`docs/MECHANICS.md` ou decisão em `docs/DECISIONS.md` sem o dono dizer "registre como regra" e sem você mostrar antes o texto exato.
+    - Decisões em `docs/DECISIONS.md` têm: Status (`Proposta` | `Aceita`), Data, Contexto, Decisão, Motivo (apenas o dito pelo dono ou comprovado no código; senão `"não informado"`), Rever quando. Nunca invente justificativa. Regras podem ser revisadas: substitua marcando a antiga como "Substituída por ...", não apague.
+
+13. **Ciclo de Vida de Cenas Phaser (DEC-006):**
+    - **Zerar estado em `init()`:** Toda cena com variáveis de controle (`isEnding`, `isTyping`, `isPaused`, arrays de entidades) deve implementar `init()` para redefini-las ao valor padrão, pois o Phaser reutiliza a mesma instância da classe em `scene.start()`.
+    - **Criar grupos antes de usá-los:** Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) devem ser instanciados no início de `create()`, antes de qualquer chamada a métodos de layout (`loadCustomMapLayout`), com checagens defensivas (`this.group && this.group.children`).
+    - **Limpar ouvintes no `SHUTDOWN`:** Cenas que registram ouvintes (`this.events.on`, `input.keyboard.on`, timers contínuos) devem registrar um ouvinte `SHUTDOWN` para desregistrar/limpar esses elementos, impedindo vazamento de listeners e duplicidade de handlers.
+
+14. **Registro de Memória (Workflow `/registrar`):**
+    - Quando o dono disser "lembra", "anota", "sempre faça assim" ou equivalente, NÃO responda apenas "ok". Siga o workflow `/registrar`:
+      1. Classifique o pedido: `REGRA` inviolável (neste arquivo) | `CONTRATO` de mecânica (`docs/MECHANICS.md`) | `PADRÃO` visual/UX (`docs/DESIGN_SYSTEM.md`) | `DECISÃO` (`docs/DECISIONS.md`) | `TAREFA` pendente (`LIVRO_DE_ANOTACOES.md`) | `PREFERÊNCIA` pontual (esta última não é registrada).
+      2. Se for ambíguo, pergunte qual tipo é antes de escrever.
+      3. Procure no repositório se já existe algo igual ou conflitante (`AGENTS.md`, `docs/MECHANICS.md`, `docs/DESIGN_SYSTEM.md`, `docs/DECISIONS.md`) e mostre.
+      4. Mostre o TEXTO EXATO e o ARQUIVO DE DESTINO e aguarde o "ok" do dono. Valores numéricos/cores moram no código (`theme.ts`, `balance.ts`), o documento só aponta para eles.
+      5. Grave, mostre o `git diff` e registre no `docs/CHANGELOG.md`.
+      6. Nunca invente motivo: "Motivo" é apenas o explicitamente dito pelo dono ou o que o código comprova.
+
+15. **Regra de Conflito (Parada Obrigatória):**
+    - **Se qualquer instrução de uma tarefa conflitar com este arquivo (`AGENTS.md`), com `docs/MECHANICS.md`, com `docs/DESIGN_SYSTEM.md` ou com `docs/DECISIONS.md`, PARE imediatamente e pergunte ao usuário antes de escrever código.**
+
+16. **Resumo Simples no Início dos Relatórios (DEC-008):**
+    - Todo relatório de entrega gerado pela IA deve obrigatoriamente iniciar com a seção "O Que Isso Significa Para Você", contendo até 5 linhas em linguagem simples, direta e sem termos técnicos complexos, explicando o que mudou na experiência do jogador ou do dono.
+
+17. **Integridade de Cache e Infraestrutura Web (DEC-007):**
+    - **Build ID atômico:** Todo build de produção deve sincronizar o `BUILD_ID` (`<sha curto> • <dd/mm hh:mm>`) entre `dist/sw.js` e `dist/index.html` via plugin Vite inline e validado por `scripts/verify-build.mjs`.
+    - **Estratégias segregadas no Service Worker:** `index.html` e navegação usam *Network-First*; assets compilados com hash (`/assets/*.js`, `*.css`) usam *Cache-First*; arquivos sem hash (sprites, áudio, imagens, fontes) usam rede com `cache: 'no-cache'` e fallback offline.
+    - **Atualização sem mistura e recarga sob demanda:** O Service Worker novo não usa `skipWaiting` automático (exceto na migração de `hell-survivor-cache-v1`); aguarda o jogador clicar no botão de recarregar do banner, que só é exibido fora de combate e recarrega uma única vez no evento `controllerchange`.

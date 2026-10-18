@@ -26,7 +26,7 @@ import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG } from '../config/balance';
+import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome } from '../config/balance';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
@@ -62,7 +62,6 @@ export class GameScene extends Phaser.Scene {
   public isChapterCompleted: boolean = false;
   public isGameOver: boolean = false;
   public miniBoss3mSpawned: boolean = false;
-  public miniBoss6mSpawned: boolean = false;
   public boss10mSpawned: boolean = false;
   public isRevival: boolean = false;
   public hasRevivalUsed: boolean = false;
@@ -87,7 +86,9 @@ export class GameScene extends Phaser.Scene {
   public bossSummonAltar: BossSummonAltar | null = null;
   public isHordeSpawningPaused: boolean = false;
   private altarSpawnTimer: number = 0;
-  private readonly ALTAR_SPAWN_INTERVAL: number = 75000;
+  private get ALTAR_SPAWN_INTERVAL(): number {
+    return getChapterConfig(this.currentChapter).altarSpawnIntervalMs;
+  }
   private spawnTimer: number = 0;
   private mapItemSpawnTimer: number = 0;
   public killCount: number = 0;
@@ -129,14 +130,12 @@ export class GameScene extends Phaser.Scene {
     this.sandboxShowHitboxes = false;
 
     this.chapterPurifiedSouls = 0;
-    // No Capítulo 2 a barra leva 50% a mais de almas para invocar o Boss (1350 vs 900)
-    this.chapterTargetSouls = this.currentChapter === 2 ? 1350 : 900;
+    this.chapterTargetSouls = getChapterConfig(this.currentChapter).targetSouls;
     this.killCount = 0;
     this.isBossFightActive = false;
     this.isChapterCompleted = false;
     this.isGameOver = false;
     this.miniBoss3mSpawned = false;
-    this.miniBoss6mSpawned = false;
     this.boss10mSpawned = false;
     this.survivalTimeMs = 0;
     this.bossInstance = undefined;
@@ -152,7 +151,15 @@ export class GameScene extends Phaser.Scene {
     this.spawnTimer = 0;
     this.mapItemSpawnTimer = 0;
     this.bossMinionTimer = 0;
+    this.playerInvulnerableTimer = 0;
+    this.poisonPuddles = [];
+    this.weapons = [];
     this.clearCombatSpeechBubbles();
+    this.sceneryProps = [];
+    this.borderMistEmitter = undefined;
+    this.testShowroomSystem = undefined;
+    this.mapEditorSystem = undefined;
+    this.mapEditorLauncherButton = undefined;
 
     DebugSessionLogger.getInstance().startNewSession(this.gameMode);
   }
@@ -207,7 +214,28 @@ export class GameScene extends Phaser.Scene {
     // 3.2. Desenha o abismo e a bruma mística nas bordas da arena
     this.drawArenaBorders();
 
-    // 3.3. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
+    // 3.3. Inicialização dos Grupos de Entidades e Itens antes de carregar o layout do mapa
+    this.enemiesGroup = this.add.group({
+      classType: BaseEnemy,
+      runChildUpdate: false
+    });
+
+    this.gemsGroup = this.add.group({
+      classType: SoulGem,
+      runChildUpdate: false
+    });
+
+    this.soulsGroup = this.add.group({
+      classType: CorruptedSoulItem,
+      runChildUpdate: false
+    });
+
+    this.mapItemsGroup = this.add.group({
+      classType: MapItem,
+      runChildUpdate: false
+    });
+
+    // 3.4. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
     this.loadCustomMapLayout(activeMap);
 
     // Sincronizar o chão infinito no POST_UPDATE compensando o scroll da câmera
@@ -281,27 +309,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    // 5. Inicialização de Grupos, Armas e Gemas de Alma (com Limites de Performance Rigorosos)
-    this.enemiesGroup = this.add.group({
-      classType: BaseEnemy,
-      runChildUpdate: false
-    });
-
-    this.gemsGroup = this.add.group({
-      classType: SoulGem,
-      runChildUpdate: false
-    });
-
-    this.soulsGroup = this.add.group({
-      classType: CorruptedSoulItem,
-      runChildUpdate: false
-    });
-
-    this.mapItemsGroup = this.add.group({
-      classType: MapItem,
-      runChildUpdate: false
-    });
-
+    // 5. Inicialização de Armas e Armamento da Nixy
     this.weapons = [];
     this.soulBoltWeapon = new SoulBoltWeapon(this, this.player);
     this.weapons.push(this.soulBoltWeapon);
@@ -988,17 +996,8 @@ export class GameScene extends Phaser.Scene {
           this.activateBossSummonAltar();
         }
 
-        // 6:00 (360s): Matriarca Succubus Mini-Boss
-        if (!this.miniBoss6mSpawned && elapsedSec >= 360) {
-          this.miniBoss6mSpawned = true;
-          if (uiScene) {
-            uiScene.showWaveAlert('ALERTA: MATRIARCA SUCCUBUS DETECTADA!', 4500);
-          }
-          this.spawnMatriarchSuccubus();
-        }
-
-        // 10:00 (600s): Succubus Desperta (Chefe Suprema do Modo Infinito)
-        if (!this.boss10mSpawned && elapsedSec >= 600) {
+        // 10:00 (600s): Succubus Desperta (Chefe Suprema do Modo Infinito - não spawna se já houver chefe ativo)
+        if (!this.boss10mSpawned && elapsedSec >= 600 && !this.isBossFightActive) {
           this.boss10mSpawned = true;
           if (uiScene) {
             uiScene.showWaveAlert('ALERTA CRÍTICO: SUCCUBUS DESPERTA!', 5000);
@@ -1061,8 +1060,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private getChapterEnemyStatMultiplier(): number {
-    // No Capítulo 2 os monstros possuem +20% de vida e +20% de dano
-    return this.gameMode === 'story' && this.currentChapter >= 2 ? 1.2 : 1.0;
+    if (this.gameMode !== 'story') return 1.0;
+    return getChapterConfig(this.currentChapter).enemyStatMultiplier;
   }
 
   private spawnZombieDogAt(
@@ -1660,7 +1659,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Spawna a Mini-Chefe Matriarca Succubus no Modo Infinito (6:00)
+   * Spawna a Mini-Chefe Matriarca Succubus (disponível via Sandbox / Modo de Teste F1)
    */
   private spawnMatriarchSuccubus(): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
@@ -1752,7 +1751,8 @@ export class GameScene extends Phaser.Scene {
     MetaProgressManager.getInstance().recordRun(
       Math.floor(this.survivalTimeMs / 1000),
       this.killCount,
-      false
+      false,
+      this.gameMode
     );
     if (this.gameMode === 'story') {
       const bossId = this.isBossFightActive
@@ -2240,13 +2240,13 @@ export class GameScene extends Phaser.Scene {
       this.spawnSceneryProps();
     }
 
-    // 5. Spawna itens de exploração se definidos nas zonas de item
-    if (this.mapItemsGroup) {
+    // 5. Spawna itens de exploração se definidos nas zonas de item (apenas em modo História e Infinito; Sandbox começa limpo)
+    if (this.mapItemsGroup && this.mapItemsGroup.children) {
       const oldItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (let i = oldItems.length - 1; i >= 0; i--) {
         oldItems[i].destroy();
       }
-      if (map.itemSpawners && Array.isArray(map.itemSpawners)) {
+      if (this.gameMode !== 'sandbox' && map.itemSpawners && Array.isArray(map.itemSpawners)) {
         for (const sp of map.itemSpawners) {
           const types: ('chalice' | 'chest' | 'magnet')[] = ['chalice', 'chest', 'magnet'];
           const chosen = Phaser.Math.RND.pick(types);
@@ -2267,7 +2267,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.sceneryProps = [];
 
-    if (this.mapItemsGroup) {
+    if (this.mapItemsGroup && this.mapItemsGroup.children) {
       const mapItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (let i = mapItems.length - 1; i >= 0; i--) {
         mapItems[i].destroy();
@@ -2287,7 +2287,7 @@ export class GameScene extends Phaser.Scene {
     if (this.bossSummonAltar) {
       this.bossSummonAltar.setVisible(visible);
     }
-    if (this.mapItemsGroup) {
+    if (this.mapItemsGroup && this.mapItemsGroup.children) {
       const mapItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (const item of mapItems) {
         item.setVisible(visible);
@@ -3196,20 +3196,46 @@ export class GameScene extends Phaser.Scene {
   private handleBossDefeated(): void {
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Succubus derrotada!');
 
-    if (this.gameMode === 'sandbox') {
+    const outcome = getBossDefeatOutcome(this.gameMode);
+
+    if (outcome === 'continue-run') {
       this.isBossFightActive = false;
+      this.isHordeSpawningPaused = false;
       this.clearCombatSpeechBubbles();
       const bx = this.bossInstance ? this.bossInstance.x : this.player.x;
       const by = this.bossInstance ? this.bossInstance.y : this.player.y;
       this.bossInstance = undefined;
       SoundManager.getInstance().playBattleMusic(1500);
-      this.spawnGemAt(bx - 25, by, 'purple');
-      this.spawnGemAt(bx + 25, by, 'purple');
+
+      if (this.gameMode === 'sandbox') {
+        this.spawnGemAt(bx - 25, by, 'purple');
+        this.spawnGemAt(bx + 25, by, 'purple');
+        this.spawnSoulItem(bx, by, Phaser.Math.Between(60, 80));
+        this.spawnMapItem(bx, by - 35, 'chest');
+        const uiScene = this.scene.get('UIScene') as UIScene;
+        if (uiScene) {
+          uiScene.showWaveAlert('SUCCUBUS DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
+        }
+        return;
+      }
+
+      // Modo Infinito ('endless'): não encerra o capítulo, não zera nível e continua a partida
+      this.killCount += 5;
+      this.player.gainUltimateCharge(100);
+
+      // Recompensa suprema da Succubus do Infinito: 3 Gemas Roxas, 60-80 Almas, Baú de Upgrade e aviso na tela
+      this.spawnGemAt(bx - 30, by, 'purple');
+      this.spawnGemAt(bx, by, 'purple');
+      this.spawnGemAt(bx + 30, by, 'purple');
       this.spawnSoulItem(bx, by, Phaser.Math.Between(60, 80));
-      this.spawnMapItem(bx, by - 35, 'chest');
+      this.spawnMapItem(bx, by - 40, 'chest');
+
+      this.cameras.main.flash(400, 255, 215, 0);
+      this.cameras.main.shake(400, 0.025);
+
       const uiScene = this.scene.get('UIScene') as UIScene;
       if (uiScene) {
-        uiScene.showWaveAlert('SUCCUBUS DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
+        uiScene.showWaveAlert('CHEFE SUPREMA DERROTADA! A SOBREVIVÊNCIA CONTINUA...', 5000);
       }
       return;
     }
@@ -3257,7 +3283,8 @@ export class GameScene extends Phaser.Scene {
     MetaProgressManager.getInstance().recordRun(
       Math.floor(this.survivalTimeMs / 1000),
       this.killCount,
-      true
+      true,
+      this.gameMode
     );
 
     const uiScene = this.scene.get('UIScene') as UIScene;

@@ -1,3 +1,4 @@
 @echo off
 cd /d "%~dp0"
-call "INICIAR_JOGO.bat"
+node scripts/jogar-dev.mjs
+if errorlevel 1 pause

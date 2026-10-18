@@ -8,13 +8,20 @@
     "start": "vite --force --open",
     "dev:fresh": "vite --force --open",
     "build": "tsc && vite build",
+    "check": "tsc --noEmit && eslint src --max-warnings 205 && vitest run",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
     "phaser": "^3.88.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
     "typescript": "^5.7.3",
-    "vite": "^6.2.0"
+    "typescript-eslint": "^8.71.2",
+    "vite": "^6.2.0",
+    "vitest": "^5.0.5"
   }
 }

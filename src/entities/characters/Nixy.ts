@@ -2,6 +2,14 @@ import Phaser from 'phaser';
 import { BaseCharacter } from './BaseCharacter';
 import { BALANCE } from '../../config/balance';
 import { MetaProgressManager } from '../../systems/MetaProgressManager';
+import {
+  getStatusEffectTint,
+  applyAcidRoot as applyAcidRootPure,
+  applySlow as applySlowPure,
+  applyKnockback as applyKnockbackPure,
+  updateStatusEffects,
+  StatusEffectsState,
+} from '../../systems/statusEffects';
 
 export class Nixy extends BaseCharacter {
   private trailTimer: number = 0;
@@ -19,12 +27,19 @@ export class Nixy extends BaseCharacter {
   private knockbackTimer: number = 0;
   private knockbackVelocity: { x: number; y: number } = { x: 0, y: 0 };
 
+  // Pool de Rastro Fantasma de Sprint (reaproveitamento com teto máximo de 10 sprites)
+  private ghostPool: Phaser.GameObjects.Sprite[] = [];
+  private readonly MAX_GHOST_POOL_SIZE = 10;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'nixy-idle-south', BALANCE.NIXY);
     this.characterId = 'nixy';
     this.characterName = 'NIXY';
     this.applyMetaProgressBlessings();
     this.play('nixy-idle-south');
+
+    this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupGhostPool, this);
+    this.scene.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupGhostPool, this);
   }
 
   public applyMetaProgressBlessings(): void {
@@ -52,10 +67,42 @@ export class Nixy extends BaseCharacter {
     }
   }
 
+  private getStatusState(): StatusEffectsState {
+    return {
+      rootTimer: this.rootTimer,
+      slowTimer: this.slowTimer,
+      knockbackTimer: this.knockbackTimer,
+      isRooted: this.isRooted,
+      speedDebuffMultiplier: this.speedDebuffMultiplier,
+    };
+  }
+
+  private syncStatusState(state: StatusEffectsState): void {
+    this.rootTimer = state.rootTimer;
+    this.slowTimer = state.slowTimer;
+    this.knockbackTimer = state.knockbackTimer;
+    this.isRooted = state.isRooted;
+    this.speedDebuffMultiplier = state.speedDebuffMultiplier;
+  }
+
+  private updateStatusTint(): void {
+    const tint = getStatusEffectTint({
+      isRooted: this.isRooted,
+      rootTimer: this.rootTimer,
+      slowTimer: this.slowTimer,
+    });
+    if (tint !== null) {
+      this.setTint(tint);
+    } else {
+      this.clearTint();
+    }
+  }
+
   public applyAcidRoot(durationMs: number = 1000): void {
-    this.isRooted = true;
-    this.rootTimer = durationMs;
-    this.setTint(0x55ff77); // Sprite esverdeado do ácido
+    const state = this.getStatusState();
+    applyAcidRootPure(state, durationMs);
+    this.syncStatusState(state);
+    this.updateStatusTint();
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setVelocity(0, 0);
@@ -63,16 +110,17 @@ export class Nixy extends BaseCharacter {
   }
 
   public applySlow(multiplier: number = 0.60, durationMs: number = 600): void {
-    this.speedDebuffMultiplier = Math.min(this.speedDebuffMultiplier, multiplier);
-    this.slowTimer = Math.max(this.slowTimer, durationMs);
-    if (!this.isRooted) {
-      this.setTint(0x70e000); // Verde tóxico do lodo
-    }
+    const state = this.getStatusState();
+    applySlowPure(state, multiplier, durationMs);
+    this.syncStatusState(state);
+    this.updateStatusTint();
   }
 
   public applyKnockback(vx: number, vy: number, durationMs: number = 220): void {
     this.knockbackVelocity = { x: vx, y: vy };
-    this.knockbackTimer = durationMs;
+    const state = this.getStatusState();
+    applyKnockbackPure(state, durationMs);
+    this.syncStatusState(state);
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setVelocity(vx, vy);
@@ -92,9 +140,14 @@ export class Nixy extends BaseCharacter {
     isSprintRequested: boolean,
     deltaMs: number
   ): void {
-    // Gerenciamento de Knockback
+    // 1. Atualiza timers de controle de grupo via módulo puro
+    const statusState = this.getStatusState();
+    updateStatusEffects(statusState, deltaMs);
+    this.syncStatusState(statusState);
+    this.updateStatusTint();
+
+    // 2. Gerenciamento de Knockback (não bloqueia mais o decremento de slow e root)
     if (this.knockbackTimer > 0) {
-      this.knockbackTimer -= deltaMs;
       const body = this.body as Phaser.Physics.Arcade.Body;
       if (body) {
         body.setVelocity(this.knockbackVelocity.x, this.knockbackVelocity.y);
@@ -103,33 +156,14 @@ export class Nixy extends BaseCharacter {
       return;
     }
 
-    // Gerenciamento de Lentidão (Rastro da Múmia)
-    if (this.slowTimer > 0) {
-      this.slowTimer -= deltaMs;
-      if (this.slowTimer <= 0) {
-        this.speedDebuffMultiplier = 1.0;
-        if (!this.isRooted && this.hurtTimer <= 0) {
-          this.clearTint();
-        }
-      }
-    }
-
-    // Gerenciamento de Prisão Ácida
+    // 3. Gerenciamento de Prisão Ácida: bloqueia movimentação e sprint
     if (this.isRooted) {
-      this.rootTimer -= deltaMs;
-      if (this.rootTimer <= 0) {
-        this.isRooted = false;
-        this.clearTint();
-      } else {
-        // Bloqueia movimentação física e sprint enquanto enraizada
-        dx = 0;
-        dy = 0;
-        isSprintRequested = false;
-        this.setTint(0x55ff77);
-      }
+      dx = 0;
+      dy = 0;
+      isSprintRequested = false;
     }
 
-    // Atualiza lógica central de física e estamina
+    // 4. Atualiza física vetorial e estamina da classe base
     this.updateMovement(dx, dy, isSprintRequested, deltaMs);
 
     // Efeito visual de rastro (ghost trail / sombra fantasma) durante o Full Sprint
@@ -193,7 +227,25 @@ export class Nixy extends BaseCharacter {
   }
 
   private createSprintGhost(): void {
-    const ghost = this.scene.add.sprite(this.x, this.y, this.texture.key, this.frame.name);
+    let ghost = this.ghostPool.find(g => !g.active);
+
+    if (!ghost) {
+      if (this.ghostPool.length < this.MAX_GHOST_POOL_SIZE) {
+        ghost = this.scene.add.sprite(this.x, this.y, this.texture.key, this.frame.name);
+        this.ghostPool.push(ghost);
+      } else {
+        // Reaproveita o sprite mais antigo quando a pool atinge a capacidade máxima
+        ghost = this.ghostPool[0];
+        this.ghostPool.push(this.ghostPool.shift()!);
+      }
+    }
+
+    if (this.scene?.tweens) {
+      this.scene.tweens.killTweensOf(ghost);
+    }
+
+    ghost.setTexture(this.texture.key, this.frame.name);
+    ghost.setPosition(this.x, this.y);
     ghost.setFlipX(this.flipX);
     ghost.setFlipY(this.flipY);
     ghost.setScale(this.scaleX, this.scaleY);
@@ -201,6 +253,8 @@ export class Nixy extends BaseCharacter {
     ghost.setAlpha(0.85);
     ghost.setBlendMode(Phaser.BlendModes.ADD);
     ghost.setDepth(this.depth - 1);
+    ghost.setActive(true);
+    ghost.setVisible(true);
 
     this.scene.tweens.add({
       targets: ghost,
@@ -210,8 +264,28 @@ export class Nixy extends BaseCharacter {
       duration: 360,
       ease: 'Quad.easeOut',
       onComplete: () => {
-        ghost.destroy();
+        ghost.setActive(false);
+        ghost.setVisible(false);
       }
     });
+  }
+
+  public cleanupGhostPool(): void {
+    if (this.scene?.events) {
+      this.scene.events.off(Phaser.Scenes.Events.SHUTDOWN, this.cleanupGhostPool, this);
+      this.scene.events.off(Phaser.Scenes.Events.DESTROY, this.cleanupGhostPool, this);
+    }
+    for (const ghost of this.ghostPool) {
+      if (this.scene?.tweens) {
+        this.scene.tweens.killTweensOf(ghost);
+      }
+      ghost.destroy();
+    }
+    this.ghostPool = [];
+  }
+
+  public destroy(fromScene?: boolean): void {
+    this.cleanupGhostPool();
+    super.destroy(fromScene);
   }
 }

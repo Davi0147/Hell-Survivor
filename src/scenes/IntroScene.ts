@@ -55,9 +55,46 @@ export class IntroScene extends Phaser.Scene {
   private lastAdvanceTime: number = 0;
   private currentControlScheme: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
   private wasKeyboardPressed: boolean = false;
+  private initialDarkTimer?: Phaser.Time.TimerEvent;
+  private initialFadeTween?: Phaser.Tweens.Tween;
+  private endFadeTween?: Phaser.Tweens.Tween;
+  private endDelayedCall?: Phaser.Time.TimerEvent;
 
   constructor() {
     super('IntroScene');
+  }
+
+  init(): void {
+    this.isEnding = false;
+    this.isTyping = false;
+    this.currentStepIndex = 0;
+    this.steps = [];
+    this.fullText = '';
+    this.displayedText = '';
+    this.lastAdvanceTime = 0;
+    this.wasKeyboardPressed = false;
+    this.currentBgKey = 'intro-1';
+    this.isBgAActive = true;
+    if (this.typeTimer) {
+      this.typeTimer.remove();
+      this.typeTimer = undefined;
+    }
+    if (this.initialDarkTimer) {
+      this.initialDarkTimer.remove();
+      this.initialDarkTimer = undefined;
+    }
+    if (this.endDelayedCall) {
+      this.endDelayedCall.remove();
+      this.endDelayedCall = undefined;
+    }
+    if (this.initialFadeTween) {
+      this.initialFadeTween.stop();
+      this.initialFadeTween = undefined;
+    }
+    if (this.endFadeTween) {
+      this.endFadeTween.stop();
+      this.endFadeTween = undefined;
+    }
   }
 
   create(): void {
@@ -213,11 +250,39 @@ export class IntroScene extends Phaser.Scene {
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => this.skipIntro());
     }
 
-    // 8. Construir a Lista Completa de Cenas e Diálogos
+    // 8. Limpeza Total no Desligamento da Cena (Anti-Leak)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.typeTimer) {
+        this.typeTimer.remove();
+        this.typeTimer = undefined;
+      }
+      if (this.initialDarkTimer) {
+        this.initialDarkTimer.remove();
+        this.initialDarkTimer = undefined;
+      }
+      if (this.endDelayedCall) {
+        this.endDelayedCall.remove();
+        this.endDelayedCall = undefined;
+      }
+      if (this.initialFadeTween) {
+        this.initialFadeTween.stop();
+        this.initialFadeTween = undefined;
+      }
+      if (this.endFadeTween) {
+        this.endFadeTween.stop();
+        this.endFadeTween = undefined;
+      }
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+      }
+      this.input.removeAllListeners();
+    });
+
+    // 9. Construir a Lista Completa de Cenas e Diálogos
     this.buildIntroScript();
     this.paginateIntroSteps();
 
-    // 9. Overlay preto de transição (Inicia cobrindo 100% da tela)
+    // 10. Overlay preto de transição (Inicia cobrindo 100% da tela)
     this.blackFadeOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 1.0);
     this.blackFadeOverlay.setDepth(2000);
 
@@ -226,13 +291,15 @@ export class IntroScene extends Phaser.Scene {
     this.skipBtnContainer.setVisible(false);
 
     // Fica na escuridão por exatamente 2 segundos enquanto a música faz o fade-in suave em loop
-    this.time.delayedCall(2000, () => {
-      this.tweens.add({
+    this.initialDarkTimer = this.time.delayedCall(2000, () => {
+      this.initialDarkTimer = undefined;
+      this.initialFadeTween = this.tweens.add({
         targets: this.blackFadeOverlay,
         alpha: 0,
         duration: 800,
         ease: 'Linear',
         onComplete: () => {
+          this.initialFadeTween = undefined;
           this.boxContainer.setVisible(true);
           this.skipBtnContainer.setVisible(true);
           this.displayStep(0);
@@ -645,34 +712,62 @@ export class IntroScene extends Phaser.Scene {
   private skipIntro(): void {
     if (this.isEnding) return;
     SoundManager.getInstance().playMenuClick();
-    this.finishIntro();
+    this.finishIntro(true);
   }
 
-  private finishIntro(): void {
+  private finishIntro(isSkip: boolean = false): void {
     if (this.isEnding) return;
     this.isEnding = true;
 
-    if (this.typeTimer) this.typeTimer.remove();
+    // Cancela imediatamente timers e animações pendentes
+    if (this.initialDarkTimer) {
+      this.initialDarkTimer.remove();
+      this.initialDarkTimer = undefined;
+    }
+    if (this.initialFadeTween) {
+      this.initialFadeTween.stop();
+      this.initialFadeTween = undefined;
+    }
+    if (this.typeTimer) {
+      this.typeTimer.remove();
+      this.typeTimer = undefined;
+    }
     this.isTyping = false;
 
-    // Fade out suave da música da intro
-    SoundManager.getInstance().stopMusic(1000);
+    // Interrompe quaisquer tweens concorrentes no overlay preto
+    if (this.blackFadeOverlay) {
+      this.tweens.killTweensOf(this.blackFadeOverlay);
+    }
 
-    // Oculta caixa de diálogo e botão para focar na transição escura
-    this.boxContainer.setVisible(false);
+    // Fade out suave da música da intro
+    SoundManager.getInstance().stopMusic(isSkip ? 250 : 1000);
+
+    // Oculta caixa de diálogo e botão para focar na transição
+    if (this.boxContainer) this.boxContainer.setVisible(false);
     if (this.skipBtnContainer) this.skipBtnContainer.setVisible(false);
 
-    // A tela escurece para preto (600ms) e permanece na escuridão por exatamente 2 segundos
-    this.tweens.add({
+    // Se o jogador pulou durante a escuridão inicial (ou se a tela já está preta):
+    if (isSkip && this.blackFadeOverlay && this.blackFadeOverlay.alpha >= 0.8) {
+      this.scene.start('GameScene', { mode: 'story', fromIntro: true });
+      return;
+    }
+
+    // Se for skip durante o diálogo, transiciona rapidamente em 250ms
+    const fadeDuration = isSkip ? 250 : 600;
+    this.endFadeTween = this.tweens.add({
       targets: this.blackFadeOverlay,
       alpha: 1,
-      duration: 600,
+      duration: fadeDuration,
       ease: 'Linear',
       onComplete: () => {
-        // Fica preto por mais 2 segundos antes de iniciar o jogo
-        this.time.delayedCall(2000, () => {
+        if (isSkip) {
           this.scene.start('GameScene', { mode: 'story', fromIntro: true });
-        });
+        } else {
+          // Final natural da história: breve pausa de 1.2s antes de entrar no inferno
+          this.endDelayedCall = this.time.delayedCall(1200, () => {
+            this.scene.start('GameScene', { mode: 'story', fromIntro: true });
+          });
+        }
       }
     });
   }

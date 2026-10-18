@@ -19,35 +19,37 @@ export class TouchControls {
   private isSprint: boolean = false;
 
   // Joystick Virtual (Lado Esquerdo)
-  private joystickBase: Phaser.GameObjects.Graphics;
-  private joystickKnob: Phaser.GameObjects.Graphics;
+  private joystickBase: Phaser.GameObjects.Image;
+  private joystickKnob: Phaser.GameObjects.Image;
   private joystickPointer: Phaser.Input.Pointer | null = null;
   private baseX: number = 130;
   private baseY: number = 590;
   private knobX: number = 130;
   private knobY: number = 590;
   private readonly BASE_RADIUS: number = 58;
-  private readonly KNOB_RADIUS: number = 24;
+  // Stick.png possui 22px de arte central em um canvas de 40px; raio 50 (100px) resulta em ~55px úteis de diâmetro
+  private readonly KNOB_RADIUS: number = 50;
   private readonly MAX_DISTANCE: number = 50;
   private readonly DEADZONE: number = 8;
 
   // Botões de Ação (Lado Direito)
-  private sprintBtnGraphics: Phaser.GameObjects.Graphics;
-  private sprintBtnText: Phaser.GameObjects.Text;
+  private sprintBtn: Phaser.GameObjects.Image;
   private sprintPointer: Phaser.Input.Pointer | null = null;
   private sprintBtnX: number = 0;
   private sprintBtnY: number = 0;
   private readonly SPRINT_RADIUS: number = 36;
 
-  private ultBtnGraphics: Phaser.GameObjects.Graphics;
-  private ultBtnText: Phaser.GameObjects.Text;
+  private ultBtn: Phaser.GameObjects.Image;
   private ultBtnX: number = 0;
   private ultBtnY: number = 0;
   private readonly ULT_RADIUS: number = 32;
+  private isUltReadyState: boolean = false;
+  private ultPulseTween: Phaser.Tweens.Tween | null = null;
 
   // Botão de Pausa Rápida (Canto Superior Direito)
-  private pauseBtnGraphics: Phaser.GameObjects.Graphics;
-  private pauseBtnText: Phaser.GameObjects.Text;
+  private pauseBtn: Phaser.GameObjects.Image;
+  private pauseBtnX: number = 0;
+  private pauseBtnY: number = 0;
 
   // Visibilidade e Ciclo
   private isVisibleState: boolean = true;
@@ -75,171 +77,135 @@ export class TouchControls {
     this.ultBtnX = width - 165;
     this.ultBtnY = height - 130;
 
-    // 1. Elementos Gráficos do Joystick
-    this.joystickBase = scene.add.graphics();
-    this.joystickKnob = scene.add.graphics();
+    this.pauseBtnX = width - 42;
+    this.pauseBtnY = 135;
+
+    // 1. Elementos Gráficos do Joystick (Pixel Art)
+    this.joystickBase = scene.add.image(this.baseX, this.baseY, 'touch-analog');
+    this.joystickBase.setDisplaySize(this.BASE_RADIUS * 2, this.BASE_RADIUS * 2);
+    this.joystickBase.setAlpha(0.7);
     this.container.add(this.joystickBase);
+
+    this.joystickKnob = scene.add.image(this.knobX, this.knobY, 'touch-stick');
+    this.joystickKnob.setDisplaySize(this.KNOB_RADIUS * 2, this.KNOB_RADIUS * 2);
+    this.joystickKnob.setAlpha(0.95);
     this.container.add(this.joystickKnob);
 
-    // 2. Botão de Sprint
-    this.sprintBtnGraphics = scene.add.graphics();
-    this.container.add(this.sprintBtnGraphics);
+    // 2. Botão de Sprint (Pixel Art)
+    this.sprintBtn = scene.add.image(this.sprintBtnX, this.sprintBtnY, 'touch-sprint');
+    this.sprintBtn.setDisplaySize(this.SPRINT_RADIUS * 2, this.SPRINT_RADIUS * 2);
+    this.sprintBtn.setAlpha(0.85);
+    this.container.add(this.sprintBtn);
 
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-    this.sprintBtnText = scene.add.text(this.sprintBtnX, this.sprintBtnY, 'SPRINT', {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5);
-    this.container.add(this.sprintBtnText);
+    // 3. Botão de Suprema (Pixel Art)
+    this.ultBtn = scene.add.image(this.ultBtnX, this.ultBtnY, 'touch-ult');
+    this.ultBtn.setDisplaySize(this.ULT_RADIUS * 2, this.ULT_RADIUS * 2);
+    this.ultBtn.setAlpha(0.45);
+    this.ultBtn.setTint(0x777777);
+    this.container.add(this.ultBtn);
 
-    // 3. Botão de Suprema
-    this.ultBtnGraphics = scene.add.graphics();
-    this.container.add(this.ultBtnGraphics);
-
-    this.ultBtnText = scene.add.text(this.ultBtnX, this.ultBtnY, 'ULT', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffd60a',
-      stroke: '#000000',
-      strokeThickness: 3.5
-    }).setOrigin(0.5);
-    this.container.add(this.ultBtnText);
-
-    // 4. Botão de Pausa Rápida para Mobile (ao lado do medidor de almas)
-    this.pauseBtnGraphics = scene.add.graphics();
-    this.container.add(this.pauseBtnGraphics);
-
-    const pauseX = width - 42;
-    const pauseY = 135;
-    this.pauseBtnText = scene.add.text(pauseX, pauseY, '||', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ff4d6d',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5);
-    this.container.add(this.pauseBtnText);
+    // 4. Botão de Pausa Rápida para Mobile (Pixel Art)
+    this.pauseBtn = scene.add.image(this.pauseBtnX, this.pauseBtnY, 'touch-pause');
+    this.pauseBtn.setDisplaySize(36, 36);
+    this.pauseBtn.setAlpha(0.85);
+    this.container.add(this.pauseBtn);
 
     // Desenha estado visual estático inicial
     this.drawJoystickBase();
     this.drawJoystickKnob();
     this.drawSprintButton(false);
     this.drawUltButton(false, false);
-    this.drawPauseButton(pauseX, pauseY);
+    this.drawPauseButton(false);
 
     // Registra listeners de ponteiros (Touch / Mouse)
-    this.setupListeners(pauseX, pauseY);
+    this.setupListeners();
 
     // Se não for touch nativo e nem forçado, oculta inicialmente
     this.container.setVisible(this.isActive || this.forceEnabled);
   }
 
   private drawJoystickBase(): void {
-    const g = this.joystickBase;
-    g.clear();
-
-    // Círculo base gótico escuro translúcido
-    g.fillStyle(0x0e0308, 0.5);
-    g.fillCircle(this.baseX, this.baseY, this.BASE_RADIUS);
-
-    // Anel externo rubi carmesim
-    g.lineStyle(2, 0x9d0208, 0.85);
-    g.strokeCircle(this.baseX, this.baseY, this.BASE_RADIUS);
-
-    // Filete interno fino
-    g.lineStyle(1, 0xef233c, 0.45);
-    g.strokeCircle(this.baseX, this.baseY, this.BASE_RADIUS - 3);
-
-    // Marcadores em cruz nos eixos principais
-    g.lineStyle(1.5, 0xff4d6d, 0.4);
-    g.lineBetween(this.baseX - 10, this.baseY, this.baseX + 10, this.baseY);
-    g.lineBetween(this.baseX, this.baseY - 10, this.baseX, this.baseY + 10);
+    this.joystickBase.setPosition(this.baseX, this.baseY);
   }
 
   private drawJoystickKnob(): void {
-    const g = this.joystickKnob;
-    g.clear();
-
-    // Sombra do manípulo
-    g.fillStyle(0x000000, 0.35);
-    g.fillCircle(this.knobX + 1, this.knobY + 2, this.KNOB_RADIUS);
-
-    // Corpo carmesim / rubi do manípulo
-    g.fillStyle(0x9d0208, 0.85);
-    g.fillCircle(this.knobX, this.knobY, this.KNOB_RADIUS);
-
-    // Brilho concêntrico superior
-    g.fillStyle(0xd90429, 0.95);
-    g.fillCircle(this.knobX, this.knobY - 3, this.KNOB_RADIUS * 0.65);
-
-    // Borda fina dourada/rubi
-    g.lineStyle(1.5, 0xffd60a, 0.85);
-    g.strokeCircle(this.knobX, this.knobY, this.KNOB_RADIUS);
+    this.joystickKnob.setPosition(this.knobX, this.knobY);
   }
 
   private drawSprintButton(isPressed: boolean): void {
-    const g = this.sprintBtnGraphics;
-    g.clear();
-
-    // Fundo vermelho carmesim / rubi
-    g.fillStyle(isPressed ? 0xff0054 : 0x220308, isPressed ? 0.95 : 0.75);
-    g.fillCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS);
-
-    // Borda vermelha viva / carmesim
-    g.lineStyle(2.5, isPressed ? 0xffffff : 0xff1744, 0.95);
-    g.strokeCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS);
-
-    // Filete interno sutil em vinho
-    g.lineStyle(1, 0x800f2f, 0.6);
-    g.strokeCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS - 3);
-
-    this.sprintBtnText.setColor(isPressed ? '#ffffff' : '#ffb3c1');
+    if (isPressed) {
+      this.sprintBtn.setDisplaySize(
+        Math.round(this.SPRINT_RADIUS * 2 * 0.9),
+        Math.round(this.SPRINT_RADIUS * 2 * 0.9)
+      );
+      this.sprintBtn.setAlpha(1.0);
+      this.sprintBtn.setTint(0xffd60a);
+    } else {
+      this.sprintBtn.setDisplaySize(this.SPRINT_RADIUS * 2, this.SPRINT_RADIUS * 2);
+      this.sprintBtn.setAlpha(0.85);
+      this.sprintBtn.clearTint();
+    }
   }
 
   private drawUltButton(isPressed: boolean, isReady: boolean): void {
-    const g = this.ultBtnGraphics;
-    g.clear();
-
-    const bgColor = isPressed ? 0xff0054 : (isReady ? 0xd90429 : 0x220308);
-    g.fillStyle(bgColor, isReady ? 0.95 : 0.68);
-    g.fillCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS);
-
-    // Borda pulsante dourada/rubi quando pronta, ou vermelha escura quando carregando
-    const borderColor = isReady ? 0xffd60a : 0x800f2f;
-    g.lineStyle(2.5, borderColor, isReady ? 1 : 0.7);
-    g.strokeCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS);
-
-    if (isReady) {
-      // Anel externo de pulso vermelho
-      g.lineStyle(1.5, 0xff0054, 0.85);
-      g.strokeCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS + 3);
+    if (isPressed) {
+      this.ultBtn.setDisplaySize(
+        Math.round(this.ULT_RADIUS * 2 * 0.9),
+        Math.round(this.ULT_RADIUS * 2 * 0.9)
+      );
+      this.ultBtn.setAlpha(1.0);
+      this.ultBtn.setTint(0xff0054);
+      return;
     }
 
-    this.ultBtnText.setColor(isPressed ? '#ffffff' : (isReady ? '#ffd60a' : '#888888'));
+    if (isReady) {
+      this.ultBtn.setAlpha(1.0);
+      this.ultBtn.clearTint();
+
+      if (!this.isUltReadyState && !this.ultPulseTween) {
+        const baseScale = (this.ULT_RADIUS * 2) / 40;
+        this.ultPulseTween = this.scene.tweens.add({
+          targets: this.ultBtn,
+          scaleX: baseScale * 1.08,
+          scaleY: baseScale * 1.08,
+          duration: 550,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    } else {
+      if (this.ultPulseTween) {
+        this.ultPulseTween.stop();
+        this.ultPulseTween = null;
+      }
+      this.ultBtn.setDisplaySize(this.ULT_RADIUS * 2, this.ULT_RADIUS * 2);
+      this.ultBtn.setAlpha(0.45);
+      this.ultBtn.setTint(0x777777);
+    }
+
+    this.isUltReadyState = isReady;
   }
 
-  private drawPauseButton(x: number, y: number): void {
-    const g = this.pauseBtnGraphics;
-    g.clear();
-    g.fillStyle(0x220308, 0.75);
-    g.fillCircle(x, y, 16);
-    g.lineStyle(1.5, 0xff1744, 0.85);
-    g.strokeCircle(x, y, 16);
+  private drawPauseButton(isPressed: boolean = false): void {
+    if (isPressed) {
+      this.pauseBtn.setDisplaySize(32, 32);
+      this.pauseBtn.setAlpha(1.0);
+      this.pauseBtn.setTint(0xffa8ba);
+    } else {
+      this.pauseBtn.setDisplaySize(36, 36);
+      this.pauseBtn.setAlpha(0.85);
+      this.pauseBtn.clearTint();
+    }
   }
 
-  private setupListeners(pauseX: number, pauseY: number): void {
+  private setupListeners(): void {
     const input = this.scene.input;
-    const { width, height } = this.scene.scale;
+    const { width } = this.scene.scale;
 
     // Detecta primeiro toque na tela para habilitar apenas se for touch real
     input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      const isRealTouch = Boolean(pointer.wasTouch || (pointer.event && (pointer.event as any).pointerType === 'touch'));
+      const isRealTouch = Boolean(pointer.wasTouch || (pointer.event && (pointer.event as PointerEvent).pointerType === 'touch'));
 
       // Se estiver no desktop (PC), nunca ativa touch por clique de mouse
       if (!this.isActive && !this.forceEnabled) {
@@ -278,26 +244,33 @@ export class TouchControls {
       // Zona Direita: Botão de Suprema
       const distUlt = Math.hypot(pointer.x - this.ultBtnX, pointer.y - this.ultBtnY);
       if (distUlt <= this.ULT_RADIUS + 15) {
-        const gs = this.scene.scene.get('GameScene') as any;
+        const gs = this.scene.scene.get('GameScene') as { player?: { isUltimateReady?: boolean }; isGameOver?: boolean; triggerUltimate?: () => void } | null;
         if (gs && gs.player && gs.player.isUltimateReady && !gs.isGameOver) {
           this.drawUltButton(true, true);
-          gs.triggerUltimate();
+          if (typeof gs.triggerUltimate === 'function') {
+            gs.triggerUltimate();
+          }
         }
       }
 
       // Zona Topo: Botão de Pausa
-      const distPause = Math.hypot(pointer.x - pauseX, pointer.y - pauseY);
+      const distPause = Math.hypot(pointer.x - this.pauseBtnX, pointer.y - this.pauseBtnY);
       if (distPause <= 24) {
-        const gs = this.scene.scene.get('GameScene') as any;
-        const ui = this.scene as any;
+        this.drawPauseButton(true);
+        const gs = this.scene.scene.get('GameScene');
+        const ui = this.scene as { togglePause?: (scene: unknown) => void };
         if (gs && ui && typeof ui.togglePause === 'function') {
           ui.togglePause(gs);
         }
+        this.scene.time.delayedCall(120, () => {
+          this.drawPauseButton(false);
+        });
       }
     });
 
     input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!this.isActive && !this.forceEnabled) return;
+
       if (this.joystickPointer && pointer.id === this.joystickPointer.id) {
         const diffX = pointer.x - this.baseX;
         const diffY = pointer.y - this.baseY;
@@ -347,9 +320,9 @@ export class TouchControls {
       }
 
       // Restaura visual do botão de Ult
-      const gs = this.scene.scene.get('GameScene') as any;
-      const ready = gs && gs.player && gs.player.isUltimateReady;
-      this.drawUltButton(false, Boolean(ready));
+      const gs = this.scene.scene.get('GameScene') as { player?: { isUltimateReady?: boolean } } | null;
+      const ready = Boolean(gs && gs.player && gs.player.isUltimateReady);
+      this.drawUltButton(false, ready);
     };
 
     input.on('pointerup', onPointerUp);
@@ -363,8 +336,10 @@ export class TouchControls {
     if (!this.isActive && !this.forceEnabled) return;
     if (!this.isVisibleState) return;
 
-    // Atualiza estado de prontidão do botão de Suprema
-    this.drawUltButton(false, isUltimateReady);
+    // Atualiza estado de prontidão do botão de Suprema se mudou
+    if (this.isUltReadyState !== isUltimateReady) {
+      this.drawUltButton(false, isUltimateReady);
+    }
   }
 
   public getInput(): TouchInputState {
@@ -386,6 +361,10 @@ export class TouchControls {
       this.isSprint = false;
       this.joystickPointer = null;
       this.sprintPointer = null;
+      if (this.ultPulseTween) {
+        this.ultPulseTween.stop();
+        this.ultPulseTween = null;
+      }
     }
   }
 

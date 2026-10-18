@@ -60,6 +60,7 @@ Assuma o controle de **Nixy**, uma heroína dotada de poderes sombrios e lâmina
    ```
 
 3. **Inicie o servidor de desenvolvimento:**
+   - Dê dois cliques em `JOGAR.bat` na raiz do projeto (limpa caches, libera a porta e abre automaticamente no seu navegador padrão), ou execute pelo terminal:
    ```bash
    npm run dev
    ```

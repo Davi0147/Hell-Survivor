@@ -1215,7 +1215,8 @@ export class Chapter1EndScene extends Phaser.Scene {
     MetaProgressManager.getInstance().recordRun(
       this.runStats.timeSec,
       this.runStats.kills,
-      true
+      true,
+      'story'
     );
     this.runStats.soulsEarned = soulsEarned;
 

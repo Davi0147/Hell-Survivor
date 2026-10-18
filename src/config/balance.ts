@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from './storageKeys';
+
 export interface CharacterStats {
   maxHp: number;
   baseSpeed: number;
@@ -91,29 +93,94 @@ export function getEnemyScaling(survivalTimeMs: number, isEndless: boolean) {
 }
 
 /**
+ * CONFIGURAÇÃO DE CAPÍTULOS DE HISTÓRIA:
+ * Define metas de purificação de almas para invocar o chefe,
+ * multiplicador de status de monstros e intervalo de surgimento do Altar de Ascensão.
+ */
+export interface ChapterConfig {
+  targetSouls: number;
+  enemyStatMultiplier: number;
+  altarSpawnIntervalMs: number;
+}
+
+export const CHAPTER_CONFIG_FALLBACK: ChapterConfig = {
+  targetSouls: 900,
+  enemyStatMultiplier: 1.0,
+  altarSpawnIntervalMs: 75000,
+};
+
+export const CHAPTER_CONFIG: Record<number, ChapterConfig> = {
+  1: {
+    targetSouls: 900,
+    enemyStatMultiplier: 1.0,
+    altarSpawnIntervalMs: 75000,
+  },
+  2: {
+    targetSouls: 1350,
+    enemyStatMultiplier: 1.2,
+    altarSpawnIntervalMs: 75000,
+  },
+};
+
+export function getChapterConfig(chapter: number): ChapterConfig {
+  return CHAPTER_CONFIG[chapter] ?? CHAPTER_CONFIG_FALLBACK;
+}
+
+/**
  * FLAG MESTRE DO MODO DE TESTE (SANDBOX & DEBUG):
- * - Em desenvolvimento: deixe `true` para exibir "MODO DE TESTE" diretamente no Menu Principal.
- * - No lançamento oficial: mude para `false` para ocultar do jogador final.
- *   (Mesmo em `false`, você ainda poderá acessá-lo adicionando `?debug=1` na URL ou digitando `DEV` no Menu Principal).
+ * - Em desenvolvimento local: deixe `true` para exibir "MODO DE TESTE" diretamente no Menu Principal.
+ * - No lançamento oficial / site público: o modo é sempre bloqueado (não abre via ?debug=1 nem localStorage).
+ *   (Em ambiente local/localhost, pode ser acessado com `?debug=1` na URL mesmo em build de produção).
  */
 export const ENABLE_DEV_SANDBOX: boolean = true;
 
 export function isDevSandboxEnabled(): boolean {
-  // Em build de produção / pública ou fora de localhost, o Sandbox é estritamente ocultado
-  if (import.meta.env.PROD || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+  // 1. Blindagem Estrita em Endereços Públicos:
+  // Se o hostname NÃO for localhost ou 127.0.0.1, retorna sempre false (sem acesso a ?debug=1 nem localStorage).
+  if (typeof window !== 'undefined') {
+    const hostname = window.location?.hostname ?? '';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '';
+    if (!isLocalhost) {
+      return false;
+    }
+  }
+
+  // 2. Ambiente Local (localhost / 127.0.0.1):
+  // Em build de produção local (ex: porta 8080 de preview), exige ?debug=1 na URL
+  if (import.meta.env.PROD) {
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('debug') === '1') return true;
-    } catch {}
+    } catch {
+      // Ignora erro de parsing em ambientes sem URLSearchParams
+    }
     return false;
   }
 
+  // Em desenvolvimento local (porta 3000), respeita ENABLE_DEV_SANDBOX ou parâmetros/localStorage
   if (ENABLE_DEV_SANDBOX) return true;
   try {
     const params = new URLSearchParams(window.location.search);
     if (params.get('debug') === '1' || params.get('sandbox') === '1') return true;
-    if (localStorage.getItem('hell_survivor_dev_unlocked') === 'true') return true;
-  } catch {}
+    if (localStorage.getItem(STORAGE_KEYS.DEV_UNLOCKED) === 'true') return true;
+  } catch {
+    // Ignora erro de parsing ou acesso a storage
+  }
   return false;
+}
+
+export type BossDefeatOutcome = 'chapter-end' | 'continue-run';
+
+/**
+ * Retorna o desfecho da derrota de um chefe principal baseado no modo de jogo:
+ * - 'story': encerra o capítulo e transiciona para a cena de desfecho ('chapter-end').
+ * - 'endless': a sobrevivência continua indefinidamente ('continue-run').
+ * - 'sandbox': o modo de teste livre continua ('continue-run').
+ */
+export function getBossDefeatOutcome(gameMode: string): BossDefeatOutcome {
+  if (gameMode === 'story') {
+    return 'chapter-end';
+  }
+  return 'continue-run';
 }
 
