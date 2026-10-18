@@ -407,6 +407,20 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.POST_UPDATE);
+      this.events.off(Phaser.Scenes.Events.PRE_RENDER);
+      if (this.player) {
+        this.player.off('player-level-up');
+      }
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+        this.input.keyboard.removeAllListeners();
+      }
+      this.input.removeAllListeners();
+      this.combatBanterTimers.forEach(t => t?.remove());
+      this.combatBanterTimers = [];
+      this.time.removeAllEvents();
+
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
