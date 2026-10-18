@@ -3,6 +3,7 @@ import { BaseEnemy } from './BaseEnemy';
 import { Nixy } from '../characters/Nixy';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
 import { SoundManager } from '../../systems/SoundManager';
+import { BOSS_TELEGRAPH } from '../../config/theme';
 
 export type AzazelCombatPhase = 1 | 2 | 3 | 4; // 1: 100->50%, 2: 50->20% (Escuridão), 3: Cristais (Oculto), 4: 20->0% (Showdown Final)
 
@@ -673,9 +674,9 @@ export class AzazelBoss extends BaseEnemy {
     const endX = this.x + this.dashTargetVector.x * lineLength;
     const endY = this.y + this.dashTargetVector.y * lineLength;
 
-    g.lineStyle(3 + progress * 8, 0xff0044, 0.65 + progress * 0.35);
+    g.lineStyle(BOSS_TELEGRAPH.lineThickness(progress), BOSS_TELEGRAPH.color, BOSS_TELEGRAPH.alpha(progress));
     g.lineBetween(this.x, this.y, endX, endY);
-    g.lineStyle(2, 0xffffff, progress);
+    g.lineStyle(BOSS_TELEGRAPH.innerThickness, BOSS_TELEGRAPH.innerColor, BOSS_TELEGRAPH.innerAlpha(progress));
     g.lineBetween(this.x, this.y, endX, endY);
 
     if (this.stateTimer <= 0) {
@@ -792,14 +793,14 @@ export class AzazelBoss extends BaseEnemy {
 
       if (m.timer > 0) {
         // Círculo de aviso no chão preenchendo em 1 segundo
-        this.telegraphGraphics.fillStyle(0xff0044, 0.12 + progress * 0.28);
+        this.telegraphGraphics.fillStyle(BOSS_TELEGRAPH.circleFillColor, BOSS_TELEGRAPH.circleFillAlpha(progress));
         this.telegraphGraphics.fillCircle(m.x, m.y, radius * progress);
 
-        this.telegraphGraphics.lineStyle(3, 0xff2266, 0.85);
+        this.telegraphGraphics.lineStyle(BOSS_TELEGRAPH.circleBorderThickness(progress), BOSS_TELEGRAPH.circleBorderColor, 0.85);
         this.telegraphGraphics.strokeCircle(m.x, m.y, radius);
 
         // Mira interna elétrica
-        this.telegraphGraphics.lineStyle(1.5, 0xffffff, 0.5 + progress * 0.5);
+        this.telegraphGraphics.lineStyle(BOSS_TELEGRAPH.crosshairThickness, BOSS_TELEGRAPH.innerColor, 0.5 + progress * 0.5);
         this.telegraphGraphics.lineBetween(m.x - 14, m.y, m.x + 14, m.y);
         this.telegraphGraphics.lineBetween(m.x, m.y - 14, m.x, m.y + 14);
       } else if (!m.struck) {
@@ -1021,9 +1022,9 @@ export class AzazelBoss extends BaseEnemy {
       const endX = this.x + this.darkDashVector.x * 620;
       const endY = this.y + this.darkDashVector.y * 620;
 
-      this.telegraphGraphics.lineStyle(3 + progress * 7, 0xff0044, 0.85);
+      this.telegraphGraphics.lineStyle(BOSS_TELEGRAPH.lineThickness(progress), BOSS_TELEGRAPH.color, BOSS_TELEGRAPH.alpha(progress));
       this.telegraphGraphics.lineBetween(this.x, this.y, endX, endY);
-      this.telegraphGraphics.lineStyle(2, 0xffffff, 0.95);
+      this.telegraphGraphics.lineStyle(BOSS_TELEGRAPH.innerThickness, BOSS_TELEGRAPH.innerColor, BOSS_TELEGRAPH.innerAlpha(progress));
       this.telegraphGraphics.lineBetween(this.x, this.y, endX, endY);
 
       if (this.stateTimer <= 0) {

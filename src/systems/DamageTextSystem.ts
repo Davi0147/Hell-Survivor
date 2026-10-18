@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FONTS } from '../config/theme';
 
 export class DamageTextSystem {
   public static showDamage(
@@ -15,7 +16,7 @@ export class DamageTextSystem {
     const fontSize = isCritical ? '14px' : '12px';
 
     const text = scene.add.text(x + offsetX, y - 12 + offsetY, Math.round(amount).toString(), {
-      fontFamily: 'Impact, sans-serif',
+      fontFamily: FONTS.display,
       fontSize: fontSize,
       fontStyle: 'bold',
       color: color,
