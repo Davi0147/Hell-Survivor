@@ -37,4 +37,5 @@ backups/
 backup_*/
 scratch/
 reports/
+*.zip
 
