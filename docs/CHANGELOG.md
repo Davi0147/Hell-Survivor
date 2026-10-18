@@ -4,6 +4,24 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ---
 
+## [Pacote 1.2 — Protocolo de Registro de Memória & Design System] — 2026-10-17
+### Adicionado
+- Adicionada a **Regra 14 (Registro de Memória)** no [`AGENTS.md`](../AGENTS.md) estipulando os 6 passos obrigatórios para comandos como "lembra", "anota" ou "sempre faça assim".
+- Criada a skill [`.agent/skills/registrar/SKILL.md`](../.agent/skills/registrar/SKILL.md) e workflow [`.agent/workflows/registrar.md`](../.agent/workflows/registrar.md) para execução do comando `/registrar` sem alterar arquivos em `src/`.
+- Criado o documento [`docs/DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) contendo a especificação auditada dos 8 componentes visuais e de UX do jogo com referências diretas ao código real:
+  - Cartas de upgrade flutuantes (`UpgradeScene.ts`).
+  - Caixa de diálogo chanfrada e bustos dinâmicos (`DialogueSystem.ts`).
+  - Frases centrais de chefe sem moldura (`UIScene.ts`).
+  - HUD de combate: radar circular tático e painel de status barroco (`UIScene.ts`).
+  - Telegrafia de ataques em linha e radial (`SuccubusBoss.ts`, `AzazelBoss.ts`).
+  - Números de dano flutuantes (`DamageTextSystem.ts`).
+  - Botões de menu em pergaminho com realce ígneo e seta (`MenuScene.ts`).
+  - Modais de pedra carmesim e borda dupla (`UIScene.ts`).
+- Catalogadas 5 inconsistências visuais encontradas no código para decisão do dono do projeto.
+- Estabelecido o baseline quantitativo de cores (1.218 ocorrências com 362 hexadecimais únicos) e tipografia (6 famílias em uso) no diretório `src/`.
+
+---
+
 ## [Pacote 1.1 — Correções do Pacote 1, Saneamento de Docs & Protocolo de Avaliação de Pedidos] — 2026-10-17
 ### Adicionado
 - Trava rígida de catraca no ESLint configurada no script check (`--max-warnings 214`), com falha comprovada no terminal sob `--max-warnings 213` (exit code 1).
