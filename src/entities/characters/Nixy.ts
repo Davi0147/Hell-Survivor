@@ -27,12 +27,19 @@ export class Nixy extends BaseCharacter {
   private knockbackTimer: number = 0;
   private knockbackVelocity: { x: number; y: number } = { x: 0, y: 0 };
 
+  // Pool de Rastro Fantasma de Sprint (reaproveitamento com teto máximo de 10 sprites)
+  private ghostPool: Phaser.GameObjects.Sprite[] = [];
+  private readonly MAX_GHOST_POOL_SIZE = 10;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'nixy-idle-south', BALANCE.NIXY);
     this.characterId = 'nixy';
     this.characterName = 'NIXY';
     this.applyMetaProgressBlessings();
     this.play('nixy-idle-south');
+
+    this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupGhostPool, this);
+    this.scene.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupGhostPool, this);
   }
 
   public applyMetaProgressBlessings(): void {
@@ -220,7 +227,25 @@ export class Nixy extends BaseCharacter {
   }
 
   private createSprintGhost(): void {
-    const ghost = this.scene.add.sprite(this.x, this.y, this.texture.key, this.frame.name);
+    let ghost = this.ghostPool.find(g => !g.active);
+
+    if (!ghost) {
+      if (this.ghostPool.length < this.MAX_GHOST_POOL_SIZE) {
+        ghost = this.scene.add.sprite(this.x, this.y, this.texture.key, this.frame.name);
+        this.ghostPool.push(ghost);
+      } else {
+        // Reaproveita o sprite mais antigo quando a pool atinge a capacidade máxima
+        ghost = this.ghostPool[0];
+        this.ghostPool.push(this.ghostPool.shift()!);
+      }
+    }
+
+    if (this.scene?.tweens) {
+      this.scene.tweens.killTweensOf(ghost);
+    }
+
+    ghost.setTexture(this.texture.key, this.frame.name);
+    ghost.setPosition(this.x, this.y);
     ghost.setFlipX(this.flipX);
     ghost.setFlipY(this.flipY);
     ghost.setScale(this.scaleX, this.scaleY);
@@ -228,6 +253,8 @@ export class Nixy extends BaseCharacter {
     ghost.setAlpha(0.85);
     ghost.setBlendMode(Phaser.BlendModes.ADD);
     ghost.setDepth(this.depth - 1);
+    ghost.setActive(true);
+    ghost.setVisible(true);
 
     this.scene.tweens.add({
       targets: ghost,
@@ -237,8 +264,28 @@ export class Nixy extends BaseCharacter {
       duration: 360,
       ease: 'Quad.easeOut',
       onComplete: () => {
-        ghost.destroy();
+        ghost.setActive(false);
+        ghost.setVisible(false);
       }
     });
+  }
+
+  public cleanupGhostPool(): void {
+    if (this.scene?.events) {
+      this.scene.events.off(Phaser.Scenes.Events.SHUTDOWN, this.cleanupGhostPool, this);
+      this.scene.events.off(Phaser.Scenes.Events.DESTROY, this.cleanupGhostPool, this);
+    }
+    for (const ghost of this.ghostPool) {
+      if (this.scene?.tweens) {
+        this.scene.tweens.killTweensOf(ghost);
+      }
+      ghost.destroy();
+    }
+    this.ghostPool = [];
+  }
+
+  public destroy(fromScene?: boolean): void {
+    this.cleanupGhostPool();
+    super.destroy(fromScene);
   }
 }
