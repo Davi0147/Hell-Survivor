@@ -14,6 +14,14 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
   - Suíte total de testes expandida para 111 testes (100% aprovados).
   - Prova por mutação executada com inversão de condição em `restoreBattleMusic`, capturada e validada em `reports/mutacao-pacote3-e1.txt`.
 
+### Correções de Jogabilidade & Fila de Progressão
+- **Fila Sequencial de Escolha de Cartas ao Subir Múltiplos Níveis (`GameScene.ts` & `UpgradeScene.ts`)**:
+  - Correção de bug onde subir múltiplos níveis de uma só vez (ex.: nível 1 para 4 ao coletar grandes gemas de XP) apresentava a tela de escolha de cartas apenas uma única vez, orfanando as escolhas dos demais níveis.
+  - O loop assíncrono do Phaser 3 enfileirava o encerramento da `UpgradeScene`, fazendo com que a checagem imediata `isActive('UpgradeScene')` retornasse verdadeira e descartasse as próximas chamadas.
+  - Implementada verificação resiliente no topo do loop de atualização (`GameScene.update()`) com guarda de reentrância (`isUpgradeSceneOpening`), garantindo que cada nível ganho ofereça sua respectiva escolha de cartas em sequência contínua.
+  - Blindagem de física: a simulação permanece 100% congelada enquanto houver níveis pendentes na fila, retomando somente após a última escolha ser finalizada.
+  - 6 novos testes unitários adicionados em `src/__tests__/levelUpQueue.test.ts` (suíte total expandida para 117 testes, 100% aprovados).
+
 ## [v0.9.1 — Diretor Musical, Blindagem de Ciclo de Vida, Tema Centralizado & Guarda Pre-Commit] — 2026-10-18
 ### Correções Críticas & Blindagem de Áudio (PACOTE ÁUDIO-1)
 - **Diretor de Música Autônomo (`src/systems/MusicDirector.ts`)**:
