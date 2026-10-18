@@ -32,19 +32,54 @@ import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
 import { MapEditorSystem } from '../systems/MapEditorSystem';
 import { MapStorageManager, ChapterMapConfig } from '../config/mapData';
+import { SandboxController, ISandboxContext, HordeEnemyType } from '../systems/SandboxController';
 
-export class GameScene extends Phaser.Scene {
+export class GameScene extends Phaser.Scene implements ISandboxContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
+
+  // Controlador do Modo Sandbox / Testes
+  public sandboxController!: SandboxController;
 
   // Modo de Jogo e Campanha
   public gameMode: 'story' | 'endless' | 'sandbox' = 'story';
   public currentChapter: number = 1;
-  public sandboxGodMode: boolean = false;
-  public sandboxInfiniteUlt: boolean = false;
-  public sandboxInfiniteStamina: boolean = false;
-  public sandboxAutoSpawn: boolean = false;
-  public sandboxShowHitboxes: boolean = false;
+
+  public get sandboxGodMode(): boolean {
+    return this.sandboxController?.godMode ?? (this.gameMode === 'sandbox');
+  }
+  public set sandboxGodMode(v: boolean) {
+    if (this.sandboxController) this.sandboxController.godMode = v;
+  }
+
+  public get sandboxInfiniteUlt(): boolean {
+    return this.sandboxController?.infiniteUlt ?? false;
+  }
+  public set sandboxInfiniteUlt(v: boolean) {
+    if (this.sandboxController) this.sandboxController.infiniteUlt = v;
+  }
+
+  public get sandboxInfiniteStamina(): boolean {
+    return this.sandboxController?.infiniteStamina ?? false;
+  }
+  public set sandboxInfiniteStamina(v: boolean) {
+    if (this.sandboxController) this.sandboxController.infiniteStamina = v;
+  }
+
+  public get sandboxAutoSpawn(): boolean {
+    return this.sandboxController?.autoSpawn ?? false;
+  }
+  public set sandboxAutoSpawn(v: boolean) {
+    if (this.sandboxController) this.sandboxController.autoSpawn = v;
+  }
+
+  public get sandboxShowHitboxes(): boolean {
+    return this.sandboxController?.showHitboxes ?? false;
+  }
+  public set sandboxShowHitboxes(v: boolean) {
+    if (this.sandboxController) this.sandboxController.showHitboxes = v;
+  }
+
   public testShowroomSystem?: TestShowroomSystem;
   public mapEditorSystem?: MapEditorSystem;
   private mapEditorLauncherButton?: Phaser.GameObjects.Container;
@@ -123,11 +158,7 @@ export class GameScene extends Phaser.Scene {
     this.isRevival = data?.isRevival ?? false;
     this.hasRevivalUsed = false;
     MetaProgressManager.getInstance().finalizeRunSouls();
-    this.sandboxGodMode = this.gameMode === 'sandbox';
-    this.sandboxInfiniteUlt = false;
-    this.sandboxInfiniteStamina = false;
-    this.sandboxAutoSpawn = false;
-    this.sandboxShowHitboxes = false;
+    this.sandboxController = new SandboxController(this);
 
     this.chapterPurifiedSouls = 0;
     this.chapterTargetSouls = getChapterConfig(this.currentChapter).targetSouls;
@@ -179,6 +210,11 @@ export class GameScene extends Phaser.Scene {
     SoundManager.getInstance().setScene(this);
     // Inicia a música de batalha com fade-in suave
     SoundManager.getInstance().playBattleMusic(3000);
+
+    // Inicializa o controlador do Modo Sandbox
+    if (!this.sandboxController) {
+      this.sandboxController = new SandboxController(this);
+    }
 
     // 1. Chão infinito repetido (TileSprite duplicando a textura do piso ativo em proporção adequada)
     const floorScale = 0.10;
@@ -424,6 +460,7 @@ export class GameScene extends Phaser.Scene {
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
+      this.sandboxController?.destroy();
       this.testShowroomSystem?.destroy();
       this.mapEditorSystem?.destroy();
       if (this.mapEditorLauncherButton) {
@@ -1078,7 +1115,7 @@ export class GameScene extends Phaser.Scene {
     return getChapterConfig(this.currentChapter).enemyStatMultiplier;
   }
 
-  private spawnZombieDogAt(
+  public spawnZombieDogAt(
     x: number,
     y: number,
     hp: number = 35,
@@ -1137,7 +1174,7 @@ export class GameScene extends Phaser.Scene {
     enemy.spawn(x, y, hp, speed, damage, isElite, eliteScale, customDrop);
   }
 
-  private spawnSkullSlimeAt(x: number, y: number): void {
+  public spawnSkullSlimeAt(x: number, y: number): void {
     const clamped = this.clampToArena(x, y);
     x = clamped.x;
     y = clamped.y;
@@ -1230,7 +1267,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private spawnMummyAt(
+  public spawnMummyAt(
     x: number,
     y: number,
     hp: number = 130,
@@ -1299,7 +1336,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private spawnGemAt(x: number, y: number, type: GemType): void {
+  public spawnGemAt(x: number, y: number, type: GemType): void {
     let gemXpValue = 5;
     if (type === 'blue') gemXpValue = 20;
     else if (type === 'red' || type === 'orange') gemXpValue = 100;
@@ -1644,7 +1681,7 @@ export class GameScene extends Phaser.Scene {
   /**
    * Spawna o Mini-Chefe Titã Cerberus no Modo Infinito (3:00)
    */
-  private spawnTitanCerberus(): void {
+  public spawnTitanCerberus(): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = 380;
     const x = this.player.x + Math.cos(angle) * dist;
@@ -1675,7 +1712,7 @@ export class GameScene extends Phaser.Scene {
   /**
    * Spawna a Mini-Chefe Matriarca Succubus (disponível via Sandbox / Modo de Teste F1)
    */
-  private spawnMatriarchSuccubus(): void {
+  public spawnMatriarchSuccubus(): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = 400;
     const x = this.player.x + Math.cos(angle) * dist;
@@ -2495,7 +2532,7 @@ export class GameScene extends Phaser.Scene {
   /**
    * Inicia o confronto épico contra a Boss Rosalin
    */
-  private triggerBossEncounter(): void {
+  public triggerBossEncounter(): void {
     if (this.bossSummonAltar && !this.bossSummonAltar.isActive) {
       this.activateBossSummonAltar();
       return;
@@ -2803,7 +2840,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private spawnSuccubusBoss(startBanterImmediate: boolean = true, isCinematicIntro: boolean = false): void {
+  public spawnSuccubusBoss(startBanterImmediate: boolean = true, isCinematicIntro: boolean = false): void {
     let bossX = this.player.x + 220;
     let bossY = this.player.y - 140;
 
@@ -3534,216 +3571,65 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  public sandboxSpawnHorde(
-    type: 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'titan_cerberus' | 'matriarch',
-    count: number = 1
-  ): void {
-    DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Spawn manual de horda: ${count}x ${type}`);
+  public setHUDVisible(visible: boolean): void {
+    const uiScene = this.scene.get('UIScene') as UIScene;
+    if (uiScene) {
+      uiScene.setHUDVisible(visible);
+    }
+  }
 
-    if (type === 'titan_cerberus') {
-      this.spawnTitanCerberus();
-      return;
-    }
-    if (type === 'matriarch') {
-      this.spawnMatriarchSuccubus();
-      return;
-    }
-    if (type === 'bat') {
-      this.spawnBloodBatFlock(count);
-      return;
-    }
+  public setCameraZoom(zoom: number, duration: number = 600): void {
+    this.tweens.add({
+      targets: this.cameras.main,
+      zoom,
+      duration,
+      ease: 'Cubic.easeOut'
+    });
+  }
 
-    for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / Math.max(1, count) + Phaser.Math.FloatBetween(-0.15, 0.15);
-      const dist = Phaser.Math.Between(220, 320);
-      const sx = this.player.x + Math.cos(angle) * dist;
-      const sy = this.player.y + Math.sin(angle) * dist;
+  // ===========================================================================
+  // Fachadas do Modo Sandbox (Pacote 3 — Etapa 1)
+  // Delegam 100% da lógica e estado ao SandboxController desacoplado
+  // ===========================================================================
 
-      if (type === 'dog') {
-        this.spawnZombieDogAt(sx, sy, 35, 85, 9);
-      } else if (type === 'elite_dog') {
-        this.spawnZombieDogAt(sx, sy, 180, 96, 15, true, 1.35);
-      } else if (type === 'slime') {
-        this.spawnSkullSlimeAt(sx, sy);
-      } else if (type === 'mummy') {
-        this.spawnMummyAt(sx, sy, 130, 58, 15);
-      }
-    }
+  public sandboxSpawnHorde(type: HordeEnemyType, count: number = 1): void {
+    this.sandboxController.spawnHorde(type, count);
   }
 
   public sandboxSpawnBoss(withIntroDialogue: boolean): void {
-    this.sandboxRemoveBoss(false);
-
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Succubus invocada via Sandbox (Com Diálogo: ${withIntroDialogue})`);
-
-    if (withIntroDialogue) {
-      this.currentChapter = 1;
-      this.triggerBossEncounter();
-    } else {
-      this.isBossFightActive = true;
-      SoundManager.getInstance().playBossMusic(1800);
-      this.spawnSuccubusBoss();
-    }
+    this.sandboxController.spawnBoss(withIntroDialogue);
   }
 
   public sandboxSpawnAzazel(withIntroDialogue: boolean): void {
-    this.sandboxRemoveBoss(false);
-    this.currentChapter = 2;
-
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Azazel invocado via Sandbox (Com Diálogo/Intro: ${withIntroDialogue})`);
-
-    if (withIntroDialogue) {
-      this.triggerAzazelEncounterFromAltar();
-    } else {
-      this.isBossFightActive = true;
-      SoundManager.getInstance().playAzazelFightMusic(800);
-      this.spawnAzazelBoss(false);
-    }
+    this.sandboxController.spawnAzazel(withIntroDialogue);
   }
 
   public sandboxForceAzazelPhase2(): void {
-    if (!this.azazelBoss || !this.azazelBoss.active || this.azazelBoss.isDead) {
-      this.sandboxSpawnAzazel(false);
-    }
-    if (this.azazelBoss && !this.azazelBoss.isDead) {
-      this.azazelBoss.hp = Math.ceil(this.azazelBoss.maxHp * 0.50);
-      this.azazelBoss.triggerPhase2DarknessDomain(this.player);
-    }
+    this.sandboxController.forceAzazelPhase2();
   }
 
   public sandboxForceAzazelPhase3(): void {
-    if (!this.azazelBoss || !this.azazelBoss.active || this.azazelBoss.isDead) {
-      this.sandboxSpawnAzazel(false);
-    }
-    if (this.azazelBoss && !this.azazelBoss.isDead) {
-      this.azazelBoss.hp = Math.ceil(this.azazelBoss.maxHp * 0.20);
-      this.azazelBoss.triggerPhase3CorruptedDimension(this.player);
-    }
+    this.sandboxController.forceAzazelPhase3();
   }
 
   public sandboxRemoveBoss(restoreBattleMusic: boolean = true): void {
-    this.isBossFightActive = false;
-    this.isPlayerMovementLocked = false;
-    this.isAzazelPhase3HordeActive = false;
-    this.clearCombatSpeechBubbles();
-    this.clearAzazelCrystals();
-
-    const uiScene = this.scene.get('UIScene') as UIScene;
-    if (uiScene) {
-      uiScene.setHUDVisible(true);
-    }
-
-    if (this.bossInstance) {
-      if (this.bossInstance.projectilesGroup) {
-        this.bossInstance.projectilesGroup.clear(true, true);
-      }
-      this.bossInstance.setActive(false);
-      this.bossInstance.setVisible(false);
-      this.bossInstance.destroy();
-      this.bossInstance = undefined;
-    }
-
-    if (this.azazelBoss) {
-      this.azazelBoss.die();
-      this.azazelBoss.destroy();
-      this.azazelBoss = undefined;
-    }
-
-    // Remove também quaisquer outras instâncias de SuccubusBoss ou AzazelBoss na arena
-    const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
-    for (const e of enemies) {
-      if ((e instanceof SuccubusBoss || e instanceof AzazelBoss || e instanceof AzazelPhantomClone) && e.active) {
-        if ('projectilesGroup' in e && (e as any).projectilesGroup) {
-          (e as any).projectilesGroup.clear(true, true);
-        }
-        e.setActive(false);
-        e.setVisible(false);
-        e.destroy();
-      }
-    }
-
-    // Restaura a música de batalha sem conflito e o zoom normal da câmera
-    this.tweens.add({
-      targets: this.cameras.main,
-      zoom: 2.0,
-      duration: 600,
-      ease: 'Cubic.easeOut'
-    });
-    if (restoreBattleMusic) {
-      SoundManager.getInstance().playBattleMusic(1500);
-    }
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss removido via Sandbox${restoreBattleMusic ? ' e música restaurada.' : '.'}`);
+    this.sandboxController.removeBoss(restoreBattleMusic);
   }
 
   public sandboxClearEnemies(withDrops: boolean): number {
-    let count = 0;
-    const enemies = [...(this.enemiesGroup.getChildren() as BaseEnemy[])];
-
-    for (const e of enemies) {
-      if (!e.active || e.isDead) continue;
-      if (e === this.bossInstance || e === this.azazelBoss || e instanceof AzazelPhantomClone) continue;
-      count++;
-      if (withDrops) {
-        e.takeDamage(999999);
-      } else {
-        e.isDead = true;
-        if (e.body) {
-          (e.body as Phaser.Physics.Arcade.Body).enable = false;
-        }
-        e.setActive(false);
-        e.setVisible(false);
-      }
-    }
-
-    DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Limpeza de inimigos executada: ${count} monstros (${withDrops ? 'com drop' : 'sem drop'})`);
-    return count;
+    return this.sandboxController.clearEnemies(withDrops);
   }
 
-  public sandboxRemoveWeapon(weaponClass: any): void {
-    const idx = this.weapons.findIndex((w) => w instanceof weaponClass);
-    if (idx === -1) return;
-
-    const removed = this.weapons[idx] as any;
-    if (typeof removed.destroy === 'function') {
-      removed.destroy();
-    }
-    if (removed.projectilesGroup && typeof removed.projectilesGroup.clear === 'function') {
-      removed.projectilesGroup.clear(true, true);
-    }
-    this.weapons.splice(idx, 1);
-    DebugSessionLogger.getInstance().log('WEAPON', 'INFO', `Arma removida via Sandbox: ${removed.name}`);
+  public sandboxRemoveWeapon(weaponClass: abstract new (...args: never[]) => unknown): void {
+    this.sandboxController.removeWeapon(weaponClass);
   }
 
   public sandboxSpawnGemShower(count: number = 20): void {
-    const types: GemType[] = ['green', 'blue', 'red', 'orange', 'purple'];
-    for (let i = 0; i < count; i++) {
-      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const dist = Phaser.Math.Between(55, 180);
-      const gx = this.player.x + Math.cos(angle) * dist;
-      const gy = this.player.y + Math.sin(angle) * dist;
-      const gType = Phaser.Math.RND.pick(types);
-      this.spawnGemAt(gx, gy, gType);
-    }
-    DebugSessionLogger.getInstance().log('ITEM', 'INFO', `Chuva de ${count} gemas de XP gerada via Sandbox.`);
+    this.sandboxController.spawnGemShower(count);
   }
 
   public sandboxClearItemsAndGems(): void {
-    const gems = this.gemsGroup.getChildren() as SoulGem[];
-    for (const g of gems) {
-      if (g.active) {
-        g.setActive(false);
-        g.setVisible(false);
-        if (g.body) (g.body as Phaser.Physics.Arcade.Body).enable = false;
-      }
-    }
-
-    const items = [...(this.mapItemsGroup.getChildren() as MapItem[])];
-    for (const it of items) {
-      if (it.active) {
-        it.destroy();
-      }
-    }
-    DebugSessionLogger.getInstance().log('ITEM', 'INFO', 'Todos os itens e gemas do chão foram limpos via Sandbox.');
+    this.sandboxController.clearItemsAndGems();
   }
 }
 

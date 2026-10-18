@@ -4,17 +4,20 @@ import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
-import { MapItem } from '../entities/items/MapItem';
+import { MapItem, type MapItemType } from '../entities/items/MapItem';
+import type { EvolutionAltar } from '../entities/items/EvolutionAltar';
+import type { BossSummonAltar } from '../entities/items/BossSummonAltar';
+import type { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 
 export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'titan_cerberus' | 'matriarch';
 
 /**
- * Interface estrita de ponte entre o SandboxController e a GameScene.
- * Define apenas os serviços e propriedades de cena estritamente necessários para os testes do F1.
+ * Interface estrita de ponte entre o SandboxController, DevSandboxPanel e a GameScene.
+ * Define os serviços e propriedades de cena necessários para o Sandbox e testes do F1.
  */
-export interface ISandboxContext {
+export interface ISandboxContext extends Phaser.Scene {
   // Entidades e grupos
   readonly player: Nixy;
   readonly enemiesGroup: Phaser.GameObjects.Group;
@@ -28,12 +31,34 @@ export interface ISandboxContext {
 
   // Estado da cena e chefes
   readonly gameMode: 'story' | 'endless' | 'sandbox';
+  readonly poisonPuddles?: Array<{ active?: boolean; x: number; y: number }>;
   currentChapter: number;
   isBossFightActive: boolean;
   isPlayerMovementLocked: boolean;
   isAzazelPhase3HordeActive: boolean;
   bossInstance?: SuccubusBoss;
   azazelBoss?: AzazelBoss;
+  altarInstance?: EvolutionAltar | null;
+  bossSummonAltar?: BossSummonAltar | null;
+
+  // Modificadores de Trapaça do Sandbox
+  sandboxGodMode: boolean;
+  sandboxInfiniteUlt: boolean;
+  sandboxInfiniteStamina: boolean;
+  sandboxAutoSpawn: boolean;
+  sandboxShowHitboxes: boolean;
+
+  // Métodos fachada do Sandbox na cena
+  sandboxSpawnHorde(type: HordeEnemyType, count?: number): void;
+  sandboxSpawnBoss(withIntroDialogue: boolean): void;
+  sandboxSpawnAzazel(withIntroDialogue: boolean): void;
+  sandboxForceAzazelPhase2(): void;
+  sandboxForceAzazelPhase3(): void;
+  sandboxRemoveBoss(restoreBattleMusic?: boolean): void;
+  sandboxClearEnemies(withDrops: boolean): number;
+  sandboxRemoveWeapon(weaponClass: abstract new (...args: never[]) => unknown): void;
+  sandboxSpawnGemShower(count?: number): void;
+  sandboxClearItemsAndGems(): void;
 
   // Spawners de monstros e chefes
   spawnTitanCerberus(): void;
@@ -47,17 +72,19 @@ export interface ISandboxContext {
   triggerAzazelEncounterFromAltar(): void;
   spawnAzazelBoss(isIntroOnly?: boolean): void;
 
-  // Spawner de coletáveis
+  // Spawner de coletáveis e ambiente
   spawnGemAt(x: number, y: number, type: GemType): void;
+  spawnMapItem(x: number, y: number, type?: MapItemType): MapItem;
+  spawnEvolutionAltar(customX?: number, customY?: number): EvolutionAltar | null;
+  activateBossSummonAltar(): void;
+  triggerUltimate(): void;
+  registerSoulBoltOverlap(weapon: SoulBoltWeapon): void;
 
   // Limpeza e efeitos visuais
   clearCombatSpeechBubbles(): void;
   clearAzazelCrystals(): void;
   setHUDVisible(visible: boolean): void;
   setCameraZoom(zoom: number, duration?: number): void;
-
-  // Altar de invocação
-  activateBossSummonAltar?(): void;
 }
 
 /**

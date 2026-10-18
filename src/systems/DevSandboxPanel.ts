@@ -9,12 +9,13 @@ import { AbyssalChainsWeapon } from '../entities/weapons/AbyssalChainsWeapon';
 import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
 import { UpgradeScene } from '../scenes/UpgradeScene';
 import { AutoPlayTestAgent } from './AutoPlayTestAgent';
+import type { ISandboxContext } from './SandboxController';
 
 type SandboxTab = 'CHEATS' | 'SPAWNER' | 'WEAPONS' | 'UPGRADES' | 'LOGS';
 
 export class DevSandboxPanel {
   private uiScene: Phaser.Scene;
-  private gameScene: any;
+  private gameScene: ISandboxContext;
 
   private topBarContainer!: Phaser.GameObjects.Container;
   private topStatusText!: Phaser.GameObjects.Text;
@@ -34,7 +35,7 @@ export class DevSandboxPanel {
 
   private readonly pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
-  constructor(uiScene: Phaser.Scene, gameScene: any) {
+  constructor(uiScene: Phaser.Scene, gameScene: ISandboxContext) {
     this.uiScene = uiScene;
     this.gameScene = gameScene;
 
@@ -1295,7 +1296,7 @@ export class DevSandboxPanel {
           if (gs.bossSummonAltar) {
             this.togglePanel(false);
             p.setPosition(gs.bossSummonAltar.x, gs.bossSummonAltar.y + 130);
-            if (p.body) p.body.setVelocity(0, 0);
+            if (p.body) (p.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
             this.showToast('TELEPORTADO AO ALTAR DE INVOCAÇÃO!', '#ff4500');
           }
         }
