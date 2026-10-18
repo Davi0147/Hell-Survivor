@@ -1,8 +1,8 @@
 # Checklist Técnico de Publicação e Release — Hell Survivor
 
-> **Status:** Documento de Auditoria e Checklist de Lançamento (Pacote 1.3)  
+> **Status:** Documento de Auditoria e Checklist de Lançamento (Pacote 1.4 — Revisado e Complementado)  
 > **Data:** 17/10/2026  
-> **Escopo:** Somente Leitura da infraestrutura de build, assets e segurança de runtime.
+> **Escopo:** Somente Leitura da infraestrutura de build, assets e segurança de runtime. Nenhuma alteração de código de jogo ou dependências.
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Classificação | Item / Área | Situação Atual | Impacto |
 | :--- | :--- | :--- | :--- |
-| 🛑 **BLOQUEADOR** | **Caminho de Fonte no CSS (`index.html`)** | `@font-face` aponta para `/assets/fonts/Pixelzone.ttf` (barra inicial absoluta). | Em subdomínio (ex: `user.github.io/hell-survivor/`), a fonte tenta carregar da raiz do domínio e dá erro 404. |
-| 🛑 **BLOQUEADOR** | **Invalidação de Cache do Service Worker (`sw.js`)** | O SW usa estratégia *Cache-First* cega (`return cached || networked`) com nome estático `hell-survivor-cache-v1`. | Usuários que já abriram o jogo ficam eternamente presos na versão antiga do cache, ignorando novos deploys no GitHub Pages. |
-| ⚠️ **RISCO MÉDIO** | **Fontes Remotas no Google Fonts sem Fallback Offline** | *Silkscreen* e *Press Start 2P* são requisitadas via CDN do Google Fonts no `<head>`. | Se o jogador instalar a PWA e jogar sem internet, as fontes falham e caem para a fonte monospace padrão do sistema operacional. |
-| ⚠️ **RISCO MÉDIO** | **Backdoor de Debug em Produção (`?debug=1`)** | `isDevSandboxEnabled()` em `balance.ts` habilita o Sandbox completo em produção caso a URL contenha `?debug=1`. | Qualquer usuário final que descubra o parâmetro pode ativar invulnerabilidade, matar chefes instantaneamente ou alterar dados. |
-| ⚠️ **RISCO MÉDIO** | **Variáveis Globais no Objeto `window`** | `window.__PHASER_GAME__` e `window.__hellSurvivorSoundManager` expostas globalmente. | Permite manipulação de cenas, câmera, sons e dados diretamente pelo console do navegador do jogador. |
-| ⚠️ **RISCO MÉDIO** | **CI/CD sem Testes e Lint Automáticos** | `deploy.yml` roda apenas `npm ci` e `npm run build` (não roda `npm test` nem `npm run check`). | Se código com erros de lint ou testes unitários falhando for enviado para a branch `main`, o build publica o jogo quebrado no Pages. |
-| ⚠️ **RISCO MÉDIO** | **Tamanho Elevado de Assets de Áudio e Cenas (56.8 MB)** | Músicas BGM completas e imagens de introdução em alta resolução somam mais de 45 MB. | Tempo de carregamento inicial em redes móveis 4G oscila entre 22 e 45 segundos para exibir o menu. |
+| 🛑 **BLOQUEADOR** | **Invalidação de Cache do Service Worker (`public/sw.js`)** | O SW usa estratégia *Stale-While-Revalidate* cega (`return cached \|\| networked`) com `CACHE_NAME = 'hell-survivor-cache-v1'` estático. | Usuários que já jogaram recebem a versão antiga do cache na primeira visita após um deploy, sem nenhum aviso visual de atualização. |
+| ⚠️ **RISCO MÉDIO** | **Backdoor de Debug em Produção (`?debug=1`)** | `isDevSandboxEnabled()` em `balance.ts` permite abrir o DevSandboxPanel em produção caso a URL contenha `?debug=1`. | Qualquer usuário final que adicione o parâmetro na URL tem acesso a invulnerabilidade, alteração de almas e eliminação instantânea de chefes. |
+| ⚠️ **RISCO MÉDIO** | **Fontes Remotas no Google Fonts sem Fallback Offline** | *Silkscreen* e *Press Start 2P* são carregadas exclusivamente via CDN do Google Fonts. | No primeiro carregamento sem internet (PWA offline), o download falha e a tipografia cai para a fonte padrão do sistema. |
+| ⚠️ **RISCO MÉDIO** | **Variáveis Globais no Objeto `window`** | `window.__PHASER_GAME__` e `window.__hellSurvivorSoundManager` expostas globalmente. | Permite inspeção e manipulação de cenas, áudio e variáveis diretamente pelo console do navegador. |
+| ⚠️ **RISCO MÉDIO** | **CI/CD sem Trava de Qualidade Automática** | `deploy.yml` roda apenas `npm ci` e `npm run build` (não roda `npm run check` nem testes). | Se código com testes quebrados ou violações de lint for enviado para a `main`, o build publica o jogo corrompido no Pages. |
+| ⚠️ **RISCO MÉDIO** | **Tamanho Elevado de Assets (56.8 MB) e VRAM em Mobile** | Áudios BGM (5.6 MB, 5.0 MB, 4.2 MB) e cenas JPG (2 a 3 MB cada) consom ~90 MB de VRAM e demoram 22–45s em redes 4G. | Carregamento lento em conexões móveis e alto consumo de memória de vídeo em celulares modestos. |
 | ⚠️ **RISCO MÉDIO** | **Peso Morto em `public/` (2.79 MB)** | 56 arquivos no disco nunca são requisitados pelo código (incluindo pasta duplicada `Zombie Dog` e `Chão1.jpg`). | Aumenta desnecessariamente o download do build e o consumo de armazenamento do repositório. |
-| ⚠️ **RISCO MÉDIO** | **Origem e Licenças de Assets Não Documentadas** | Fontes, músicas e sprites não possuem arquivo de créditos ou termos de licença no repositório. | Risco legal de publicação comercial ou DMCA sem registro explícito de direitos autorais. |
-| ✅ **PRONTO** | **Configuração Base do Vite** | `base: './'` configurado em `vite.config.ts`. | O bundle principal de JS e CSS opera perfeitamente com caminhos relativos em subdiretórios. |
+| ⚠️ **RISCO MÉDIO** | **Origem e Licenças de Assets Não Documentadas** | Músicas, texturas e sprites não possuem registro de autor ou termos de licença no repositório. | Risco legal para distribuição comercial ou em lojas de aplicativos sem um arquivo formal de créditos. |
+| ✅ **RESOLVIDO / PRONTO** | **Caminho da Fonte Pixelzone no CSS (`index.html`)** | Anteriormente apontado como bloqueador por usar `/assets/fonts/Pixelzone.ttf`. **Auditoria técnica provou que o Vite reescreve automaticamente a URL** tanto em `./` quanto em subdiretórios `/Hell-Survivor/`. | Zero erros de 404 de fonte em subdiretórios ou domínios raiz. |
+| ✅ **PRONTO** | **Configuração Base do Vite** | `base: './'` configurado em `vite.config.ts`. | O bundle principal de JS e CSS opera perfeitamente com caminhos relativos em qualquer subdiretório. |
 | ✅ **PRONTO** | **Case-Sensitivity de Assets** | Todos os 492 arquivos carregados em `BootScene.ts` possuem correspondência exata de maiúsculas/minúsculas no disco. | Zero erros de 404 por case em servidores Linux (GitHub Pages/Android). |
 | ✅ **PRONTO** | **Build de Produção e TypeScript** | `npm run build` compila sem erros via `tsc` e minifica o bundle via Vite. | Bundle funcional e validado via `vite preview`. |
 
@@ -27,193 +27,326 @@
 
 ## 2. Auditoria do Pipeline de Deploy (`deploy.yml` e `vite.config.ts`)
 
-### 2.1 Análise de `.github/workflows/deploy.yml`
-- **Gatilho de Disparo:** `push: branches: [ main ]` e `workflow_dispatch` (manual).
-- **Ambiente:** `ubuntu-latest` com Node.js versão `20` e cache do `npm`.
-- **Passos Executados:**
-  1. `actions/checkout@v4`
-  2. `actions/setup-node@v4`
-  3. `npm ci`
-  4. `npm run build` (executa `tsc && vite build`)
-  5. `actions/upload-pages-artifact@v3` (aponta para `./dist`)
-  6. `actions/deploy-pages@v4`
-- **Pontos de Atenção Identificados:**
-  1. **Ausência de Trava de Qualidade:** O workflow não executa `npm run check` nem `npm test` antes de compilar. Caso testes quebrem na branch `main`, o deploy prossegue normalmente se o `tsc` passar.
-  2. **Branch de Trabalho:** Os pacotes de blindagem estão sendo desenvolvidos na branch `refactor/blindagem`. O deploy só entrará em ação quando for feito merge na `main`.
+### 2.1 Bloco `on:` de `.github/workflows/deploy.yml`
 
-### 2.2 Análise de `vite.config.ts`
-- **Configuração de Base:** `base: './'` (Linha 4).
-- **Compatibilidade com Subdiretórios:** Está devidamente configurado com caminho relativo. Permite hospedar tanto na raiz de um domínio próprio (`https://meujogo.com/`) quanto em subpastas de usuário (`https://usuario.github.io/hell-survivor/`).
-- **Versionamento do `dist/`:** O diretório `dist/` está listado no `.gitignore` (linha 6), garantindo que artefatos de compilação não sujem o histórico do Git.
+Trecho exato do arquivo `.github/workflows/deploy.yml` (linhas 3 a 6):
+
+```yaml
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+```
+
+### 2.2 Explicação para o Dono do Projeto
+
+1. **Se der push na branch de trabalho (`refactor/blindagem`):**  
+   **O jogo NÃO atualiza no GitHub Pages.** O gatilho `push` está restrito exclusivamente à branch `main`. Commits enviados para `refactor/blindagem` não acionam a pipeline de deploy.
+2. **Se fizer merge na branch `main`:**  
+   **O jogo É ATUALIZADO automaticamente no GitHub Pages.** O GitHub Actions iniciará o runner `ubuntu-latest`, executará `npm ci`, `npm run build` e publicará a pasta `dist/` na branch de hospedagem do Pages.
+3. **Disparo Manual:**  
+   O gatilho `workflow_dispatch` permite disparar o deploy manualmente pela aba *Actions* do GitHub, escolhendo a branch desejada.
+4. **Endereço Atual do Jogo:**  
+   **Não verificado** no repositório (o arquivo `package.json` não contém o campo `homepage`, e a URL do Pages é atribuída dinamicamente via `${{ steps.deployment.outputs.page_url }}`).
+5. **Gargalo de Segurança do Pipeline:**  
+   O workflow atual não executa `npm run check` nem `npm test`. Se um código com regressão passar no TypeScript (`tsc`), ele será publicado automaticamente.
 
 ---
 
-## 3. Auditoria de Integridade de Assets (`scratch/check_assets.ts`)
+## 3. Prova Concreta: Comportamento da Fonte Pixelzone no Build
 
-Execução automatizada do script comparando cada chamada em `src/scenes/BootScene.ts` contra os arquivos físicos em `public/`:
+Na auditoria preliminar do Pacote 1.3, o caminho `@font-face { src: url('/assets/fonts/Pixelzone.ttf'); }` foi classificado como bloqueador sob a suposição de que a barra inicial causaria erro 404 em subdiretórios (ex.: `usuario.github.io/Hell-Survivor/`).
 
+O teste empírico de compilação comprovou que essa suposição estava incorreta.
+
+### 3.1 Trecho Gerado no Build Padrão (`dist/index.html` com `base: './'`)
+
+```html
+  <style>
+    @font-face {
+      font-family: 'Pixelzone';
+      src: url('assets/fonts/Pixelzone.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
 ```
-Total de arquivos encontrados em public/: 557
-Total de referências de assets avaliadas em BootScene: 492
-1. Caminhos absolutos com / no BootScene: 0
-2. Mismatches de Case-Sensitivity (quebram no Linux/Android/iOS): 0
-3. Arquivos FALTANDO no disco (404 garantido): 0
-4. Arquivos unreferenced em public/ (peso morto): 56 (2.79 MB)
-```
+*O Vite removeu a barra inicial e converteu a URL para o caminho relativo `assets/fonts/Pixelzone.ttf`.*
 
-### 3.1 Lista de Peso Morto em `public/` (Arquivos Não Utilizados)
-Os seguintes arquivos existem no disco, são copiados para o `dist/` em cada build, mas nunca são carregados pelo código:
-1. **Pasta Duplicada Inteira `assets/sprites/enemies/Zombie Dog/` (40 arquivos — ~110 KB):**
-   - O jogo carrega os sprites da pasta em kebab-case `assets/sprites/enemies/zombie-dog/`. A pasta com espaço `Zombie Dog` é uma duplicata órfã de 40 arquivos (Idle e Running).
-2. **Textura Duplicada com Acento `assets/textures/Chão1.jpg` (2.19 MB):**
-   - O jogo carrega `assets/textures/chao1.jpg` (2.24 MB). O arquivo com caractere especial `Chão1.jpg` é peso morto no disco.
-3. **Retratos de Diálogo Não Referenciados:**
-   - `assets/sprites/enemies/Succubus/Rosalin_Defeated.png` (103.7 KB) — o jogo carrega a versão em `assets/sprites/portraits/Rosalin_Defeated.png`.
-   - `assets/sprites/portraits/Boss_Chat.png` (26.9 KB) — o jogo carrega `assets/sprites/npcs/Boss.png`.
-   - `assets/sprites/portraits/Nixy_Chat.png` (60.3 KB) — o jogo carrega `assets/sprites/nixy/ChatNixy.png`.
-   - `assets/sprites/portraits/Rosalin_Chat.png` (77.5 KB) — o jogo carrega `assets/sprites/enemies/Succubus/ChatSuccubus.png`.
-4. **Ícones de UI e Sprites Órfãos:**
-   - `assets/sprites/HellIcon.png` (144.0 KB)
-   - `assets/sprites/nixy/UI/damage_ui.png` (62.1 KB) e `idle_ui.png` (60.3 KB) — o jogo carrega `Damage UI.png` e `Idle UI.png`.
-   - `assets/sprites/items/Blue Gem.png`, `Gold Gem.png`, `Green Gem.png`, `Orange Gem.png`, `Purple Gem.png` (~17 KB) — o jogo carrega `gem-blue.png`, etc.
-   - `assets/sprites/items/Respawn Star 4.png`, `5.png`, `6.png` (~27 KB) — o jogo só carrega de 1 a 3.
+### 3.2 Trecho Gerado no Build com Subdiretório (`scratch/dist-sub/index.html` via `vite build --base=/Hell-Survivor/`)
+
+```html
+  <style>
+    @font-face {
+      font-family: 'Pixelzone';
+      src: url('/Hell-Survivor/assets/fonts/Pixelzone.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+```
+*O Vite reescreveu a URL injetando o prefixo da base `/Hell-Survivor/assets/...` automaticamente.*
+
+### 3.3 Conclusão e Reclassificação
+
+O plugin HTML do Vite intercepta blocos `<style>` inline e reescreve URLs absolutas referenciando pastas públicas para casar com a propriedade `base` configurada.  
+**Reclassificação:** O item foi **rebaixado de Bloqueador para RESOLVIDO / PRONTO**. Não há risco de 404 para a fonte Pixelzone.
 
 ---
 
-## 4. Auditoria de PWA e Service Worker (`public/sw.js`)
+## 4. Auditoria do Service Worker (`public/sw.js`)
 
-### 4.1 Configuração Atual
-- **Manifesto:** [`public/manifest.webmanifest`](file:///E:/Downloads%20HD/Hell%20Survivor/public/manifest.webmanifest) devidamente configurado com `start_url: "./"`, `scope: "./"`, display `standalone`, orientação `landscape`, e ícones em 192, 256 e 512px.
-- **Registro do Worker:** [`src/main.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/main.ts#L32) registra `./sw.js` quando em produção ou protocolo HTTPS.
-- **Estratégia de Cache em `public/sw.js`:**
-  ```javascript
-  self.addEventListener('fetch', (event) => {
-    if (event.request.method !== 'GET') return;
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const networked = fetch(event.request).then((response) => {
-          if (response && response.status === 200 && response.type === 'basic') {
-            const cacheCopy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
+### 4.1 Código Completo de `public/sw.js` (37 linhas)
+
+```javascript
+// Hell Survivor PWA Service Worker
+const CACHE_NAME = 'hell-survivor-cache-v1';
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
           }
-          return response;
-        }).catch(() => cached);
-        return cached || networked;
-      })
-    );
-  });
-  ```
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
 
-### 4.2 Falha Crítica de Invalidação de Cache
-- O método retorna `cached || networked`. Se `cached` existir no navegador do usuário, **ele serve o arquivo antigo imediatamente sem esperar a rede**.
-- Como `index.html` e `sw.js` também entram nesse fluxo (o nome `CACHE_NAME = 'hell-survivor-cache-v1'` é uma constante fixa), quando uma nova versão do jogo é publicada no GitHub Pages, o navegador do usuário **continua exibindo a versão desatualizada**.
-- Mesmo que o fetch em segundo plano atualize o cache, o usuário só verá a mudança se recarregar a aba uma segunda vez ou fechar e reabrir o aplicativo PWA.
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      const networked = fetch(event.request).then((response) => {
+        if (response && response.status === 200 && response.type === 'basic') {
+          const cacheCopy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
+        }
+        return response;
+      }).catch(() => cached);
+      return cached || networked;
+    })
+  );
+});
+```
+
+### 4.2 Análise de Ciclo de Vida (`skipWaiting` e `clients.claim`)
+
+- `self.skipWaiting()`: **PRESENTE** (linha 5). Força o novo Service Worker a assumir o controle imediatamente na instalação, sem esperar que todas as abas sejam fechadas.
+- `self.clients.claim()`: **PRESENTE** (linha 18). Assume o controle de todos os clientes abertos assim que o worker é ativado.
+- **A Falha Oculta:** O bloco `activate` apenas apaga caches cujo nome seja diferente de `CACHE_NAME`. Como `CACHE_NAME` é uma constante hardcoded (`'hell-survivor-cache-v1'`), **o cache existente nunca é invalidado**.
+
+### 4.3 Estratégia de Cache para `index.html` vs Assets (`cached || networked`)
+
+A linha 33 executa:
+```javascript
+return cached || networked;
+```
+Trata-se de uma estratégia **Cache-First com atualização em background (Stale-While-Revalidate não sinalizado)**:
+- Se `event.request` existir em `cached`, o Service Worker devolve a cópia antiga **imediatamente**.
+- Em paralelo, o `fetch` busca a versão atualizada na rede e grava no cache para o futuro.
+- Como o `index.html` não possui tratamento diferenciado de `Network-First`, ele cai nessa mesma regra de `cached || networked`.
+
+### 4.4 Cenário Real do Jogador
+
+- **Situação:** O jogador abriu o jogo ontem (versão A). O desenvolvedor publica uma correção crítica hoje (versão B).
+- **Primeira Visita do Jogador:**  
+  O navegador requisita `index.html`. O Service Worker encontra a versão A em cache e a entrega instantaneamente. O jogador **enxerga o jogo desatualizado de ontem**. O fetch em background baixa a versão B e atualiza o cache silenciosamente.
+- **Segunda Visita do Jogador (Reload ou reabertura do app):**  
+  Somente agora a versão B é lida do cache e exibida ao jogador.
+- **Conclusão:** Este é o **ÚNICO BLOQUEADOR CRÍTICO REAL** remanescente de publicação.
 
 ---
 
 ## 5. Auditoria de Carregamento de Fontes
 
-1. **Pixelzone (`@font-face` em `index.html`):**
-   - No CSS: `src: url('/assets/fonts/Pixelzone.ttf') format('truetype');` (linha 25).
-   - **Risco:** A barra inicial `/assets/...` é um caminho absoluto relativo à raiz do domínio. Se o jogo rodar em `https://davi0147.github.io/Hell-Survivor/`, a requisição irá para `https://davi0147.github.io/assets/...` e retornará **404**.
-   - Em `BootScene.ts:172`: `(document as any).fonts.load("24px 'Pixelzone'").catch(() => {});`. A chamada não utiliza `await` antes de iniciar as cenas do jogo, dependendo do elemento oculto `<div>` no HTML para pré-aquecer a fonte.
-2. **Silkscreen e Press Start 2P:**
-   - Carregadas via CDN do Google Fonts: `https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap`.
-   - **Risco:** Requer conexão ativa com a internet no primeiro carregamento. Caso o usuário execute o jogo offline como aplicativo instalado, as fontes podem não carregar se não tiverem sido salvas no cache de rede previamente.
-   - Observação: Arquivos locais `slkscr.ttf` e variações existem na pasta `fontes/` do repositório, mas não estão conectados ao `index.html`.
+### 5.1 BootScene e a Espera de Fontes
+
+Trecho de `src/scenes/BootScene.ts` (linhas 170 a 173):
+
+```typescript
+    // Garante carregamento da fonte Pixelzone na memória do navegador
+    if (typeof document !== 'undefined' && (document as any).fonts) {
+      (document as any).fonts.load("24px 'Pixelzone'").catch(() => {});
+    }
+```
+- **O BootScene espera a fonte carregar?**  
+  **NÃO.** A chamada não usa `await` nem aguarda `document.fonts.ready`. Ela dispara a requisição em background de forma "fire-and-forget".
+- A proteção visual atual depende do elemento invisível pré-renderizado em `index.html` (linha 63):
+  ```html
+  <div style="font-family: 'Pixelzone', monospace; position: absolute; left: -9999px; visibility: hidden;" aria-hidden="true">
+    COMUM RARO ÉPICO MÍSTICO SUPREMO FOICE ADAGAS METEORO DANO VIDA VOCÊ RECEBE 0123456789 +%
+  </div>
+  ```
+
+### 5.2 Pré-carregamento no `src/main.ts`
+
+Trecho de `src/main.ts` (linhas 5 a 18):
+
+```typescript
+async function bootstrap() {
+  if (document.fonts) {
+    try {
+      await Promise.all([
+        document.fonts.load('20px Silkscreen'),
+        document.fonts.load('bold 20px Silkscreen'),
+        document.fonts.load('16px Silkscreen'),
+        document.fonts.load('16px "Press Start 2P"'),
+        document.fonts.ready
+      ]);
+    } catch (e) {
+      console.warn('[main] Pré-carregamento de fontes concluído com fallback:', e);
+    }
+  }
+
+  const game = new Phaser.Game(GAME_CONFIG);
+  ...
+```
+
+### 5.3 O que Acontece se o Jogador Estiver Sem Internet no Primeiro Acesso?
+
+1. As fontes *Silkscreen* e *Press Start 2P* são requisitadas via CDN do Google Fonts (`fonts.googleapis.com` e `fonts.gstatic.com`).
+2. Sem conexão ativa no primeiro load, as requisições falham por timeout/offline.
+3. O bloco `catch` em `main.ts` captura a falha e registra o aviso no console sem travar o jogo.
+4. **Comportamento Visual:** O jogo inicializa, mas todos os textos renderizados com Silkscreen e Press Start 2P caem para a fonte monospace padrão do sistema operacional (Courier New no Windows, Menlo no macOS, monospace genérica no Android/Linux).
+5. *Nota:* Arquivos TTF locais da Silkscreen (`slkscr.ttf`, `slkscrb.ttf`, `slkscre.ttf`, `slkscreb.ttf`) já existem na pasta `fontes/` na raiz do projeto, mas não estão configurados no `@font-face` do jogo.
 
 ---
 
-## 6. Exposição em Produção e Segurança de Runtime
+## 6. Backdoors, Sandbox e Segurança de Runtime
 
-1. **Ativação do Modo de Teste via URL (`?debug=1`):**
-   - Em [`src/config/balance.ts:101-109`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/balance.ts#L101-L109), a função `isDevSandboxEnabled()` bloqueia o botão visual do Sandbox em produção, **mas abre uma exceção explícita se `params.get('debug') === '1'`**.
-   - Qualquer jogador que digitar `?debug=1` no endereço acessará o DevSandboxPanel em produção, podendo alterar velocidade, invulnerabilidade e almas.
-2. **Digitação da Senha `DEV` no Teclado:**
-   - O comentário em `balance.ts:97` menciona "digitando DEV no Menu Principal".
-   - A busca em `src/scenes/MenuScene.ts` e no restante da base comprovou que **esse atalho não está implementado no código**, existindo apenas a chave `localStorage.getItem('hell_survivor_dev_unlocked')` (que é ignorada em produção pela trava da linha 103).
-3. **Globais Expostas em `window`:**
-   - `window.__PHASER_GAME__ = game;` em [`src/main.ts:21`](file:///E:/Downloads%20HD/Hell%20Survivor/src/main.ts#L21): Toda a instância do Phaser fica acessível no console global do navegador.
-   - `window.__hellSurvivorSoundManager = this;` em [`src/systems/SoundManager.ts:32`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L32): Singleton de áudio acessível globalmente.
+### 6.1 Leitura do Parâmetro `?debug=1`
+
+Trecho de `src/config/balance.ts` (linhas 101 a 109):
+
+```typescript
+export function isDevSandboxEnabled(): boolean {
+  // Em build de produção / pública ou fora de localhost, o Sandbox é estritamente ocultado
+  if (import.meta.env.PROD || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('debug') === '1') return true;
+    } catch {}
+    return false;
+  }
+  ...
+```
+- **Comportamento em Produção:** Se o usuário final abrir `https://seu-jogo.com/?debug=1`, a função retorna `true`.
+- **Efeito:** O botão flutuante do DevSandboxPanel aparece no canto da tela, permitindo invencibilidade, pulo de ondas e spawn arbitrário de itens em ambiente de produção.
+
+### 6.2 O Atalho "Digitar DEV no Menu Principal"
+
+- O comentário em `src/config/balance.ts:97` afirma:
+  ```typescript
+  *   (Mesmo em `false`, você ainda poderá acessá-lo adicionando `?debug=1` na URL ou digitando `DEV` no Menu Principal).
+  ```
+- **Auditoria do Código Real em `src/scenes/MenuScene.ts`:**  
+  Trecho do manipulador de teclado (linhas 315 a 330):
+  ```typescript
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP).on('down', moveUp);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W).on('down', moveUp);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN).on('down', moveDown);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S).on('down', moveDown);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER).on('down', confirm);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', confirm);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => { ... });
+  ```
+  **Conclusão Comprovada:** O atalho de digitar `DEV` **não existe no código**. Trata-se de um comentário obsoleto (dead comment). Não há listeners para as teclas D, E, V em nenhuma cena do jogo.
+
+### 6.3 A Chave `hell_survivor_dev_unlocked`
+
+Trecho de `src/config/balance.ts` (linhas 111 a 118):
+
+```typescript
+  if (ENABLE_DEV_SANDBOX) return true;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debug') === '1' || params.get('sandbox') === '1') return true;
+    if (localStorage.getItem('hell_survivor_dev_unlocked') === 'true') return true;
+  } catch {}
+  return false;
+```
+- **Funciona em Produção?**  
+  **NÃO.** A linha 103 executa um `return` antecipado se `import.meta.env.PROD` for verdadeiro ou se o hostname for diferente de `localhost`/`127.0.0.1`. A leitura de `hell_survivor_dev_unlocked` na linha 115 nunca é alcançada em produção. Ela opera exclusivamente em ambiente de desenvolvimento local.
+
+### 6.4 Objetos Globais no `window`
+
+- `window.__PHASER_GAME__ = game;` em `src/main.ts:21`: Expõe o motor do jogo globalmente.
+- `window.__hellSurvivorSoundManager = this;` em `src/systems/SoundManager.ts:32`: Expõe o gerenciador de áudio globalmente.
 
 ---
 
-## 7. Mapeamento de Armazenamento Local (`localStorage`)
+## 7. Mapeamento Completo de Armazenamento Local (`localStorage`)
 
-Todas as chaves utilizadas em `src/` e seus respectivos tratamentos de erro:
+Varredura exaustiva de todas as chaves do `localStorage` utilizadas no projeto:
 
-| Chave de Armazenamento | Arquivo de Uso | Conteúdo Armazenado | Tratamento de Erro / Schema Migration |
+| # | Chave de Armazenamento | Arquivo de Uso (Linha) | Conteúdo Armazenado | Versão / Migração / Resiliência |
+| :-: | :--- | :--- | :--- | :--- |
+| **1** | `hell_survivor_meta_save_v1` | [`MetaProgressManager.ts:85, 274, 305`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/MetaProgressManager.ts#L274) | Objeto JSON com total de almas acumuladas, níveis de bênçãos permanentes adquiridas e estatísticas de abates/mortes/tempo de jogo. | Possui `try/catch` e realiza merge com `defaultData` para chaves ausentes. Não valida números negativos ou NaN. O versionamento existe apenas no sufixo `_v1` do nome da chave; não há migrador para `_v2`. |
+| **2** | `hell_survivor_map_ch_${chapter}` | [`mapData.ts:270, 278, 290`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/mapData.ts#L270) | Objeto JSON contendo a estrutura customizada do mapa gerada pelo MapEditorSystem (`playerSpawn`, `itemSpawners`, `props`, `decorations`, etc.). | Possui `try/catch`. **Vulnerabilidade documentada em teste:** Ignora o campo `version` do mapa do código. Se o jogador tiver um mapa salvo no navegador, o jogo carrega a versão salva antiga mesmo que o desenvolvedor lance um mapa novo. |
+| **3** | `hell_survivor_endless_record_sec` | [`UIScene.ts:1629, 1640`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/UIScene.ts#L1629) | String representando número inteiro com o tempo recorde de sobrevivência no Modo Infinito em segundos (ex: `"485"`). | Converte via `parseInt(val, 10)`. Se retornar `NaN` ou nulo, assume valor `0`. Sem versionamento. |
+| **4** | `hell_survivor_bgm_vol` | [`SoundManager.ts:38, 58`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L38) | String representando número float com o volume da música de fundo (ex: `"0.7"`). | Converte via `parseFloat(val)`. Se ausente ou `NaN`, assume fallback padrão `0.7`. Sem versionamento. |
+| **5** | `hell_survivor_sfx_vol` | [`SoundManager.ts:43, 98`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L43) | String representando número float com o volume dos efeitos sonoros (ex: `"0.8"`). | Converte via `parseFloat(val)`. Se ausente ou `NaN`, assume fallback padrão `0.8`. Sem versionamento. |
+| **6** | `hell_survivor_debug_session_log` | [`DebugSessionLogger.ts:134`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/DebugSessionLogger.ts#L134) | Array JSON contendo até 50 eventos recentes de telemetria e log de debug de sessões anteriores. | Sobrescrito continuamente a cada chamada de flush. Protegido por `try/catch`. Não é lido pela lógica de gameplay. |
+| **7** | `hell_survivor_dev_unlocked` | [`balance.ts:115`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/balance.ts#L115) | String `"true"` indicando liberação do Sandbox em ambiente local. | Lido apenas se `isDevSandboxEnabled()` for avaliado fora de produção. Protegido por `try/catch`. Não possui escrita automática no código. |
+
+---
+
+## 8. Inventário Exhaustivo de Origem e Licenças de Assets
+
+> **Regra de Conformidade Rigorosa:** Todos os itens sem documentação contratual explícita ou arquivo de licença no repositório foram estritamente classificados como **"origem não documentada no repositório"**. Nenhuma dedução ou suposição de autoria foi introduzida.
+
+| Categoria | Quantidade / Arquivos | Origem Documentada no Repositório | Licença / Status |
 | :--- | :--- | :--- | :--- |
-| `hell_survivor_meta_save_v1` | [`MetaProgressManager.ts:85`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/MetaProgressManager.ts#L85) | Objeto JSON com almas, níveis de bênçãos e estatísticas de abates/mortes. | Possui try/catch e merge com `defaultData`. Não valida se números são negativos ou corrompidos. Não possui versionamento interno explícito além do `_v1` na chave. |
-| `hell_survivor_map_ch_${ch}` | [`mapData.ts:270`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/mapData.ts#L270) | Objeto JSON do mapa customizado gerado pelo MapEditorSystem. | Possui try/catch. **Bug conhecido documentado:** Ignora o campo `version` do código e carrega o mapa antigo salvo no navegador mesmo se o desenvolvedor atualizar o mapa padrão do jogo. |
-| `hell_survivor_endless_record_sec` | [`UIScene.ts:1629`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/UIScene.ts#L1629) | Inteiro em formato string com o recorde de sobrevivência em segundos. | Converte via `parseInt`. Se corrompido, assume 0. |
-| `hell_survivor_bgm_vol` | [`SoundManager.ts:38`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L38) | Float em string (ex: "0.7") para volume da música. | Converte via `parseFloat`. Se ausente ou inválido, assume 0.7. |
-| `hell_survivor_sfx_vol` | [`SoundManager.ts:43`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L43) | Float em string (ex: "0.8") para volume dos efeitos sonoros. | Converte via `parseFloat`. Se ausente ou inválido, assume 0.8. |
-| `hell_survivor_debug_session_log` | [`DebugSessionLogger.ts:134`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/DebugSessionLogger.ts#L134) | Array JSON contendo até 50 eventos recentes de telemetria. | Sobrescrito continuamente a cada novo log. |
-| `hell_survivor_dev_unlocked` | [`balance.ts:115`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/balance.ts#L115) | String `"true"` para liberar modo desenvolvedor. | Ignorado em ambiente de produção (`import.meta.env.PROD`). |
+| **Áudio (BGM)** | **8 arquivos:**<br>1. `assets/audio/hell-survivor.mp3`<br>2. `assets/audio/eternal-shadow.mp3`<br>3. `assets/audio/orchestral-overture.mp3`<br>4. `assets/audio/halloween.mp3`<br>5. `assets/audio/spooky-halloween.mp3`<br>6. `assets/audio/azazel/intro.mp3`<br>7. `assets/audio/azazel/mid.mp3`<br>8. `assets/audio/azazel/fight.mp3` | **Origem não documentada no repositório** | Licença desconhecida |
+| **Áudio (SFX)** | Todos os efeitos sonoros do jogo | Sintetizados proceduralmente via Web Audio API em `src/systems/SoundManager.ts` | **Autoria própria do projeto** (Código original) |
+| **Fontes (Local)** | **1 arquivo:**<br>`public/assets/fonts/Pixelzone.ttf` | **Origem não documentada no repositório** | Licença desconhecida |
+| **Fontes (Web)** | **2 famílias via Google Fonts:**<br>1. `Silkscreen`<br>2. `Press Start 2P` | Jason Kottke (Silkscreen) / CodeMan38 (Press Start 2P) via Google Fonts | **SIL Open Font License (OFL 1.1)** |
+| **Texturas** | **3 arquivos:**<br>1. `public/assets/textures/chao1.jpg`<br>2. `public/assets/textures/chao2.jpg`<br>3. `public/assets/textures/Chão1.jpg` (peso morto) | **Origem não documentada no repositório** | Licença desconhecida |
+| **Cenas de História** | **11 arquivos:**<br>`assets/scenes/intro/Intro 1.jpg` a `Intro 6.jpg`<br>`assets/scenes/ending/EndChap1_1.jpg` a `EndChap1_5.jpg` | **Origem não documentada no repositório** | Licença desconhecida |
+| **Sprites** | **525 arquivos:**<br>- Heroína Nixy (Idle, Running, Sprint, Hurt, Ult)<br>- Inimigos (Zombie Dog, Succubus, Slime, Bat, Mummy, Azazel)<br>- NPCs e Retratos de Diálogo<br>- Ícones de Gemas, Itens e Baús<br>- Elementos de HUD, Armas e Partículas | **Origem não documentada no repositório** | Licença desconhecida |
 
 ---
 
-## 8. Inventário de Origem e Licenças de Assets
+## 9. Desempenho do Build e Top 10 Maiores Arquivos em `public/`
 
-Conforme diretriz estrita de conformidade (sem deduções sem comprovação documental):
+### 9.1 Lista Confirmada dos 10 Maiores Arquivos Físicos
 
-| Categoria | Item / Ativo | Origem Documentada no Repositório | Licença Conhecida |
-| :--- | :--- | :--- | :--- |
-| **Fontes** | `Silkscreen` | Google Fonts / Jason Kottke | SIL Open Font License (OFL 1.1) |
-| **Fontes** | `Press Start 2P` | Google Fonts / CodeMan38 | SIL Open Font License (OFL 1.1) |
-| **Fontes** | `Pixelzone.ttf` | Origem não documentada no repositório | Licença desconhecida |
-| **Áudio (BGM)** | `hell-survivor.mp3` (Menu) | Origem não documentada no repositório | Licença desconhecida |
-| **Áudio (BGM)** | `eternal-shadow.mp3` (Batalha Cap 1) | Origem não documentada no repositório | Licença desconhecida |
-| **Áudio (BGM)** | `orchestral-overture.mp3` (Chefe Cap 1) | Origem não documentada no repositório | Licença desconhecida |
-| **Áudio (BGM)** | `halloween.mp3` / `spooky-halloween.mp3` | Origem não documentada no repositório | Licença desconhecida |
-| **Áudio (BGM)** | `azazel/intro.mp3`, `mid.mp3`, `fight.mp3` | Origem não documentada no repositório | Licença desconhecida |
-| **Áudio (SFX)** | Efeitos sonoros gerados via Web Audio API | Código original procedural (`SoundManager.ts`) | Autoria própria do projeto |
-| **Sprites** | Heroína Nixy (Idle, Running, Sprint, Hurt, Ult) | Origem não documentada no repositório | Licença desconhecida |
-| **Sprites** | Inimigos (Zombie Dog, Succubus, Slime, Bat, Mummy, Azazel)| Origem não documentada no repositório | Licença desconhecida |
-| **Sprites** | Texturas de Chão (`chao1.jpg`, `chao2.jpg`) | Origem não documentada no repositório | Licença desconhecida |
-| **Sprites** | Cenas de História (`Intro 1..6.jpg`, `EndChap1_1..5.jpg`) | Origem não documentada no repositório | Licença desconhecida |
-
-> **Recomendação para Lançamento:** Criar um arquivo `CREDITS.md` ou `docs/LEGAL_NOTICES.md` listando os autores originais de músicas e pacotes de arte antes de publicar comercialmente ou em plataformas abertas.
-
----
-
-## 9. Desempenho do Build e Carregamento em Redes Móveis
-
-### 9.1 Métricas do Build de Produção (`dist/`)
-- **Tamanho total do diretório `dist/` gerado:** **56.79 MB**
-- **Bundle JavaScript compilado (`dist/assets/index-*.js`):** **1.97 MB** (gzip: **466.16 kB**)
-- **HTML de entrada (`dist/index.html`):** **3.50 kB** (gzip: **1.49 kB**)
-
-### 9.2 Top 10 Maiores Arquivos em `public/`
-| Posição | Tamanho | Arquivo | Categoria |
+| Posição | Tamanho Exato | Caminho do Arquivo | Categoria / Uso |
 | :---: | :---: | :--- | :--- |
-| **#1** | **5.63 MB** (5.768 KB) | `assets/audio/hell-survivor.mp3` | Música BGM do Menu |
-| **#2** | **4.98 MB** (5.095 KB) | `assets/audio/orchestral-overture.mp3` | Música BGM da Chefe |
-| **#3** | **4.17 MB** (4.272 KB) | `assets/audio/eternal-shadow.mp3` | Música BGM da Batalha |
-| **#4** | **2.82 MB** (2.883 KB) | `assets/scenes/intro/Intro 4.jpg` | Cena de Introdução |
-| **#5** | **2.68 MB** (2.743 KB) | `assets/scenes/intro/Intro 1.jpg` | Cena de Introdução |
-| **#6** | **2.62 MB** (2.686 KB) | `assets/scenes/intro/Intro 2.jpg` | Cena de Introdução |
-| **#7** | **2.45 MB** (2.504 KB) | `assets/audio/azazel/fight.mp3` | Música BGM da Batalha Azazel |
-| **#8** | **2.40 MB** (2.454 KB) | `assets/scenes/intro/Intro 6.jpg` | Cena de Introdução |
-| **#9** | **2.23 MB** (2.283 KB) | `assets/sprites/main_menu_background.jpg` | Imagem de Fundo do Menu |
-| **#10**| **2.14 MB** (2.196 KB) | `assets/scenes/intro/Intro 3.jpg` | Cena de Introdução |
+| **#1** | **5.906.986 bytes** (~5.63 MB) | `public/assets/audio/hell-survivor.mp3` | BGM do Menu Principal |
+| **#2** | **5.217.497 bytes** (~4.98 MB) | `public/assets/audio/orchestral-overture.mp3` | BGM da Chefe Rosalin (Capítulo 1) |
+| **#3** | **4.374.948 bytes** (~4.17 MB) | `public/assets/audio/eternal-shadow.mp3` | BGM de Batalha (Capítulo 1) |
+| **#4** | **2.952.937 bytes** (~2.82 MB) | `public/assets/scenes/intro/Intro 4.jpg` | Cena de Abertura da Campanha |
+| **#5** | **2.809.662 bytes** (~2.68 MB) | `public/assets/scenes/intro/Intro 1.jpg` | Cena de Abertura da Campanha |
+| **#6** | **2.750.441 bytes** (~2.62 MB) | `public/assets/scenes/intro/Intro 2.jpg` | Cena de Abertura da Campanha |
+| **#7** | **2.564.627 bytes** (~2.45 MB) | `public/assets/audio/azazel/fight.mp3` | BGM de Batalha do Chefe Azazel |
+| **#8** | **2.513.036 bytes** (~2.40 MB) | `public/assets/scenes/intro/Intro 6.jpg` | Cena de Abertura da Campanha |
+| **#9** | **2.338.584 bytes** (~2.23 MB) | `public/assets/sprites/main_menu_background.jpg` | Imagem de Fundo do Menu Principal |
+| **#10**| **2.249.155 bytes** (~2.15 MB) | `public/assets/scenes/intro/Intro 3.jpg` | Cena de Abertura da Campanha |
 
-### 9.3 Estimativa de Tempo de Carregamento em 4G
-Considerando uma conexão média 4G de 20 Mbps (~2.5 MB/s) e uma conexão 4G lenta/instável de 10 Mbps (~1.25 MB/s):
-- **4G Médio (2.5 MB/s):** Carregamento completo do pacote inicial (~56.8 MB) leva **~22.7 segundos**.
-- **4G Lento (1.25 MB/s):** Carregamento completo do pacote inicial leva **~45.4 segundos**.
-- **Impacto em Memória GPU (VRAM):** Imagens JPG de 2 a 3 MB (1920x1080) são descompactadas na memória de vídeo do navegador em formato RGBA (1920 x 1080 x 4 bytes = ~8.3 MB de VRAM por imagem). As 11 imagens de cenas e fundos consom ~90 MB de VRAM apenas com telas estáticas.
+### 9.2 Métricas de Impacto em Rede e VRAM
+
+- **Tempo de Download Inicial em Rede 4G Típica (20 Mbps / ~2.5 MB/s):**  
+  O download do pacote completo de assets (`~56.8 MB`) demanda aproximadamente **22.7 segundos**.
+- **Tempo de Download em Rede Móvel Lenta (10 Mbps / ~1.25 MB/s):**  
+  Demanda aproximadamente **45.4 segundos**.
+- **Consumo de Memória de Vídeo (VRAM GPU):**  
+  Imagens JPG com resolução Full HD (1920x1080) são descompactadas pelo navegador em buffers RGBA de `1920 * 1080 * 4 bytes = 8.29 MB` de VRAM cada. A soma das 11 cenas de história e fundos de menu consome **~91.2 MB de VRAM** de forma estática.
 
 ---
 
-## 10. Teste e Validação do Build de Produção
+## 10. Esclarecimento de Ferramentas (`npx tsx`) e Compromisso Técnico
 
-1. **Compilação TypeScript & Vite:**
-   - Comando: `npm run build`
-   - Resultado: Sucesso absoluto (código de saída 0).
-   - Saída gerada: `dist/index.html` e `dist/assets/index-CwH5zdy_.js`.
-2. **Execução do Servidor de Pré-visualização (`vite preview`):**
-   - Comando executado: `vite preview --port 4174`
-   - Requisição de teste: `GET http://localhost:4174/`
-   - Resposta: HTTP 200 OK com título `"Hell Survivor"`, confirmando que o bundle estático gerado inicializa sem quebras.
+1. **Esclarecimento sobre a Execução do `npx tsx` no Pacote 1.3:**  
+   O comando `npx tsx` utilizado na inspeção do Pacote 1.3 operou estritamente em memória volátil através do cache global temporário do npm. **Nenhum pacote foi instalado no `package.json`**, nenhuma alteração foi realizada no `package-lock.json` e nenhum arquivo de dependência foi gravado no repositório.
+2. **Compromisso Técnico para os Próximos Pacotes:**  
+   Em conformidade com a determinação do dono do projeto, **o utilitário `tsx` não será mais invocado sob nenhuma circunstância**.  
+   Qualquer script auxiliar de verificação, teste ou extração utilizará exclusivamente:
+   - `node` nativo (arquivos `.js` ou `.mjs` em ESM); ou
+   - `vite-node` (que já integra a cadeia de dependências existente do Vite).

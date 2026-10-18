@@ -2,6 +2,25 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote 1.4 — Complementação e Correção de Auditorias] — 2026-10-17
+### Corrigido & Complementado
+- **Auditoria de Balanceamento (`docs/BALANCE_AUDIT.md`)**:
+  - Recontagem exata via varredura AST/Regex: substituído "mais de 70 números" pelo inventário exaustivo de **232 valores numéricos** dispersos fora de `balance.ts` (Nixy: 14, Armas/Evoluções: 84, Inimigos: 41, Chefes: 41, Itens/Altares: 19, Cenas/Diretor: 33).
+  - Tabela de cobertura completa catalogando os 29 arquivos auditados com método de leitura (integral vs recorte de linhas).
+  - Reformulação matemática dos 3 pontos críticos como hipóteses numéricas fundamentadas, eliminando termos de certeza ("one-hit kill", "impossível", "nulo"):
+    - *Dive Slam* (77) + golpe leve (18) = 95 < 100 HP base da Nixy (sobrevive com 5 HP base ou 65 HP com Vitalidade 5; janela de invulnerabilidade de 450ms em `GameScene.ts:2519` impede acúmulo no mesmo instante).
+    - Azazel aos 30 min no Modo Infinito: comprovado no código que Azazel não existe no Modo Infinito (aparecem apenas Cerberus aos 3m, Matriarca aos 6m e Succubus Imperial aos 10m) e que chefes não chamam `getEnemyScaling`, usando literais estáticos de dano. Mesmo com escalonamento hipotético (x3.40), o contato de 143 é inferior aos 160 HP da Nixy com bênção de Vitalidade.
+    - Morcegos de Sangue: velocidade base de 160 px/s da Nixy é superada pela velocidade de perseguição do morcego (171 px/s) aos 5 min, mas a heroína conta com mecânica de Corrida/Sprint (270 px/s), bênção de Agilidade (até 184 px/s) e ataques automáticos contra inimigos de baixa vida (14–22 HP).
+  - Mapeamento direto dos campos existentes de telemetria (`DebugSessionLogger` e `AutoPlayTestAgent`) contra as métricas pendentes para balanceamento por dados.
+- **Checklist Técnico de Publicação (`docs/RELEASE_CHECKLIST.md`)**:
+  - Rebaixado o item da Fonte Pixelzone de "Bloqueador" para "RESOLVIDO / PRONTO": teste empírico de compilação em `dist/index.html` e `scratch/dist-sub/index.html` comprovou que o plugin HTML do Vite reescreve automaticamente URLs absolutas de fontes dentro de `<style>` para casar com a `base` (`assets/fonts/...` e `/Hell-Survivor/assets/...`).
+  - Incluído o código integral (37 linhas) de `public/sw.js` com análise técnica: presença de `skipWaiting()` e `clients.claim()`, e comprovação de que `CACHE_NAME` estático gera cache-first cego sem invalidar na primeira visita após novo deploy (único bloqueador crítico remanescente).
+  - Documentado o bloco `on:` de `deploy.yml`, esclarecendo que pushes em `refactor/blindagem` não disparam deploy, enquanto merges na `main` publicam automaticamente.
+  - Demonstração com código dos backdoors de runtime: `?debug=1` contorna restrições de produção, o atalho "digitar DEV" é comentário morto inexistente em `MenuScene.ts`, e `hell_survivor_dev_unlocked` opera exclusivamente fora de produção.
+  - Tabela completa de persistência com as 7 chaves do `localStorage` e análise de resiliência a corrupção/migração.
+  - Inventário rigoroso de conformidade de assets: 8 áudios BGM, 1 fonte local, 3 texturas, 11 cenas e 525 sprites devidamente classificados como "origem não documentada no repositório", sem suposições.
+  - Confirmação do ranking dos top 10 maiores arquivos em `public/` e esclarecimento definitivo sobre o uso estritamente temporário de `npx tsx`, com compromisso registrado de utilizar apenas `node` e `vite-node` nos pacotes subsequentes.
+
 ---
 
 ## [Pacote 1.3 — Auditoria de Balanceamento & Checklist de Publicação] — 2026-10-17
