@@ -18,6 +18,16 @@ export interface TestRunReport {
   deathCause?: string;
 }
 
+// Constantes de navegação e inteligência do Bot Autônomo [F3]
+const ENEMY_DETECTION_RADIUS = 180;
+const ENEMY_THREAT_MAX_FOR_XP = 8; // Limite de inimigos próximos para busca ativa de gemas (era fixo em 3)
+const GEM_SEEK_RADIUS = 600; // Raio máximo de busca de gemas de alma (era fixo em 320)
+const MAP_ITEM_SEEK_RADIUS = 500; // Raio de busca para itens do mapa
+const REPULSE_WEIGHT = 1.35; // Peso de repulsão contra monstros (kiting)
+const XP_ATTRACTION_WEIGHT = 2.0; // Peso de atração por gemas de XP em combate moderado
+const XP_ATTRACTION_SWARM_WEIGHT = 0.8; // Peso residual de atração em enxame (evita fuga para cantos sem XP)
+const UPGRADE_REACTION_DELAY_MS = 250; // Tempo de reação antes de selecionar uma carta
+
 export class AutoPlayTestAgent {
   private static instance: AutoPlayTestAgent;
   public isEnabled: boolean = false;
@@ -71,9 +81,9 @@ export class AutoPlayTestAgent {
       if (!e.active || e.isDead) continue;
 
       const dist = Math.hypot(e.x - player.x, e.y - player.y);
-      if (dist < 180 && dist > 1) {
+      if (dist < ENEMY_DETECTION_RADIUS && dist > 1) {
         threatsNear++;
-        const weight = (180 - dist) / 180;
+        const weight = (ENEMY_DETECTION_RADIUS - dist) / ENEMY_DETECTION_RADIUS;
         repulseX += ((player.x - e.x) / dist) * weight * 2.5;
         repulseY += ((player.y - e.y) / dist) * weight * 2.5;
       }
@@ -83,14 +93,14 @@ export class AutoPlayTestAgent {
     let targetX = 0;
     let targetY = 0;
     let hasTarget = false;
-    let bestDist = 320;
+    let bestDist = GEM_SEEK_RADIUS;
 
     // Prioridade 1: Itens de Mapa (Cálice de cura se vida < 75%, Ímã ou Baú)
     const mapItems = gameScene.mapItemsGroup ? (gameScene.mapItemsGroup.getChildren() as MapItem[]) : [];
     for (const item of mapItems) {
       if (item.active) {
         const dist = Math.hypot(item.x - player.x, item.y - player.y);
-        if (dist < 500) {
+        if (dist < MAP_ITEM_SEEK_RADIUS) {
           targetX = (item.x - player.x) / dist;
           targetY = (item.y - player.y) / dist;
           hasTarget = true;
@@ -104,7 +114,7 @@ export class AutoPlayTestAgent {
       const gems = gameScene.gemsGroup.getChildren() as SoulGem[];
       for (let i = 0; i < gems.length; i++) {
         const g = gems[i];
-        if (g.active && !g.isAttracted) {
+        if (g.active) {
           const dist = Math.hypot(g.x - player.x, g.y - player.y);
           if (dist < bestDist) {
             bestDist = dist;
@@ -117,12 +127,13 @@ export class AutoPlayTestAgent {
     }
 
     // Combinação dos vetores
-    let totalX = repulseX * 1.5;
-    let totalY = repulseY * 1.5;
+    let totalX = repulseX * REPULSE_WEIGHT;
+    let totalY = repulseY * REPULSE_WEIGHT;
 
-    if (threatsNear < 3 && hasTarget) {
-      totalX += targetX * 1.2;
-      totalY += targetY * 1.2;
+    if (hasTarget) {
+      const weight = threatsNear < ENEMY_THREAT_MAX_FOR_XP ? XP_ATTRACTION_WEIGHT : XP_ATTRACTION_SWARM_WEIGHT;
+      totalX += targetX * weight;
+      totalY += targetY * weight;
     } else if (threatsNear === 0) {
       // Movimentação orbital suave se o campo estiver vazio
       const time = gameScene.time.now * 0.001;
@@ -154,8 +165,8 @@ export class AutoPlayTestAgent {
     }
 
     this.upgradeDecisionTimer += deltaMs;
-    // Aguarda 250ms simulando tempo de reação humano/IA
-    if (this.upgradeDecisionTimer >= 250) {
+    // Aguarda UPGRADE_REACTION_DELAY_MS simulando tempo de reação humano/IA
+    if (this.upgradeDecisionTimer >= UPGRADE_REACTION_DELAY_MS) {
       this.upgradeDecisionTimer = 0;
 
       const containers = upgradeScene.getCardContainers();
