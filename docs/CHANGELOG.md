@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [UI Mobile — Sprites Pixel Art para Controles Touch] — 2026-10-18
+### Adicionado & Refatorado
+- **Sprites Customizados de Interface Touch (`src/ui/TouchControls.ts` & `src/scenes/BootScene.ts`)**:
+  - Integração dos 5 novos sprites pixel art (`Analog.png`, `Stick.png`, `Sprint.png`, `UltButton.png`, `Pause.png`) em substituição aos vetores procedurais genéricos (`Phaser.GameObjects.Graphics`).
+  - Carregamento oficial no preload do `BootScene.ts` com cache buster (`touch-analog`, `touch-stick`, `touch-sprint`, `touch-ult`, `touch-pause`).
+  - Implementação de resposta tátil imediata: redução dimensional de 10% (efeito mecânico de clique) e variação de tonalidade/brilho ao tocar nos botões de Sprint, Ultimate e Pausa.
+  - Indicador visual dinâmico no botão de Suprema (`UltButton`): dimerização a 45% de opacidade e matiz escurecido durante recarga; opacidade total (100%) e animação de pulso rítmico senoidal contínuo quando a Suprema está pronta.
+  - Remoção dos textos sobrepostos desnecessários, preservando a nitidez da arte conceitual pixel art.
+  - Refatoração da tipagem em `TouchControls.ts` eliminando todos os 5 usos legados de `any` e variáveis não utilizadas, reduzindo os avisos do ESLint de 213 para 207 (zero novos `any`, 0 erros, 43 testes passando).
+
+
 ## [Pacote P1.1 — Atualização Confiável e Integridade de Cache Web] — 2026-10-18
 ### Adicionado & Refatorado
 - **Plugin de Versionamento Inline (`vite.config.ts`)**:

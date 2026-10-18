@@ -472,6 +472,13 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm-azazel-intro', 'assets/audio/azazel/intro.mp3');
     this.load.audio('bgm-azazel-mid', 'assets/audio/azazel/mid.mp3');
     this.load.audio('bgm-azazel-fight', 'assets/audio/azazel/fight.mp3');
+
+    // 24. Controles Mobile Touch (Pixel Art UI)
+    this.load.image('touch-analog', `assets/sprites/ui/touch/Analog.png?t=${cacheBuster}`);
+    this.load.image('touch-stick', `assets/sprites/ui/touch/Stick.png?t=${cacheBuster}`);
+    this.load.image('touch-sprint', `assets/sprites/ui/touch/Sprint.png?t=${cacheBuster}`);
+    this.load.image('touch-ult', `assets/sprites/ui/touch/UltButton.png?t=${cacheBuster}`);
+    this.load.image('touch-pause', `assets/sprites/ui/touch/Pause.png?t=${cacheBuster}`);
   }
 
   create(): void {

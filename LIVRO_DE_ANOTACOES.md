@@ -88,7 +88,7 @@
 - [x] **Bot Autônomo de Testes (`AutoPlayTestAgent.ts` — `[F3]`):** Joga sozinho com kiting, captura de altares e escolha automática de upgrades.
 
 ### 1.7. Acessibilidade Multiplataforma (`Concluído ✅`)
-- [x] **Controles Mobile (`TouchControls.ts`):** Joystick virtual flutuante/fixo à esquerda e botões ergonômicos de Sprint, Ultimate e Pausa à direita.
+- [x] **Controles Mobile (`TouchControls.ts`):** Joystick virtual flutuante/fixo à esquerda e botões ergonômicos de Sprint, Ultimate e Pausa à direita com sprites dedicados em pixel art (`Analog.png`, `Stick.png`, `Sprint.png`, `UltButton.png`, `Pause.png`), feedback tátil com compressão/tintura e pulso visual de prontidão da Suprema.
 - [x] **Suporte a Gamepad (`GamepadManager.ts`):** Movimentação analógica, gatilhos de Sprint/Ultimate e navegação completa por botões em todos os menus, upgrades e cenas de diálogo.
 
 ---
