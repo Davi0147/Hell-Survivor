@@ -137,10 +137,11 @@ function showUpdateBanner(worker: ServiceWorker): void {
   banner.style.cssText = `
     position: fixed;
     top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 16px;
+    left: auto;
+    transform: none;
     width: calc(100% - 32px);
-    max-width: 440px;
+    max-width: 330px;
     background: rgba(24, 2, 8, 0.96);
     border: 2px solid #ff0055;
     box-shadow: 0 0 24px rgba(255, 0, 85, 0.45), 0 0 10px rgba(243, 209, 122, 0.3), 0 8px 32px rgba(0, 0, 0, 0.85);

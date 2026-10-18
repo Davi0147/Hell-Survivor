@@ -2251,13 +2251,13 @@ export class GameScene extends Phaser.Scene {
       this.spawnSceneryProps();
     }
 
-    // 5. Spawna itens de exploração se definidos nas zonas de item
+    // 5. Spawna itens de exploração se definidos nas zonas de item (apenas em modo História e Infinito; Sandbox começa limpo)
     if (this.mapItemsGroup && this.mapItemsGroup.children) {
       const oldItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (let i = oldItems.length - 1; i >= 0; i--) {
         oldItems[i].destroy();
       }
-      if (map.itemSpawners && Array.isArray(map.itemSpawners)) {
+      if (this.gameMode !== 'sandbox' && map.itemSpawners && Array.isArray(map.itemSpawners)) {
         for (const sp of map.itemSpawners) {
           const types: ('chalice' | 'chest' | 'magnet')[] = ['chalice', 'chest', 'magnet'];
           const chosen = Phaser.Math.RND.pick(types);
