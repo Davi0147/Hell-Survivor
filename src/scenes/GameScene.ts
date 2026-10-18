@@ -100,6 +100,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
   public boss10mSpawned: boolean = false;
   public isRevival: boolean = false;
   public hasRevivalUsed: boolean = false;
+  public isUpgradeSceneOpening: boolean = false;
   private bossMinionTimer: number = 0;
 
   // Sistema de Balões de Fala Dinâmicos em Combate
@@ -448,6 +449,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
       if (this.player) {
         this.player.off('player-level-up');
       }
+      this.isUpgradeSceneOpening = false;
       if (this.input.keyboard) {
         this.input.keyboard.removeAllKeys(true);
         this.input.keyboard.removeAllListeners();
@@ -746,14 +748,25 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
    */
   public checkAndOpenUpgradeScene(): void {
     if (this.isGameOver || this.isChapterCompleted) return;
-    if (this.player.pendingLevelUps <= 0) return;
-    if (this.scene.isActive('UpgradeScene')) return;
+    const uiScene = this.scene.get('UIScene') as UIScene;
+    if (uiScene && (uiScene.isDialogueActive() || uiScene.isChestRouletteActive())) return;
+    if (!this.player || this.player.pendingLevelUps <= 0) return;
+    if (this.scene.isActive('UpgradeScene') || this.isUpgradeSceneOpening) return;
 
+    this.isUpgradeSceneOpening = true;
     this.player.pendingLevelUps--;
     DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', `Nixy alcançou o Nível ${this.player.currentLevel} (Níveis na Fila: ${this.player.pendingLevelUps})`);
     this.cameras.main.flash(220, 255, 215, 0);
     this.physics.pause();
     this.scene.pause();
+
+    const upgradeScene = this.scene.get('UpgradeScene');
+    if (upgradeScene) {
+      upgradeScene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        this.isUpgradeSceneOpening = false;
+      });
+    }
+
     this.scene.launch('UpgradeScene', { player: this.player, gameScene: this });
   }
 
@@ -792,6 +805,12 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
     if (this.isGameOver || this.isChapterCompleted) return;
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene && (uiScene.isDialogueActive() || uiScene.isChestRouletteActive())) return;
+
+    // Fila de escolhas de melhoria pendentes (garante que múltiplos níveis ganhos de uma vez sejam ofertados em sequência)
+    if (this.player && this.player.pendingLevelUps > 0 && !this.scene.isActive('UpgradeScene') && !this.isUpgradeSceneOpening) {
+      this.checkAndOpenUpgradeScene();
+      return;
+    }
 
     // Verificar se Nixy foi derrotada
     if (this.player.currentHp <= 0) {

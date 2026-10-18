@@ -95,6 +95,9 @@ export class UpgradeScene extends Phaser.Scene {
   create(data: UpgradeSceneData): void {
     this.player = data.player;
     this.gameScene = data.gameScene;
+    if (this.gameScene && typeof this.gameScene.isUpgradeSceneOpening !== 'undefined') {
+      this.gameScene.isUpgradeSceneOpening = false;
+    }
     this.isAltar = !!data.isAltar;
     this.onAltarChosen = data.onAltarChosen;
     this.cardContainers = [];
@@ -360,9 +363,8 @@ export class UpgradeScene extends Phaser.Scene {
     this.time.delayedCall(100, () => {
       this.scene.stop('UpgradeScene');
       this.gameScene.scene.resume();
-      this.gameScene.physics.resume();
-      if (typeof this.gameScene.checkAndOpenUpgradeScene === 'function') {
-        this.gameScene.checkAndOpenUpgradeScene();
+      if (!this.player || this.player.pendingLevelUps <= 0) {
+        this.gameScene.physics.resume();
       }
     });
   }
@@ -1362,9 +1364,8 @@ export class UpgradeScene extends Phaser.Scene {
       this.time.delayedCall(520, () => {
         this.scene.stop('UpgradeScene');
         this.gameScene.scene.resume();
-        this.gameScene.physics.resume();
-        if (typeof this.gameScene.checkAndOpenUpgradeScene === 'function') {
-          this.gameScene.checkAndOpenUpgradeScene();
+        if (!this.player || this.player.pendingLevelUps <= 0) {
+          this.gameScene.physics.resume();
         }
       });
     });
