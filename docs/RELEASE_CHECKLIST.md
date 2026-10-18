@@ -1,6 +1,6 @@
 # Checklist Técnico de Publicação e Release — Hell Survivor
 
-> **Status:** Documento de Auditoria e Checklist de Lançamento (Pacote 1.4 — Revisado e Complementado)  
+> **Status:** Documento de Auditoria e Checklist de Lançamento (Pacote 1.5 — Verificado e Corrigido)  
 > **Data:** 17/10/2026  
 > **Escopo:** Somente Leitura da infraestrutura de build, assets e segurança de runtime. Nenhuma alteração de código de jogo ou dependências.
 
@@ -10,7 +10,7 @@
 
 | Classificação | Item / Área | Situação Atual | Impacto |
 | :--- | :--- | :--- | :--- |
-| 🛑 **BLOQUEADOR** | **Invalidação de Cache do Service Worker (`public/sw.js`)** | O SW usa estratégia *Stale-While-Revalidate* cega (`return cached \|\| networked`) com `CACHE_NAME = 'hell-survivor-cache-v1'` estático. | Usuários que já jogaram recebem a versão antiga do cache na primeira visita após um deploy, sem nenhum aviso visual de atualização. |
+| 🛑 **BLOQUEADOR** | **Invalidação de Cache do Service Worker (`public/sw.js`)** | Registrado em produção (`src/main.ts:32-36`). O SW usa estratégia *Stale-While-Revalidate* cega (`return cached \|\| networked`) com `CACHE_NAME = 'hell-survivor-cache-v1'` estático. | Usuários que já jogaram recebem a versão antiga do cache na primeira visita após um deploy no GitHub Pages, sem aviso visual. *(Nota: em localhost HTTP o worker não é registrado; o teste deve ser feito no ambiente publicado HTTPS).* |
 | ⚠️ **RISCO MÉDIO** | **Backdoor de Debug em Produção (`?debug=1`)** | `isDevSandboxEnabled()` em `balance.ts` permite abrir o DevSandboxPanel em produção caso a URL contenha `?debug=1`. | Qualquer usuário final que adicione o parâmetro na URL tem acesso a invulnerabilidade, alteração de almas e eliminação instantânea de chefes. |
 | ⚠️ **RISCO MÉDIO** | **Fontes Remotas no Google Fonts sem Fallback Offline** | *Silkscreen* e *Press Start 2P* são carregadas exclusivamente via CDN do Google Fonts. | No primeiro carregamento sem internet (PWA offline), o download falha e a tipografia cai para a fonte padrão do sistema. |
 | ⚠️ **RISCO MÉDIO** | **Variáveis Globais no Objeto `window`** | `window.__PHASER_GAME__` e `window.__hellSurvivorSoundManager` expostas globalmente. | Permite inspeção e manipulação de cenas, áudio e variáveis diretamente pelo console do navegador. |
@@ -18,6 +18,7 @@
 | ⚠️ **RISCO MÉDIO** | **Tamanho Elevado de Assets (56.8 MB) e VRAM em Mobile** | Áudios BGM (5.6 MB, 5.0 MB, 4.2 MB) e cenas JPG (2 a 3 MB cada) consom ~90 MB de VRAM e demoram 22–45s em redes 4G. | Carregamento lento em conexões móveis e alto consumo de memória de vídeo em celulares modestos. |
 | ⚠️ **RISCO MÉDIO** | **Peso Morto em `public/` (2.79 MB)** | 56 arquivos no disco nunca são requisitados pelo código (incluindo pasta duplicada `Zombie Dog` e `Chão1.jpg`). | Aumenta desnecessariamente o download do build e o consumo de armazenamento do repositório. |
 | ⚠️ **RISCO MÉDIO** | **Origem e Licenças de Assets Não Documentadas** | Músicas, texturas e sprites não possuem registro de autor ou termos de licença no repositório. | Risco legal para distribuição comercial ou em lojas de aplicativos sem um arquivo formal de créditos. |
+| ⚠️ **ITEM ABERTO** | **Avisos de Remoção Prematura de Texturas no `BootScene.ts:init()`** | `init()` executa ~470 chamadas a `this.textures.remove()` antes do `preload()`, gerando 470 avisos de `No texture found matching key` no console do navegador durante o boot frio. | Poluição do console do navegador no primeiro acesso, embora todas as texturas sejam carregadas normalmente no `preload()`. |
 | ✅ **RESOLVIDO / PRONTO** | **Caminho da Fonte Pixelzone no CSS (`index.html`)** | Anteriormente apontado como bloqueador por usar `/assets/fonts/Pixelzone.ttf`. **Auditoria técnica provou que o Vite reescreve automaticamente a URL** tanto em `./` quanto em subdiretórios `/Hell-Survivor/`. | Zero erros de 404 de fonte em subdiretórios ou domínios raiz. |
 | ✅ **PRONTO** | **Configuração Base do Vite** | `base: './'` configurado em `vite.config.ts`. | O bundle principal de JS e CSS opera perfeitamente com caminhos relativos em qualquer subdiretório. |
 | ✅ **PRONTO** | **Case-Sensitivity de Assets** | Todos os 492 arquivos carregados em `BootScene.ts` possuem correspondência exata de maiúsculas/minúsculas no disco. | Zero erros de 404 por case em servidores Linux (GitHub Pages/Android). |
@@ -94,7 +95,29 @@ O plugin HTML do Vite intercepta blocos `<style>` inline e reescreve URLs absolu
 
 ## 4. Auditoria do Service Worker (`public/sw.js`)
 
-### 4.1 Código Completo de `public/sw.js` (37 linhas)
+### 4.1 O Registro no Código da Aplicação (`src/main.ts`)
+
+Trecho exato de [`src/main.ts:31-36`](file:///E:/Downloads%20HD/Hell%20Survivor/src/main.ts#L31):
+
+```typescript
+// Registro de PWA Service Worker (Instalação no celular e cache de performance)
+if ('serviceWorker' in navigator && (import.meta.env.PROD || window.location.protocol === 'https:')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+```
+
+- **Condição de Registro:** O registro é estritamente condicionado a:  
+  `'serviceWorker' in navigator && (import.meta.env.PROD || window.location.protocol === 'https:')`
+- **Ambiente Local (`http://localhost:5173`):**  
+  Em modo de desenvolvimento local, `import.meta.env.PROD` é `false` e o protocolo é `http:`. **O Service Worker NUNCA é registrado em localhost.**
+- **Ambiente de Produção / Hospedagem (`https://...`):**  
+  No GitHub Pages ou em qualquer servidor HTTPS, `import.meta.env.PROD` é `true` e o protocolo é `https:`. **O Service Worker É EFETIVAMENTE REGISTRADO.**
+- **Importante para o Dono do Projeto:**  
+  Qualquer teste do comportamento de cache e atualização do Service Worker **DEVE ser realizado no endereço público HTTPS publicado no GitHub Pages**, e NUNCA em `localhost`.
+
+### 4.2 Código Completo de `public/sw.js` (37 linhas)
 
 ```javascript
 // Hell Survivor PWA Service Worker
@@ -135,13 +158,13 @@ self.addEventListener('fetch', (event) => {
 });
 ```
 
-### 4.2 Análise de Ciclo de Vida (`skipWaiting` e `clients.claim`)
+### 4.3 Análise de Ciclo de Vida (`skipWaiting` e `clients.claim`)
 
-- `self.skipWaiting()`: **PRESENTE** (linha 5). Força o novo Service Worker a assumir o controle imediatamente na instalação, sem esperar que todas as abas sejam fechadas.
-- `self.clients.claim()`: **PRESENTE** (linha 18). Assume o controle de todos os clientes abertos assim que o worker é ativado.
-- **A Falha Oculta:** O bloco `activate` apenas apaga caches cujo nome seja diferente de `CACHE_NAME`. Como `CACHE_NAME` é uma constante hardcoded (`'hell-survivor-cache-v1'`), **o cache existente nunca é invalidado**.
+- `self.skipWaiting()`: **PRESENTE** (linha 5). Força o novo Service Worker a assumir o controle imediatamente na instalação.
+- `self.clients.claim()`: **PRESENTE** (linha 18). Assume o controle de todos os clientes abertos na ativação.
+- **A Falha Oculta:** O bloco `activate` apenas apaga caches cujo nome seja diferente de `CACHE_NAME`. Como `CACHE_NAME` é fixo (`'hell-survivor-cache-v1'`), **o cache existente nunca é invalidado**.
 
-### 4.3 Estratégia de Cache para `index.html` vs Assets (`cached || networked`)
+### 4.4 Estratégia de Cache para `index.html` vs Assets (`cached || networked`)
 
 A linha 33 executa:
 ```javascript
@@ -152,14 +175,14 @@ Trata-se de uma estratégia **Cache-First com atualização em background (Stale
 - Em paralelo, o `fetch` busca a versão atualizada na rede e grava no cache para o futuro.
 - Como o `index.html` não possui tratamento diferenciado de `Network-First`, ele cai nessa mesma regra de `cached || networked`.
 
-### 4.4 Cenário Real do Jogador
+### 4.5 Cenário Real do Jogador em Produção
 
-- **Situação:** O jogador abriu o jogo ontem (versão A). O desenvolvedor publica uma correção crítica hoje (versão B).
+- **Situação:** O jogador jogou ontem (versão A). O desenvolvedor publica uma versão corrigida hoje no Pages (versão B).
 - **Primeira Visita do Jogador:**  
   O navegador requisita `index.html`. O Service Worker encontra a versão A em cache e a entrega instantaneamente. O jogador **enxerga o jogo desatualizado de ontem**. O fetch em background baixa a versão B e atualiza o cache silenciosamente.
 - **Segunda Visita do Jogador (Reload ou reabertura do app):**  
   Somente agora a versão B é lida do cache e exibida ao jogador.
-- **Conclusão:** Este é o **ÚNICO BLOQUEADOR CRÍTICO REAL** remanescente de publicação.
+- **Conclusão:** Em produção HTTPS, este é o **ÚNICO BLOQUEADOR CRÍTICO REAL** remanescente de publicação.
 
 ---
 
@@ -177,7 +200,7 @@ Trecho de `src/scenes/BootScene.ts` (linhas 170 a 173):
 ```
 - **O BootScene espera a fonte carregar?**  
   **NÃO.** A chamada não usa `await` nem aguarda `document.fonts.ready`. Ela dispara a requisição em background de forma "fire-and-forget".
-- A proteção visual atual depende do elemento invisível pré-renderizado em `index.html` (linha 63):
+- A proteção visual atual depende do elemento invisível pré-renderizado em `index.html` (linha 61):
   ```html
   <div style="font-family: 'Pixelzone', monospace; position: absolute; left: -9999px; visibility: hidden;" aria-hidden="true">
     COMUM RARO ÉPICO MÍSTICO SUPREMO FOICE ADAGAS METEORO DANO VIDA VOCÊ RECEBE 0123456789 +%
@@ -213,7 +236,7 @@ async function bootstrap() {
 1. As fontes *Silkscreen* e *Press Start 2P* são requisitadas via CDN do Google Fonts (`fonts.googleapis.com` e `fonts.gstatic.com`).
 2. Sem conexão ativa no primeiro load, as requisições falham por timeout/offline.
 3. O bloco `catch` em `main.ts` captura a falha e registra o aviso no console sem travar o jogo.
-4. **Comportamento Visual:** O jogo inicializa, mas todos os textos renderizados com Silkscreen e Press Start 2P caem para a fonte monospace padrão do sistema operacional (Courier New no Windows, Menlo no macOS, monospace genérica no Android/Linux).
+4. **Comportamento Visual:** O jogo inicializa, mas todos os textos renderizados com Silkscreen e Press Start 2P caem para a fonte monospace padrão do sistema operacional.
 5. *Nota:* Arquivos TTF locais da Silkscreen (`slkscr.ttf`, `slkscrb.ttf`, `slkscre.ttf`, `slkscreb.ttf`) já existem na pasta `fontes/` na raiz do projeto, mas não estão configurados no `@font-face` do jogo.
 
 ---
@@ -245,18 +268,8 @@ export function isDevSandboxEnabled(): boolean {
   ```typescript
   *   (Mesmo em `false`, você ainda poderá acessá-lo adicionando `?debug=1` na URL ou digitando `DEV` no Menu Principal).
   ```
-- **Auditoria do Código Real em `src/scenes/MenuScene.ts`:**  
-  Trecho do manipulador de teclado (linhas 315 a 330):
-  ```typescript
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP).on('down', moveUp);
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W).on('down', moveUp);
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN).on('down', moveDown);
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S).on('down', moveDown);
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER).on('down', confirm);
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', confirm);
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => { ... });
-  ```
-  **Conclusão Comprovada:** O atalho de digitar `DEV` **não existe no código**. Trata-se de um comentário obsoleto (dead comment). Não há listeners para as teclas D, E, V em nenhuma cena do jogo.
+- **Auditoria do Código Real em `src/scenes/MenuScene.ts` e busca global em `src/`:**  
+  A busca exaustiva por `'DEV'`, `"DEV"`, `keycombo`, `createCombo` e `KeyCodes.D` comprovou que **não existe nenhum ouvinte de sequência de teclas no jogo**. Trata-se de um comentário obsoleto (dead comment). Em `MenuScene.ts:315-330`, o teclado trata exclusivamente UP, DOWN, W, S, ENTER, SPACE, ESC.
 
 ### 6.3 A Chave `hell_survivor_dev_unlocked`
 
@@ -272,7 +285,7 @@ Trecho de `src/config/balance.ts` (linhas 111 a 118):
   return false;
 ```
 - **Funciona em Produção?**  
-  **NÃO.** A linha 103 executa um `return` antecipado se `import.meta.env.PROD` for verdadeiro ou se o hostname for diferente de `localhost`/`127.0.0.1`. A leitura de `hell_survivor_dev_unlocked` na linha 115 nunca é alcançada em produção. Ela opera exclusivamente em ambiente de desenvolvimento local.
+  **NÃO.** A checagem da linha 103 retorna antes se `import.meta.env.PROD` for verdadeiro ou se estiver fora de localhost. A linha 115 só executa em ambiente de desenvolvimento local.
 
 ### 6.4 Objetos Globais no `window`
 
@@ -281,19 +294,20 @@ Trecho de `src/config/balance.ts` (linhas 111 a 118):
 
 ---
 
-## 7. Mapeamento Completo de Armazenamento Local (`localStorage`)
+## 7. Mapeamento Completo de Armazenamento do Navegador (`localStorage` e `sessionStorage`)
 
-Varredura exaustiva de todas as chaves do `localStorage` utilizadas no projeto:
+Varredura exaustiva comprovada linha a linha no código-fonte. Todas as chaves do projeto e seus valores padrão exatos:
 
-| # | Chave de Armazenamento | Arquivo de Uso (Linha) | Conteúdo Armazenado | Versão / Migração / Resiliência |
-| :-: | :--- | :--- | :--- | :--- |
-| **1** | `hell_survivor_meta_save_v1` | [`MetaProgressManager.ts:85, 274, 305`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/MetaProgressManager.ts#L274) | Objeto JSON com total de almas acumuladas, níveis de bênçãos permanentes adquiridas e estatísticas de abates/mortes/tempo de jogo. | Possui `try/catch` e realiza merge com `defaultData` para chaves ausentes. Não valida números negativos ou NaN. O versionamento existe apenas no sufixo `_v1` do nome da chave; não há migrador para `_v2`. |
-| **2** | `hell_survivor_map_ch_${chapter}` | [`mapData.ts:270, 278, 290`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/mapData.ts#L270) | Objeto JSON contendo a estrutura customizada do mapa gerada pelo MapEditorSystem (`playerSpawn`, `itemSpawners`, `props`, `decorations`, etc.). | Possui `try/catch`. **Vulnerabilidade documentada em teste:** Ignora o campo `version` do mapa do código. Se o jogador tiver um mapa salvo no navegador, o jogo carrega a versão salva antiga mesmo que o desenvolvedor lance um mapa novo. |
-| **3** | `hell_survivor_endless_record_sec` | [`UIScene.ts:1629, 1640`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/UIScene.ts#L1629) | String representando número inteiro com o tempo recorde de sobrevivência no Modo Infinito em segundos (ex: `"485"`). | Converte via `parseInt(val, 10)`. Se retornar `NaN` ou nulo, assume valor `0`. Sem versionamento. |
-| **4** | `hell_survivor_bgm_vol` | [`SoundManager.ts:38, 58`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L38) | String representando número float com o volume da música de fundo (ex: `"0.7"`). | Converte via `parseFloat(val)`. Se ausente ou `NaN`, assume fallback padrão `0.7`. Sem versionamento. |
-| **5** | `hell_survivor_sfx_vol` | [`SoundManager.ts:43, 98`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L43) | String representando número float com o volume dos efeitos sonoros (ex: `"0.8"`). | Converte via `parseFloat(val)`. Se ausente ou `NaN`, assume fallback padrão `0.8`. Sem versionamento. |
-| **6** | `hell_survivor_debug_session_log` | [`DebugSessionLogger.ts:134`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/DebugSessionLogger.ts#L134) | Array JSON contendo até 50 eventos recentes de telemetria e log de debug de sessões anteriores. | Sobrescrito continuamente a cada chamada de flush. Protegido por `try/catch`. Não é lido pela lógica de gameplay. |
-| **7** | `hell_survivor_dev_unlocked` | [`balance.ts:115`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/balance.ts#L115) | String `"true"` indicando liberação do Sandbox em ambiente local. | Lido apenas se `isDevSandboxEnabled()` for avaliado fora de produção. Protegido por `try/catch`. Não possui escrita automática no código. |
+| # | Chave de Armazenamento | Mecanismo | Arquivo:Linha (Símbolo) | Trecho Exato de Código | Valor Padrão no Código | Tratamento de Erro / Resiliência |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `hell_survivor_meta_save_v1` | `localStorage` | [`MetaProgressManager.ts:85`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/MetaProgressManager.ts#L85)<br>(`STORAGE_KEY`) | `this.STORAGE_KEY = 'hell_survivor_meta_save_v1';`<br>L305: `localStorage.getItem(this.STORAGE_KEY);`<br>L274: `localStorage.setItem(this.STORAGE_KEY, ...);` | `defaultData` (L282-301):<br>`corruptedSouls: 0`, todas bênçãos `0`, estatísticas com `0`. | `try/catch`. Realiza merge de chaves faltantes com `defaultData`. Não valida se números são negativos ou `NaN`. Sem migrador para v2. |
+| **2** | `hell_survivor_custom_map_chapter_${chapter}` | `localStorage` | [`mapData.ts:254`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/mapData.ts#L254)<br>(`MapStorageManager.getStorageKey`) | `return 'hell_survivor_custom_map_chapter_' + chapter;`<br>L270: `localStorage.setItem(this.getStorageKey(ch), ...);`<br>L278: `localStorage.getItem(this.getStorageKey(chapter));` | `MapStorageManager.getDefaultMap(chapter)` (L257-265): Retorna `DEFAULT_CHAPTER_1_MAP`, `2` ou `202`. | `try/catch`. Se nulo ou corrompido, carrega o mapa padrão. **Vulnerabilidade:** ignora o campo `version` do código. |
+| **3** | `hell_survivor_endless_record_sec` | `localStorage` | [`UIScene.ts:1629`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/UIScene.ts#L1629)<br>(`UIScene.getBestRecordSec`) | L1629: `localStorage.getItem('hell_survivor_endless_record_sec');`<br>L1640: `localStorage.setItem('hell_survivor_endless_record_sec', sec.toString());` | `0` (L1630):<br>`return val ? parseInt(val, 10) \|\| 0 : 0;` | `try/catch`. Se ausente, não-numérico ou erro, retorna `0`. Sem versionamento. |
+| **4** | `hell_survivor_bgm_vol` | `localStorage` | [`SoundManager.ts:38`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L38)<br>(`SoundManager.loadSavedVolumes`) | L14: `private musicVolume: number = 0.10;`<br>L38: `localStorage.getItem('hell_survivor_bgm_vol');`<br>L58: `localStorage.setItem('hell_survivor_bgm_vol', ...);` | **`0.10`** (L14):<br>`musicVolume: number = 0.10;` (10% padrão). | `try/catch`. Converte via `parseFloat`. Se `null` ou `NaN`, mantém o valor padrão de `0.10`. Sem versionamento. |
+| **5** | `hell_survivor_sfx_vol` | `localStorage` | [`SoundManager.ts:43`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/SoundManager.ts#L43)<br>(`SoundManager.loadSavedVolumes`) | L15: `private sfxVolume: number = 0.60;`<br>L43: `localStorage.getItem('hell_survivor_sfx_vol');`<br>L98: `localStorage.setItem('hell_survivor_sfx_vol', ...);` | **`0.60`** (L15):<br>`sfxVolume: number = 0.60;` (60% padrão). | `try/catch`. Converte via `parseFloat`. Se `null` ou `NaN`, mantém o valor padrão de `0.60`. Sem versionamento. |
+| **6** | `hell_survivor_debug_session_log` | `localStorage` | [`DebugSessionLogger.ts:134`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/DebugSessionLogger.ts#L134)<br>(`DebugSessionLogger.persistToStorage`) | L133: `const recent = this.entries.slice(-150);`<br>L134: `localStorage.setItem('hell_survivor_debug_session_log', JSON.stringify(recent));` | `[]` (L23):<br>`private entries: DebugLogEntry[] = [];` | `try/catch`. Write-only (nunca é lido pela lógica do jogo). Salva os últimos 150 eventos. |
+| **7** | `hell_survivor_dev_unlocked` | `localStorage` | [`balance.ts:115`](file:///E:/Downloads%20HD/Hell%20Survivor/src/config/balance.ts#L115)<br>(`isDevSandboxEnabled`) | L115: `if (localStorage.getItem('hell_survivor_dev_unlocked') === 'true') return true;` | `null` / `"false"` | `try/catch`. Ignorado em produção pelo guard `import.meta.env.PROD`. Não possui rotina de escrita automática. |
+| **8** | `hell_survivor_pwa_dismissed` | `sessionStorage` | [`PWAInstallPrompt.ts:22`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/PWAInstallPrompt.ts#L22)<br>(`initPWAInstallPrompt`) | L22, L55: `sessionStorage.getItem('hell_survivor_pwa_dismissed') === '1'`<br>L160, L179: `sessionStorage.setItem('hell_survivor_pwa_dismissed', '1');` | `null` (não dispensado) | Checa se o usuário fechou o banner PWA na sessão atual para não incomodar novamente até reiniciar a aba. |
 
 ---
 
@@ -308,7 +322,7 @@ Varredura exaustiva de todas as chaves do `localStorage` utilizadas no projeto:
 | **Fontes (Local)** | **1 arquivo:**<br>`public/assets/fonts/Pixelzone.ttf` | **Origem não documentada no repositório** | Licença desconhecida |
 | **Fontes (Web)** | **2 famílias via Google Fonts:**<br>1. `Silkscreen`<br>2. `Press Start 2P` | Jason Kottke (Silkscreen) / CodeMan38 (Press Start 2P) via Google Fonts | **SIL Open Font License (OFL 1.1)** |
 | **Texturas** | **3 arquivos:**<br>1. `public/assets/textures/chao1.jpg`<br>2. `public/assets/textures/chao2.jpg`<br>3. `public/assets/textures/Chão1.jpg` (peso morto) | **Origem não documentada no repositório** | Licença desconhecida |
-| **Cenas de História** | **11 arquivos:**<br>`assets/scenes/intro/Intro 1.jpg` a `Intro 6.jpg`<br>`assets/scenes/ending/EndChap1_1.jpg` a `EndChap1_5.jpg` | **Origem não documentada no repositório** | Licença desconhecida |
+| **Cenas de História** | **11 arquivos:**<br>`assets/scenes/intro/Intro 1.jpg` a `Intro 6.jpg`<br>`assets/scenes/chapter1/EndChap1_1.jpg` a `EndChap1_5.jpg` | **Origem não documentada no repositório** | Licença desconhecida |
 | **Sprites** | **525 arquivos:**<br>- Heroína Nixy (Idle, Running, Sprint, Hurt, Ult)<br>- Inimigos (Zombie Dog, Succubus, Slime, Bat, Mummy, Azazel)<br>- NPCs e Retratos de Diálogo<br>- Ícones de Gemas, Itens e Baús<br>- Elementos de HUD, Armas e Partículas | **Origem não documentada no repositório** | Licença desconhecida |
 
 ---
@@ -350,3 +364,26 @@ Varredura exaustiva de todas as chaves do `localStorage` utilizadas no projeto:
    Qualquer script auxiliar de verificação, teste ou extração utilizará exclusivamente:
    - `node` nativo (arquivos `.js` ou `.mjs` em ESM); ou
    - `vite-node` (que já integra a cadeia de dependências existente do Vite).
+
+---
+
+## 11. Auditoria de Texturas Faltando & Avisos de Console (`BootScene.ts`)
+
+> **Reconhecimento de Limitação da Auditoria Anterior:** A auditoria do Pacote 1.3 avaliou estritamente se os arquivos físicos referenciados em `BootScene.ts` existiam no disco. Esta seção analisa a consistência lógica entre o carregamento no `TextureManager` e o ciclo de vida das cenas.
+
+### 11.1 Causa Raiz dos 470 Avisos de `No texture found matching key`
+
+1. **Onde e Quando Ocorre:**  
+   No método `BootScene.init()` ([`BootScene.ts:16-163`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/BootScene.ts#L16)), o código executa uma rotina preventiva de limpeza chamando `this.textures.remove(key)` e `this.anims.remove(key)` para aproximadamente 470 chaves de texturas de heróis, inimigos, cartas e projéteis.
+2. **Mecanismo Interno do Phaser 3:**  
+   No boot inicial (cold start), nenhuma dessas texturas foi carregada ainda no `TextureManager` (o carregamento só acontece no `preload()`). Quando `this.textures.remove(key)` é chamado para uma chave inexistente, a engine do Phaser emite no console:  
+   `No texture found matching key: <key>`.
+3. **Por que o console marca 470 avisos:**  
+   A soma das iterações dos loops de 8 direções para Nixy, Zombie Dog, Succubus, Slime, Bat, Mummy e Azazel, acrescida das texturas pontuais, totaliza exatamente ~470 chamadas no `init()`.
+4. **As Chaves Citadas no Relatório:**
+   - `azazel-run-west-0` a `azazel-run-west-7` ([`BootScene.ts:157`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/BootScene.ts#L157)): Aparecem no console porque estão no loop de limpeza do Azazel. **Todos os 8 arquivos físicos existem no disco** em `public/assets/sprites/enemies/Azazel/Idle/animations/Running/west/` e são carregados com sucesso no `preload()` (L467).
+   - `chat-nixy-damage` ([`BootScene.ts:160`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/BootScene.ts#L160)): Limpeza antes do carregamento. **O arquivo físico existe no disco** (`public/assets/sprites/portraits/Nixy_Damage_Chat.png`) e é carregado no `preload()` (L426). Usado como busto de diálogo em `Chapter1EndScene.ts:114`.
+   - `chat-rosalin-defeated` ([`BootScene.ts:161`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/BootScene.ts#L161)): Limpeza antes do carregamento. **O arquivo físico existe no disco** (`public/assets/sprites/portraits/Rosalin_Defeated.png`) e é carregado no `preload()` (L427). Usado em `Chapter1EndScene.ts:120`.
+   - `ui-star` ([`BootScene.ts:162`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/BootScene.ts#L162)): Limpeza antes do carregamento. **O arquivo físico existe no disco** (`public/assets/sprites/items/Star.png`) e é carregado no `preload()` (L428). Usado nas estrelas de pontuação de `Chapter1EndScene.ts:1431`.
+5. **Efeito Visível no Jogo (Hipótese Técnica):**  
+   Nenhum efeito visual quebrado durante o gameplay. As texturas existem no disco e são carregadas no `preload()`, ficando disponíveis para as cenas. O impacto é restrito à poluição do console durante a inicialização do jogo.

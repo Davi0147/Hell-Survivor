@@ -2,6 +2,30 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote 1.5 — Verificação Rigorosa & Correção das Auditorias] — 2026-10-17
+### Verificado & Corrigido
+- **Integridade da Catraca e `package.json`**:
+  - Comprovado via `package.json` e `git log` que a versão oficial é `0.1.0` e o script `check` contém `"tsc --noEmit && eslint src --max-warnings 214 && vitest run"`.
+  - Provada a ativação da catraca: `npx eslint src --max-warnings 213` falha com código 1 (`ESLint found too many warnings (maximum: 213)`).
+- **Mapeamento de Persistência (`docs/RELEASE_CHECKLIST.md`)**:
+  - Correção da chave de mapa para `hell_survivor_custom_map_chapter_${chapter}` (`mapData.ts:254`).
+  - Correção dos volumes padrão de áudio para `0.10` (música) e `0.60` (SFX) em `SoundManager.ts:14, 15`.
+  - Descoberta e documentação da 8ª chave de armazenamento: `hell_survivor_pwa_dismissed` em `sessionStorage` (`PWAInstallPrompt.ts:22, 55, 160, 179`).
+  - Prova linha a linha de todas as 8 chaves, seus símbolos e valores padrão.
+- **Correção Matemática de Balanceamento (`docs/BALANCE_AUDIT.md`)**:
+  - Nixy com Agilidade 5: caminho exato comprovado (`MetaProgressManager.ts:220` dá +20%, `Nixy.ts:43-45` aplica em `this.bonusSpeedPercent = 20`, e `BaseCharacter.ts:140-142` multiplica por 1.20). Velocidade real de andar: 192 px/s; corrida: 324 px/s. Corrigidos os caminhos de arquivo e o símbolo (`sprintSpeed` em vez de `playerRunSpeed`).
+  - Morcego de Sangue: velocidade base real é 155 px/s (`BloodBat.ts:31` e `GameScene.ts:1199`). Na História não escala (fixo em 155 px/s). No Infinito segue `155 + minutes * 5` (0m: 155, 5m: 180, 10m: 205, 20m: 255).
+  - Vida do Morcego vs Disparo de Almas: na História e no início do Infinito morrem com 1 tiro (25 dano > 14 HP), mas aos 5 min no Infinito (29 HP) exigem 2 tiros com arma nível 1.
+  - Chefes: comprovado que nem `getEnemyScaling` nem `getChapterEnemyStatMultiplier()` são aplicados aos bosses. Conciliados os danos de Succubus (35 história, 40 infinito 10m, 24 matriarca 6m, 77 dive slam, 18 orbe, 53 dash) e Azazel (42 contato, 46 dash, 48 raio).
+- **Service Worker e Produção**:
+  - Documentado registro condicionado a `import.meta.env.PROD || window.location.protocol === 'https:'` em `src/main.ts:32-36`.
+  - Registrado que em localhost o worker nunca roda, sendo obrigatório que o dono teste atualizações no endereço publicado (HTTPS).
+- **Auditoria de Texturas e Avisos de Console**:
+  - Esclarecida a origem dos 470 avisos de `No texture found matching key`: decorrem de `this.textures.remove()` prematuro no `BootScene.ts:init()` antes do `preload()` carregar os assets no TextureManager.
+  - Comprovado via script que todos os arquivos (`azazel-run-west-*`, `chat-nixy-damage`, `chat-rosalin-defeated`, `ui-star`) existem fisicamente no disco e são carregados no `preload()`.
+
+---
+
 ## [Pacote 1.4 — Complementação e Correção de Auditorias] — 2026-10-17
 ### Corrigido & Complementado
 - **Auditoria de Balanceamento (`docs/BALANCE_AUDIT.md`)**:
