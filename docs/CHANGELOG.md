@@ -4,6 +4,24 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ---
 
+## [Pacote 1.3 — Auditoria de Balanceamento & Checklist de Publicação] — 2026-10-17
+### Adicionado
+- Criado [`docs/BALANCE_AUDIT.md`](BALANCE_AUDIT.md) contendo auditoria profunda e somente leitura dos valores numéricos de gameplay:
+  - Inventário detalhado de mais de 70 valores numéricos dispersos fora de `balance.ts` agrupados em 6 subsistemas: Mecânicas da Nixy, Armas/Evoluções, Inimigos Comuns, Chefes, Itens/Altares e Cenas/Diretor de Hordas.
+  - Tabela calculada de escalonamento efetivo (minutos 0, 5, 10, 20 e 30) comparando Modo História vs Modo Infinito.
+  - Análise dos pontos de quebra mecânica: velocidade dos morcegos superando a caminhada da Nixy aos 5 min; *Dive Slam* da Chefe Succubus consumindo 77% da vida base da heroína; dano de chefes aos 30 min no Modo Infinito causando *One-Hit Kill* mesmo com Vitalidade 5; e *Grilhões do Tartarus* paralisando chefes durante 66% do combate.
+  - Análise comparativa da telemetria atual (`DebugSessionLogger` e `AutoPlayTestAgent`) e especificação das métricas faltantes para balanceamento por dados (dano por fonte, tempo de vida de monstros, DPS por arma e taxa de escolha/rejeição de cartas).
+  - 7 pontos de decisão factuais para direcionamento do dono do projeto.
+- Criado [`docs/RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) contendo auditoria completa de prontidão para lançamento e publicação:
+  - Identificados 2 bloqueadores críticos: caminho absoluto com barra inicial no `@font-face` do Pixelzone em `index.html` (quebra em subdiretórios) e estratégia *Cache-First* estática no `sw.js` (impede que jogadores recebam atualizações no GitHub Pages).
+  - Executado script temporário de verificação de assets (`scratch/check_assets.ts`): 492 referências validadas em `BootScene.ts`, 0 erros de case-sensitivity, 0 caminhos absolutos no código Phaser, e 56 arquivos órfãos / peso morto catalogados em `public/` (2.79 MB).
+  - Avaliação de segurança: backdoor de URL `?debug=1` permitindo acesso ao Sandbox em produção e globais expostas no objeto `window`.
+  - Mapeamento das 7 chaves de `localStorage` e diagnóstico da falta de validação de dados / migração de schema.
+  - Inventário de licenças: fontes Google Fonts (OFL) documentadas, enquanto músicas e sprites constam com origem e licenças não documentadas no repositório.
+  - Métricas de performance: `dist/` totalizando 56.79 MB (download em 4G estimado entre 22s e 45s); top 10 maiores arquivos mapeados; `npm run build` e `vite preview` validados com sucesso absoluto.
+
+---
+
 ## [Pacote 1.2 — Protocolo de Registro de Memória & Design System] — 2026-10-17
 ### Adicionado
 - Adicionada a **Regra 14 (Registro de Memória)** no [`AGENTS.md`](../AGENTS.md) estipulando os 6 passos obrigatórios para comandos como "lembra", "anota" ou "sempre faça assim".
