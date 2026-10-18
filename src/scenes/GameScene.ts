@@ -407,6 +407,20 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.POST_UPDATE);
+      this.events.off(Phaser.Scenes.Events.PRE_RENDER);
+      if (this.player) {
+        this.player.off('player-level-up');
+      }
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+        this.input.keyboard.removeAllListeners();
+      }
+      this.input.removeAllListeners();
+      this.combatBanterTimers.forEach(t => t?.remove());
+      this.combatBanterTimers = [];
+      this.time.removeAllEvents();
+
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
@@ -1801,6 +1815,7 @@ export class GameScene extends Phaser.Scene {
           },
           () => {
             // Reiniciar o modo e capítulo atuais com mecânica de ressurreição (Hades)
+            SoundManager.getInstance().stopMusic();
             if (this.physics?.world) {
               this.physics.resume();
             }
@@ -1809,6 +1824,7 @@ export class GameScene extends Phaser.Scene {
           },
           () => {
             // Retornar ao Menu Principal
+            SoundManager.getInstance().stopMusic();
             if (this.physics?.world) {
               this.physics.resume();
             }
@@ -1821,6 +1837,7 @@ export class GameScene extends Phaser.Scene {
         if (AutoPlayTestAgent.getInstance().isEnabled) {
           // Se o Bot IA estiver jogando sozinho para testes contínuos, reinicia após 1.5s
           this.time.delayedCall(1500, () => {
+            SoundManager.getInstance().stopMusic();
             if (this.physics?.world) {
               this.physics.resume();
             }
@@ -3163,7 +3180,7 @@ export class GameScene extends Phaser.Scene {
 
     this.isChapterCompleted = true;
     this.clearCombatSpeechBubbles();
-    SoundManager.getInstance().stopMusic(2000);
+    SoundManager.getInstance().stopMusic(1500);
     this.physics.pause();
     if (this.player?.body) {
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
@@ -3187,6 +3204,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(800, () => {
       this.cameras.main.fadeOut(700, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
+        SoundManager.getInstance().stopMusic();
         this.scene.stop('UIScene');
         this.scene.start('Chapter1EndScene', { runStats, chapter: 2 });
       });
@@ -3245,7 +3263,7 @@ export class GameScene extends Phaser.Scene {
 
     this.isChapterCompleted = true;
     this.clearCombatSpeechBubbles();
-    SoundManager.getInstance().stopMusic(2000);
+    SoundManager.getInstance().stopMusic(1500);
     this.physics.pause();
     if (this.player?.body) {
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
@@ -3269,6 +3287,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(800, () => {
       this.cameras.main.fadeOut(700, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
+        SoundManager.getInstance().stopMusic();
         this.scene.stop('UIScene');
         this.scene.start('Chapter1EndScene', { runStats, chapter: 1 });
       });
@@ -3553,7 +3572,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   public sandboxSpawnBoss(withIntroDialogue: boolean): void {
-    this.sandboxRemoveBoss();
+    this.sandboxRemoveBoss(false);
 
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Succubus invocada via Sandbox (Com Diálogo: ${withIntroDialogue})`);
 
@@ -3568,7 +3587,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   public sandboxSpawnAzazel(withIntroDialogue: boolean): void {
-    this.sandboxRemoveBoss();
+    this.sandboxRemoveBoss(false);
     this.currentChapter = 2;
 
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Azazel invocado via Sandbox (Com Diálogo/Intro: ${withIntroDialogue})`);
@@ -3602,7 +3621,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  public sandboxRemoveBoss(): void {
+  public sandboxRemoveBoss(restoreBattleMusic: boolean = true): void {
     this.isBossFightActive = false;
     this.isPlayerMovementLocked = false;
     this.isAzazelPhase3HordeActive = false;
@@ -3650,8 +3669,10 @@ export class GameScene extends Phaser.Scene {
       duration: 600,
       ease: 'Cubic.easeOut'
     });
-    SoundManager.getInstance().playBattleMusic(1500);
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Boss removido via Sandbox e música restaurada.');
+    if (restoreBattleMusic) {
+      SoundManager.getInstance().playBattleMusic(1500);
+    }
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss removido via Sandbox${restoreBattleMusic ? ' e música restaurada.' : '.'}`);
   }
 
   public sandboxClearEnemies(withDrops: boolean): number {

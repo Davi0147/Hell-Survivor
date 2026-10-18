@@ -45,8 +45,9 @@ Se você estava jogando e algo deu errado, não se preocupe! Copie e preencha es
 
 ## 4. Como Jogar Localmente e Como Publicar o Jogo na Internet
 
-### Como Jogar no seu Computador (Versão de Desenvolvimento)
-* Dê dois cliques no arquivo **`JOGAR.bat`** na pasta raiz do jogo. Ele limpa a memória temporária, inicia o servidor e abre o jogo no seu navegador padrão sozinho.
+### Como Jogar no seu Computador (Versão de Desenvolvimento Normal)
+* Dê dois cliques no arquivo **`JOGAR.bat`** na pasta raiz do jogo. Ele é o atalho para jogar e testar o jogo normal (porta 3000): libera a porta 3000 de instâncias residuais, limpa a memória temporária do Vite, inicia o servidor e abre o jogo no seu navegador padrão (`http://localhost:3000/`) sozinho.
+* Para ensaio da versão de produção exatamente como vai para o ar (porta 8080 de preview), use **`TESTAR_VERSAO_1.bat`**.
 
 ### Como Publicar o Jogo Oficial na Internet
 * **Endereço Oficial do Jogo:** [https://davi0147.github.io/Hell-Survivor/](https://davi0147.github.io/Hell-Survivor/)
@@ -104,3 +105,28 @@ Antes da nossa correção de cache, os navegadores podiam guardar partes antigas
   *(Ou fecharem a aba e abrirem novamente se estiverem no celular).*
 * **Nas próximas vezes (daqui para frente):**  
   Eles nunca mais precisarão fazer isso! O próprio jogo avisará no topo da tela com um botão **[ RECARREGAR ]** sempre que você publicar novidades.
+
+---
+
+## 9. O Guarda Automático de Qualidade (`INSTALAR_GUARDA.bat`)
+
+Para garantir que o código do jogo nunca estrague sem querer, o projeto tem um "guarda de trânsito" automático que vigia todas as alterações antes que elas sejam gravadas no histórico do Git (*commits*).
+
+### Como Ativar o Guarda no seu Computador (1 Clique)
+* Dê dois cliques no arquivo **`INSTALAR_GUARDA.bat`** na pasta raiz do jogo.
+* Uma janela preta vai abrir por um instante, avisar *"Guarda de qualidade ativado com sucesso!"* e pedir para você apertar qualquer tecla para fechar.
+* **Pronto!** Você só precisa fazer isso **uma única vez** no seu computador.
+
+### O Que o Guarda Faz?
+Toda vez que você ou a IA tentarem salvar uma alteração no código (`git commit`), o guarda entra em ação sozinho nos bastidores e confere:
+1. Se não há erros de digitação ou tipos quebrados no código (*TypeScript*).
+2. Se nenhuma regra de organização ou aviso esquecido foi adicionado (*ESLint*).
+3. Se todas as cores novas estão organizadas no tema oficial (*theme.ts*).
+4. Se todos os testes automáticos continuam funcionando (*Vitest*).
+
+### O Que Significa Quando o Commit é Bloqueado?
+Se aparecer uma mensagem em vermelho dizendo que o commit foi bloqueado:
+* **Fique tranquilo, nada quebrou!** Pelo contrário: significa que o guarda funcionou com perfeição e impediu que um código defeituoso entrasse no histórico do jogo.
+* Se a IA estiver trabalhando, ela mesma vai ler o erro, consertar a falha e salvar de novo.
+* Se você estiver usando o terminal e vir o bloqueio, basta pedir para a IA:  
+  *"O guarda bloqueou o commit por causa de [cole o erro aqui]. Corrija antes de salvar"*.

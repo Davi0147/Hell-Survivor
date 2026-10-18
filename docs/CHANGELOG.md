@@ -2,6 +2,106 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.1 — Diretor Musical, Blindagem de Ciclo de Vida, Tema Centralizado & Guarda Pre-Commit] — 2026-10-18
+### Correções Críticas & Blindagem de Áudio (PACOTE ÁUDIO-1)
+- **Diretor de Música Autônomo (`src/systems/MusicDirector.ts`)**:
+  - Máquina atômica de estados sonoros (`setMusicState`) desacoplada de tweens de cena do Phaser (usando timers com passos de 25ms), garantindo que trocas ou pausas de cena nunca mais deixem faixas antigas tocando em segundo plano.
+  - Eliminação atômica dos 5 vazamentos musicais mapeados: parada incondicional da música do menu ao iniciar qualquer modo, corte imediato de áudio ao sair da pausa para o menu, sincronização milimétrica do fade de vitória com a troca para a cena de encerramento do capítulo, parada imediata da música ao reiniciar ou sair da partida durante o efeito de morte, e limpeza sem colisões na remoção/invocação de chefes pelo painel de testes.
+  - Tabela de configuração pura (`src/config/musicConfig.ts`) mapeando 9 estados, loops, fades padrão e fórmulas exatas de volume sem alterar nenhum decibel percebido pelo jogador.
+  - Fachada limpa em `src/systems/SoundManager.ts` preservando 100% da API pública e reduzindo a contagem de avisos do ESLint de 203 para 172.
+
+### Qualidade & Ferramental Contínuo (PACOTE G & PACOTE H)
+- **Guarda Automático de Qualidade (`.githooks/pre-commit` & `INSTALAR_GUARDA.bat`)**:
+  - Hook pré-commit em Node puro que valida tipos, ESLint, catraca de cores e testes unitários antes de permitir commits.
+  - Regra 18 no `AGENTS.md` para desacoplamento do personagem jogável (`BaseCharacter`).
+  - Suíte de testes unitários expandida para 91 testes no Vitest (100% aprovados).
+
+### Design System & Carregamento Seguro (PACOTE 2B & 2B.1)
+- **Centralização Tipográfica e Semântica (`src/config/theme.ts`)**:
+  - Tokens semânticos para `FONTS` (`Pixelzone` para display, `Silkscreen` para body), `COLORS` e fórmulas de telegrafia de chefes (`BOSS_TELEGRAPH`).
+  - Números de dano migrados com sucesso para a fonte `Pixelzone` com contorno de alta legibilidade.
+  - Catraca automatizada de cores (`verify-theme.mjs`) travada em 1194 ocorrências.
+  - Espera assíncrona por fontes no `BootScene.ts` com fallback e timeout seguro de 1000ms.
+
+### Correções de Ciclo de Vida & Teste (PACOTE L & PACOTE B)
+- **Limpeza de Ouvintes**: Remoção de listeners de teclado, pointer e timers ao desligar cenas (`MenuScene`, `GameScene`, `UIScene`, `UpgradeScene`, `Chapter1EndScene`).
+- **Bot Autônomo F3**: Capacidade de resolver cartas arcanas mesmo com a `GameScene` pausada e kiting de monstros calibrado.
+
+## [Pacote G — Guarda Automático de Qualidade] — 2026-10-18
+### Adicionado & Blindado (Qualidade, Ferramental & Automação)
+- **Hook de Pre-Commit Automatizado (`.githooks/pre-commit` & `scripts/pre-commit.mjs`)**:
+  - Script em Node puro (sem dependências externas novas) acionado automaticamente a cada tentativa de `git commit`.
+  - Executa a suíte completa de qualidade (`npm run check`): checagem de tipos estritos (`tsc --noEmit`), linter com catraca de warnings (`eslint` travado em 203 avisos), catraca de novas cores fora do tema oficial (`verify-theme.mjs`) e suíte de testes de regressão (`vitest`).
+  - Bloqueia imediatamente o commit com código de saída 1 e mensagem de orientação ao usuário caso qualquer uma das etapas falhe.
+- **Instalação em 1 Clique & Compatibilidade Windows (`scripts/install-hooks.mjs` & `INSTALAR_GUARDA.bat`)**:
+  - Script utilitário em Node puro que configura o repositório local com `git config core.hooksPath .githooks`.
+  - Atalho em lote `INSTALAR_GUARDA.bat` estritamente compatível com Windows (somente caracteres ASCII, quebras de linha CRLF, sem `chcp`, sem `!`), aprovado 100% pelo validador `scripts/verify-bat.mjs`.
+- **Prova de Bloqueio por Mutação e Defesa em Camadas**:
+  - Validação empírica do hook realizada com injeção de warning no ESLint (`theme.test.ts`), gerando 204 avisos (> 203 permitidos) e confirmando o cancelamento imediato do commit.
+  - Confirmação de integridade no fluxo de CI (`.github/workflows/deploy.yml`): qualquer tentativa de ignorar o hook local via `git commit --no-verify` é capturada e bloqueada antes do build e do deploy no GitHub Pages.
+- **Documentação e Governança**:
+  - Atualização do `docs/GUIA_DO_DONO.md` com seção dedicada em linguagem simples explicando a instalação em 1 clique e o significado seguro de commits bloqueados.
+  - Atualização de status em `LIVRO_DE_ANOTACOES.md`.
+
+## [Pacote 2B — Centralização de Fontes, Cores e Telegrafia de Chefes] — 2026-10-18
+### Adicionado & Refatorado (DEC-008 / Regra 5)
+- **Centralização Tipográfica, Semântica de Cores e Fórmulas de Telegrafia (`src/config/theme.ts`)**:
+  - `FONTS`: Definição de papéis tipográficos semânticos (`display`: `'Pixelzone'` para títulos, cartas, números de dano e anúncios; `body`: `'Silkscreen'` para texto corrido, lore, diálogos e descrições; `fallback`: `'monospace'`).
+  - `COLORS`: Tokens de cor semânticos preservando os mesmos valores visuais existentes no código (ouro e destaque, carmesim e perigo, neutros, fundos de veludo abissal e utilitários), sem unificar tons parecidos na estética.
+  - `BOSS_TELEGRAPH`: Centralização de fórmulas geométricas e de transparência para telegrafia de investida e área com base no padrão da Succubus (`lineThickness = 3 + progress * 9`, cor `0xff0055`, miolo branco `0xffffff`, borda de área `0xff2266` com `circleBorderThickness = 2 + progress * 3`, preenchimento carmesim e mira em cruz).
+- **Aplicação Controlada do Tema a Sistemas Críticos**:
+  - `DamageTextSystem.ts`: Migração da fonte de números de dano de `'Impact'` para `FONTS.display` (`'Pixelzone'`), mantendo estritamente o contorno preto espesso (`stroke: '#000000'`, 3px) para garantir legibilidade imediata em combate.
+  - `SuccubusBoss.ts`: Conexão da investida e do salto em área (slam) às fórmulas e constantes de `BOSS_TELEGRAPH`.
+  - `AzazelBoss.ts`: Conexão da investida comum, investidas escuras (Dark Five Dashes) e círculos de tempestade de raios às fórmulas e constantes de `BOSS_TELEGRAPH`, mantendo os alcances originais (560px, 620px e raio de 68px).
+- **Catraca Automatizada de Cores (`scripts/verify-theme.mjs` & `scripts/theme-baseline.json`)**:
+  - Script em Node puro que varre todos os arquivos em `src/` fora de `src/config/theme.ts`, detecta literais hexadecimais (`0x......` e `#......`) e compara com a linha de base gravada em `scripts/theme-baseline.json` (baseline inicial fixado em 1194 ocorrências e 361 cores distintas).
+  - Integrado ao comando `npm run check`. Em caso de inserção de novas cores fora de `theme.ts`, o script encerra a execução com código 1 e alerta de violação da Regra 5.
+  - Validação de sensibilidade com prova por mutação gravada em `reports/verify-theme-fail.txt`.
+- **Testes Unitários & Governança (`src/__tests__/theme.test.ts`, `docs/DESIGN_SYSTEM.md`, `AGENTS.md`)**:
+  - 12 novos testes unitários cobrindo papéis de fontes, integridade dos tokens numéricos e CSS de cor, e exatidão das fórmulas matemáticas de telegrafia (total do projeto elevado para 66 testes passando).
+  - Padrões 2.5 (Telegrafia de Chefes) e 2.6 (Números de Dano Flutuantes) promovidos para o status `"Aceita"` em `docs/DESIGN_SYSTEM.md`.
+  - Regra 5 do `AGENTS.md` atualizada para registrar `theme.ts` como ativo e obrigatório para novas cores/fontes.
+
+## [Pacote H — Arrumação de Documentos, Decisões e Catraca do Lint] — 2026-10-18
+### Documentação, Governança & Qualidade
+- **Regra 18 no AGENTS.md (Desacoplamento do Personagem Jogável)**:
+  - Estipulado que código novo de interface, armas, cutscenes, diálogos e sistemas não deve presumir que o jogador é a heroína Nixy (proibição de `instanceof Nixy` ou literais `'nixy'` fora de constantes centralizadas).
+  - Uso estrito da classe genérica `BaseCharacter` e leitura dinâmica de `characterId` e `characterName`.
+- **Abaixamento da Catraca do Lint (`package.json`)**:
+  - Trava do ESLint reduzida de `--max-warnings 205` para `203`, acompanhando a eliminação de casts `as any` no bot autônomo (Pacote B).
+  - Prova de limite por mutação executada com `--max-warnings 202`, gerando saída de falha controlada e código de saída 1.
+- **Registro Formal de Decisão de Arquitetura (`docs/DECISIONS.md`)**:
+  - Formalizada a **DEC-009** (Proposta — decisão do dono, detalhes a definir), fixando: recompensa por chefe em "bastante XP", início do combate por aproximação espacial (estilo altar), inclusão do Azazel no ciclo do Infinito mediante ficha prévia de restauração de mapa, e sequenciamento técnico: Pacote 2B ➔ Pacote 3 ➔ Pacote UI ➔ Sistema de Encontros de Chefe ➔ Ciclo do Infinito ➔ Múltiplos Personagens.
+- **Saneamento de Portas e Contratos nos Documentos (`LIVRO_DE_ANOTACOES.md`, `docs/MECHANICS.md`, `docs/GUIA_DO_DONO.md`, `README_ANALISE.md`)**:
+  - Distinção explícita entre a porta de desenvolvimento normal (`JOGAR.bat` na porta 3000) e a porta de ensaio de produção (`TESTAR_VERSAO_1.bat` na porta 8080).
+  - Retificação técnica da Fase 2 de Azazel com os símbolos reais do código (`startDarkFiveDashes`, `spawnNextDarkPhantomDash`, `startDarkEightClones`, `AzazelPhantomClone`), removendo menções a números de linha obsoletos.
+
+## [Pacote B — Conserto do Bot Autônomo de Teste F3] — 2026-10-18
+### Corrigido & Aprimorado (Ferramenta de Testes / Sandbox)
+- **Resolução Autônoma da Tela de Upgrades com GameScene Pausada (`src/scenes/UpgradeScene.ts` & `src/systems/AutoPlayTestAgent.ts`)**:
+  - Delegada a chamada de `checkAndResolveUpgradeModal` diretamente para o método `update` ativo da `UpgradeScene` quando `AutoPlayTestAgent.getInstance().isEnabled` estiver ativo.
+  - Com o bot desativado (`isEnabled === false`), o comportamento do jogo é 100% idêntico ao original, preservando controles por teclado, mouse e gamepad, inclusive atalhos de reroll (`R`) e pular (`Espaço`).
+  - Associação das instâncias de cartas aos containers visuais (`rootContainer.setData('upgradeCard', card)`) e priorização de evoluções arcanas quando disponíveis.
+- **Calibração da Navegação e Coleta de Gemas de Alma (`src/systems/AutoPlayTestAgent.ts`)**:
+  - Parâmetros de inteligência artificial extraídos para constantes nomeadas no topo do arquivo: `ENEMY_DETECTION_RADIUS` (180), `ENEMY_THREAT_MAX_FOR_XP` (8), `GEM_SEEK_RADIUS` (600), `MAP_ITEM_SEEK_RADIUS` (500), `REPULSE_WEIGHT` (1.35), `XP_ATTRACTION_WEIGHT` (2.0), `XP_ATTRACTION_SWARM_WEIGHT` (0.8) e `UPGRADE_REACTION_DELAY_MS` (250).
+  - Removida a barreira restritiva de `threatsNear < 3` e o filtro `!g.isAttracted`, permitindo que o bot colete gemas sob pressão moderada e mantenha atração residual mesmo em enxames para evitar fugas desnecessárias para áreas vazias.
+- **Telemetria de Upgrades e Subidas de Nível no Gravador de Sessão (`src/systems/DebugSessionLogger.ts`)**:
+  - Adicionados métodos `recordBotUpgrade(cardTitle, level, timeSec, details)` e `recordBotLevelUp(newLevel)` ao `DebugSessionLogger`.
+  - Exibição das métricas consolidadas (`Níveis Subidos` e `Cartas Escolhidas`) na seção de atributos do relatório gerado por `generateAIReport()`.
+
+## [Pacote L — Limpeza de Ouvintes e Teclas Acumuladas no Ciclo de Vida das Cenas] — 2026-10-18
+### Corrigido & Refatorado (DEC-006 / Regra 13)
+- **Eliminação de Acúmulo de Teclas na Escolha de Cartas (`src/scenes/UpgradeScene.ts`)**:
+  - Implementado manipulador `SHUTDOWN` que desregistra explicitamente os atalhos de teclado `'keydown-R'` (re-rolar) e `'keydown-SPACE'` (pular/canalizar) via `off` e `removeAllListeners()`.
+  - Impede a multiplicação de eventos após subir múltiplos níveis consecutivamente, garantindo que cada toque consuma estritamente 1 carga de reroll.
+- **Limpeza de Eventos de Loop e Teclas em Batalha (`src/scenes/GameScene.ts`)**:
+  - Registrada a remoção dos ouvintes `POST_UPDATE` (sincronização do piso infinito) e `PRE_RENDER` (posicionamento de balões de fala e telegrafia de chefes) no `SHUTDOWN`.
+  - Remoção completa de instâncias de teclas e ouvintes (`E`, `ESC`, `F3`, `M`), limpeza de ouvintes no jogador (`player-level-up`) e cancelamento de timers pendentes.
+- **Higienização de Navegação de Menus e Telas (`src/scenes/MenuScene.ts`, `src/scenes/UIScene.ts`, `src/scenes/Chapter1EndScene.ts`)**:
+  - `MenuScene`: Remoção de todas as teclas de navegação (`W/S`, `Cima/Baixo`, `Enter`, `Espaço`, `ESC`) e cancelamento de timers no `SHUTDOWN`.
+  - `UIScene`: Remoção de teclas de hud (`E`, `F2`, `ESC`), desativação de ouvintes de teclado genéricos e cancelamento do timer de alertas de onda (`alertTimer`).
+  - `Chapter1EndScene`: Remoção de ouvintes de teclado (`keydown`), toques/cliques (`pointerdown`) e cancelamento do timer da máquina de escrever (`typeTimer`) no `SHUTDOWN`.
+
 ## [Pacote P1.6 — Remoção da Matriarca Succubus do Modo Infinito & Saneamento de Nomes] — 2026-10-18
 ### Removido & Refatorado
 - **Remoção da Matriarca Succubus do Modo Infinito (`src/scenes/GameScene.ts`)**:

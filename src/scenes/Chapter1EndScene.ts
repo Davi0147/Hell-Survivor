@@ -220,6 +220,20 @@ export class Chapter1EndScene extends Phaser.Scene {
         this.startStep(0);
       }
     });
+
+    // 9. Limpeza no Desligamento da Cena (DEC-006 / Anti-Leak)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.typeTimer) {
+        this.typeTimer.remove();
+        this.typeTimer = undefined;
+      }
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+        this.input.keyboard.removeAllListeners();
+      }
+      this.input.removeAllListeners();
+      this.time.removeAllEvents();
+    });
   }
 
   /**

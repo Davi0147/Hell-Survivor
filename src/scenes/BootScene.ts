@@ -731,8 +731,33 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // Iniciar o Menu Principal de seleção de modo
-    this.scene.start('MenuScene');
+    // Iniciar o Menu Principal de seleção de modo após aguardar as fontes do jogo
+    const startMenu = (): void => {
+      this.scene.start('MenuScene');
+    };
+
+    if (typeof document !== 'undefined' && document.fonts) {
+      const fontPromises = [
+        document.fonts.load("24px 'Pixelzone'"),
+        document.fonts.load("16px 'Silkscreen'")
+      ];
+      const timeoutPromise = new Promise<void>((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+
+      Promise.race([
+        Promise.all(fontPromises),
+        timeoutPromise
+      ])
+        .then(() => {
+          startMenu();
+        })
+        .catch(() => {
+          startMenu();
+        });
+    } else {
+      startMenu();
+    }
   }
 
   private createFloorTexture(): void {

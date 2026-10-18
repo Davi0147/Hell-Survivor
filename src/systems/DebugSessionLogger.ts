@@ -56,12 +56,18 @@ export class DebugSessionLogger {
   private lastFpsWarnTimeMs: number = 0;
   private hooksInstalled: boolean = false;
 
+  // Métricas do Agente Autônomo de Testes [F3]
+  private botLevelsGained: number = 0;
+  private botCardsChosen: number = 0;
+
   private constructor() {
     this.sessionStartMs = Date.now();
     this.installGlobalErrorHooks();
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : 'Node';
+    const scr = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'Node';
     this.log('SYSTEM', 'INFO', 'Sessão de Debug iniciada (Flight Recorder ativo)', {
-      userAgent: navigator.userAgent,
-      screen: `${window.innerWidth}x${window.innerHeight}`
+      userAgent: ua,
+      screen: scr
     });
   }
 
@@ -77,6 +83,7 @@ export class DebugSessionLogger {
    */
   private installGlobalErrorHooks(): void {
     if (this.hooksInstalled) return;
+    if (typeof window === 'undefined') return;
     this.hooksInstalled = true;
 
     window.addEventListener('error', (event) => {
@@ -284,6 +291,39 @@ export class DebugSessionLogger {
     };
   }
 
+  public recordBotUpgrade(
+    cardTitle: string,
+    level: number,
+    timeSec: number,
+    details?: Record<string, unknown>
+  ): void {
+    this.botCardsChosen++;
+    this.log(
+      'UPGRADE',
+      'INFO',
+      `[BOT F3] Carta Escolhida: "${cardTitle}" | Nível: ${level} | Tempo: ${timeSec.toFixed(1)}s`,
+      { card: cardTitle, level, timeSec, botCardsTotal: this.botCardsChosen, ...details }
+    );
+  }
+
+  public recordBotLevelUp(newLevel: number): void {
+    this.botLevelsGained++;
+    this.log(
+      'UPGRADE',
+      'INFO',
+      `[BOT F3] Nível Subido: ${newLevel} (Total pelo Bot: ${this.botLevelsGained})`,
+      { newLevel, botLevelsTotal: this.botLevelsGained }
+    );
+  }
+
+  public getBotCardsChosen(): number {
+    return this.botCardsChosen;
+  }
+
+  public getBotLevelsGained(): number {
+    return this.botLevelsGained;
+  }
+
   /**
    * Gera um Relatório Completo e estruturado pronto para colar no chat da IA
    */
@@ -315,6 +355,7 @@ export class DebugSessionLogger {
         ? `Trapaças Sandbox: GodMode=${Boolean(gameScene?.sandboxGodMode)} | UltInfinita=${Boolean(gameScene?.sandboxInfiniteUlt)} | EstaminaInfinita=${Boolean(gameScene?.sandboxInfiniteStamina)} | AutoSpawn=${Boolean(gameScene?.sandboxAutoSpawn)}`
         : '',
       `Armas Equipadas (${snap.equippedWeapons.length}): ${snap.equippedWeapons.join(' | ') || 'Nenhuma'}`,
+      `Bot de Teste Autônomo [F3]: Níveis Subidos: ${this.botLevelsGained} | Cartas Escolhidas: ${this.botCardsChosen}`,
       '',
       `--- ALERTAS E ANOMALIAS DETECTADAS (${anomalies.length}) ---`
     ];

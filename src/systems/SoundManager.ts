@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { STORAGE_KEYS } from '../config/storageKeys';
+import { MusicDirector } from './MusicDirector';
 
 export class SoundManager {
   private static instance: SoundManager;
@@ -8,14 +9,8 @@ export class SoundManager {
   private audioCtx?: AudioContext;
   private sfxGainNode?: GainNode;
 
-  // Gerenciamento de BGM
-  private currentBgm?: Phaser.Sound.BaseSound;
-  private currentBgmKey?: string;
-  private currentBgmTween?: Phaser.Tweens.Tween;
-  private musicVolume: number = 0.10; // Volume padrão das músicas ajustado para 10%
+  // SFX Volume
   private sfxVolume: number = 0.60;
-  private bgmBoostMultiplier: number = 1.0;
-  private azazelTransitionTimers: number[] = [];
 
   // Rate limiter para digitação e dano
   private lastTypewriterTime: number = 0;
@@ -36,11 +31,6 @@ export class SoundManager {
 
   private loadSavedVolumes(): void {
     try {
-      const savedMusic = localStorage.getItem(STORAGE_KEYS.BGM_VOLUME);
-      if (savedMusic !== null) {
-        const val = parseFloat(savedMusic);
-        if (!isNaN(val)) this.musicVolume = Phaser.Math.Clamp(val, 0, 1);
-      }
       const savedSfx = localStorage.getItem(STORAGE_KEYS.SFX_VOLUME);
       if (savedSfx !== null) {
         const val = parseFloat(savedSfx);
@@ -50,35 +40,11 @@ export class SoundManager {
   }
 
   public getMusicVolume(): number {
-    return this.musicVolume;
+    return MusicDirector.getInstance().getMusicVolume();
   }
 
   public setMusicVolume(volume: number): void {
-    this.musicVolume = Phaser.Math.Clamp(volume, 0, 1);
-    try {
-      localStorage.setItem(STORAGE_KEYS.BGM_VOLUME, this.musicVolume.toString());
-    } catch {}
-
-    // Cancela qualquer tween de fade-in ativo para o ajuste manual ter efeito imediato
-    if (this.currentBgmTween) {
-      try {
-        this.currentBgmTween.stop();
-        this.currentBgmTween.remove();
-      } catch {}
-      this.currentBgmTween = undefined;
-    }
-
-    if (this.currentBgm && (this.currentBgm as any).setVolume) {
-      let targetVol = this.musicVolume;
-      if (this.currentBgmKey === 'bgm-boss' || this.currentBgmKey === 'bgm-azazel-mid' || this.currentBgmKey === 'bgm-azazel-fight') {
-        targetVol = Phaser.Math.Clamp(this.musicVolume * 1.15 * this.bgmBoostMultiplier, 0, 1);
-      } else if (this.currentBgmKey === 'bgm-intro') {
-        targetVol = Phaser.Math.Clamp(this.musicVolume * 0.50, 0.02, 0.06);
-      } else if (this.currentBgmKey === 'bgm-spooky' || this.currentBgmKey === 'bgm-azazel-intro') {
-        targetVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.07);
-      }
-      (this.currentBgm as any).setVolume(targetVol);
-    }
+    MusicDirector.getInstance().setMusicVolume(volume);
   }
 
   public setBgmVolume(volume: number): void {
@@ -112,6 +78,7 @@ export class SoundManager {
 
   public setScene(scene: Phaser.Scene): void {
     this.scene = scene;
+    MusicDirector.getInstance().setScene(scene);
     // Se Phaser já tiver um AudioContext WebAudio criado, usamos ele
     if ((scene.sound as any)?.context && !this.audioCtx) {
       this.audioCtx = (scene.sound as any).context as AudioContext;
@@ -170,394 +137,77 @@ export class SoundManager {
   }
 
   // =========================================================================
-  // MÚSICAS DE FUNDO (BGM) COM FADE-IN SUAVE E LOOP PERFEITO
+  // MÚSICAS DE FUNDO (BGM) - FACHADA PARA O MUSIC DIRECTOR (PACOTE ÁUDIO-1)
   // =========================================================================
 
   /**
    * Toca a música oficial do Menu Inicial ("Hell Survivor") com fade-in suave
    */
   public playMenuMusic(fadeInMs: number = 1800): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    this.playMusicTrack('bgm-menu', this.musicVolume, fadeInMs);
+    MusicDirector.getInstance().setMusicState('MENU', 'SoundManager.playMenuMusic', { fadeInMs });
   }
 
   /**
    * Toca a música da Intro ("Halloween") bem baixinha de fundo com fade-in suave em loop
    */
   public playIntroMusic(fadeInMs: number = 2500): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    const lowIntroVol = Phaser.Math.Clamp(this.musicVolume * 0.50, 0.02, 0.06);
-    this.playMusicTrack('bgm-intro', lowIntroVol, fadeInMs);
+    MusicDirector.getInstance().setMusicState('INTRO', 'SoundManager.playIntroMusic', { fadeInMs });
   }
 
   /**
    * Toca a música da horda normal ("Eternal Shadow") com fade-in suave
    */
   public playBattleMusic(fadeInMs: number = 2500): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    this.playMusicTrack('bgm-battle', this.musicVolume, fadeInMs);
+    MusicDirector.getInstance().setMusicState('BATTLE', 'SoundManager.playBattleMusic', { fadeInMs });
   }
 
   /**
    * Toca a música épica da Boss ("Orchestral Overture") com fade-in dramático
    */
   public playBossMusic(fadeInMs: number = 2000): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    this.playMusicTrack('bgm-boss', this.musicVolume * 1.15, fadeInMs);
+    MusicDirector.getInstance().setMusicState('BOSS_SUCCUBUS', 'SoundManager.playBossMusic', { fadeInMs });
   }
 
   /**
    * Toca a música da cena pós-chefe ("Spooky Halloween") bem baixinha de fundo
    */
   public playSpookyMusic(fadeInMs: number = 2500): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    const lowVol = Phaser.Math.Clamp(this.musicVolume * 0.45, 0.02, 0.06);
-    this.playMusicTrack('bgm-spooky', lowVol, fadeInMs);
+    MusicDirector.getInstance().setMusicState('VICTORY_SCENE', 'SoundManager.playSpookyMusic', { fadeInMs });
   }
 
   /**
    * Toca a Parte 1 da música de Azazel (intro.mp3) em loop e volume adequado durante o diálogo
    */
   public playAzazelIntroMusic(fadeInMs: number = 900): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    const introVol = Phaser.Math.Clamp(this.musicVolume * 3.2, 0.18, 0.65);
-    this.playMusicTrack('bgm-azazel-intro', introVol, fadeInMs);
+    MusicDirector.getInstance().setMusicState('AZAZEL_INTRO', 'SoundManager.playAzazelIntroMusic', { fadeInMs });
   }
 
   /**
    * Toca diretamente a música de batalha de Azazel (fight.mp3) em loop com volume épico
    */
   public playAzazelFightMusic(fadeInMs: number = 0): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    const fightVol = Phaser.Math.Clamp(this.musicVolume * 3.8 * this.bgmBoostMultiplier, 0.25, 1);
-    this.playMusicTrack('bgm-azazel-fight', fightVol, fadeInMs);
+    MusicDirector.getInstance().setMusicState('AZAZEL_FIGHT', 'SoundManager.playAzazelFightMusic', { fadeInMs });
   }
 
   /**
    * Aumenta ou restaura o multiplicador de volume da música atual (ex: +30% na Fase 2 Escuridão de Azazel)
    */
   public boostCurrentMusicVolume(multiplier: number = 1.3): void {
-    this.bgmBoostMultiplier = multiplier;
-    if (this.currentBgm && (this.currentBgm as any).setVolume) {
-      const targetVol = Phaser.Math.Clamp(this.musicVolume * 3.8 * this.bgmBoostMultiplier, 0, 1);
-      if (this.scene?.tweens) {
-        this.killBgmTweens();
-        this.currentBgmTween = this.scene.tweens.add({
-          targets: this.currentBgm,
-          volume: targetVol,
-          duration: 500,
-          ease: 'Sine.easeInOut',
-          onComplete: () => {
-            this.currentBgmTween = undefined;
-          }
-        });
-      } else {
-        (this.currentBgm as any).setVolume(targetVol);
-      }
-    }
-  }
-
-  private clearAzazelTransitionTimers(): void {
-    for (const tid of this.azazelTransitionTimers) {
-      window.clearTimeout(tid);
-    }
-    this.azazelTransitionTimers = [];
+    MusicDirector.getInstance().boostCurrentMusicVolume(multiplier);
   }
 
   /**
-   * Sincronização Musical Tripla de Azazel:
-   * 1. Faz o loop atual de 'bgm-azazel-intro' tocar até o fim pela última vez (loop = false).
-   * 2. Assim que termina, dispara 'bgm-azazel-mid' (~2s) e invoca onMidStart() (Azazel ergue a mão e grita "SUA ALMA É MINHA!").
-   * 3. Assim que 'bgm-azazel-mid' termina, entra em 'bgm-azazel-fight' (loop = true) e invoca onFightStart().
+   * Sincronização Musical Tripla de Azazel (intro -> mid -> fight)
    */
   public finishAzazelIntroAndTransition(onMidStart: () => void, onFightStart: () => void): void {
-    this.clearAzazelTransitionTimers();
-
-    let midStarted = false;
-    let fightStarted = false;
-
-    const startFightStage = () => {
-      if (fightStarted) return;
-      fightStarted = true;
-      this.clearAzazelTransitionTimers();
-      this.playAzazelFightMusic(0);
-      try {
-        onFightStart();
-      } catch (e) {
-        console.error('[SoundManager] Erro em onFightStart:', e);
-      }
-    };
-
-    const startMidStage = () => {
-      if (midStarted) return;
-      midStarted = true;
-      this.clearAzazelTransitionTimers();
-
-      // Para a intro e toca o mid.mp3 sem loop
-      this.killBgmTweens();
-      if (this.currentBgm) {
-        try {
-          (this.currentBgm as any).stop();
-          (this.currentBgm as any).destroy();
-        } catch {}
-        this.currentBgm = undefined;
-        this.currentBgmKey = undefined;
-      }
-
-      let midDurationMs = 2050;
-      if (this.scene && this.scene.sound && this.scene.cache.audio.exists('bgm-azazel-mid')) {
-        try {
-          const midVol = Phaser.Math.Clamp(this.musicVolume * 4.2, 0.28, 1);
-          const midBgm = this.scene.sound.add('bgm-azazel-mid', {
-            loop: false,
-            volume: midVol
-          });
-          this.currentBgm = midBgm;
-          this.currentBgmKey = 'bgm-azazel-mid';
-          midBgm.once('complete', () => {
-            startFightStage();
-          });
-          midBgm.play();
-          const durSec = (midBgm as any).duration || (midBgm as any).totalDuration || 2.0;
-          if (durSec > 0.3 && durSec < 10) {
-            midDurationMs = Math.round(durSec * 1000);
-          }
-        } catch (e) {
-          console.warn('[SoundManager] Erro ao tocar bgm-azazel-mid:', e);
-        }
-      }
-
-      // Invoca callback visual: Azazel levanta a mão e grita "SUA ALMA É MINHA!"
-      try {
-        onMidStart();
-      } catch (e) {
-        console.error('[SoundManager] Erro em onMidStart:', e);
-      }
-
-      // Fallback timer caso o evento 'complete' do áudio não dispare (ex: aba sem foco / mute)
-      const fallbackFightId = window.setTimeout(() => {
-        startFightStage();
-      }, midDurationMs + 80);
-      this.azazelTransitionTimers.push(fallbackFightId);
-    };
-
-    // Se 'bgm-azazel-intro' está tocando, desativa o loop para ele tocar uma última vez até o fim
-    if (this.currentBgm && this.currentBgmKey === 'bgm-azazel-intro' && this.currentBgm.isPlaying) {
-      const introSound = this.currentBgm as any;
-      try {
-        if (typeof introSound.setLoop === 'function') {
-          introSound.setLoop(false);
-        } else {
-          introSound.loop = false;
-        }
-        if (introSound.source) {
-          introSound.source.loop = false;
-        }
-      } catch {}
-
-      this.currentBgm.once('complete', () => {
-        startMidStage();
-      });
-
-      // Calcula quanto falta do loop atual para fallback preciso
-      const duration = introSound.duration || introSound.totalDuration || 4.0;
-      const rawSeek = introSound.seek || 0;
-      const currentPos = duration > 0 ? (rawSeek % duration) : 0;
-      const remainingMs = Math.max(350, Math.round((duration - currentPos) * 1000));
-
-      const fallbackMidId = window.setTimeout(() => {
-        startMidStage();
-      }, remainingMs + 100);
-      this.azazelTransitionTimers.push(fallbackMidId);
-    } else {
-      // Caso o áudio não estivesse tocando, inicia o mid após breve respiro
-      const fallbackMidId = window.setTimeout(() => {
-        startMidStage();
-      }, 450);
-      this.azazelTransitionTimers.push(fallbackMidId);
-    }
-  }
-
-  private readonly ALL_BGM_KEYS = [
-    'bgm-menu',
-    'bgm-battle',
-    'bgm-boss',
-    'bgm-intro',
-    'bgm-spooky',
-    'bgm-azazel-intro',
-    'bgm-azazel-mid',
-    'bgm-azazel-fight'
-  ];
-
-  /**
-   * Encerra de forma segura qualquer tween ativo de volume de BGM em todas as cenas ativas
-   */
-  private killBgmTweens(): void {
-    if (this.currentBgmTween) {
-      try {
-        this.currentBgmTween.stop();
-        this.currentBgmTween.remove();
-      } catch {}
-      this.currentBgmTween = undefined;
-    }
-
-    if (this.currentBgm) {
-      if (this.scene?.tweens) {
-        try {
-          this.scene.tweens.killTweensOf(this.currentBgm);
-        } catch {}
-      }
-
-      if (this.scene?.game?.scene) {
-        try {
-          const allScenes = this.scene.game.scene.getScenes(true);
-          for (const sc of allScenes) {
-            if (sc && sc.tweens) {
-              sc.tweens.killTweensOf(this.currentBgm);
-            }
-          }
-        } catch {}
-      }
-    }
-  }
-
-  private playMusicTrack(key: string, targetVolume: number, fadeInMs: number): void {
-    if (!this.scene || !this.scene.sound) return;
-
-    // Se já estiver tocando essa mesma faixa, apenas assegura que o volume está correto
-    if (this.currentBgmKey === key && this.currentBgm && this.currentBgm.isPlaying) {
-      if ((this.currentBgm as any).setVolume) {
-        (this.currentBgm as any).setVolume(targetVolume);
-      }
-      return;
-    }
-
-    // 1. Interrompe IMEDIATAMENTE todas as outras instâncias de BGM no sound manager global do Phaser
-    for (const k of this.ALL_BGM_KEYS) {
-      if (k !== key) {
-        try {
-          this.scene.sound.stopByKey(k);
-        } catch {}
-      }
-    }
-
-    // 2. Mata qualquer tween ativo e destrói o objeto de áudio anterior se existir
-    this.killBgmTweens();
-    if (this.currentBgm) {
-      try {
-        (this.currentBgm as any).stop();
-        (this.currentBgm as any).destroy();
-      } catch {}
-      this.currentBgm = undefined;
-      this.currentBgmKey = undefined;
-    }
-
-    try {
-      if (!this.scene.cache.audio.exists(key)) {
-        console.warn(`[SoundManager] Áudio "${key}" não encontrado no cache.`);
-        return;
-      }
-
-      const newBgm = this.scene.sound.add(key, {
-        loop: true,
-        volume: 0
-      });
-
-      // Blindagem contra crash de tween "Cannot set properties of null (setting 'volume')" caso o som seja destruído durante fade
-      const soundObj = newBgm as any;
-      const proto = Object.getPrototypeOf(soundObj);
-      const origVolumeDesc = proto ? Object.getOwnPropertyDescriptor(proto, 'volume') : undefined;
-      if (origVolumeDesc && origVolumeDesc.set) {
-        const origSet = origVolumeDesc.set;
-        Object.defineProperty(soundObj, 'volume', {
-          set(val: number) {
-            // Se o som foi destruído pelo Phaser, volumeNode fica nulo; evita lançar erro
-            if (!this.volumeNode || !this.volumeNode.gain) return;
-            origSet.call(this, val);
-          },
-          get() {
-            return origVolumeDesc.get ? origVolumeDesc.get.call(this) : (this.volumeNode?.gain?.value ?? this.currentConfig?.volume ?? 0);
-          },
-          configurable: true
-        });
-      }
-
-      newBgm.play();
-      this.currentBgm = newBgm;
-      this.currentBgmKey = key;
-
-      // Fade-in suave a partir de volume zero
-      if (fadeInMs > 0 && this.scene.tweens) {
-        this.currentBgmTween = this.scene.tweens.add({
-          targets: newBgm,
-          volume: targetVolume,
-          duration: fadeInMs,
-          ease: 'Linear',
-          onComplete: () => {
-            this.currentBgmTween = undefined;
-          }
-        });
-      } else {
-        (newBgm as any).setVolume(targetVolume);
-      }
-    } catch (e) {
-      console.warn(`[SoundManager] Falha ao reproduzir BGM "${key}":`, e);
-    }
+    MusicDirector.getInstance().finishAzazelIntroAndTransition(onMidStart, onFightStart);
   }
 
   /**
-   * Para a música atual com interrupção instantânea e limpa de todas as BGMs no Phaser
+   * Para a música atual com interrupção instantânea ou fade-out determinístico
    */
   public stopMusic(fadeOutMs: number = 0): void {
-    this.bgmBoostMultiplier = 1.0;
-    this.clearAzazelTransitionTimers();
-    if (!this.scene || !this.scene.sound) return;
-
-    this.killBgmTweens();
-
-    if (fadeOutMs > 0 && this.currentBgm && this.scene.tweens) {
-      const bgmToFade = this.currentBgm;
-      this.currentBgm = undefined;
-      this.currentBgmKey = undefined;
-
-      this.currentBgmTween = this.scene.tweens.add({
-        targets: bgmToFade,
-        volume: 0,
-        duration: fadeOutMs,
-        ease: 'Linear',
-        onComplete: () => {
-          this.currentBgmTween = undefined;
-          try {
-            (bgmToFade as any).stop();
-            (bgmToFade as any).destroy();
-          } catch {}
-        }
-      });
-      return;
-    }
-
-    // Interrompe imediatamente todas as faixas de música de fundo
-    for (const k of this.ALL_BGM_KEYS) {
-      try {
-        this.scene.sound.stopByKey(k);
-      } catch {}
-    }
-
-    if (this.currentBgm) {
-      try {
-        (this.currentBgm as any).stop();
-        (this.currentBgm as any).destroy();
-      } catch {}
-      this.currentBgm = undefined;
-      this.currentBgmKey = undefined;
-    }
+    MusicDirector.getInstance().stopMusic(fadeOutMs, 'SoundManager.stopMusic');
   }
 
   // =========================================================================

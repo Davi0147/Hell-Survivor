@@ -8,6 +8,7 @@ import { AbyssalChainsWeapon } from '../entities/weapons/AbyssalChainsWeapon';
 import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
 import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
+import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 
 export interface RichTextSegment {
   text: string;
@@ -63,6 +64,26 @@ export class UpgradeScene extends Phaser.Scene {
   private rerollText?: Phaser.GameObjects.Text;
   private rerollBg?: Phaser.GameObjects.Graphics;
   private isClosing: boolean = false;
+
+  public getCardContainers(): Phaser.GameObjects.Container[] {
+    return this.cardContainers;
+  }
+
+  public getIsClosing(): boolean {
+    return this.isClosing;
+  }
+
+  public getPlayer(): BaseCharacter {
+    return this.player;
+  }
+
+  public getGameScene(): any {
+    return this.gameScene;
+  }
+
+  public getIsAltar(): boolean {
+    return this.isAltar;
+  }
 
   private readonly cardFont = "'Pixelzone', 'Silkscreen', monospace";
   private readonly uiFont = "'Silkscreen', 'Press Start 2P', monospace";
@@ -137,14 +158,26 @@ export class UpgradeScene extends Phaser.Scene {
     this.createTacticalFooter(width, height, this.uiFont);
 
     // 5. Atalhos de Teclado (R para Re-rolar, Espaço para Canalizar/Skip)
+    const onKeyDownR = () => {
+      this.handleReroll();
+    };
+    const onKeyDownSpace = () => {
+      this.handleSkipAndHeal();
+    };
+
     if (!this.isAltar && this.input.keyboard) {
-      this.input.keyboard.on('keydown-R', () => {
-        this.handleReroll();
-      });
-      this.input.keyboard.on('keydown-SPACE', () => {
-        this.handleSkipAndHeal();
-      });
+      this.input.keyboard.on('keydown-R', onKeyDownR);
+      this.input.keyboard.on('keydown-SPACE', onKeyDownSpace);
     }
+
+    // 6. Limpeza no Desligamento da Cena (DEC-006 / Anti-Leak)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.input.keyboard) {
+        this.input.keyboard.off('keydown-R', onKeyDownR);
+        this.input.keyboard.off('keydown-SPACE', onKeyDownSpace);
+        this.input.keyboard.removeAllListeners();
+      }
+    });
   }
 
   private dealCards(isReroll: boolean): void {
@@ -1107,6 +1140,7 @@ export class UpgradeScene extends Phaser.Scene {
     const rootContainer = this.add.container(x, y + 70);
     rootContainer.setAlpha(0);
     rootContainer.setScale(0.75);
+    rootContainer.setData('upgradeCard', card);
     this.cardContainers.push(rootContainer);
 
     // Sub-container interno dedicado à flutuação contínua
@@ -1454,8 +1488,14 @@ export class UpgradeScene extends Phaser.Scene {
     }
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
     if (this.isClosing) return;
+
+    if (AutoPlayTestAgent.getInstance().isEnabled) {
+      AutoPlayTestAgent.getInstance().checkAndResolveUpgradeModal(this, delta);
+      return;
+    }
+
     const nav = GamepadManager.getInstance().getMenuNavigation(this);
     if (this.cardContainers.length > 0) {
       if (nav.left) {

@@ -4,6 +4,7 @@ import { Nixy } from '../characters/Nixy';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
 import { DamageTextSystem } from '../../systems/DamageTextSystem';
 import { SoundManager } from '../../systems/SoundManager';
+import { BOSS_TELEGRAPH } from '../../config/theme';
 
 type BossState =
   | 'INTRO'
@@ -262,11 +263,11 @@ export class SuccubusBoss extends BaseEnemy {
     const endY = this.y + this.dashTargetVector.y * lineLength;
 
     // Linha de advertência carmesim
-    g.lineStyle(3 + progress * 9, 0xff0055, 0.7 + progress * 0.3);
+    g.lineStyle(BOSS_TELEGRAPH.lineThickness(progress), BOSS_TELEGRAPH.color, BOSS_TELEGRAPH.alpha(progress));
     g.lineBetween(this.x, this.y, endX, endY);
 
     // Centro brilhante
-    g.lineStyle(2, 0xffffff, progress);
+    g.lineStyle(BOSS_TELEGRAPH.innerThickness, BOSS_TELEGRAPH.innerColor, BOSS_TELEGRAPH.innerAlpha(progress));
     g.lineBetween(this.x, this.y, endX, endY);
 
     // Quando termina de carregar: dispara em alta velocidade!
@@ -403,15 +404,16 @@ export class SuccubusBoss extends BaseEnemy {
     const ty = this.slamTargetPos.y;
 
     // Fundo translúcido avermelhado pulsante
-    const alphaFill = 0.15 + progress * 0.25 + Math.sin(this.scene.time.now * 0.01) * 0.08;
-    g.fillStyle(0xff0033, alphaFill);
+    const alphaFill = BOSS_TELEGRAPH.circleFillAlpha(progress) + Math.sin(this.scene.time.now * 0.01) * 0.08;
+    g.fillStyle(BOSS_TELEGRAPH.circleFillColor, alphaFill);
     g.fillCircle(tx, ty, currentRadius);
 
     // Borda vermelha forte de perigo
-    g.lineStyle(3, 0xff0055, 0.9);
+    g.lineStyle(BOSS_TELEGRAPH.circleBorderThickness(progress), BOSS_TELEGRAPH.circleBorderColor, 0.9);
     g.strokeCircle(tx, ty, currentRadius);
 
     // Cruz central de mira
+    g.lineStyle(BOSS_TELEGRAPH.crosshairThickness, BOSS_TELEGRAPH.circleBorderColor, 0.9);
     g.lineBetween(tx - 15, ty, tx + 15, ty);
     g.lineBetween(tx, ty - 15, tx, ty + 15);
 

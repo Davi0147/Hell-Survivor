@@ -243,6 +243,16 @@ export class MenuScene extends Phaser.Scene {
 
     // 9. Suporte a Teclado (W/S, Cima/Baixo, Enter, Espaço, ESC)
     this.setupKeyboardInput();
+
+    // 10. Limpeza no Desligamento da Cena (DEC-006 / Anti-Leak)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+        this.input.keyboard.removeAllListeners();
+      }
+      this.input.removeAllListeners();
+      this.time.removeAllEvents();
+    });
   }
 
   /**
@@ -1266,8 +1276,8 @@ export class MenuScene extends Phaser.Scene {
     SoundManager.getInstance().playMenuClick();
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(160, () => {
+      SoundManager.getInstance().stopMusic();
       if (mode === 'story') {
-        SoundManager.getInstance().stopMusic();
         if (chapter === 2) {
           this.scene.start('GameScene', { mode: 'story', chapter: 2 });
         } else {

@@ -573,6 +573,26 @@ export class UIScene extends Phaser.Scene {
     // 9. CONTROLES TOUCH NA TELA (MOBILE / TABLET)
     // ==========================================
     this.touchControls = new TouchControls(this);
+
+    // ==========================================
+    // 10. LIMPEZA NO DESLIGAMENTO DA CENA (DEC-006 / ANTI-LEAK)
+    // ==========================================
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.alertTimer) {
+        this.alertTimer.remove();
+        this.alertTimer = undefined;
+      }
+      if (this.keyEsc) {
+        this.keyEsc.removeAllListeners();
+        this.keyEsc = undefined;
+      }
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+        this.input.keyboard.removeAllListeners();
+      }
+      this.input.removeAllListeners();
+      this.time.removeAllEvents();
+    });
   }
 
   /**
@@ -2193,6 +2213,7 @@ export class UIScene extends Phaser.Scene {
         this.gameOverModalContainer.destroy();
         this.gameOverModalContainer = undefined;
       }
+      SoundManager.getInstance().stopMusic();
       onRetry();
     };
 
@@ -2203,6 +2224,7 @@ export class UIScene extends Phaser.Scene {
         this.gameOverModalContainer.destroy();
         this.gameOverModalContainer = undefined;
       }
+      SoundManager.getInstance().stopMusic();
       onReturnToMenu();
     };
 
@@ -2539,6 +2561,7 @@ export class UIScene extends Phaser.Scene {
 
     this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, 'MENU', 0x551122, 0xff0055, () => {
       MetaProgressManager.getInstance().finalizeRunSouls();
+      SoundManager.getInstance().stopMusic();
       this.isPaused = false;
       this.cleanupPauseCursor();
       if (this.pauseModalContainer) {
