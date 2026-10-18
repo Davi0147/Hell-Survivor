@@ -42,16 +42,21 @@
 - [x] **Estatísticas Persistentes (`MetaSaveData.stats`):** Registra `totalKills`, `totalRuns`, `highestEndlessTimeSec`, `bossesDefeated`, `totalSoulsCollected`, `storyDeathCount` e `bossDeaths`.
 
 ### 1.4. Inimigos, Escalonamento e Otimização de Performance (`Concluído ✅`)
-- [x] **Elenco de Inimigos Atuais (`src/entities/enemies/`):**
-  - Cão Zumbi (`ZombieDog`) + Variante Alfa Elite;
+- [x] **Elenco de Inimigos e Minichefes Atuais (`src/entities/enemies/` e `GameScene.ts`):**
+  - Cão Zumbi (`ZombieDog`) + Variante Alfa Elite (apenas Infinito $\ge$2 min);
   - Morcego de Sangue (`BloodBat`);
   - Skull Slime (`SkullSlime`);
   - Múmia do Abismo (`MummyEnemy` — movimentação em zigue-zague, poças de veneno tóxico com lentidão de `-40%` e dano periódico que duram 5 segundos após a morte da múmia, além de knockback no contato);
-  - Succubus Menor (`Succubus`).
-- [x] **Escalonamento Progressivo Oficial (`getEnemyScaling` em `src/config/balance.ts`):**
-  - **Vida (HP):** `+12%/min` no Modo História | `+16%/min` no Modo Infinito;
-  - **Dano:** `+6%/min` no Modo História | `+8%/min` no Modo Infinito;
-  - **Velocidade:** `+2%/min` (limitado ao teto máximo de `+30%` / `1.30x`).
+  - Succubus Menor (`Succubus` — código morto em `src/entities/enemies/Succubus.ts`, nunca instanciado na cena);
+  - Titã Cerberus (minichefe do Infinito aos 3 min — sprite de `ZombieDog`, 1400 HP, vel 95, dano 20 fixos);
+  - Matriarca Succubus (minichefe do Infinito aos 6 min — sprite de `SuccubusBoss`, 2400 HP, vel 115, dano 24 fixos).
+- [x] **Realidade do Escalonamento no Código vs Testes Unitários:**
+  - `getEnemyScaling(survivalTimeMs, isEndless)` em `src/config/balance.ts`: calcula HP (+12% hist / +16% inf por min), Dano (+6% hist / +8% inf por min) e Velocidade (+2%/min até teto de 1.30x).
+  - **Inimigos que realmente usam `getEnemyScaling` e `getChapterEnemyStatMultiplier()`:** `ZombieDog` (comum e Alfa) e `MummyEnemy`.
+  - **Inimigos que usam fórmulas lineares inline próprias:** `BloodBat` (HP `(14 + (isEndless ? min*3 : 0))*chMult`, Vel `155 + (isEndless ? min*5 : 0)`, Dano `5*chMult`) e `SkullSlime` (HP `(160 + (isEndless ? min*30 : 0))*chMult`, Vel fixa `46`, Dano `10*chMult`).
+  - **Minichefes que usam literais fixos:** Cerberus (1400/95/20) e Matriarca (2400/115/24) não usam scaling nem multiplicador de capítulo.
+  - **Proteção de Testes:** `src/__tests__/scaling.test.ts` protege **exclusivamente** `ZombieDog` e `MummyEnemy`.
+  - > **Decisão do dono:** manter comportamento atual ou unificar em `getEnemyScaling` no futuro.
 - [x] **Limites Rígidos e Viewport Culling (`PERFORMANCE_LIMITS`):**
   - Máximo de `120` inimigos ativos simultâneos e `150` gemas no chão (com fusão de gemas excedentes e culling fora da `camera.worldView + 100px`).
 

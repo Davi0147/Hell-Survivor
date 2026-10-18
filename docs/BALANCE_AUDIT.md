@@ -59,13 +59,29 @@ A varredura exaustiva catalogou exatamente **232 valores numéricos** de balance
 
 ---
 
-## 3. Realidade do Escalonamento: Inimigos Comuns vs Chefes
+## 3. Realidade do Escalonamento: Auditoria Exaustiva dos 8 Inimigos e Minichefes
 
-### 3.1 Onde `getEnemyScaling` e `getChapterEnemyStatMultiplier` São Aplicados
+A auditoria de código revelou que nem todos os inimigos comuns utilizam a função centralizada `getEnemyScaling`. Abaixo está a realidade comprovada linha a linha no código:
+
+### 3.1 Mapeamento Detalhado dos 8 Inimigos e Minichefes
+
+| Inimigo / Minichefe | Local no Código (Arquivo:Linhas) | Usa `getEnemyScaling`? | Usa `getChapterEnemyStatMultiplier`? | Comportamento História vs Infinito |
+| :--- | :--- | :---: | :---: | :--- |
+| **1. ZombieDog (Comum)** | [`GameScene.ts:1623-1626`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1623), [`1082-1084`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1082) | **SIM** (HP, Vel, Dmg) | **SIM** (HP, Dmg) | **História:** HP `28 * hpMult * chMult`, Vel `min(130, 85 * spdMult)`, Dano `8 * dmgMult * chMult`.<br>**Infinito:** `hpMult` (+16%/min vs +12%) e `dmgMult` (+8%/min vs +6%) mais agressivos. |
+| **2. ZombieDog (Alfa/Elite)** | [`GameScene.ts:1618-1621`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1618) | **SIM** (HP, Vel, Dmg) | **SIM** (HP, Dmg) | Surge **exclusivamente no Infinito** aos 2+ min (`Math.random() < 0.18`). HP base 75, Vel base 95 (cap 145), Dano base 14, multiplicados por `scaling` e `chMult`. |
+| **3. BloodBat** | [`GameScene.ts:1196-1201`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1196), [`BloodBat.ts:31`](file:///E:/Downloads%20HD/Hell%20Survivor/src/entities/enemies/BloodBat.ts#L31) | **NÃO** (apenas `minutes` p/ `flockSize` L1552) | **SIM** (HP, Dmg) | **História:** HP `14 * chMult`, Vel fixa `155`, Dano `5 * chMult` (sem escalonamento de stats por tempo).<br>**Infinito:** HP `(14 + min * 3) * chMult`, Vel `155 + min * 5` (sem teto!), Dano `5 * chMult`. |
+| **4. SkullSlime** | [`GameScene.ts:1158-1162`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1158), [`SkullSlime.ts:17`](file:///E:/Downloads%20HD/Hell%20Survivor/src/entities/enemies/SkullSlime.ts#L17) | **NÃO** (apenas `minutes` p/ `maxSlimes` L1566) | **SIM** (HP, Dmg) | **História:** HP `160 * chMult`, Vel fixa `46`, Dano `10 * chMult`.<br>**Infinito:** HP `(160 + min * 30) * chMult`, Vel fixa `46`, Dano `10 * chMult`. |
+| **5. MummyEnemy** | [`GameScene.ts:1589-1592`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1589), [`1231-1233`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1231) | **SIM** (HP, Vel, Dmg) | **SIM** (HP, Dmg) | **História:** HP `130 * hpMult * chMult`, Vel `min(100, 58 * spdMult)`, Dano `15 * dmgMult * chMult`.<br>**Infinito:** escalona com multiplicadores completos de `getEnemyScaling`. |
+| **6. Succubus Menor** | [`Succubus.ts:1-95`](file:///E:/Downloads%20HD/Hell%20Survivor/src/entities/enemies/Succubus.ts) | **NÃO** | **NÃO** | **Código Morto:** Arquivo existe, mas nunca é importado ou instanciado na `GameScene.ts`. |
+| **7. Cerberus (Minichefe 3 min)** | [`GameScene.ts:1645`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1645) | **NÃO** | **NÃO** | **Infinito apenas:** Surge aos 3 min. Constantes literais: HP 1400, Vel 95, Dano 20 fixos (sprite de `ZombieDog` escala 2.2x, tint `0xff2222`). |
+| **8. Matriarca (Minichefe 6 min)** | [`GameScene.ts:1675`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1675) | **NÃO** | **NÃO** | **Infinito apenas:** Surge aos 6 min. Constantes literais: HP 2400, Vel 115, Dano 24 fixos (sprite de `SuccubusBoss` escala 1.1x, tint `0xaa22ff`). |
+
+### 3.2 Onde `getEnemyScaling` e `getChapterEnemyStatMultiplier` Realmente Operam
 
 1. **`getEnemyScaling(survivalTimeMs, isEndless)`:**
-   - Invocado exclusivamente em [`src/scenes/GameScene.ts:1513`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1513) dentro de `spawnEnemyRandomPerimeter()`.
-   - Aplica-se aos monstros comuns spawnados por perímetro.
+   - Invocado em [`GameScene.ts:1513`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1513) dentro do despachante `spawnEnemyRandomPerimeter()`.
+   - Seus multiplicadores numéricos de status (`hpMultiplier`, `speedMultiplier`, `damageMultiplier`) são aplicados **estritamente em `ZombieDog` (comum e Alfa) e `MummyEnemy`**.
+   - Para `BloodBat` e `SkullSlime`, o despachante lê apenas `scaling.minutes` para determinar tamanho de bando ou limite populacional, enquanto seus stats de combate seguem fórmulas lineares separadas inline.
 2. **`getChapterEnemyStatMultiplier()`:**
    - Definido em `src/scenes/GameScene.ts:1063-1065`:
      ```typescript
@@ -73,14 +89,19 @@ A varredura exaustiva catalogou exatamente **232 valores numéricos** de balance
        return this.gameMode === 'story' && this.currentChapter >= 2 ? 1.2 : 1.0;
      }
      ```
-   - No Capítulo 2 da História concede +20% de vida e dano a: `ZombieDog` (L1082), `BloodBat` (L1197) e `MummyEnemy` (L1231).
+   - No Capítulo 2 da História concede +20% de vida e dano a: `ZombieDog` (L1082), `BloodBat` (L1197), `SkullSlime` (L1160) e `MummyEnemy` (L1231).
 3. **Chefes NÃO Recebem Nenhum Multiplicador de Tempo ou Capítulo:**
    - Nenhuma função de boss importa ou aplica `getEnemyScaling` ou `getChapterEnemyStatMultiplier()`.
-   - Todos os atributos de chefes e minibosses são literais estáticos passados em seus métodos de spawn:
+   - Todos os atributos de chefes de capítulo e minichefes são literais estáticos passados em seus métodos de spawn:
      - Succubus História: 9000 HP / 125 vel / 35 dmg (`GameScene.ts:2805`).
      - Succubus Imperial Infinito 10m: 12000 HP / 135 vel / 40 dmg (`GameScene.ts:1706`).
+     - Cerberus Infinito 3m: 1400 HP / 95 vel / 20 dmg (`GameScene.ts:1645`).
      - Matriarca Succubus Infinito 6m: 2400 HP / 115 vel / 24 dmg (`GameScene.ts:1675`).
      - Azazel História: 16000 HP / 138 vel / 42 dmg (`GameScene.ts:2969`).
+4. **Cobertura de Testes Unitários e Decisão do Dono:**
+   - O arquivo de testes `src/__tests__/scaling.test.ts` protege **exclusivamente a fórmula matemática de `getEnemyScaling`** (e, portanto, afeta apenas `ZombieDog` e `MummyEnemy`).
+   - Divergências entre o modelo teórico nos documentos antigos e a implementação real no código:
+     > **Decisão do dono: manter comportamento atual ou unificar em getEnemyScaling no futuro.**
 
 ---
 
