@@ -32,7 +32,8 @@ npm run build
 > **Status Atual de Qualidade**:
 > - TypeScript: **0 erros** (`tsc --noEmit`).
 > - ESLint: **203 avisos** (travado rigidamente na catraca de `--max-warnings 203`; qualquer aviso novo quebra o build com erro 1).
-> - Testes: **54 testes unitários passando** em 8 arquivos de teste cobrindo escalonamento, persistência, capítulos, efeitos de status, validação de mapas, desfecho de derrota de chefes e trancamento do sandbox em domínios públicos.
+> - Catraca de Cores: **Travada em 1194 ocorrências** fora do tema via `scripts/verify-theme.mjs` e `scripts/theme-baseline.json`.
+> - Testes: **66 testes unitários passando** em 9 arquivos de teste cobrindo escalonamento, persistência, capítulos, efeitos de status, validação de mapas, desfecho de derrota de chefes, trancamento do sandbox em domínios públicos e tokens/fórmulas de tema e telegrafia.
 > - Build: **100% verificado** com sincronia atômica entre `dist/sw.js` e `dist/index.html` via `scripts/verify-build.mjs`.
 
 ### Atalhos de 1 Clique (.bat para Windows):
@@ -56,7 +57,8 @@ npm run build
 - **`reports/`**: Registros e relatórios brutos de validações de build, lint e testes.
 
 ### 2. Código-Fonte (`src/`)
-- **`src/config/`**: Configurações imutáveis:
+- **`src/config/`**: Configurações imutáveis e tema:
+  - `theme.ts`: Ponto único de verdade para papéis tipográficos (`FONTS`), paleta semântica (`COLORS`) e telegrafia de chefes (`BOSS_TELEGRAPH`).
   - `balance.ts`: Constantes numéricas de gameplay, curvas de sobrevivência e `isDevSandboxEnabled()` (com trava de segurança para domínios públicos).
   - `storageKeys.ts`: Chaves tipadas de `localStorage`.
   - `mapData.ts` & `mapValidation.ts`: Layouts de fases (Cap. 1, 2 e 202) e validador geométrico.
@@ -79,7 +81,7 @@ npm run build
   - `MapEditorSystem.ts`: Editor in-game com 4 abas e exportação/importação JSON.
   - `SoundManager.ts`: Gerenciador de áudio com trilhas sincronizadas e síntese procedural.
 - **`src/ui/TouchControls.ts`**: Controles mobile virtuais com novos botões e analógico em pixel art dedicados.
-- **`src/__tests__/`**: 54 testes unitários automatizados em Vitest.
+- **`src/__tests__/`**: 66 testes unitários automatizados em Vitest.
 
 ### 3. Scripts e Infraestrutura (`scripts/` & `public/`)
 - **`public/sw.js`**: Service Worker PWA com injeção de `BUILD_ID`, segregação de estratégias de cache (stale-while-revalidate, cache-first para assets com hash e rede com fallback para sprites/áudio) e recarga controlada fora de combate.
