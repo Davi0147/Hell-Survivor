@@ -102,3 +102,8 @@ Antes de realizar qualquer edição no código ou na documentação:
     - **Build ID atômico:** Todo build de produção deve sincronizar o `BUILD_ID` (`<sha curto> • <dd/mm hh:mm>`) entre `dist/sw.js` e `dist/index.html` via plugin Vite inline e validado por `scripts/verify-build.mjs`.
     - **Estratégias segregadas no Service Worker:** `index.html` e navegação usam *Network-First*; assets compilados com hash (`/assets/*.js`, `*.css`) usam *Cache-First*; arquivos sem hash (sprites, áudio, imagens, fontes) usam rede com `cache: 'no-cache'` e fallback offline.
     - **Atualização sem mistura e recarga sob demanda:** O Service Worker novo não usa `skipWaiting` automático (exceto na migração de `hell-survivor-cache-v1`); aguarda o jogador clicar no botão de recarregar do banner, que só é exibido fora de combate e recarrega uma única vez no evento `controllerchange`.
+
+18. **Desacoplamento do Personagem Jogável:**
+    - Código novo de interface, armas, cutscenes, diálogos e sistemas **NÃO deve assumir que o jogador é a Nixy** (nada de `instanceof Nixy` nem literais `'nixy'` em lugares genéricos).
+    - Receba o tipo genérico `BaseCharacter` e leia do personagem em execução as propriedades que já existem (`characterId`, `characterName`); retrato e voz entram quando existirem.
+    - Onde o literal for inevitável, centralize-o em UMA constante.
