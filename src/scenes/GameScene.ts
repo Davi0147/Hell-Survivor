@@ -153,7 +153,15 @@ export class GameScene extends Phaser.Scene {
     this.spawnTimer = 0;
     this.mapItemSpawnTimer = 0;
     this.bossMinionTimer = 0;
+    this.playerInvulnerableTimer = 0;
+    this.poisonPuddles = [];
+    this.weapons = [];
     this.clearCombatSpeechBubbles();
+    this.sceneryProps = [];
+    this.borderMistEmitter = undefined;
+    this.testShowroomSystem = undefined;
+    this.mapEditorSystem = undefined;
+    this.mapEditorLauncherButton = undefined;
 
     DebugSessionLogger.getInstance().startNewSession(this.gameMode);
   }
@@ -208,7 +216,28 @@ export class GameScene extends Phaser.Scene {
     // 3.2. Desenha o abismo e a bruma mística nas bordas da arena
     this.drawArenaBorders();
 
-    // 3.3. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
+    // 3.3. Inicialização dos Grupos de Entidades e Itens antes de carregar o layout do mapa
+    this.enemiesGroup = this.add.group({
+      classType: BaseEnemy,
+      runChildUpdate: false
+    });
+
+    this.gemsGroup = this.add.group({
+      classType: SoulGem,
+      runChildUpdate: false
+    });
+
+    this.soulsGroup = this.add.group({
+      classType: CorruptedSoulItem,
+      runChildUpdate: false
+    });
+
+    this.mapItemsGroup = this.add.group({
+      classType: MapItem,
+      runChildUpdate: false
+    });
+
+    // 3.4. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
     this.loadCustomMapLayout(activeMap);
 
     // Sincronizar o chão infinito no POST_UPDATE compensando o scroll da câmera
@@ -282,27 +311,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    // 5. Inicialização de Grupos, Armas e Gemas de Alma (com Limites de Performance Rigorosos)
-    this.enemiesGroup = this.add.group({
-      classType: BaseEnemy,
-      runChildUpdate: false
-    });
-
-    this.gemsGroup = this.add.group({
-      classType: SoulGem,
-      runChildUpdate: false
-    });
-
-    this.soulsGroup = this.add.group({
-      classType: CorruptedSoulItem,
-      runChildUpdate: false
-    });
-
-    this.mapItemsGroup = this.add.group({
-      classType: MapItem,
-      runChildUpdate: false
-    });
-
+    // 5. Inicialização de Armas e Armamento da Nixy
     this.weapons = [];
     this.soulBoltWeapon = new SoulBoltWeapon(this, this.player);
     this.weapons.push(this.soulBoltWeapon);
@@ -2243,7 +2252,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // 5. Spawna itens de exploração se definidos nas zonas de item
-    if (this.mapItemsGroup) {
+    if (this.mapItemsGroup && this.mapItemsGroup.children) {
       const oldItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (let i = oldItems.length - 1; i >= 0; i--) {
         oldItems[i].destroy();
@@ -2269,7 +2278,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.sceneryProps = [];
 
-    if (this.mapItemsGroup) {
+    if (this.mapItemsGroup && this.mapItemsGroup.children) {
       const mapItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (let i = mapItems.length - 1; i >= 0; i--) {
         mapItems[i].destroy();
@@ -2289,7 +2298,7 @@ export class GameScene extends Phaser.Scene {
     if (this.bossSummonAltar) {
       this.bossSummonAltar.setVisible(visible);
     }
-    if (this.mapItemsGroup) {
+    if (this.mapItemsGroup && this.mapItemsGroup.children) {
       const mapItems = this.mapItemsGroup.getChildren() as MapItem[];
       for (const item of mapItems) {
         item.setVisible(visible);
