@@ -27,7 +27,8 @@ export class TouchControls {
   private knobX: number = 130;
   private knobY: number = 590;
   private readonly BASE_RADIUS: number = 58;
-  private readonly KNOB_RADIUS: number = 24;
+  // Stick.png possui 22px de arte central em um canvas de 40px; raio 50 (100px) resulta em ~55px úteis de diâmetro
+  private readonly KNOB_RADIUS: number = 50;
   private readonly MAX_DISTANCE: number = 50;
   private readonly DEADZONE: number = 8;
 
