@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal enabledelayedexpansion
 title Hell Survivor - Simulador de Atualizacao (Nova Versao)
 chcp 65001 >nul
@@ -9,13 +9,13 @@ echo     HELL SURVIVOR - SIMULADOR DE ATUALIZACAO EM PRODUCAO
 echo ===================================================================
 echo.
 
-:: 1. Garantir que estamos na pasta raiz do projeto
+REM 1. Garantir que estamos na pasta raiz do projeto
 cd /d "%~dp0"
 
-:: 2. Configurar gerador para incluir segundos (garantindo timestamp novo mesmo no mesmo minuto)
+REM 2. Configurar gerador para incluir segundos (garantindo timestamp novo mesmo no mesmo minuto)
 set INCLUDE_BUILD_SECONDS=1
 
-:: 3. Recompilar o jogo na pasta dist com o servidor ainda em execucao
+REM 3. Recompilar o jogo na pasta dist com o servidor ainda em execucao
 echo [*] Recompilando o jogo para simular publicacao de nova versao...
 call npm.cmd run build
 if errorlevel 1 (
@@ -25,7 +25,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: 4. Validar integridade do novo build
+REM 4. Validar integridade do novo build
 echo [*] Validando nova integridade atomica...
 call node scripts/verify-build.mjs
 if errorlevel 1 (

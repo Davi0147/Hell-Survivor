@@ -16,15 +16,22 @@ function getGitSha(): string {
 
 function getFormattedDate(): string {
   const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const day = pad(now.getDate());
-  const month = pad(now.getMonth() + 1);
-  const hours = pad(now.getHours());
-  const minutes = pad(now.getMinutes());
+  const formatter = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = Object.fromEntries(
+    formatter.formatToParts(now).map((part) => [part.type, part.value])
+  );
   if (process.env.INCLUDE_BUILD_SECONDS === '1') {
-    return `${day}/${month} ${hours}:${minutes}:${pad(now.getSeconds())}`;
+    return `${parts.day}/${parts.month} ${parts.hour}:${parts.minute}:${parts.second}`;
   }
-  return `${day}/${month} ${hours}:${minutes}`;
+  return `${parts.day}/${parts.month} ${parts.hour}:${parts.minute}`;
 }
 
 function buildVersionPlugin(): Plugin {

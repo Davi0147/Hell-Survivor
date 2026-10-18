@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal enabledelayedexpansion
 title Hell Survivor - Teste de Producao (Versao 1)
 chcp 65001 >nul
@@ -9,16 +9,18 @@ echo        HELL SURVIVOR - TESTE DE VERSAO 1 (PRODUCAO / PWA)
 echo ===================================================================
 echo.
 
-:: 1. Garantir que estamos na pasta raiz do projeto
+REM 1. Garantir que estamos na pasta raiz do projeto
 cd /d "%~dp0"
 
-:: 2. Encerrar instâncias anteriores na porta 8080 para evitar conflitos
+REM 2. Encerrar instâncias anteriores na porta 8080 (apenas se for processo node.exe)
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING 2^>nul') do (
-    echo [*] Liberando porta 8080 ocupada por processo anterior (PID %%a)...
-    taskkill /f /pid %%a >nul 2>&1
+    for /f "tokens=1" %%b in ('tasklist /fi "pid eq %%a" /nh 2^>nul ^| findstr /i "node.exe"') do (
+        echo [*] Liberando porta 8080 ocupada pelo processo %%b - PID %%a
+        taskkill /f /pid %%a >nul 2>&1
+    )
 )
 
-:: 3. Gerar o build de producao
+REM 3. Gerar o build de producao
 echo [*] Gerando versao compilada de producao (npm run build)...
 call npm.cmd run build
 if errorlevel 1 (
@@ -28,7 +30,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: 4. Validar integridade do build
+REM 4. Validar integridade do build
 echo [*] Validando integridade atomica do Service Worker e Index...
 call node scripts/verify-build.mjs
 if errorlevel 1 (
@@ -38,11 +40,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: 5. Agendar abertura no navegador padrao apos subir o servidor
+REM 5. Agendar abertura no navegador padrao apos subir o servidor
 echo [*] Agendando abertura automatica no navegador...
 start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8080"
 
-:: 6. Subir o servidor de preview na porta 8080
+REM 6. Subir o servidor de preview na porta 8080
 echo.
 echo ===================================================================
 echo  SERVIDOR DE TESTE ATIVO EM: http://localhost:8080
