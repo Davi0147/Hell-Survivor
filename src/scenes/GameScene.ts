@@ -3177,7 +3177,7 @@ export class GameScene extends Phaser.Scene {
 
     this.isChapterCompleted = true;
     this.clearCombatSpeechBubbles();
-    SoundManager.getInstance().stopMusic(2000);
+    SoundManager.getInstance().stopMusic(1500);
     this.physics.pause();
     if (this.player?.body) {
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
@@ -3201,6 +3201,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(800, () => {
       this.cameras.main.fadeOut(700, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
+        SoundManager.getInstance().stopMusic();
         this.scene.stop('UIScene');
         this.scene.start('Chapter1EndScene', { runStats, chapter: 2 });
       });
@@ -3259,7 +3260,7 @@ export class GameScene extends Phaser.Scene {
 
     this.isChapterCompleted = true;
     this.clearCombatSpeechBubbles();
-    SoundManager.getInstance().stopMusic(2000);
+    SoundManager.getInstance().stopMusic(1500);
     this.physics.pause();
     if (this.player?.body) {
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
@@ -3283,6 +3284,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(800, () => {
       this.cameras.main.fadeOut(700, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
+        SoundManager.getInstance().stopMusic();
         this.scene.stop('UIScene');
         this.scene.start('Chapter1EndScene', { runStats, chapter: 1 });
       });
