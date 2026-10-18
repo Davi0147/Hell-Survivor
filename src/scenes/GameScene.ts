@@ -26,7 +26,7 @@ import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig } from '../config/balance';
+import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome } from '../config/balance';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
@@ -1007,8 +1007,8 @@ export class GameScene extends Phaser.Scene {
           this.spawnMatriarchSuccubus();
         }
 
-        // 10:00 (600s): Succubus Desperta (Chefe Suprema do Modo Infinito)
-        if (!this.boss10mSpawned && elapsedSec >= 600) {
+        // 10:00 (600s): Succubus Desperta (Chefe Suprema do Modo Infinito - não spawna se já houver chefe ativo)
+        if (!this.boss10mSpawned && elapsedSec >= 600 && !this.isBossFightActive) {
           this.boss10mSpawned = true;
           if (uiScene) {
             uiScene.showWaveAlert('ALERTA CRÍTICO: SUCCUBUS DESPERTA!', 5000);
@@ -3207,20 +3207,46 @@ export class GameScene extends Phaser.Scene {
   private handleBossDefeated(): void {
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Succubus derrotada!');
 
-    if (this.gameMode === 'sandbox') {
+    const outcome = getBossDefeatOutcome(this.gameMode);
+
+    if (outcome === 'continue-run') {
       this.isBossFightActive = false;
+      this.isHordeSpawningPaused = false;
       this.clearCombatSpeechBubbles();
       const bx = this.bossInstance ? this.bossInstance.x : this.player.x;
       const by = this.bossInstance ? this.bossInstance.y : this.player.y;
       this.bossInstance = undefined;
       SoundManager.getInstance().playBattleMusic(1500);
-      this.spawnGemAt(bx - 25, by, 'purple');
-      this.spawnGemAt(bx + 25, by, 'purple');
+
+      if (this.gameMode === 'sandbox') {
+        this.spawnGemAt(bx - 25, by, 'purple');
+        this.spawnGemAt(bx + 25, by, 'purple');
+        this.spawnSoulItem(bx, by, Phaser.Math.Between(60, 80));
+        this.spawnMapItem(bx, by - 35, 'chest');
+        const uiScene = this.scene.get('UIScene') as UIScene;
+        if (uiScene) {
+          uiScene.showWaveAlert('SUCCUBUS DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
+        }
+        return;
+      }
+
+      // Modo Infinito ('endless'): não encerra o capítulo, não zera nível e continua a partida
+      this.killCount += 5;
+      this.player.gainUltimateCharge(100);
+
+      // Recompensa suprema da Succubus do Infinito: 3 Gemas Roxas, 60-80 Almas, Baú de Upgrade e aviso na tela
+      this.spawnGemAt(bx - 30, by, 'purple');
+      this.spawnGemAt(bx, by, 'purple');
+      this.spawnGemAt(bx + 30, by, 'purple');
       this.spawnSoulItem(bx, by, Phaser.Math.Between(60, 80));
-      this.spawnMapItem(bx, by - 35, 'chest');
+      this.spawnMapItem(bx, by - 40, 'chest');
+
+      this.cameras.main.flash(400, 255, 215, 0);
+      this.cameras.main.shake(400, 0.025);
+
       const uiScene = this.scene.get('UIScene') as UIScene;
       if (uiScene) {
-        uiScene.showWaveAlert('SUCCUBUS DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
+        uiScene.showWaveAlert('CHEFE SUPREMA DERROTADA! A SOBREVIVÊNCIA CONTINUA...', 5000);
       }
       return;
     }

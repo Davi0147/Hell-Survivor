@@ -169,3 +169,18 @@ export function isDevSandboxEnabled(): boolean {
   return false;
 }
 
+export type BossDefeatOutcome = 'chapter-end' | 'continue-run';
+
+/**
+ * Retorna o desfecho da derrota de um chefe principal baseado no modo de jogo:
+ * - 'story': encerra o capítulo e transiciona para a cena de desfecho ('chapter-end').
+ * - 'endless': a sobrevivência continua indefinidamente ('continue-run').
+ * - 'sandbox': o modo de teste livre continua ('continue-run').
+ */
+export function getBossDefeatOutcome(gameMode: string): BossDefeatOutcome {
+  if (gameMode === 'story') {
+    return 'chapter-end';
+  }
+  return 'continue-run';
+}
+
