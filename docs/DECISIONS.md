@@ -81,8 +81,8 @@ Cada decisão registrada deve conter estritamente:
 
 ---
 
-### DEC-007: Protocolo de Integridade de Cache e Infraestrutura Web (Proposta — aguardando confirmação do dono)
-- **Status:** Proposta — aguardando confirmação do dono
+### DEC-007: Protocolo de Integridade de Cache e Infraestrutura Web
+- **Status:** Aceita (dono aprovou)
 - **Data:** 2026-10-18
 - **Contexto:** Publicações no GitHub Pages apresentavam risco de versões antigas ou "misturadas" após novos deploys (HTML novo com JS ou sprites em cache legado, ou jogadores travados no cache HTTP de 10 minutos do Pages ou no cache `hell-survivor-cache-v1` estático com estratégia *Stale-While-Revalidate* e `skipWaiting` automático que causava descompasso de assets).
 - **Decisão:** Adotar protocolo atômico e determinístico de cache e atualização web em produção:
@@ -104,7 +104,7 @@ Cada decisão registrada deve conter estritamente:
   5. **Mecanismos de Defesa (Kill-Switch e Verificação de Build):**
      - Criação do script de emergência `scripts/sw-killswitch.js` que desregistra o worker e deleta todos os caches se um deploy corrompido for lançado.
      - Criação do verificador pós-build `scripts/verify-build.mjs` acoplado ao workflow de CI (`deploy.yml`) com qualidade pré-build (`npm run check`) e `fetch-depth: 0`.
-- **Motivo:** não informado (proposta — aguardando confirmação do dono).
+- **Motivo:** Aprovado formalmente pelo dono no Pacote P1.5 para garantir atualizações web seguras e sem mistura de assets.
 - **Rever quando:** O dono do projeto homologar o comportamento de deploy em produção ou caso o jogo seja migrado para domínio próprio com controle granular de cabeçalhos HTTP via CDN (ex: Cloudflare / Netlify / Vercel).
 
 ---

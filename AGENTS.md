@@ -97,3 +97,8 @@ Antes de realizar qualquer edição no código ou na documentação:
 
 16. **Resumo Simples no Início dos Relatórios (DEC-008):**
     - Todo relatório de entrega gerado pela IA deve obrigatoriamente iniciar com a seção "O Que Isso Significa Para Você", contendo até 5 linhas em linguagem simples, direta e sem termos técnicos complexos, explicando o que mudou na experiência do jogador ou do dono.
+
+17. **Integridade de Cache e Infraestrutura Web (DEC-007):**
+    - **Build ID atômico:** Todo build de produção deve sincronizar o `BUILD_ID` (`<sha curto> • <dd/mm hh:mm>`) entre `dist/sw.js` e `dist/index.html` via plugin Vite inline e validado por `scripts/verify-build.mjs`.
+    - **Estratégias segregadas no Service Worker:** `index.html` e navegação usam *Network-First*; assets compilados com hash (`/assets/*.js`, `*.css`) usam *Cache-First*; arquivos sem hash (sprites, áudio, imagens, fontes) usam rede com `cache: 'no-cache'` e fallback offline.
+    - **Atualização sem mistura e recarga sob demanda:** O Service Worker novo não usa `skipWaiting` automático (exceto na migração de `hell-survivor-cache-v1`); aguarda o jogador clicar no botão de recarregar do banner, que só é exibido fora de combate e recarrega uma única vez no evento `controllerchange`.
