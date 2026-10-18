@@ -99,7 +99,8 @@
 - [x] **Pacote 0:** Baseline Git (`baseline-pre-refactor`), `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/MECHANICS.md`, `docs/CHANGELOG.md` e atualização deste Livro de Status.
 - [x] **Pacote 0.5:** Consolidação de documentação, alinhamento estrito dos contratos com o código real e enriquecimento do histórico.
 - [x] **Pacote 1:** Rede de segurança com `npm run check` (`tsc --noEmit` + `eslint` em modo catraca + `vitest`) e 21 testes unitários de lógica pura (`getEnemyScaling`, `MetaProgressManager`, validador realista de mapas `validateMap`). 19 passando, 2 falhas esperadas (`it.fails`) para bugs do Pacote 2, 0 erros no lint (214 warnings de baseline).
-- [ ] **Pacote 2:** Correções pontuais (`Nixy.ts` timers no topo + prioridade única de `tint` + object pool do Ghost Trail; `mapData.ts` versionamento com backup + `Record` + limpeza de props duplicados; `MetaProgressManager` `saveVersion` + filtro de modo em `recordRun`; `CHAPTER_CONFIG` e `STORAGE_KEYS` em `balance.ts`, além de `theme.ts`).
+- [x] **Pacote 2A:** Correções pontuais seguras concluídas (Tarefa 0 a Tarefa 7: scaling docs, `storageKeys.ts`, `CHAPTER_CONFIG`, `statusEffects.ts`, object pool do Ghost Trail, versionamento e backup de mapas, migração `saveVersion` e filtro de modo no `MetaProgressManager`, e eliminação de avisos de textura no `BootScene.ts`). 43 testes unitários passando, 0 erros no lint, catraca respeitada em 214.
+- [ ] **Pacote 2B:** Centralização tipográfica e semântica de cores (`theme.ts` — aguardando decisões do dono).
 - [ ] **Pacote 3:** Modularização segura da `GameScene.ts` (`SandboxController` → `CombatBubbleSystem` → `ArenaScenerySystem`) e tipagem forte no lugar de `any`.
 - [ ] **Pacote 4:** Refatoração interna do `SoundManager.ts` (`playTone`/`playNoise`, `BGM_TRACKS`, limite de vozes/cooldown de horda, remoção de `window.setTimeout` e divisão interna mantendo a fachada pública).
 
