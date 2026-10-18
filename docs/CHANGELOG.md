@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote H — Arrumação de Documentos, Decisões e Catraca do Lint] — 2026-10-18
+### Documentação, Governança & Qualidade
+- **Regra 18 no AGENTS.md (Desacoplamento do Personagem Jogável)**:
+  - Estipulado que código novo de interface, armas, cutscenes, diálogos e sistemas não deve presumir que o jogador é a heroína Nixy (proibição de `instanceof Nixy` ou literais `'nixy'` fora de constantes centralizadas).
+  - Uso estrito da classe genérica `BaseCharacter` e leitura dinâmica de `characterId` e `characterName`.
+- **Abaixamento da Catraca do Lint (`package.json`)**:
+  - Trava do ESLint reduzida de `--max-warnings 205` para `203`, acompanhando a eliminação de casts `as any` no bot autônomo (Pacote B).
+  - Prova de limite por mutação executada com `--max-warnings 202`, gerando saída de falha controlada e código de saída 1.
+- **Registro Formal de Decisão de Arquitetura (`docs/DECISIONS.md`)**:
+  - Formalizada a **DEC-009** (Proposta — decisão do dono, detalhes a definir), fixando: recompensa por chefe em "bastante XP", início do combate por aproximação espacial (estilo altar), inclusão do Azazel no ciclo do Infinito mediante ficha prévia de restauração de mapa, e sequenciamento técnico: Pacote 2B ➔ Pacote 3 ➔ Pacote UI ➔ Sistema de Encontros de Chefe ➔ Ciclo do Infinito ➔ Múltiplos Personagens.
+- **Saneamento de Portas e Contratos nos Documentos (`LIVRO_DE_ANOTACOES.md`, `docs/MECHANICS.md`, `docs/GUIA_DO_DONO.md`, `README_ANALISE.md`)**:
+  - Distinção explícita entre a porta de desenvolvimento normal (`JOGAR.bat` na porta 3000) e a porta de ensaio de produção (`TESTAR_VERSAO_1.bat` na porta 8080).
+  - Retificação técnica da Fase 2 de Azazel com os símbolos reais do código (`startDarkFiveDashes`, `spawnNextDarkPhantomDash`, `startDarkEightClones`, `AzazelPhantomClone`), removendo menções a números de linha obsoletos.
+
 ## [Pacote B — Conserto do Bot Autônomo de Teste F3] — 2026-10-18
 ### Corrigido & Aprimorado (Ferramenta de Testes / Sandbox)
 - **Resolução Autônoma da Tela de Upgrades com GameScene Pausada (`src/scenes/UpgradeScene.ts` & `src/systems/AutoPlayTestAgent.ts`)**:
