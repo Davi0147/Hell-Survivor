@@ -74,7 +74,7 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
      - **História (Cap. 1):** `HP = 9000`, `Velocidade = 125`, `Dano = 35`, escala `1.75` (`GameScene.ts:2807`).
      - **Infinito (10 min):** `HP = 12000`, `Velocidade = 135`, `Dano = 40`, escala `1.85` (`GameScene.ts:1707`).
      - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testada em `scaling.test.ts`.
-   - **`Azazel, O Anjo Caído` (Chefe Cap. 2) (`GameScene.spawnAzazelBoss` L2971, `AzazelBoss.ts:213-215`):**
+   - **`Azazel, O Anjo Caído` (Chefe Cap. 2) (`GameScene.spawnAzazelBoss`, `AzazelBoss.spawn`):**
      - **Capítulo 2:** `HP = 16000`, `Velocidade = 138`, `Dano = 42`, escala `1.65` (`GameScene.ts:2971`).
      - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testado em `scaling.test.ts`.
    - > **Nota de Auditoria e Decisão do Dono:** O teste automatizado `src/__tests__/scaling.test.ts` protege **exclusivamente a função matemática pura `getEnemyScaling`** (cujos multiplicadores só são consumidos por `ZombieDog` e `MummyEnemy`). `BloodBat` e `SkullSlime` usam lógica inline separada, e os minichefes/chefes usam literais estáticos. **A função é testada; o uso no spawn não é testado.**
@@ -120,7 +120,7 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
 3. **Estrutura de Fases do Azazel (Verificado no Código):**
    Conforme implementado em `src/entities/enemies/AzazelBoss.ts` e `src/scenes/GameScene.ts`, a luta contra Azazel possui **4 Fases de Combate (`AzazelCombatPhase = 1 | 2 | 3 | 4`)**:
    - **Fase 1 (100% → 50% HP):** Arena delimitada, investidas telegrafadas, tempestade de raios e barragem espiral (`AzazelBoss.ts`).
-   - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada), alternando 5 investidas rápidas no escuro e 8 clones espectrais (`AzazelPhantomClone`) que compartilham vida com o chefe (`AzazelBoss.ts`; gatilho ao atingir 50% de HP).
+   - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada via `boostCurrentMusicVolume`), alternando em ciclo: (1) 5 investidas rápidas sequenciais do próprio Azazel com telegrafia relâmpago (`startDarkFiveDashes` / `spawnNextDarkPhantomDash`) e (2) um anel de 8 atiradores orbitando o jogador por 10s (`startDarkEightClones`: Azazel original no índice 0 + 7 clones espectrais `AzazelPhantomClone` com HP compartilhado, disparando salvas periódicas via `spawnAzazelOrb`); gatilho em `takeDamage` ao atingir o limiar de 50% de HP.
    - **Fase 3 (Trava aos 20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (`map 202`, `floor-tile-2` / `chao2`), disparado pelo evento `'azazel-phase3-dimension-start'`, onde Azazel fica oculto/invulnerável enquanto o jogador purifica os 3 Cristais em meio a uma horda intensa (`GameScene.ts`; gatilho ao atingir 20% de HP).
    - **Fase 4 (20% → 0% HP — Showdown Final):** Azazel reaparece com velocidade ampliada (+20%) para o confronto decisivo até 0% de HP (`GameScene.ts` e `AzazelBoss.ts`).
 4. **Limpeza Gráfica e Restauração:**

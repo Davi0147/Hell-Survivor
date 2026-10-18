@@ -45,8 +45,9 @@ Se você estava jogando e algo deu errado, não se preocupe! Copie e preencha es
 
 ## 4. Como Jogar Localmente e Como Publicar o Jogo na Internet
 
-### Como Jogar no seu Computador (Versão de Desenvolvimento)
-* Dê dois cliques no arquivo **`JOGAR.bat`** na pasta raiz do jogo. Ele limpa a memória temporária, inicia o servidor e abre o jogo no seu navegador padrão sozinho.
+### Como Jogar no seu Computador (Versão de Desenvolvimento Normal)
+* Dê dois cliques no arquivo **`JOGAR.bat`** na pasta raiz do jogo. Ele é o atalho para jogar e testar o jogo normal (porta 3000): libera a porta 3000 de instâncias residuais, limpa a memória temporária do Vite, inicia o servidor e abre o jogo no seu navegador padrão (`http://localhost:3000/`) sozinho.
+* Para ensaio da versão de produção exatamente como vai para o ar (porta 8080 de preview), use **`TESTAR_VERSAO_1.bat`**.
 
 ### Como Publicar o Jogo Oficial na Internet
 * **Endereço Oficial do Jogo:** [https://davi0147.github.io/Hell-Survivor/](https://davi0147.github.io/Hell-Survivor/)
