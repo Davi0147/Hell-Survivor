@@ -2559,6 +2559,7 @@ export class UIScene extends Phaser.Scene {
 
     this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, 'MENU', 0x551122, 0xff0055, () => {
       MetaProgressManager.getInstance().finalizeRunSouls();
+      SoundManager.getInstance().stopMusic();
       this.isPaused = false;
       this.cleanupPauseCursor();
       if (this.pauseModalContainer) {
