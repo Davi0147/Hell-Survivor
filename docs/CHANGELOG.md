@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote L — Limpeza de Ouvintes e Teclas Acumuladas no Ciclo de Vida das Cenas] — 2026-10-18
+### Corrigido & Refatorado (DEC-006 / Regra 13)
+- **Eliminação de Acúmulo de Teclas na Escolha de Cartas (`src/scenes/UpgradeScene.ts`)**:
+  - Implementado manipulador `SHUTDOWN` que desregistra explicitamente os atalhos de teclado `'keydown-R'` (re-rolar) e `'keydown-SPACE'` (pular/canalizar) via `off` e `removeAllListeners()`.
+  - Impede a multiplicação de eventos após subir múltiplos níveis consecutivamente, garantindo que cada toque consuma estritamente 1 carga de reroll.
+- **Limpeza de Eventos de Loop e Teclas em Batalha (`src/scenes/GameScene.ts`)**:
+  - Registrada a remoção dos ouvintes `POST_UPDATE` (sincronização do piso infinito) e `PRE_RENDER` (posicionamento de balões de fala e telegrafia de chefes) no `SHUTDOWN`.
+  - Remoção completa de instâncias de teclas e ouvintes (`E`, `ESC`, `F3`, `M`), limpeza de ouvintes no jogador (`player-level-up`) e cancelamento de timers pendentes.
+- **Higienização de Navegação de Menus e Telas (`src/scenes/MenuScene.ts`, `src/scenes/UIScene.ts`, `src/scenes/Chapter1EndScene.ts`)**:
+  - `MenuScene`: Remoção de todas as teclas de navegação (`W/S`, `Cima/Baixo`, `Enter`, `Espaço`, `ESC`) e cancelamento de timers no `SHUTDOWN`.
+  - `UIScene`: Remoção de teclas de hud (`E`, `F2`, `ESC`), desativação de ouvintes de teclado genéricos e cancelamento do timer de alertas de onda (`alertTimer`).
+  - `Chapter1EndScene`: Remoção de ouvintes de teclado (`keydown`), toques/cliques (`pointerdown`) e cancelamento do timer da máquina de escrever (`typeTimer`) no `SHUTDOWN`.
+
 ## [Pacote P1.6 — Remoção da Matriarca Succubus do Modo Infinito & Saneamento de Nomes] — 2026-10-18
 ### Removido & Refatorado
 - **Remoção da Matriarca Succubus do Modo Infinito (`src/scenes/GameScene.ts`)**:
