@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Unreleased / Pacote 3 — Etapa 1: Extração do SandboxController] — 2026-10-18
+### Refatoração & Arquitetura (Divisão da GameScene)
+- **Extração do Controlador de Sandbox (`src/systems/SandboxController.ts`)**:
+  - Extração de 10 métodos operacionais de trapaça e testes (`sandboxSpawnHorde`, `sandboxSpawnBoss`, `sandboxSpawnAzazel`, `sandboxForceAzazelPhase2`, `sandboxForceAzazelPhase3`, `sandboxRemoveBoss`, `sandboxClearEnemies`, `sandboxRemoveWeapon`, `sandboxSpawnGemShower`, `sandboxClearItemsAndGems`) e dos 5 campos de modificadores de trapaça da `GameScene.ts`.
+  - Redução líquida de 150 linhas na `GameScene.ts`, mantendo fachadas públicas de 1 linha para compatibilidade estrita com `DevSandboxPanel.ts`.
+  - Criação da interface de contrato `ISandboxContext`, tipando a ponte entre a cena, o controlador e o painel de testes sem uso de `any`.
+  - Tipagem estrita de `DevSandboxPanel.ts` com `ISandboxContext`, reduzindo os avisos do ESLint de 172 para 166 (catraca respeitada).
+- **Testes de Contrato & Prova por Mutação (`src/__tests__/sandboxController.test.ts`)**:
+  - 20 testes unitários cobrindo toggles de trapaça, roteamento de spawns por tipo de inimigo, ciclo de vida de chefes, restauração condicional de música e limpeza seletiva de monstros/itens.
+  - Suíte total de testes expandida para 111 testes (100% aprovados).
+  - Prova por mutação executada com inversão de condição em `restoreBattleMusic`, capturada e validada em `reports/mutacao-pacote3-e1.txt`.
+
 ## [v0.9.1 — Diretor Musical, Blindagem de Ciclo de Vida, Tema Centralizado & Guarda Pre-Commit] — 2026-10-18
 ### Correções Críticas & Blindagem de Áudio (PACOTE ÁUDIO-1)
 - **Diretor de Música Autônomo (`src/systems/MusicDirector.ts`)**:
