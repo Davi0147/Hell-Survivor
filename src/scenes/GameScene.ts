@@ -26,7 +26,7 @@ import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG } from '../config/balance';
+import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig } from '../config/balance';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
@@ -87,7 +87,9 @@ export class GameScene extends Phaser.Scene {
   public bossSummonAltar: BossSummonAltar | null = null;
   public isHordeSpawningPaused: boolean = false;
   private altarSpawnTimer: number = 0;
-  private readonly ALTAR_SPAWN_INTERVAL: number = 75000;
+  private get ALTAR_SPAWN_INTERVAL(): number {
+    return getChapterConfig(this.currentChapter).altarSpawnIntervalMs;
+  }
   private spawnTimer: number = 0;
   private mapItemSpawnTimer: number = 0;
   public killCount: number = 0;
@@ -129,8 +131,7 @@ export class GameScene extends Phaser.Scene {
     this.sandboxShowHitboxes = false;
 
     this.chapterPurifiedSouls = 0;
-    // No Capítulo 2 a barra leva 50% a mais de almas para invocar o Boss (1350 vs 900)
-    this.chapterTargetSouls = this.currentChapter === 2 ? 1350 : 900;
+    this.chapterTargetSouls = getChapterConfig(this.currentChapter).targetSouls;
     this.killCount = 0;
     this.isBossFightActive = false;
     this.isChapterCompleted = false;
@@ -1061,8 +1062,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private getChapterEnemyStatMultiplier(): number {
-    // No Capítulo 2 os monstros possuem +20% de vida e +20% de dano
-    return this.gameMode === 'story' && this.currentChapter >= 2 ? 1.2 : 1.0;
+    if (this.gameMode !== 'story') return 1.0;
+    return getChapterConfig(this.currentChapter).enemyStatMultiplier;
   }
 
   private spawnZombieDogAt(

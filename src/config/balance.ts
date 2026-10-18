@@ -93,6 +93,40 @@ export function getEnemyScaling(survivalTimeMs: number, isEndless: boolean) {
 }
 
 /**
+ * CONFIGURAÇÃO DE CAPÍTULOS DE HISTÓRIA:
+ * Define metas de purificação de almas para invocar o chefe,
+ * multiplicador de status de monstros e intervalo de surgimento do Altar de Ascensão.
+ */
+export interface ChapterConfig {
+  targetSouls: number;
+  enemyStatMultiplier: number;
+  altarSpawnIntervalMs: number;
+}
+
+export const CHAPTER_CONFIG_FALLBACK: ChapterConfig = {
+  targetSouls: 900,
+  enemyStatMultiplier: 1.0,
+  altarSpawnIntervalMs: 75000,
+};
+
+export const CHAPTER_CONFIG: Record<number, ChapterConfig> = {
+  1: {
+    targetSouls: 900,
+    enemyStatMultiplier: 1.0,
+    altarSpawnIntervalMs: 75000,
+  },
+  2: {
+    targetSouls: 1350,
+    enemyStatMultiplier: 1.2,
+    altarSpawnIntervalMs: 75000,
+  },
+};
+
+export function getChapterConfig(chapter: number): ChapterConfig {
+  return CHAPTER_CONFIG[chapter] ?? CHAPTER_CONFIG_FALLBACK;
+}
+
+/**
  * FLAG MESTRE DO MODO DE TESTE (SANDBOX & DEBUG):
  * - Em desenvolvimento: deixe `true` para exibir "MODO DE TESTE" diretamente no Menu Principal.
  * - No lançamento oficial: mude para `false` para ocultar do jogador final.
