@@ -21,13 +21,15 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// 3. Ativação: apaga todo e qualquer cache diferente do CACHE_NAME atual (inclui o legado v1)
+// 3. Ativação: apaga apenas caches pertencentes ao Hell Survivor (prefixo 'hell-survivor-')
+// diferentes do CACHE_NAME atual (inclui o legado 'hell-survivor-cache-v1'),
+// preservando caches de outros projetos na mesma origem do GitHub Pages.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key.startsWith('hell-survivor-') && key !== CACHE_NAME) {
             return caches.delete(key);
           }
         })
