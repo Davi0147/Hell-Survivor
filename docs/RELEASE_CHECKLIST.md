@@ -47,8 +47,8 @@ on:
    **O jogo É ATUALIZADO automaticamente no GitHub Pages.** O GitHub Actions iniciará o runner `ubuntu-latest`, executará `npm ci`, `npm run build` e publicará a pasta `dist/` na branch de hospedagem do Pages.
 3. **Disparo Manual:**  
    O gatilho `workflow_dispatch` permite disparar o deploy manualmente pela aba *Actions* do GitHub, escolhendo a branch desejada.
-4. **Endereço Atual do Jogo:**  
-   **Não verificado** no repositório (o arquivo `package.json` não contém o campo `homepage`, e a URL do Pages é atribuída dinamicamente via `${{ steps.deployment.outputs.page_url }}`).
+4. **Endereço Oficial do Jogo:**  
+   [https://davi0147.github.io/Hell-Survivor/](https://davi0147.github.io/Hell-Survivor/) (confirmado oficialmente pelo dono do projeto).
 5. **Gargalo de Segurança do Pipeline:**  
    O workflow atual não executa `npm run check` nem `npm test`. Se um código com regressão passar no TypeScript (`tsc`), ele será publicado automaticamente.
 

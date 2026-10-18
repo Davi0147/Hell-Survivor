@@ -43,14 +43,18 @@ Se você estava jogando e algo deu errado, não se preocupe! Copie e preencha es
 
 ---
 
-## 4. Como Publicar o Jogo na Internet
+## 4. Como Jogar Localmente e Como Publicar o Jogo na Internet
 
-Você não precisa rodar comandos complicados nem mexer no Git.
+### Como Jogar no seu Computador (Versão de Desenvolvimento)
+* Dê dois cliques no arquivo **`JOGAR.bat`** na pasta raiz do jogo. Ele limpa a memória temporária, inicia o servidor e abre o jogo no seu navegador padrão sozinho.
 
-1. Basta escrever no chat da IA:  
-   **"Publicar o jogo"**
-2. A IA vai conferir todos os testes automáticos, checar se nada está quebrado e parar para pedir a sua confirmação formal.
-3. Somente após você responder **"Confirmado"**, a IA fará o envio para o ar.
+### Como Publicar o Jogo Oficial na Internet
+* **Endereço Oficial do Jogo:** [https://davi0147.github.io/Hell-Survivor/](https://davi0147.github.io/Hell-Survivor/)
+* Você não precisa rodar comandos complicados nem mexer no Git:
+  1. Basta escrever no chat da IA:  
+     **"Publicar o jogo"**
+  2. A IA vai conferir todos os testes automáticos, checar se nada está quebrado e parar para pedir a sua confirmação formal.
+  3. Somente após você responder **"Confirmado"**, a IA fará o envio para o ar.
 
 ---
 
