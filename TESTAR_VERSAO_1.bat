@@ -38,9 +38,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 5. Agendar abertura no navegador padrao apos subir o servidor
-echo [*] Agendando abertura automatica no navegador...
-start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8080"
+REM 5. Agendar abertura no navegador padrao apenas quando o servidor responder
+echo [*] Agendando abertura no navegador assim que o servidor responder...
+start "" cmd /c "node scripts/esperar-e-abrir.mjs 8080"
 
 REM 6. Subir o servidor de preview na porta 8080
 echo.
