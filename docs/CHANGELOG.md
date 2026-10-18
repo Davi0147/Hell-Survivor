@@ -2,6 +2,37 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote P1.4 — Implementação de Decisões do Dono & Blindagem de Segurança] — 2026-10-18
+### Adicionado & Refatorado
+- **Modo de Teste Limpo (`src/scenes/GameScene.ts`)**:
+  - `loadCustomMapLayout` ignora o bloco de spawn de itens de exploração quando `gameMode === 'sandbox'`, garantindo que a arena de testes inicie 100% limpa (itens continuam disponíveis para drop manual na aba 4 do painel F1).
+  - Modo História e Infinito continuam gerando seus itens iniciais normalmente (4 no Cap. 1, 17 no Cap. 2 e 2 na Dimensão 202).
+- **Blindagem do Modo Sandbox em Domínios Públicos (`src/config/balance.ts` & `src/__tests__/sandboxLock.test.ts`)**:
+  - `isDevSandboxEnabled()` agora bloqueia estritamente qualquer acesso ao sandbox caso o `hostname` não seja `localhost` ou `127.0.0.1` (impedindo burlas via `?debug=1`, `?sandbox=1` ou `localStorage`).
+  - Adicionado `src/__tests__/sandboxLock.test.ts` com 5 testes unitários cobrindo acessos públicos e locais sem introduzir `any`. Total de testes da suíte elevado para 48 (100% passando).
+- **Ajuste de Ergonomia do Banner PWA (`src/main.ts`)**:
+  - Reposicionado o card de atualização para o canto superior direito (Opção 2 aprovada pelo dono), liberando a visibilidade central do logotipo "HELL SURVIVOR".
+- **Ratchet de Qualidade (`package.json`)**:
+  - Trava do ESLint rebaixada de `--max-warnings 214` para `--max-warnings 213`.
+- **Governança & Arquitetura (`docs/DECISIONS.md`, `AGENTS.md`, `docs/MECHANICS.md`)**:
+  - DEC-006 (Ciclo de Vida de Cenas) e DEC-008 (Resumo simples para o dono) aprovadas e aceitas.
+  - Regra 13 e Regra 16 gravadas em `AGENTS.md` e Seção 11 incluída em `docs/MECHANICS.md`.
+
+## [Pacote P1.3b — Unificação de Executáveis e Isolamento de Cache Web] — 2026-10-18
+### Adicionado & Refatorado
+- **Executável Único de Desenvolvimento (`JOGAR.bat` & `scripts/jogar-dev.mjs`)**:
+  - Substituição de `INICIAR_JOGO.bat` por `JOGAR.bat` curto (4 linhas, ASCII estrito, CRLF, sem BOM, sem `chcp`, sem `enabledelayedexpansion`).
+  - Lógica em Node puro (`scripts/jogar-dev.mjs`): liberação da porta 3000 apenas se o processo for `node.exe`, limpeza de caches residuais (`node_modules/.vite` e `dist`), subida com `--force`, monitoramento HTTP ativo e abertura automática do navegador padrão ao obter código 200.
+  - Validador estrito `scripts/verify-bat.mjs` garantindo conformidade de todos os `.bat` da raiz.
+- **Proteção Contra Recarga em Primeira Visita (`src/main.ts`)**:
+  - Introduzida flag `userRequestedReload`: o evento `controllerchange` só recarrega a página se o jogador tiver clicado ativamente no botão `[ RECARREGAR ]` do banner.
+  - Adicionada guarda de pausa da interface (`uiScene.isPaused`) na detecção de combate ativo `isCombatActive()`.
+- **Isolamento de Cache de Origem (`public/sw.js` & `scripts/sw-killswitch.js`)**:
+  - Expurgo restrito estritamente a chaves que iniciem com `hell-survivor-`, protegendo outros apps do usuário na mesma origem do GitHub Pages.
+- **URL Oficial do Jogo**:
+  - Registrado endereço oficial `https://davi0147.github.io/Hell-Survivor/` em `docs/GUIA_DO_DONO.md` e `docs/RELEASE_CHECKLIST.md`.
+
+
 ## [UI Mobile — Sprites Pixel Art para Controles Touch] — 2026-10-18
 ### Adicionado & Refatorado
 - **Sprites Customizados de Interface Touch (`src/ui/TouchControls.ts` & `src/scenes/BootScene.ts`)**:
