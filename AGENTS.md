@@ -38,6 +38,7 @@ Antes de realizar qualquer edição no código ou na documentação:
 
 5. **Identidade Visual Gótica, Sprites & Tipografia (`theme.ts` *(a criar no Pacote 2)*):**
    - NUNCA altere estilo visual (cores, fontes, layout de HUD, molduras) sem pedido explícito. Cores e fontes devem ser centralizadas em `src/config/theme.ts` *(a criar no Pacote 2)*.
+   - Padrões visuais de interface, caixas de diálogo, modais e telegrafia estão documentados em [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
    - **Zero Emojis Unicode em Textos WebGL/Canvas do Phaser:** Use apenas as fontes pixel-art do projeto (`Press Start 2P`, `Silkscreen`, `Pixelzone`) e ícones vetoriais/sprites para evitar glifos quebrados.
    - **Preservação de Escala em Troca de Texturas (`setDisplaySize`):** Sempre que substituir texturas dinamicamente em imagens com dimensões fixas (ex: bustos de diálogo em `origin(0.5, 1.0)` ou retratos), chame `image.setDisplaySize(largura, altura)` imediatamente na linha seguinte.
    - **Transições Cinematográficas Condicionais:** As animações de slide/fade dos bustos e o movimento do balão de fala só ocorrem quando o personagem falante muda (`currentSpeakerSide !== newSide`).
@@ -77,5 +78,14 @@ Antes de realizar qualquer edição no código ou na documentação:
     - Pedidos do dono são pontuais por padrão. Nada vira regra em `AGENTS.md`/`docs/MECHANICS.md` ou decisão em `docs/DECISIONS.md` sem o dono dizer "registre como regra" e sem você mostrar antes o texto exato.
     - Decisões em `docs/DECISIONS.md` têm: Status (`Proposta` | `Aceita`), Data, Contexto, Decisão, Motivo (apenas o dito pelo dono ou comprovado no código; senão `"não informado"`), Rever quando. Nunca invente justificativa. Regras podem ser revisadas: substitua marcando a antiga como "Substituída por ...", não apague.
 
-13. **Regra de Conflito (Parada Obrigatória):**
-    - **Se qualquer instrução de uma tarefa conflitar com este arquivo (`AGENTS.md`), com `docs/MECHANICS.md` ou com `docs/DECISIONS.md`, PARE imediatamente e pergunte ao usuário antes de escrever código.**
+14. **Registro de Memória (Workflow `/registrar`):**
+    - Quando o dono disser "lembra", "anota", "sempre faça assim" ou equivalente, NÃO responda apenas "ok". Siga o workflow `/registrar`:
+      1. Classifique o pedido: `REGRA` inviolável (neste arquivo) | `CONTRATO` de mecânica (`docs/MECHANICS.md`) | `PADRÃO` visual/UX (`docs/DESIGN_SYSTEM.md`) | `DECISÃO` (`docs/DECISIONS.md`) | `TAREFA` pendente (`LIVRO_DE_ANOTACOES.md`) | `PREFERÊNCIA` pontual (esta última não é registrada).
+      2. Se for ambíguo, pergunte qual tipo é antes de escrever.
+      3. Procure no repositório se já existe algo igual ou conflitante (`AGENTS.md`, `docs/MECHANICS.md`, `docs/DESIGN_SYSTEM.md`, `docs/DECISIONS.md`) e mostre.
+      4. Mostre o TEXTO EXATO e o ARQUIVO DE DESTINO e aguarde o "ok" do dono. Valores numéricos/cores moram no código (`theme.ts`, `balance.ts`), o documento só aponta para eles.
+      5. Grave, mostre o `git diff` e registre no `docs/CHANGELOG.md`.
+      6. Nunca invente motivo: "Motivo" é apenas o explicitamente dito pelo dono ou o que o código comprova.
+
+15. **Regra de Conflito (Parada Obrigatória):**
+    - **Se qualquer instrução de uma tarefa conflitar com este arquivo (`AGENTS.md`), com `docs/MECHANICS.md`, com `docs/DESIGN_SYSTEM.md` ou com `docs/DECISIONS.md`, PARE imediatamente e pergunte ao usuário antes de escrever código.**
