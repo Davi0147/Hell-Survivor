@@ -223,3 +223,15 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Sempre invocar `setDisplaySize(largura, altura)` imediatamente após `setTexture()`.
 2. **Destaque de Texto Dourado:**
    - Integração automática com `enableCensoredTextHighlight()` (`src/systems/TextHighlight.ts`) para renderizar a palavra `[CENSURADO]` em dourado brilhante (`#fbbf24`).
+
+---
+
+## 11. Contrato de Ciclo de Vida de Cenas Phaser (DEC-006)
+
+1. **Reinicialização Rigorosa (`init`):**
+   - Toda cena com propriedades de controle (`isEnding`, `isTyping`, `isPaused`, arrays de entidades) deve implementar `init()` para redefini-las ao valor padrão, pois o Phaser reutiliza a mesma instância da classe em `scene.start()`.
+2. **Ordem de Instanciação de Grupos:**
+   - Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) devem ser instanciados no início de `create()`, antes de qualquer chamada a métodos de layout (`loadCustomMapLayout`), acompanhados de checagens defensivas (`this.group && this.group.children`).
+3. **Desligamento e Limpeza (`SHUTDOWN`):**
+   - Cenas que registram ouvintes em barramentos globais ou instâncias persistentes (`this.events.on`, `input.keyboard.on`, timers contínuos) devem registrar um ouvinte `SHUTDOWN` para desregistrar/limpar esses elementos, impedindo vazamento de listeners e duplicidade de handlers.
+

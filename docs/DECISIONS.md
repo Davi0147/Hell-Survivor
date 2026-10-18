@@ -69,14 +69,17 @@ Cada decisão registrada deve conter estritamente:
 ---
 
 ### DEC-006: Contrato de Ciclo de Vida e Anti-Deadlock de Cenas (Lifecycle Invariants)
-- **Status:** Proposta — aguardando confirmação do dono
+- **Status:** Aceita (dono aprovou)
 - **Data:** 2026-10-18
 - **Contexto:** Investigação de bugs de reinicialização (`GameScene` crashando por leitura de `.children.entries` em grupos destruídos ao reentrar no Sandbox ou tentar novamente após a morte; e `IntroScene` travando cliques e avanços de diálogo ao iniciar o Modo História pela segunda vez ou pular no ESC).
 - **Decisão:** Adotar três invariantes obrigatórias de ciclo de vida para todas as cenas Phaser:
   1. **Reinicialização Rigorosa (`init`):** Toda cena com propriedades de controle (`isEnding`, `isTyping`, `isPaused`, arrays de entidades) deve implementar `init()` para redefini-las ao valor padrão, pois o Phaser reutiliza a mesma instância da classe em `scene.start()`.
   2. **Ordem de Instanciação de Grupos:** Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) devem ser instanciados no início de `create()`, antes de qualquer chamada a métodos de layout (`loadCustomMapLayout`), acompanhados de checagens defensivas (`this.group && this.group.children`).
   3. **Desligamento e Limpeza (`SHUTDOWN`):** Cenas que registram ouvintes em barramentos globais ou instâncias persistentes (`this.events.on`, `input.keyboard.on`, timers contínuos) devem registrar um ouvinte `SHUTDOWN` para desregistrar/limpar esses elementos, impedindo vazamento de listeners e duplicidade de handlers.
-- **Motivo:** não informado (proposta — aguardando confirmação do dono).
+- **Motivo:** Eliminar crashes de reinicialização e deadlocks de cena, aprovado formalmente pelo dono no Pacote P1.4.
+- **Rever quando:** Se a engine for atualizada ou se um sistema de cenas modular dedicado for introduzido.
+
+---
 
 ### DEC-007: Protocolo de Integridade de Cache e Infraestrutura Web (Proposta — aguardando confirmação do dono)
 - **Status:** Proposta — aguardando confirmação do dono
@@ -103,4 +106,14 @@ Cada decisão registrada deve conter estritamente:
      - Criação do verificador pós-build `scripts/verify-build.mjs` acoplado ao workflow de CI (`deploy.yml`) com qualidade pré-build (`npm run check`) e `fetch-depth: 0`.
 - **Motivo:** não informado (proposta — aguardando confirmação do dono).
 - **Rever quando:** O dono do projeto homologar o comportamento de deploy em produção ou caso o jogo seja migrado para domínio próprio com controle granular de cabeçalhos HTTP via CDN (ex: Cloudflare / Netlify / Vercel).
+
+---
+
+### DEC-008: Resumo Simples para o Dono no Início dos Relatórios (Plain Language Summary)
+- **Status:** Aceita (dono aprovou)
+- **Data:** 2026-10-18
+- **Contexto:** O dono do projeto não é programador profissional e precisa de visibilidade clara e rápida sobre o impacto das entregas sem navegar por jargões técnicos de infraestrutura.
+- **Decisão:** Todo relatório de entrega gerado pela IA deve obrigatoriamente iniciar com a seção "O Que Isso Significa Para Você", contendo até 5 linhas em linguagem simples, direta e sem termos técnicos complexos, explicando o que mudou na experiência do jogador ou do dono.
+- **Motivo:** Aprovado formalmente pelo dono no Pacote P1.4 para garantir transparência executiva e facilidade de teste.
+- **Rever quando:** Nunca (regra permanente de comunicação).
 

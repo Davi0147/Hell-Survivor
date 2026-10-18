@@ -78,6 +78,11 @@ Antes de realizar qualquer edição no código ou na documentação:
     - Pedidos do dono são pontuais por padrão. Nada vira regra em `AGENTS.md`/`docs/MECHANICS.md` ou decisão em `docs/DECISIONS.md` sem o dono dizer "registre como regra" e sem você mostrar antes o texto exato.
     - Decisões em `docs/DECISIONS.md` têm: Status (`Proposta` | `Aceita`), Data, Contexto, Decisão, Motivo (apenas o dito pelo dono ou comprovado no código; senão `"não informado"`), Rever quando. Nunca invente justificativa. Regras podem ser revisadas: substitua marcando a antiga como "Substituída por ...", não apague.
 
+13. **Ciclo de Vida de Cenas Phaser (DEC-006):**
+    - **Zerar estado em `init()`:** Toda cena com variáveis de controle (`isEnding`, `isTyping`, `isPaused`, arrays de entidades) deve implementar `init()` para redefini-las ao valor padrão, pois o Phaser reutiliza a mesma instância da classe em `scene.start()`.
+    - **Criar grupos antes de usá-los:** Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) devem ser instanciados no início de `create()`, antes de qualquer chamada a métodos de layout (`loadCustomMapLayout`), com checagens defensivas (`this.group && this.group.children`).
+    - **Limpar ouvintes no `SHUTDOWN`:** Cenas que registram ouvintes (`this.events.on`, `input.keyboard.on`, timers contínuos) devem registrar um ouvinte `SHUTDOWN` para desregistrar/limpar esses elementos, impedindo vazamento de listeners e duplicidade de handlers.
+
 14. **Registro de Memória (Workflow `/registrar`):**
     - Quando o dono disser "lembra", "anota", "sempre faça assim" ou equivalente, NÃO responda apenas "ok". Siga o workflow `/registrar`:
       1. Classifique o pedido: `REGRA` inviolável (neste arquivo) | `CONTRATO` de mecânica (`docs/MECHANICS.md`) | `PADRÃO` visual/UX (`docs/DESIGN_SYSTEM.md`) | `DECISÃO` (`docs/DECISIONS.md`) | `TAREFA` pendente (`LIVRO_DE_ANOTACOES.md`) | `PREFERÊNCIA` pontual (esta última não é registrada).
@@ -89,3 +94,6 @@ Antes de realizar qualquer edição no código ou na documentação:
 
 15. **Regra de Conflito (Parada Obrigatória):**
     - **Se qualquer instrução de uma tarefa conflitar com este arquivo (`AGENTS.md`), com `docs/MECHANICS.md`, com `docs/DESIGN_SYSTEM.md` ou com `docs/DECISIONS.md`, PARE imediatamente e pergunte ao usuário antes de escrever código.**
+
+16. **Resumo Simples no Início dos Relatórios (DEC-008):**
+    - Todo relatório de entrega gerado pela IA deve obrigatoriamente iniciar com a seção "O Que Isso Significa Para Você", contendo até 5 linhas em linguagem simples, direta e sem termos técnicos complexos, explicando o que mudou na experiência do jogador ou do dono.
