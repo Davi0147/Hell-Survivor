@@ -1,3 +1,5 @@
+import { getChapterMapKey } from './storageKeys';
+
 export interface MapEntityProp {
   type: string; // ex: 'scenery-tocha', 'scenery-rocha', 'scenery-rocha-2', 'scenery-ossos', 'scenery-cogumelos', 'scenery-cristal', 'azazel-crystal', 'altar-1', etc.
   x: number;
@@ -251,7 +253,7 @@ export const DEFAULT_AZAZEL_DIM_MAP: ChapterMapConfig = {
 
 export class MapStorageManager {
   private static getStorageKey(chapter: number = 1): string {
-    return `hell_survivor_custom_map_chapter_${chapter}`;
+    return getChapterMapKey(chapter);
   }
 
   public static getDefaultMap(chapter: number = 1): ChapterMapConfig {

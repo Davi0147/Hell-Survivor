@@ -10,6 +10,7 @@ import { isDevSandboxEnabled } from '../config/balance';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { TouchControls } from '../ui/TouchControls';
 import { GamepadManager } from '../systems/GamepadManager';
+import { STORAGE_KEYS } from '../config/storageKeys';
 
 export class UIScene extends Phaser.Scene {
   // Sistema de Diálogos Estilo Persona 5
@@ -1626,7 +1627,7 @@ export class UIScene extends Phaser.Scene {
 
   public getBestRecordSec(): number {
     try {
-      const val = localStorage.getItem('hell_survivor_endless_record_sec');
+      const val = localStorage.getItem(STORAGE_KEYS.ENDLESS_RECORD_SEC);
       return val ? parseInt(val, 10) || 0 : 0;
     } catch {
       return 0;
@@ -1637,7 +1638,7 @@ export class UIScene extends Phaser.Scene {
     try {
       const current = this.getBestRecordSec();
       if (sec > current) {
-        localStorage.setItem('hell_survivor_endless_record_sec', sec.toString());
+        localStorage.setItem(STORAGE_KEYS.ENDLESS_RECORD_SEC, sec.toString());
         return true;
       }
     } catch {}

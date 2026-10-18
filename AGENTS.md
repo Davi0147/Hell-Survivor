@@ -49,8 +49,8 @@ Antes de realizar qualquer edição no código ou na documentação:
    - **Pausa em Modais/Diálogos:** Ao abrir diálogos, modais de vitória ou menus de seleção, pause a física (`this.physics.pause()`) e congele loops de atualização para evitar dano ou movimentação em segundo plano.
    - **Limpeza de Cenas:** Ao transicionar entre telas, finalize explicitamente as cenas anteriores (`this.scene.stop()`).
 
-7. **Persistência e Chaves de `localStorage` (`STORAGE_KEYS` *(a criar no Pacote 2)*):**
-   - NUNCA espalhe strings literais de chaves do `localStorage` pelo código. Todas as chaves devem ser lidas/gravadas exclusivamente via objeto centralizado `STORAGE_KEYS` *(a criar no Pacote 2 em `src/config/balance.ts`)*, sempre protegidas por `try / catch` e mantendo compatibilidade e migração defensiva com saves anteriores.
+7. **Persistência e Chaves Centralizadas (`STORAGE_KEYS` em `src/config/storageKeys.ts`):**
+   - NUNCA espalhe strings literais de chaves do `localStorage` ou `sessionStorage` pelo código. Todas as chaves devem ser lidas/gravadas exclusivamente via objeto centralizado `STORAGE_KEYS` e suas funções auxiliares (`getChapterMapKey`, `getChapterMapBackupKey`) em [`src/config/storageKeys.ts`](src/config/storageKeys.ts), sempre protegidas por `try / catch` e mantendo compatibilidade e migração defensiva com saves anteriores.
 
 8. **Qualidade de Tipagem (Proibição de `any` Novo):**
    - É **estritamente proibido** introduzir novas anotações `any` no TypeScript. Use interfaces, tipos discriminados, genéricos ou `unknown` com asserção segura. Ao refatorar arquivos existentes, substitua progressivamente os `any` remanescentes por tipos reais.

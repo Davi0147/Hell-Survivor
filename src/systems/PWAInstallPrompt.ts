@@ -4,6 +4,8 @@
  * elegante para instalar o jogo diretamente na tela inicial do celular.
  */
 
+import { STORAGE_KEYS } from '../config/storageKeys';
+
 let deferredPrompt: any = null;
 let bannerElement: HTMLElement | null = null;
 
@@ -19,7 +21,7 @@ export function initPWAInstallPrompt(): void {
   }
 
   // 2. Verifica se o usuário já dispensou nesta sessão
-  if (sessionStorage.getItem('hell_survivor_pwa_dismissed') === '1') {
+  if (sessionStorage.getItem(STORAGE_KEYS.PWA_DISMISSED) === '1') {
     return;
   }
 
@@ -52,7 +54,7 @@ export function initPWAInstallPrompt(): void {
 }
 
 function createAndShowBanner(type: 'native' | 'ios'): void {
-  if (bannerElement || sessionStorage.getItem('hell_survivor_pwa_dismissed') === '1') return;
+  if (bannerElement || sessionStorage.getItem(STORAGE_KEYS.PWA_DISMISSED) === '1') return;
 
   const banner = document.createElement('div');
   banner.id = 'pwa-install-banner';
@@ -157,7 +159,7 @@ function createAndShowBanner(type: 'native' | 'ios'): void {
       deferredPrompt = null;
     } else {
       hideBanner();
-      sessionStorage.setItem('hell_survivor_pwa_dismissed', '1');
+      sessionStorage.setItem(STORAGE_KEYS.PWA_DISMISSED, '1');
     }
   };
 
@@ -176,7 +178,7 @@ function createAndShowBanner(type: 'native' | 'ios'): void {
   `;
   closeBtn.onclick = () => {
     hideBanner();
-    sessionStorage.setItem('hell_survivor_pwa_dismissed', '1');
+    sessionStorage.setItem(STORAGE_KEYS.PWA_DISMISSED, '1');
   };
 
   banner.appendChild(iconImg);

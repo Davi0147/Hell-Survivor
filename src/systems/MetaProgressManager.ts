@@ -4,6 +4,8 @@
  * árvore de bênçãos permanentes e salvamento persistente (localStorage).
  */
 
+import { STORAGE_KEYS } from '../config/storageKeys';
+
 export type BlessingId = 'vitality' | 'might' | 'magnetism' | 'agility' | 'reroll' | 'revival';
 
 export interface BlessingConfig {
@@ -82,7 +84,7 @@ export const BLESSINGS_CATALOG: Record<BlessingId, BlessingConfig> = {
 
 export class MetaProgressManager {
   private static instance: MetaProgressManager;
-  private readonly STORAGE_KEY = 'hell_survivor_meta_save_v1';
+  private readonly STORAGE_KEY = STORAGE_KEYS.META_SAVE;
 
   private data: MetaSaveData;
   public runSoulsCollected: number = 0;

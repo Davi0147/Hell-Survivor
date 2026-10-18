@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from '../config/storageKeys';
+
 export type DebugLogCategory =
   | 'SYSTEM'
   | 'SANDBOX'
@@ -131,7 +133,7 @@ export class DebugSessionLogger {
   private persistToStorage(): void {
     try {
       const recent = this.entries.slice(-150);
-      localStorage.setItem('hell_survivor_debug_session_log', JSON.stringify(recent));
+      localStorage.setItem(STORAGE_KEYS.DEBUG_SESSION_LOG, JSON.stringify(recent));
     } catch {}
   }
 

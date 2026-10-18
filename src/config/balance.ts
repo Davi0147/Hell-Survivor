@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from './storageKeys';
+
 export interface CharacterStats {
   maxHp: number;
   baseSpeed: number;
@@ -112,7 +114,7 @@ export function isDevSandboxEnabled(): boolean {
   try {
     const params = new URLSearchParams(window.location.search);
     if (params.get('debug') === '1' || params.get('sandbox') === '1') return true;
-    if (localStorage.getItem('hell_survivor_dev_unlocked') === 'true') return true;
+    if (localStorage.getItem(STORAGE_KEYS.DEV_UNLOCKED) === 'true') return true;
   } catch {}
   return false;
 }

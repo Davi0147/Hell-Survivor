@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { STORAGE_KEYS } from '../config/storageKeys';
 
 export class SoundManager {
   private static instance: SoundManager;
@@ -35,12 +36,12 @@ export class SoundManager {
 
   private loadSavedVolumes(): void {
     try {
-      const savedMusic = localStorage.getItem('hell_survivor_bgm_vol');
+      const savedMusic = localStorage.getItem(STORAGE_KEYS.BGM_VOLUME);
       if (savedMusic !== null) {
         const val = parseFloat(savedMusic);
         if (!isNaN(val)) this.musicVolume = Phaser.Math.Clamp(val, 0, 1);
       }
-      const savedSfx = localStorage.getItem('hell_survivor_sfx_vol');
+      const savedSfx = localStorage.getItem(STORAGE_KEYS.SFX_VOLUME);
       if (savedSfx !== null) {
         const val = parseFloat(savedSfx);
         if (!isNaN(val)) this.sfxVolume = Phaser.Math.Clamp(val, 0, 1);
@@ -55,7 +56,7 @@ export class SoundManager {
   public setMusicVolume(volume: number): void {
     this.musicVolume = Phaser.Math.Clamp(volume, 0, 1);
     try {
-      localStorage.setItem('hell_survivor_bgm_vol', this.musicVolume.toString());
+      localStorage.setItem(STORAGE_KEYS.BGM_VOLUME, this.musicVolume.toString());
     } catch {}
 
     // Cancela qualquer tween de fade-in ativo para o ajuste manual ter efeito imediato
@@ -95,7 +96,7 @@ export class SoundManager {
   public setSfxVolume(volume: number): void {
     this.sfxVolume = Phaser.Math.Clamp(volume, 0, 1);
     try {
-      localStorage.setItem('hell_survivor_sfx_vol', this.sfxVolume.toString());
+      localStorage.setItem(STORAGE_KEYS.SFX_VOLUME, this.sfxVolume.toString());
     } catch {}
     if (this.sfxGainNode && this.audioCtx) {
       this.sfxGainNode.gain.setValueAtTime(this.sfxVolume, this.audioCtx.currentTime);
