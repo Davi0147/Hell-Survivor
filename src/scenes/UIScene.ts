@@ -2213,6 +2213,7 @@ export class UIScene extends Phaser.Scene {
         this.gameOverModalContainer.destroy();
         this.gameOverModalContainer = undefined;
       }
+      SoundManager.getInstance().stopMusic();
       onRetry();
     };
 
@@ -2223,6 +2224,7 @@ export class UIScene extends Phaser.Scene {
         this.gameOverModalContainer.destroy();
         this.gameOverModalContainer = undefined;
       }
+      SoundManager.getInstance().stopMusic();
       onReturnToMenu();
     };
 

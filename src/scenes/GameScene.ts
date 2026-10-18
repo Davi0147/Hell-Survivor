@@ -1815,6 +1815,7 @@ export class GameScene extends Phaser.Scene {
           },
           () => {
             // Reiniciar o modo e capítulo atuais com mecânica de ressurreição (Hades)
+            SoundManager.getInstance().stopMusic();
             if (this.physics?.world) {
               this.physics.resume();
             }
@@ -1823,6 +1824,7 @@ export class GameScene extends Phaser.Scene {
           },
           () => {
             // Retornar ao Menu Principal
+            SoundManager.getInstance().stopMusic();
             if (this.physics?.world) {
               this.physics.resume();
             }
@@ -1835,6 +1837,7 @@ export class GameScene extends Phaser.Scene {
         if (AutoPlayTestAgent.getInstance().isEnabled) {
           // Se o Bot IA estiver jogando sozinho para testes contínuos, reinicia após 1.5s
           this.time.delayedCall(1500, () => {
+            SoundManager.getInstance().stopMusic();
             if (this.physics?.world) {
               this.physics.resume();
             }
