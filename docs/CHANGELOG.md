@@ -2,6 +2,31 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.1 — Diretor Musical, Blindagem de Ciclo de Vida, Tema Centralizado & Guarda Pre-Commit] — 2026-10-18
+### Correções Críticas & Blindagem de Áudio (PACOTE ÁUDIO-1)
+- **Diretor de Música Autônomo (`src/systems/MusicDirector.ts`)**:
+  - Máquina atômica de estados sonoros (`setMusicState`) desacoplada de tweens de cena do Phaser (usando timers com passos de 25ms), garantindo que trocas ou pausas de cena nunca mais deixem faixas antigas tocando em segundo plano.
+  - Eliminação atômica dos 5 vazamentos musicais mapeados: parada incondicional da música do menu ao iniciar qualquer modo, corte imediato de áudio ao sair da pausa para o menu, sincronização milimétrica do fade de vitória com a troca para a cena de encerramento do capítulo, parada imediata da música ao reiniciar ou sair da partida durante o efeito de morte, e limpeza sem colisões na remoção/invocação de chefes pelo painel de testes.
+  - Tabela de configuração pura (`src/config/musicConfig.ts`) mapeando 9 estados, loops, fades padrão e fórmulas exatas de volume sem alterar nenhum decibel percebido pelo jogador.
+  - Fachada limpa em `src/systems/SoundManager.ts` preservando 100% da API pública e reduzindo a contagem de avisos do ESLint de 203 para 172.
+
+### Qualidade & Ferramental Contínuo (PACOTE G & PACOTE H)
+- **Guarda Automático de Qualidade (`.githooks/pre-commit` & `INSTALAR_GUARDA.bat`)**:
+  - Hook pré-commit em Node puro que valida tipos, ESLint, catraca de cores e testes unitários antes de permitir commits.
+  - Regra 18 no `AGENTS.md` para desacoplamento do personagem jogável (`BaseCharacter`).
+  - Suíte de testes unitários expandida para 91 testes no Vitest (100% aprovados).
+
+### Design System & Carregamento Seguro (PACOTE 2B & 2B.1)
+- **Centralização Tipográfica e Semântica (`src/config/theme.ts`)**:
+  - Tokens semânticos para `FONTS` (`Pixelzone` para display, `Silkscreen` para body), `COLORS` e fórmulas de telegrafia de chefes (`BOSS_TELEGRAPH`).
+  - Números de dano migrados com sucesso para a fonte `Pixelzone` com contorno de alta legibilidade.
+  - Catraca automatizada de cores (`verify-theme.mjs`) travada em 1194 ocorrências.
+  - Espera assíncrona por fontes no `BootScene.ts` com fallback e timeout seguro de 1000ms.
+
+### Correções de Ciclo de Vida & Teste (PACOTE L & PACOTE B)
+- **Limpeza de Ouvintes**: Remoção de listeners de teclado, pointer e timers ao desligar cenas (`MenuScene`, `GameScene`, `UIScene`, `UpgradeScene`, `Chapter1EndScene`).
+- **Bot Autônomo F3**: Capacidade de resolver cartas arcanas mesmo com a `GameScene` pausada e kiting de monstros calibrado.
+
 ## [Pacote G — Guarda Automático de Qualidade] — 2026-10-18
 ### Adicionado & Blindado (Qualidade, Ferramental & Automação)
 - **Hook de Pre-Commit Automatizado (`.githooks/pre-commit` & `scripts/pre-commit.mjs`)**:
