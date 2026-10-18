@@ -29,9 +29,15 @@ if (document.readyState === 'loading') {
 }
 
 // Registro de PWA Service Worker com atualização confiável e banner seguro
+let userRequestedReload = false;
+
 if ('serviceWorker' in navigator && (import.meta.env.PROD || window.location.protocol === 'https:')) {
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // Recarrega SOMENTE se o jogador solicitou a recarga ativamente via clique no banner.
+    // Evita recargas inesperadas na primeira visita (quando o SW recém-instalado chama clients.claim())
+    // e na migração silenciosa do cache legado v1.
+    if (!userRequestedReload) return;
     if (refreshing) return;
     refreshing = true;
     window.location.reload();
@@ -86,6 +92,9 @@ function isCombatActive(): boolean {
   if (!game || !game.scene) return false;
   if (!game.scene.isActive('GameScene')) return false;
   if (game.scene.isPaused('GameScene')) return false;
+
+  const uiScene = game.scene.getScene('UIScene') as { isPaused?: boolean } | undefined;
+  if (uiScene?.isPaused) return false;
 
   const gameScene = game.scene.getScene('GameScene') as { isGameOver?: boolean; isChapterCompleted?: boolean } | undefined;
   if (gameScene?.isGameOver || gameScene?.isChapterCompleted) {
@@ -194,6 +203,7 @@ function showUpdateBanner(worker: ServiceWorker): void {
   `;
 
   reloadButton.addEventListener('click', () => {
+    userRequestedReload = true;
     reloadButton.disabled = true;
     reloadButton.innerText = 'RECARREGANDO...';
     reloadButton.style.opacity = '0.7';
