@@ -31,12 +31,14 @@ npm run build
 
 > **Status Atual de Qualidade**:
 > - TypeScript: **0 erros** (`tsc --noEmit`).
-> - ESLint: **203 avisos** (travado rigidamente na catraca de `--max-warnings 203`; qualquer aviso novo quebra o build com erro 1).
+> - ESLint: **172 avisos** (limite rígido na catraca de `--max-warnings 203`; qualquer aviso novo quebra o commit/build com erro 1).
 > - Catraca de Cores: **Travada em 1194 ocorrências** fora do tema via `scripts/verify-theme.mjs` e `scripts/theme-baseline.json`.
-> - Testes: **66 testes unitários passando** em 9 arquivos de teste cobrindo escalonamento, persistência, capítulos, efeitos de status, validação de mapas, desfecho de derrota de chefes, trancamento do sandbox em domínios públicos e tokens/fórmulas de tema e telegrafia.
+> - Testes: **91 testes unitários passando** em 11 arquivos de teste cobrindo escalonamento, persistência, capítulos, efeitos de status, validação de mapas, desfecho de derrota de chefes, trancamento do sandbox em domínios públicos, tokens/fórmulas de tema e telegrafia, estados e volumes de música pura (`musicConfig`) e máquina atômica do `MusicDirector`.
+> - Guarda Automático: **Ativo via `.githooks/pre-commit`**, executando automaticamente o ciclo de qualidade completo antes de cada commit.
 > - Build: **100% verificado** com sincronia atômica entre `dist/sw.js` e `dist/index.html` via `scripts/verify-build.mjs`.
 
 ### Atalhos de 1 Clique (.bat para Windows):
+- **`INSTALAR_GUARDA.bat`**: Configura o Git (`core.hooksPath = .githooks`) para rodar `npm run check` automaticamente a cada commit, impedindo qualquer regressão no projeto.
 - **`JOGAR.bat`**: Endereço de teste do jogo normal (porta 3000). Libera a porta 3000 de instâncias residuais, limpa caches do Vite (`.vite` e `dist`), inicia o servidor dev com `--force` e abre o navegador padrão automaticamente quando a porta responde (`http://localhost:3000/`).
 - **`TESTAR_VERSAO_1.bat`**: Ensaio de produção local (porta 8080). Compila a versão de produção, sobe servidor de preview local na porta 8080 e abre o jogo.
 - **`TESTAR_ATUALIZACAO.bat`**: Recompila com novo identificador de versão (`BUILD_ID`) mantendo o servidor aberto para testar o banner de atualização PWA.
@@ -59,6 +61,7 @@ npm run build
 ### 2. Código-Fonte (`src/`)
 - **`src/config/`**: Configurações imutáveis e tema:
   - `theme.ts`: Ponto único de verdade para papéis tipográficos (`FONTS`), paleta semântica (`COLORS`) e telegrafia de chefes (`BOSS_TELEGRAPH`).
+  - `musicConfig.ts`: Tabela pura da máquina de estados musicais (9 estados, loops, volumes calibrados e fades).
   - `balance.ts`: Constantes numéricas de gameplay, curvas de sobrevivência e `isDevSandboxEnabled()` (com trava de segurança para domínios públicos).
   - `storageKeys.ts`: Chaves tipadas de `localStorage`.
   - `mapData.ts` & `mapValidation.ts`: Layouts de fases (Cap. 1, 2 e 202) e validador geométrico.
@@ -76,12 +79,13 @@ npm run build
   - `IntroScene.ts` & `Chapter1EndScene.ts`: Cenas de Visual Novel com corte de lâmina.
 - **`src/systems/`**:
   - `MetaProgressManager.ts`: Economia de Almas, Bênçãos permanentes, reembolso de 70% e estatísticas.
+  - `MusicDirector.ts`: Diretor musical autônomo com transições atômicas, timers independentes de cena e controle total do Azazel.
+  - `SoundManager.ts`: Fachada de áudio repassando requisições musicais ao `MusicDirector` e gerindo síntese procedural de SFX e vozes.
   - `DevSandboxPanel.ts`: Painel de testes in-game (`[F1]`) com 5 abas (Cheats, Hordas, Armas, Bênçãos, Logs).
   - `AutoPlayTestAgent.ts`: Bot autônomo de testes (`[F3]`) com kiting e desvio de projéteis.
   - `MapEditorSystem.ts`: Editor in-game com 4 abas e exportação/importação JSON.
-  - `SoundManager.ts`: Gerenciador de áudio com trilhas sincronizadas e síntese procedural.
 - **`src/ui/TouchControls.ts`**: Controles mobile virtuais com novos botões e analógico em pixel art dedicados.
-- **`src/__tests__/`**: 66 testes unitários automatizados em Vitest.
+- **`src/__tests__/`**: 91 testes unitários automatizados em Vitest.
 
 ### 3. Scripts e Infraestrutura (`scripts/` & `public/`)
 - **`public/sw.js`**: Service Worker PWA com injeção de `BUILD_ID`, segregação de estratégias de cache (stale-while-revalidate, cache-first para assets com hash e rede com fallback para sprites/áudio) e recarga controlada fora de combate.
