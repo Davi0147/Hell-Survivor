@@ -34,6 +34,7 @@ export class AutoPlayTestAgent {
   private currentRunId: number = 0;
   private runHistory: TestRunReport[] = [];
   private upgradeDecisionTimer: number = 0;
+  private lastPlayerLevel: number = 0;
 
   private constructor() {}
 
@@ -46,6 +47,9 @@ export class AutoPlayTestAgent {
 
   public toggle(): boolean {
     this.isEnabled = !this.isEnabled;
+    if (this.isEnabled) {
+      this.lastPlayerLevel = 0;
+    }
     DebugSessionLogger.getInstance().log(
       'SANDBOX',
       'INFO',
@@ -62,6 +66,17 @@ export class AutoPlayTestAgent {
 
     const player: Nixy = gameScene.player;
     if (!player || player.currentHp <= 0) return { dx: 0, dy: 0, isSprint: false };
+
+    // Rastreamento de subidas de nível realizadas durante a atuação do bot
+    if (this.lastPlayerLevel === 0) {
+      this.lastPlayerLevel = player.currentLevel;
+    } else if (player.currentLevel > this.lastPlayerLevel) {
+      const diff = player.currentLevel - this.lastPlayerLevel;
+      for (let i = 0; i < diff; i++) {
+        DebugSessionLogger.getInstance().recordBotLevelUp(player.currentLevel - diff + 1 + i);
+      }
+      this.lastPlayerLevel = player.currentLevel;
+    }
 
     // 1. A resolução da tela de Upgrades é orientada pela própria UpgradeScene.update enquanto a GameScene fica pausada.
 
@@ -184,6 +199,20 @@ export class AutoPlayTestAgent {
       }
 
       if (cardToPick && typeof cardToPick.emit === 'function') {
+        const card = cardToPick.getData ? (cardToPick.getData('upgradeCard') as UpgradeCard | undefined) : undefined;
+        const cardTitle = card ? card.title : 'Upgrade Desconhecido';
+        const player = upgradeScene.getPlayer();
+        const level = player ? player.currentLevel : 1;
+        const gameScene = upgradeScene.getGameScene();
+        const timeSec = gameScene && typeof gameScene.survivalTimeMs === 'number'
+          ? gameScene.survivalTimeMs / 1000
+          : 0;
+
+        DebugSessionLogger.getInstance().recordBotUpgrade(cardTitle, level, timeSec, {
+          isAltar: upgradeScene.getIsAltar(),
+          isEvolution: Boolean(card?.isEvolution)
+        });
+
         cardToPick.emit('pointerdown');
       }
     }
