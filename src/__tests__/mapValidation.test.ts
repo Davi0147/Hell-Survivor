@@ -109,7 +109,7 @@ describe('mapValidation (Checklist Oficial de Mapas do Hell Survivor)', () => {
   // BUGS CONHECIDOS (A CORRIGIR NO PACOTE 2):
   // =========================================================================
 
-  describe('Bugs Conhecidos em MapStorageManager', () => {
+  describe('Versionamento e Migração em MapStorageManager', () => {
     beforeEach(() => {
       vi.resetModules();
       const storage = createMemoryStorage();
@@ -117,10 +117,11 @@ describe('mapValidation (Checklist Oficial de Mapas do Hell Survivor)', () => {
       vi.stubGlobal('localStorage', storage);
     });
 
-    it.fails(
-      '[BUG CONHECIDO - Pacote 2] MapStorageManager.getActiveMap deve descartar save antigo se o mapa padrão no código tiver versão mais nova',
+    it(
+      'MapStorageManager.getActiveMap descarta save antigo quando versão for menor, gerando backup e retornando mapa padrão',
       async () => {
         const { MapStorageManager, DEFAULT_CHAPTER_1_MAP } = await import('../config/mapData');
+        const { getChapterMapKey, getChapterMapBackupKey } = await import('../config/storageKeys');
 
         // Salva mapa customizado antigo com version: 1
         const oldCustomMap: ChapterMapConfig = {
@@ -130,11 +131,53 @@ describe('mapValidation (Checklist Oficial de Mapas do Hell Survivor)', () => {
         };
         MapStorageManager.saveCustomMap(oldCustomMap, 1);
 
-        // Simulamos que no código novo o DEFAULT_CHAPTER_1_MAP foi atualizado para version: 2
-        // Hoje o getActiveMap ignora o número de version e carrega cegamente o localStorage antigo.
-        // O teste abaixo falha demonstrando que getActiveMap retorna o mapa antigo em vez do novo default.
+        // O DEFAULT_CHAPTER_1_MAP no código possui version: 2
+        // getActiveMap detecta que custom.version (1) < default.version (2),
+        // salva o mapa customizado na chave de backup, limpa a chave ativa e retorna o default novo
         const loaded = MapStorageManager.getActiveMap(1);
         expect(loaded.version).toBeGreaterThan(1);
+        expect(loaded.version).toBe(2);
+        expect(loaded.name).toBe(DEFAULT_CHAPTER_1_MAP.name);
+
+        // Asserções para o backup e limpeza do storage ativo
+        const backupData = localStorage.getItem(getChapterMapBackupKey(1));
+        expect(backupData).not.toBeNull();
+        expect(JSON.parse(backupData!).name).toBe('Meu Mapa Antigo Customizado');
+
+        const activeCustomData = localStorage.getItem(getChapterMapKey(1));
+        expect(activeCustomData).toBeNull();
+      }
+    );
+
+    it(
+      'MapStorageManager.getActiveMap preserva mapa custom se version estiver ausente mas estrutura for válida (edição em andamento)',
+      async () => {
+        const { MapStorageManager, DEFAULT_CHAPTER_1_MAP } = await import('../config/mapData');
+
+        const customMapNoVersion: Omit<ChapterMapConfig, 'version'> & { version?: number } = {
+          ...DEFAULT_CHAPTER_1_MAP,
+          name: 'Mapa em Edição Sem Versão Explícita'
+        };
+        delete customMapNoVersion.version;
+        MapStorageManager.saveCustomMap(customMapNoVersion as unknown as ChapterMapConfig, 1);
+
+        const loaded = MapStorageManager.getActiveMap(1);
+        expect(loaded.name).toBe('Mapa em Edição Sem Versão Explícita');
+      }
+    );
+
+    it(
+      'MapStorageManager.getDefaultMap realiza lookup por Record e faz fallback para Cap. 1 em capítulos desconhecidos',
+      async () => {
+        const { MapStorageManager, DEFAULT_CHAPTER_1_MAP, DEFAULT_CHAPTER_2_MAP, DEFAULT_AZAZEL_DIM_MAP } = await import('../config/mapData');
+
+        expect(MapStorageManager.getDefaultMap(1).name).toBe(DEFAULT_CHAPTER_1_MAP.name);
+        expect(MapStorageManager.getDefaultMap(2).name).toBe(DEFAULT_CHAPTER_2_MAP.name);
+        expect(MapStorageManager.getDefaultMap(202).name).toBe(DEFAULT_AZAZEL_DIM_MAP.name);
+
+        // Fallback para desconhecidos
+        expect(MapStorageManager.getDefaultMap(999).name).toBe(DEFAULT_CHAPTER_1_MAP.name);
+        expect(MapStorageManager.getDefaultMap(-1).name).toBe(DEFAULT_CHAPTER_1_MAP.name);
       }
     );
   });

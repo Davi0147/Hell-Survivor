@@ -1,7 +1,7 @@
-import { getChapterMapKey } from './storageKeys';
+import { getChapterMapKey, getChapterMapBackupKey } from './storageKeys';
 
 export interface MapEntityProp {
-  type: string; // ex: 'scenery-tocha', 'scenery-rocha', 'scenery-rocha-2', 'scenery-ossos', 'scenery-cogumelos', 'scenery-cristal', 'azazel-crystal', 'altar-1', etc.
+  type: string; // ex: 'scenery-tocha', 'scenery-rocha', 'scenery-rocha-2', 'scenery-ossos', 'scenery-cogumelos', 'scenery-cristal', 'altar-1', etc.
   x: number;
   y: number;
   scale?: number;
@@ -22,8 +22,6 @@ export interface ChapterMapConfig {
   bossPortal: MapPoint;
   bossSpawn: MapPoint;
   itemSpawners: MapPoint[];
-  /** @deprecated Dado morto na config: os 3 Cristais de Azazel são gerados dinamicamente em GameScene.ts na Fase 3 (a remover no Pacote 2). */
-  azazelCrystals?: MapPoint[];
   props: MapEntityProp[];
 }
 
@@ -31,7 +29,7 @@ export interface ChapterMapConfig {
  * Layout Padrão do Capítulo 1 (Cemitério Infernal & Altar de Rosalin)
  */
 export const DEFAULT_CHAPTER_1_MAP: ChapterMapConfig = {
-  version: 1,
+  version: 2,
   chapter: 1,
   name: 'Capítulo 1: O Despertar no Abismo',
   description: 'Arena infernal cercada pelo abismo com o Altar de Invocação de Rosalin no quadrante nordeste.',
@@ -100,7 +98,7 @@ export const DEFAULT_CHAPTER_1_MAP: ChapterMapConfig = {
  * Layout Padrão do Capítulo 2 (Vale das Almas & Santuário de Azazel)
  */
 export const DEFAULT_CHAPTER_2_MAP: ChapterMapConfig = {
-  version: 1,
+  version: 2,
   chapter: 2,
   name: 'Capítulo 2: Domínio de Azazel',
   description: 'Profundezas do purgatório onde Azazel aguarda no santuário noroeste.',
@@ -212,15 +210,14 @@ export const DEFAULT_CHAPTER_2_MAP: ChapterMapConfig = {
     { type: 'scenery-cogumelos', x: -576, y: -2784, scale: 1 },
     { type: 'altar-1', x: -2336, y: -1696, scale: 0.55 },
     { type: 'altar-1', x: 2560, y: 2688, scale: 0.55 }
-  ],
-  azazelCrystals: []
+  ]
 };
 
 /**
  * Layout Padrão da Dimensão Corrompida de Azazel (Fase 3 - chao2.jpg e 3 Cristais de Azazel)
  */
 export const DEFAULT_AZAZEL_DIM_MAP: ChapterMapConfig = {
-  version: 1,
+  version: 2,
   chapter: 202,
   name: 'Dimensão de Azazel (Fase 3 - Chao 2)',
   description: 'Dimensão corrompida com piso chao2.jpg onde 3 Cristais de Azazel devem ser purificados.',
@@ -231,11 +228,6 @@ export const DEFAULT_AZAZEL_DIM_MAP: ChapterMapConfig = {
   itemSpawners: [
     { x: -360, y: 320 },
     { x: 360, y: 320 }
-  ],
-  azazelCrystals: [
-    { x: 0, y: -480 },
-    { x: -460, y: 320 },
-    { x: 460, y: 320 }
   ],
   props: [
     { type: 'scenery-tocha', x: -260, y: -260, scale: 0.5 },
@@ -251,19 +243,24 @@ export const DEFAULT_AZAZEL_DIM_MAP: ChapterMapConfig = {
   ]
 };
 
+const DEFAULT_MAPS: Record<number, ChapterMapConfig> = {
+  1: DEFAULT_CHAPTER_1_MAP,
+  2: DEFAULT_CHAPTER_2_MAP,
+  202: DEFAULT_AZAZEL_DIM_MAP,
+};
+
 export class MapStorageManager {
   private static getStorageKey(chapter: number = 1): string {
     return getChapterMapKey(chapter);
   }
 
+  private static getBackupKey(chapter: number = 1): string {
+    return getChapterMapBackupKey(chapter);
+  }
+
   public static getDefaultMap(chapter: number = 1): ChapterMapConfig {
-    if (chapter === 2) {
-      return JSON.parse(JSON.stringify(DEFAULT_CHAPTER_2_MAP));
-    }
-    if (chapter === 202) {
-      return JSON.parse(JSON.stringify(DEFAULT_AZAZEL_DIM_MAP));
-    }
-    return JSON.parse(JSON.stringify(DEFAULT_CHAPTER_1_MAP));
+    const template = DEFAULT_MAPS[chapter] ?? DEFAULT_CHAPTER_1_MAP;
+    return JSON.parse(JSON.stringify(template));
   }
 
   public static saveCustomMap(map: ChapterMapConfig, chapterOverride?: number): void {
@@ -279,6 +276,8 @@ export class MapStorageManager {
     try {
       const data = localStorage.getItem(this.getStorageKey(chapter));
       if (data) {
+        // Mapas legados podem conter campos obsoletos como azazelCrystals serializado:
+        // O JSON.parse lê normalmente e o campo é ignorado sem gerar erro.
         return JSON.parse(data) as ChapterMapConfig;
       }
     } catch (e) {
@@ -296,10 +295,42 @@ export class MapStorageManager {
   }
 
   public static getActiveMap(chapter: number = 1): ChapterMapConfig {
+    const defaultMap = this.getDefaultMap(chapter);
     const custom = this.loadCustomMap(chapter);
-    if (custom && custom.playerSpawn && custom.bossPortal) {
-      return custom;
+
+    if (!custom) {
+      return defaultMap;
     }
-    return this.getDefaultMap(chapter);
+
+    // Se o mapa não possuir os pontos vitais essenciais, é inválido: retorne o default
+    if (!custom.playerSpawn || !custom.bossPortal) {
+      return defaultMap;
+    }
+
+    const customVersion = typeof custom.version === 'number' ? custom.version : 0;
+    const defaultVersion = defaultMap.version ?? 1;
+
+    // Se a versão do custom for menor que a versão do mapa padrão no código:
+    if (customVersion < defaultVersion) {
+      const isVersionMissing = typeof custom.version !== 'number';
+      const hasSchemaConflict = !custom.bossSpawn || !Array.isArray(custom.itemSpawners) || custom.itemSpawners.length === 0;
+
+      // Se a versão está ausente, mas o mapa é estruturalmente válido (usuário estava editando), preserve sem descartar cego
+      if (isVersionMissing && !hasSchemaConflict) {
+        return custom;
+      }
+
+      // Versão expressamente menor que a padrão ou com conflito de esquema:
+      // Salva backup antes de descartar silenciosamente para o jogador não perder o layout
+      try {
+        localStorage.setItem(this.getBackupKey(chapter), JSON.stringify(custom));
+        this.clearCustomMap(chapter);
+      } catch (err) {
+        console.warn('Erro ao criar backup de mapa legado:', err);
+      }
+      return defaultMap;
+    }
+
+    return custom;
   }
 }
