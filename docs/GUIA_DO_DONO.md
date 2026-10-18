@@ -4,7 +4,8 @@
 > Este guia foi feito especialmente para você, dono do jogo! Ele não tem palavras difíceis ou termos de programador. Se algum termo técnico for necessário, ele estará sempre explicado de forma simples entre parênteses.  
 > 
 > 🌐 **Endereço Oficial do Jogo na Internet:**  
-> [https://davi0147.github.io/Hell-Survivor/](https://davi0147.github.io/Hell-Survivor/)
+> `[AGUARDANDO O DONO INFORMAR O ENDEREÇO DO GITHUB PAGES]`  
+> *(Assim que você me disser o link do jogo online, ele ficará salvo aqui!)*
 
 ---
 
