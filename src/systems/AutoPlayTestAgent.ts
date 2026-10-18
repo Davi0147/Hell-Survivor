@@ -3,7 +3,7 @@ import { Nixy } from '../entities/characters/Nixy';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SoulGem } from '../entities/items/SoulGem';
 import { MapItem } from '../entities/items/MapItem';
-import { UpgradeScene, UpgradeCard } from '../scenes/UpgradeScene';
+import type { UpgradeScene, UpgradeCard } from '../scenes/UpgradeScene';
 import { DebugSessionLogger } from './DebugSessionLogger';
 
 export interface TestRunReport {
@@ -53,8 +53,7 @@ export class AutoPlayTestAgent {
     const player: Nixy = gameScene.player;
     if (!player || player.currentHp <= 0) return { dx: 0, dy: 0, isSprint: false };
 
-    // 1. Pilota a tela de Escolha de Upgrades caso esteja aberta
-    this.checkAndResolveUpgradeModal(gameScene, deltaMs);
+    // 1. A resolução da tela de Upgrades é orientada pela própria UpgradeScene.update enquanto a GameScene fica pausada.
 
     // 2. Dispara Habilidade Suprema automaticamente quando carregada
     if (player.isUltimateReady && !player.isUltimateActive) {
@@ -148,9 +147,8 @@ export class AutoPlayTestAgent {
   /**
    * Resolve a tela de upgrades de forma inteligente escolhendo sinergias e evoluções
    */
-  private checkAndResolveUpgradeModal(gameScene: any, deltaMs: number): void {
-    const upgradeScene = gameScene.scene.get('UpgradeScene') as UpgradeScene;
-    if (!upgradeScene || !gameScene.scene.isActive('UpgradeScene')) {
+  public checkAndResolveUpgradeModal(upgradeScene: UpgradeScene, deltaMs: number): void {
+    if (!this.isEnabled || !upgradeScene || upgradeScene.getIsClosing()) {
       this.upgradeDecisionTimer = 0;
       return;
     }
@@ -160,13 +158,22 @@ export class AutoPlayTestAgent {
     if (this.upgradeDecisionTimer >= 250) {
       this.upgradeDecisionTimer = 0;
 
+      const containers = upgradeScene.getCardContainers();
+      if (containers.length === 0) return;
+
       // Pressiona o primeiro card prioritário ou evoluções
-      const containers: any[] = (upgradeScene as any).cardContainers || [];
-      if (containers.length > 0) {
-        const cardToPick = containers[0];
-        if (cardToPick && typeof cardToPick.emit === 'function') {
-          cardToPick.emit('pointerdown');
+      let cardToPick = containers[0];
+      for (let i = 0; i < containers.length; i++) {
+        const c = containers[i];
+        const card = c.getData ? (c.getData('upgradeCard') as UpgradeCard | undefined) : undefined;
+        if (card && card.isEvolution) {
+          cardToPick = c;
+          break;
         }
+      }
+
+      if (cardToPick && typeof cardToPick.emit === 'function') {
+        cardToPick.emit('pointerdown');
       }
     }
   }
