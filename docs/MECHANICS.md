@@ -27,50 +27,57 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
 1. **Herança e Física:**
    - Todo inimigo estende [`BaseEnemy`](../src/entities/enemies/BaseEnemy.ts) (`Phaser.Physics.Arcade.Sprite`).
    - Suporta reaproveitamento/pooling via método `spawn(x, y, hp, speed, damage)`, limpando tints (`clearTint()`), resetando `isDead = false`, `stunTimer = 0` e reabilitando o corpo físico (`body.enable = true`).
-2. **Escalonamento e Realidade no Código (Auditoria Exaustiva dos 8 Inimigos):**
-   - **`ZombieDog` (Comum) (`GameScene.ts:1623-1626`, `1082-1084`):**
-     - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`.
+2. **Escalonamento e Realidade no Código (Auditoria Exaustiva dos Inimigos e Chefes):**
+   - **`ZombieDog` (Comum) (`GameScene.spawnZombieDogAt` L1069-1126, `GameScene.updateHordeDirector` L1625-1627):**
+     - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`. A função é testada em `scaling.test.ts`; o uso no spawn não é testado.
      - HP: `Math.round(28 * scaling.hpMultiplier * chMult)`.
      - Velocidade: `Math.floor(Math.min(130, 85 * scaling.speedMultiplier))`.
      - Dano: `Math.round(8 * scaling.damageMultiplier * chMult)`.
      - *História vs Infinito:* No Infinito, o escalonamento de HP (+16%/min vs +12%/min) e Dano (+8%/min vs +6%/min) é mais agressivo. No Modo História, aplica ainda o multiplicador de capítulo `chMult` (1.0 no Cap. 1, 1.2 no Cap. 2).
-   - **`ZombieDog` (Alfa / Elite) (`GameScene.ts:1618-1621`):**
-     - Surge **exclusivamente no Modo Infinito** a partir do minuto 2 (`isEndless && elapsedMinutes >= 2 && Math.random() < 0.18`).
-     - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`.
+   - **`ZombieDog` (Alfa / Elite) (`GameScene.updateHordeDirector` L1617-1622):**
+     - Surge **exclusivamente no Modo Infinito** a partir do minuto 2 (`isEndless && scaling.minutes >= 2 && Math.random() < 0.12`).
+     - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`. A função é testada em `scaling.test.ts`; o uso no spawn não é testado.
      - HP: `Math.round(75 * scaling.hpMultiplier * chMult)`.
      - Velocidade: `Math.floor(Math.min(145, 95 * scaling.speedMultiplier))`.
      - Dano: `Math.round(14 * scaling.damageMultiplier * chMult)`.
-   - **`BloodBat` (`GameScene.ts:1196-1201`, `BloodBat.ts:31`):**
-     - **NÃO usa os multiplicadores de stat de `getEnemyScaling`** (apenas usa `scaling.minutes` em `GameScene.ts:1552` para tamanho do bando `flockSize`). Usa fórmula linear inline própria.
+   - **`BloodBat` (`GameScene.spawnBloodBatAt` L1199-1202, `BloodBat.ts:31`):**
+     - **NÃO usa os multiplicadores de stat de `getEnemyScaling`** (apenas usa `scaling.minutes` em `GameScene.ts:1552` para tamanho do bando `flockSize`). Usa fórmula linear inline própria. Não é testado em `scaling.test.ts`.
      - HP: `Math.round((14 + (isEndless ? min * 3 : 0)) * chMult)`.
-     - Velocidade: `Math.floor(155 + (isEndless ? min * 5 : 0))` (sem teto!).
+     - Velocidade: `Math.floor(155 + (isEndless ? min * 5 : 0))` (sem teto).
      - Dano: `Math.round(5 * chMult)`.
      - *História vs Infinito:* Na História, HP (14) e Velocidade (155) são fixos no tempo (multiplicados por `chMult`). No Infinito, ganha +3 HP e +5 vel por minuto decorrido.
-   - **`SkullSlime` (`GameScene.ts:1158-1162`, `SkullSlime.ts:17`):**
-     - **NÃO usa os multiplicadores de stat de `getEnemyScaling`** (apenas usa `scaling.minutes` em `GameScene.ts:1566` para teto `maxSlimes`). Usa fórmula linear inline própria.
+   - **`SkullSlime` (`GameScene.spawnSkullSlimeAt` L1159-1163, `SkullSlime.ts:40-42`):**
+     - **NÃO usa os multiplicadores de stat de `getEnemyScaling`** (apenas usa `scaling.minutes` em `GameScene.ts:1566` para teto `maxSlimes`). Usa fórmula linear inline própria. Não é testado em `scaling.test.ts`.
      - HP: `Math.round((160 + (isEndless ? min * 30 : 0)) * chMult)`.
      - Velocidade: Fixa em `46` px/s (com dash rápido de `300` px/s via timer interno).
      - Dano: `Math.round(10 * chMult)`.
      - *História vs Infinito:* Na História, HP (160) e Dano (10) são estáticos com o tempo. No Infinito, ganha +30 HP por minuto.
-   - **`MummyEnemy` (`GameScene.ts:1589-1592`, `1231-1233`, `MummyEnemy.ts:18`):**
-     - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`.
+   - **`MummyEnemy` (`GameScene.updateHordeDirector` L1587-1593, `GameScene.spawnMummyAt` L1232-1260, `MummyEnemy.ts:82-87`):**
+     - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`. A função é testada em `scaling.test.ts`; o uso no spawn não é testado.
      - HP: `Math.round(130 * scaling.hpMultiplier * chMult)`.
      - Velocidade: `Math.floor(Math.min(100, 58 * scaling.speedMultiplier))`.
      - Dano: `Math.round(15 * scaling.damageMultiplier * chMult)`.
      - *História vs Infinito:* Escala via `getEnemyScaling` com multiplicadores percentuais completos de HP, velocidade e dano.
    - **`Succubus` menor (`src/entities/enemies/Succubus.ts`):**
      - Código morto (`HP 85, Vel 115, Dano 18`). Nunca é importado, instanciado ou gerado na `GameScene.ts`.
-   - **`Cerberus` (Minichefe do Infinito aos 3 min) (`GameScene.ts:1645`):**
-     - Instanciado como sprite de `ZombieDog` com escala 2.2x e tint vermelho `0xff2222`.
+   - **`Cerberus` (Minichefe do Infinito aos 3 min) (`GameScene.spawnCerberusBoss` L1646):**
+     - Instanciado como sprite de `ZombieDog` com escala 1.85x e tint púrpura.
      - Constantes estáticas puras: `HP = 1400`, `Velocidade = 95`, `Dano = 20`.
-     - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**.
+     - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testado em `scaling.test.ts`.
      - Surge estritamente no Modo Infinito ao atingir 3 minutos (`elapsedMinutes >= 3 && !endless3MinBossSpawned`).
-   - **`Matriarca` (Minichefe do Infinito aos 6 min) (`GameScene.ts:1675`):**
-     - Instanciada como sprite de `SuccubusBoss` com escala 1.1x e tint púrpura `0xaa22ff`.
+   - **`Matriarca` (Minichefe do Infinito aos 6 min) (`GameScene.spawnMatriarchBoss` L1676):**
+     - Instanciada como sprite de `SuccubusBoss` com escala 1.45x.
      - Constantes estáticas puras: `HP = 2400`, `Velocidade = 115`, `Dano = 24`.
-     - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**.
+     - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testado em `scaling.test.ts`.
      - Surge estritamente no Modo Infinito ao atingir 6 minutos (`elapsedMinutes >= 6 && !endless6MinBossSpawned`).
-   - > **Nota de Auditoria e Decisão do Dono:** O teste automatizado `src/__tests__/scaling.test.ts` protege **exclusivamente** `getEnemyScaling` (que só é consumido por `ZombieDog` e `MummyEnemy`). `BloodBat` e `SkullSlime` usam lógica inline separada, e os minichefes usam literais fixos. **Decisão do dono: manter comportamento atual ou unificar em getEnemyScaling no futuro.**
+   - **`Succubus Imperial` (Imperatriz Rosalin — Chefe Cap. 1 & Infinito 10m) (`GameScene.spawnSuccubusBoss` L2807 e `GameScene.spawnEndless10MinBoss` L1707, `SuccubusBoss.ts:82-84`):**
+     - **História (Cap. 1):** `HP = 9000`, `Velocidade = 125`, `Dano = 35`, escala `1.75` (`GameScene.ts:2807`).
+     - **Infinito (10 min):** `HP = 12000`, `Velocidade = 135`, `Dano = 40`, escala `1.85` (`GameScene.ts:1707`).
+     - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testada em `scaling.test.ts`.
+   - **`Azazel, O Anjo Caído` (Chefe Cap. 2) (`GameScene.spawnAzazelBoss` L2971, `AzazelBoss.ts:213-215`):**
+     - **Capítulo 2:** `HP = 16000`, `Velocidade = 138`, `Dano = 42`, escala `1.65` (`GameScene.ts:2971`).
+     - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testado em `scaling.test.ts`.
+   - > **Nota de Auditoria e Decisão do Dono:** O teste automatizado `src/__tests__/scaling.test.ts` protege **exclusivamente a função matemática pura `getEnemyScaling`** (cujos multiplicadores só são consumidos por `ZombieDog` e `MummyEnemy`). `BloodBat` e `SkullSlime` usam lógica inline separada, e os minichefes/chefes usam literais estáticos. **A função é testada; o uso no spawn não é testado.**
 3. **Controle de Grupo e Resistência:**
    - O controle de grupo é gerenciado por `applyStun(durationMs)` e `updateStunState(deltaMs)` dentro de `updateEnemy`.
    - Inimigos comuns sofrem redução drástica de velocidade e recebem tint de paralisia; chefes possuem resistência embutida que reduz a duração efetiva do efeito.

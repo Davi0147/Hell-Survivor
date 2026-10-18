@@ -39,8 +39,8 @@ Auditoria realizada em **29 arquivos** de gameplay, lógica de combate e progres
 | [`src/systems/EvolutionManager.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/EvolutionManager.ts) | 115 | Integral (100%) | Regras e sinergias de evolução de armas de nível 5. |
 | [`src/systems/DebugSessionLogger.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/DebugSessionLogger.ts) | 383 | Integral (100%) | Coleta de métricas e persistência dos últimos 150 logs em localStorage. |
 | [`src/systems/AutoPlayTestAgent.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/systems/AutoPlayTestAgent.ts) | 260 | Integral (100%) | Bot de teste autônomo, métricas de sobrevivência e causa de morte. |
-| [`src/scenes/GameScene.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts) | 3702 | Blocos de Método | Spawns (L1082, 1198, 1231, 2805, 2969), escalonamento, i-frames (L2519: 450ms). |
-| [`src/scenes/UIScene.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/UIScene.ts) | 2921 | Blocos de Método | HUD, radar circular, histórico endless (`getBestRecordSec` L1629). |
+| [`src/scenes/GameScene.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts) | 3705 | Blocos de Método | Spawns (spawnZombieDogAt L1069, spawnBloodBatAt L1166, spawnMummyAt L1221, spawnSuccubusBoss L2807, spawnAzazelBoss L2971), escalonamento, i-frames (`playerInvulnerableTimer` L362: 450ms). |
+| [`src/scenes/UIScene.ts`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/UIScene.ts) | 2921 | Blocos de Método | HUD, radar circular, histórico endless (`hell_survivor_endless_record_sec` L168, L312). |
 
 ---
 
@@ -50,11 +50,11 @@ A varredura exaustiva catalogou exatamente **232 valores numéricos** de balance
 
 | Subsistema / Categoria | Qtd. Valores | Exemplos Comprovados no Código |
 | :--- | :---: | :--- |
-| **1. Mecânicas da Nixy** | **14** | i-Frame pós-dano (450ms em `GameScene.ts:2519`), cooldown de stamina (1.0s), vida recuperada no revive (50%). |
+| **1. Mecânicas da Nixy** | **14** | i-Frame pós-dano (450ms em `GameScene.ts:362`), cooldown de stamina (1.0s), vida recuperada no revive (50%). |
 | **2. Armas e Evoluções** | **84** | Dano base do Disparo de Almas (25) e upgrade (+6 por nível em `SoulBoltWeapon.ts:50`), velocidade da Foice (3.6 rad/s), dano do Meteoro (80). |
-| **3. Inimigos Comuns** | **41** | Spawn de BloodBat (hp=14, vel=155, dmg=5 em `BloodBat.ts:31`), SkullSlime (vel base=46, dash=300), MummyEnemy (hp=130, vel=58, dmg=15). |
-| **4. Chefes de Capítulo** | **41** | Succubus História (HP 9000, vel 125, dmg 35 em `GameScene.ts:2805`), Succubus Infinito 10m (HP 12000, vel 135, dmg 40 em L1706), Matriarca 6m (HP 2400, vel 115, dmg 24 em L1675), Azazel História (HP 16000, vel 138, dmg 42 em L2969), Dive Slam (77 em `SuccubusBoss.ts:467`). |
-| **5. Itens de Mapa e Altares** | **19** | Valores de XP de gemas (5, 20, 100, 250, 500 em `GameScene.ts:1290`), cura da Taça (50% HP a cada 40s), raio do Altar. |
+| **3. Inimigos Comuns** | **41** | Spawn de BloodBat (hp=14, vel=155, dmg=5 em `BloodBat.ts:31`), SkullSlime (vel base=46, dash=300 em `SkullSlime.ts:40-42`), MummyEnemy (hp=130, vel=58, dmg=15 em `MummyEnemy.ts:82-87`). |
+| **4. Chefes de Capítulo** | **41** | Succubus História (HP 9000, vel 125, dmg 35 em `GameScene.ts:2807`), Succubus Infinito 10m (HP 12000, vel 135, dmg 40 em `GameScene.ts:1707`), Matriarca 6m (HP 2400, vel 115, dmg 24 em `GameScene.ts:1676`), Azazel História (HP 16000, vel 138, dmg 42 em `GameScene.ts:2971`), Dive Slam (77 em `SuccubusBoss.ts:467`). |
+| **5. Itens de Mapa e Altares** | **19** | Valores de XP de gemas (5, 20, 100, 250, 500 em `SoulGem.ts:36-65`), cura da Taça (50% HP a cada 40s), raio do Altar. |
 | **6. Cenas, Diretor e Progressão** | **33** | Gatilhos de fase da horda (25%, 60% e 85% de purificação), limites de inimigos ativos (40/60). |
 
 ---
