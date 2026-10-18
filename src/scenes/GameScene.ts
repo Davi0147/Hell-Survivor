@@ -3572,7 +3572,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   public sandboxSpawnBoss(withIntroDialogue: boolean): void {
-    this.sandboxRemoveBoss();
+    this.sandboxRemoveBoss(false);
 
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Succubus invocada via Sandbox (Com Diálogo: ${withIntroDialogue})`);
 
@@ -3587,7 +3587,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   public sandboxSpawnAzazel(withIntroDialogue: boolean): void {
-    this.sandboxRemoveBoss();
+    this.sandboxRemoveBoss(false);
     this.currentChapter = 2;
 
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Azazel invocado via Sandbox (Com Diálogo/Intro: ${withIntroDialogue})`);
@@ -3621,7 +3621,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  public sandboxRemoveBoss(): void {
+  public sandboxRemoveBoss(restoreBattleMusic: boolean = true): void {
     this.isBossFightActive = false;
     this.isPlayerMovementLocked = false;
     this.isAzazelPhase3HordeActive = false;
@@ -3669,8 +3669,10 @@ export class GameScene extends Phaser.Scene {
       duration: 600,
       ease: 'Cubic.easeOut'
     });
-    SoundManager.getInstance().playBattleMusic(1500);
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Boss removido via Sandbox e música restaurada.');
+    if (restoreBattleMusic) {
+      SoundManager.getInstance().playBattleMusic(1500);
+    }
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss removido via Sandbox${restoreBattleMusic ? ' e música restaurada.' : '.'}`);
   }
 
   public sandboxClearEnemies(withDrops: boolean): number {
