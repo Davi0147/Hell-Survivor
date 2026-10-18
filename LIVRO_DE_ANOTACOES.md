@@ -84,7 +84,7 @@
   - **Aba 5 (`[5] LOGS & EXPORTAR IA`):** Gravador de Voo (`DebugSessionLogger`) com captura de erros de console, quedas de FPS, botão `[ COPIAR RELATÓRIO COMPLETO P/ IA ]` e exportação JSON.
 - [x] **Área de Teste / Galeria Showroom (`TestShowroomSystem.ts`):** Sala isolada em `Y = -20000` fora da arena com todos os sprites, props, itens, armas, projéteis, inimigos, chefes e molduras de cartas lado a lado em escala real com manequins pacíficos.
 - [x] **Editor de Mapas In-Game (`MapEditorSystem.ts` & `mapData.ts`):** 4 abas organizadas (`Estruturas & Altares`, `Cenário & Props`, `Textura do Chão`, `Checklist Obrigatório`), limites estritos e exportação/importação JSON.
-- [x] **Scripts de Execução e Limpeza de Cache (`INICIAR_JOGO.bat` / `JOGAR.bat`):** Script em lote (.bat) de 1 clique que limpa o cache interno do Vite (`node_modules\.vite`), libera portas residuais, abre automaticamente o navegador e inicia o servidor com `--force`.
+- [x] **Script de Execução e Limpeza de Cache (`JOGAR.bat`):** Script em lote (.bat) de 1 clique que limpa o cache interno do Vite (`node_modules\.vite` e `dist`), libera a porta 3000 de instâncias residuais do node, aguarda a resposta HTTP ativa e abre o jogo automaticamente no navegador padrão via `scripts/jogar-dev.mjs`.
 - [x] **Bot Autônomo de Testes (`AutoPlayTestAgent.ts` — `[F3]`):** Joga sozinho com kiting, captura de altares e escolha automática de upgrades.
 
 ### 1.7. Acessibilidade Multiplataforma (`Concluído ✅`)

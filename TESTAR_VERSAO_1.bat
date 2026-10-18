@@ -1,7 +1,5 @@
-﻿@echo off
-setlocal enabledelayedexpansion
+@echo off
 title Hell Survivor - Teste de Producao (Versao 1)
-chcp 65001 >nul
 color 0C
 
 echo ===================================================================
@@ -12,7 +10,7 @@ echo.
 REM 1. Garantir que estamos na pasta raiz do projeto
 cd /d "%~dp0"
 
-REM 2. Encerrar instâncias anteriores na porta 8080 (apenas se for processo node.exe)
+REM 2. Encerrar instancias anteriores na porta 8080 (apenas se for processo node.exe)
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING 2^>nul') do (
     for /f "tokens=1" %%b in ('tasklist /fi "pid eq %%a" /nh 2^>nul ^| findstr /i "node.exe"') do (
         echo [*] Liberando porta 8080 ocupada pelo processo %%b - PID %%a
@@ -25,7 +23,7 @@ echo [*] Gerando versao compilada de producao (npm run build)...
 call npm.cmd run build
 if errorlevel 1 (
     echo.
-    echo [ERRO] Falha ao compilar o jogo!
+    echo [ERRO] Falha ao compilar o jogo.
     pause
     exit /b 1
 )
@@ -35,7 +33,7 @@ echo [*] Validando integridade atomica do Service Worker e Index...
 call node scripts/verify-build.mjs
 if errorlevel 1 (
     echo.
-    echo [ERRO] O build falhou na verificacao de integridade!
+    echo [ERRO] O build falhou na verificacao de integridade.
     pause
     exit /b 1
 )
@@ -62,6 +60,6 @@ echo.
 call npx.cmd vite preview --port 8080 --host 127.0.0.1
 if errorlevel 1 (
     echo.
-    echo [!] Servidor finalizado.
+    echo [*] Servidor finalizado.
 )
 pause

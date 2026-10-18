@@ -1,7 +1,5 @@
-﻿@echo off
-setlocal enabledelayedexpansion
+@echo off
 title Hell Survivor - Simulador de Atualizacao (Nova Versao)
-chcp 65001 >nul
 color 0A
 
 echo ===================================================================
@@ -20,7 +18,7 @@ echo [*] Recompilando o jogo para simular publicacao de nova versao...
 call npm.cmd run build
 if errorlevel 1 (
     echo.
-    echo [ERRO] Falha ao recompilar o jogo!
+    echo [ERRO] Falha ao recompilar o jogo.
     pause
     exit /b 1
 )
@@ -30,25 +28,25 @@ echo [*] Validando nova integridade atomica...
 call node scripts/verify-build.mjs
 if errorlevel 1 (
     echo.
-    echo [ERRO] O novo build falhou na verificacao!
+    echo [ERRO] O novo build falhou na verificacao.
     pause
     exit /b 1
 )
 
 echo.
 echo ===================================================================
-echo  SUCESSO! NOVA VERSAO GERADA NA PASTA DIST!
+echo  SUCESSO: NOVA VERSAO GERADA NA PASTA DIST.
 echo ===================================================================
 echo.
 echo  O QUE FAZER AGORA NO SEU NAVEGADOR:
 echo.
 echo  1. Volte para a aba do jogo que ja esta aberta no navegador.
 echo  2. Se estiver em combate, pause ou aguarde terminar.
-echo  3. Em alguns segundos, o aviso "NOVA VERSÃO DISPONÍVEL" aparecera
-echo     no topo da tela!
+echo  3. Em alguns segundos, o aviso "NOVA VERSAO DISPONIVEL" aparecera
+echo     no topo da tela.
 echo  4. Clique no botao vermelho [ RECARREGAR ].
 echo  5. A pagina vai recarregar e o codigo do canto direito de baixo
-echo     mudara para a nova data/hora!
+echo     mudara para a nova data/hora.
 echo.
 echo ===================================================================
 echo.
