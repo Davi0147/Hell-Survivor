@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote B — Conserto do Bot Autônomo de Teste F3] — 2026-10-18
+### Corrigido & Aprimorado (Ferramenta de Testes / Sandbox)
+- **Resolução Autônoma da Tela de Upgrades com GameScene Pausada (`src/scenes/UpgradeScene.ts` & `src/systems/AutoPlayTestAgent.ts`)**:
+  - Delegada a chamada de `checkAndResolveUpgradeModal` diretamente para o método `update` ativo da `UpgradeScene` quando `AutoPlayTestAgent.getInstance().isEnabled` estiver ativo.
+  - Com o bot desativado (`isEnabled === false`), o comportamento do jogo é 100% idêntico ao original, preservando controles por teclado, mouse e gamepad, inclusive atalhos de reroll (`R`) e pular (`Espaço`).
+  - Associação das instâncias de cartas aos containers visuais (`rootContainer.setData('upgradeCard', card)`) e priorização de evoluções arcanas quando disponíveis.
+- **Calibração da Navegação e Coleta de Gemas de Alma (`src/systems/AutoPlayTestAgent.ts`)**:
+  - Parâmetros de inteligência artificial extraídos para constantes nomeadas no topo do arquivo: `ENEMY_DETECTION_RADIUS` (180), `ENEMY_THREAT_MAX_FOR_XP` (8), `GEM_SEEK_RADIUS` (600), `MAP_ITEM_SEEK_RADIUS` (500), `REPULSE_WEIGHT` (1.35), `XP_ATTRACTION_WEIGHT` (2.0), `XP_ATTRACTION_SWARM_WEIGHT` (0.8) e `UPGRADE_REACTION_DELAY_MS` (250).
+  - Removida a barreira restritiva de `threatsNear < 3` e o filtro `!g.isAttracted`, permitindo que o bot colete gemas sob pressão moderada e mantenha atração residual mesmo em enxames para evitar fugas desnecessárias para áreas vazias.
+- **Telemetria de Upgrades e Subidas de Nível no Gravador de Sessão (`src/systems/DebugSessionLogger.ts`)**:
+  - Adicionados métodos `recordBotUpgrade(cardTitle, level, timeSec, details)` e `recordBotLevelUp(newLevel)` ao `DebugSessionLogger`.
+  - Exibição das métricas consolidadas (`Níveis Subidos` e `Cartas Escolhidas`) na seção de atributos do relatório gerado por `generateAIReport()`.
+
 ## [Pacote L — Limpeza de Ouvintes e Teclas Acumuladas no Ciclo de Vida das Cenas] — 2026-10-18
 ### Corrigido & Refatorado (DEC-006 / Regra 13)
 - **Eliminação de Acúmulo de Teclas na Escolha de Cartas (`src/scenes/UpgradeScene.ts`)**:
