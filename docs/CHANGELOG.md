@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote P1.6 — Remoção da Matriarca Succubus do Modo Infinito & Saneamento de Nomes] — 2026-10-18
+### Removido & Refatorado
+- **Remoção da Matriarca Succubus do Modo Infinito (`src/scenes/GameScene.ts`)**:
+  - Removido o bloco de spawn aos 6:00 (360s) e a flag de controle `miniBoss6mSpawned`. Atende à decisão do dono de que a Succubus deve aparecer exclusivamente como Chefe Suprema do jogo (aos 10m no Infinito ou via Altar de Invocação).
+  - Mantido o método `spawnMatriarchSuccubus` e o botão correspondente do painel Sandbox (aba 4 de testes) para validações e testes manuais da equipe.
+  - Confirmado via análise estrita que `src/entities/enemies/Succubus.ts` permanece como código morto preservado (nunca instanciado na cena) e não foi alterado.
+  - Mantidos inalterados o Cérbero (3m), o Altar de Invocação (5m) e a Succubus Imperial (10m).
+- **Saneamento e Auditoria de Funções de Spawn nos Documentos (`docs/MECHANICS.md` & `docs/BALANCE_AUDIT.md`)**:
+  - Alinhados os nomes reais das rotinas no código: `spawnCerberusBoss` → `spawnTitanCerberus`, `spawnMatriarchBoss` → `spawnMatriarchSuccubus`, `spawnEndless10MinBoss` → `spawnSuccubusBossEndless`, `updateHordeDirector` → `spawnEnemyRandomPerimeter`.
+  - Atualizadas as tabelas de auditoria de dano e inimigos para refletir a retirada da Matriarca da timeline do Infinito.
+- **Governança do Backlog de Chefes (`LIVRO_DE_ANOTACOES.md`)**:
+  - Registrada a decisão do dono de postergar a implementação do ciclo recorrente de chefes do Infinito para o pós-lançamento, utilizando a especificação de [`docs/FICHA_CICLO_DE_CHEFES.md`](docs/FICHA_CICLO_DE_CHEFES.md) como ponto de partida.
+
 ## [Pacote P1.5 — Correção do Modo Infinito, DEC-007 Aceita & Espera Real no BAT] — 2026-10-18
 ### Corrigido & Adicionado
 - **Continuidade do Modo Infinito na Derrota do Chefe (`src/config/balance.ts` & `src/scenes/GameScene.ts`)**:
