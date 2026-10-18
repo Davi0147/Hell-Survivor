@@ -77,5 +77,30 @@ Cada decisão registrada deve conter estritamente:
   2. **Ordem de Instanciação de Grupos:** Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) devem ser instanciados no início de `create()`, antes de qualquer chamada a métodos de layout (`loadCustomMapLayout`), acompanhados de checagens defensivas (`this.group && this.group.children`).
   3. **Desligamento e Limpeza (`SHUTDOWN`):** Cenas que registram ouvintes em barramentos globais ou instâncias persistentes (`this.events.on`, `input.keyboard.on`, timers contínuos) devem registrar um ouvinte `SHUTDOWN` para desregistrar/limpar esses elementos, impedindo vazamento de listeners e duplicidade de handlers.
 - **Motivo:** não informado (proposta — aguardando confirmação do dono).
-- **Rever quando:** O dono do projeto homologar as regras formais de ciclo de vida das cenas para inclusão em `AGENTS.md` e `docs/MECHANICS.md`.
+
+### DEC-007: Protocolo de Integridade de Cache e Infraestrutura Web (Proposta — aguardando confirmação do dono)
+- **Status:** Proposta — aguardando confirmação do dono
+- **Data:** 2026-10-18
+- **Contexto:** Publicações no GitHub Pages apresentavam risco de versões antigas ou "misturadas" após novos deploys (HTML novo com JS ou sprites em cache legado, ou jogadores travados no cache HTTP de 10 minutos do Pages ou no cache `hell-survivor-cache-v1` estático com estratégia *Stale-While-Revalidate* e `skipWaiting` automático que causava descompasso de assets).
+- **Decisão:** Adotar protocolo atômico e determinístico de cache e atualização web em produção:
+  1. **Build ID Atômico:** Plugin Vite inline sem dependências externas injeta `<sha curto> • <dd/mm hh:mm>` em `dist/sw.js` (`CACHE_NAME = 'hell-survivor-' + BUILD_ID`) e no rodapé `#build-version` de `dist/index.html`.
+  2. **Estratégias de Cache Segregadas por Tipo de Asset no Service Worker:**
+     - `index.html` e requisições de navegação: *Network-First* com fallback offline no cache.
+     - Arquivos com hash de compilação em `/assets/` (JS e CSS): *Cache-First* imutável.
+     - Arquivos estáticos sem hash (sprites, áudio, imagens, fontes, manifest): Rede com `cache: 'no-cache'` para revalidação de cabeçalhos e fallback offline no cache.
+     - Ignorar requisições não-GET e origens externas.
+  3. **Migração Transparente e Ativação sob Demanda:**
+     - Durante a instalação do novo SW, se for detectado o cache legado `'hell-survivor-cache-v1'`, ativa-se imediatamente (`skipWaiting`) para expurgar a versão v1 no `activate`.
+     - Para versões subsequentes, o novo worker permanece em espera (`waiting`) sem derrubar a partida em andamento.
+     - Registro com `{ updateViaCache: 'none' }` para ignorar o cache HTTP de 10 minutos do script `sw.js`.
+     - Verificação em `visibilitychange` (ao focar a aba) e a cada 30 minutos em background.
+  4. **Banner Seguro em Momento Oportuno:**
+     - Exibição de aviso visual conforme `docs/DESIGN_SYSTEM.md` (paleta carmesim, sem emojis).
+     - Verificação de combate ativo: se o jogador estiver em `GameScene` despausada e viva, o aviso aguarda pausa, tela de derrota ou retorno ao menu.
+     - Ação de recarregar restrita ao clique do jogador em `[ RECARREGAR ]` via mensagem `SKIP_WAITING`, com trava contra loops de recarregamento no evento `controllerchange`.
+  5. **Mecanismos de Defesa (Kill-Switch e Verificação de Build):**
+     - Criação do script de emergência `scripts/sw-killswitch.js` que desregistra o worker e deleta todos os caches se um deploy corrompido for lançado.
+     - Criação do verificador pós-build `scripts/verify-build.mjs` acoplado ao workflow de CI (`deploy.yml`) com qualidade pré-build (`npm run check`) e `fetch-depth: 0`.
+- **Motivo:** não informado (proposta — aguardando confirmação do dono).
+- **Rever quando:** O dono do projeto homologar o comportamento de deploy em produção ou caso o jogo seja migrado para domínio próprio com controle granular de cabeçalhos HTTP via CDN (ex: Cloudflare / Netlify / Vercel).
 

@@ -10,11 +10,11 @@
 
 | Classificação | Item / Área | Situação Atual | Impacto |
 | :--- | :--- | :--- | :--- |
-| 🛑 **BLOQUEADOR** | **Invalidação de Cache do Service Worker (`public/sw.js`)** | Registrado em produção (`src/main.ts:32-36`). O SW usa estratégia *Stale-While-Revalidate* cega (`return cached \|\| networked`) com `CACHE_NAME = 'hell-survivor-cache-v1'` estático. | Usuários que já jogaram recebem a versão antiga do cache na primeira visita após um deploy no GitHub Pages, sem aviso visual. *(Nota: em localhost HTTP o worker não é registrado; o teste deve ser feito no ambiente publicado HTTPS).* |
+| ✅ **RESOLVIDO / PRONTO** | **Invalidação de Cache do Service Worker (`public/sw.js`)** | Resolvido no **Pacote P1.1**: Service Worker versionado atômico (`CACHE_NAME = 'hell-survivor-' + BUILD_ID`), segregação de estratégias de rede (Network-First para navegação, Cache-First para `/assets/` com hash, Network com `no-cache` para estáticos sem hash), migração transparente do cache `v1` legado e banner seguro com atualização sob demanda fora de combate. | Zero risco de assets dessincronizados ou "versão misturada" após deploy no GitHub Pages. |
 | ⚠️ **RISCO MÉDIO** | **Backdoor de Debug em Produção (`?debug=1`)** | `isDevSandboxEnabled()` em `balance.ts` permite abrir o DevSandboxPanel em produção caso a URL contenha `?debug=1`. | Qualquer usuário final que adicione o parâmetro na URL tem acesso a invulnerabilidade, alteração de almas e eliminação instantânea de chefes. |
 | ⚠️ **RISCO MÉDIO** | **Fontes Remotas no Google Fonts sem Fallback Offline** | *Silkscreen* e *Press Start 2P* são carregadas exclusivamente via CDN do Google Fonts. | No primeiro carregamento sem internet (PWA offline), o download falha e a tipografia cai para a fonte padrão do sistema. |
 | ⚠️ **RISCO MÉDIO** | **Variáveis Globais no Objeto `window`** | `window.__PHASER_GAME__` e `window.__hellSurvivorSoundManager` expostas globalmente. | Permite inspeção e manipulação de cenas, áudio e variáveis diretamente pelo console do navegador. |
-| ⚠️ **RISCO MÉDIO** | **CI/CD sem Trava de Qualidade Automática** | `deploy.yml` roda apenas `npm ci` e `npm run build` (não roda `npm run check` nem testes). | Se código com testes quebrados ou violações de lint for enviado para a `main`, o build publica o jogo corrompido no Pages. |
+| ✅ **RESOLVIDO / PRONTO** | **CI/CD sem Trava de Qualidade Automática** | Resolvido no **Pacote P1.1**: Pipeline `.github/workflows/deploy.yml` atualizado com etapa de qualidade obrigatória (`npm run check`) antes do build, verificação de integridade atômica pós-build (`node scripts/verify-build.mjs`) e histórico completo (`fetch-depth: 0`). | Se testes falharem ou limites de warning forem excedidos, o deploy é abortado imediatamente sem corromper a produção. |
 | ⚠️ **RISCO MÉDIO** | **Tamanho Elevado de Assets (56.8 MB) e VRAM em Mobile** | Áudios BGM (5.6 MB, 5.0 MB, 4.2 MB) e cenas JPG (2 a 3 MB cada) consom ~90 MB de VRAM e demoram 22–45s em redes 4G. | Carregamento lento em conexões móveis e alto consumo de memória de vídeo em celulares modestos. |
 | ⚠️ **RISCO MÉDIO** | **Peso Morto em `public/` (2.79 MB)** | 56 arquivos no disco nunca são requisitados pelo código (incluindo pasta duplicada `Zombie Dog` e `Chão1.jpg`). | Aumenta desnecessariamente o download do build e o consumo de armazenamento do repositório. |
 | ⚠️ **RISCO MÉDIO** | **Origem e Licenças de Assets Não Documentadas** | Músicas, texturas e sprites não possuem registro de autor ou termos de licença no repositório. | Risco legal para distribuição comercial ou em lojas de aplicativos sem um arquivo formal de créditos. |
@@ -387,3 +387,66 @@ Varredura exaustiva comprovada linha a linha no código-fonte. Todas as chaves d
    - `ui-star` ([`BootScene.ts:162`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/BootScene.ts#L162)): Limpeza antes do carregamento. **O arquivo físico existe no disco** (`public/assets/sprites/items/Star.png`) e é carregado no `preload()` (L428). Usado nas estrelas de pontuação de `Chapter1EndScene.ts:1431`.
 5. **Efeito Visível no Jogo (Hipótese Técnica):**  
    Nenhum efeito visual quebrado durante o gameplay. As texturas existem no disco e são carregadas no `preload()`, ficando disponíveis para as cenas. O impacto é restrito à poluição do console durante a inicialização do jogo.
+
+---
+
+## 12. Protocolo de Cache PWA, Teste E2E e Kill-Switch de Emergência (Pacote P1.1)
+
+### 12.1 Arquitetura e Invariantes do Cache Versionado
+1. **Identificador Atômico de Build:**  
+   O plugin inline em `vite.config.ts` gera o identificador `<sha curto> • <dd/mm hh:mm>` (ex: `fdd078c • 18/10 01:46`) derivado do Git ou de `process.env.GITHUB_SHA`.  
+   Esse identificador é substituído atomicamente no `dist/sw.js` (`CACHE_NAME = 'hell-survivor-' + BUILD_ID`) e no elemento `#build-version` de `dist/index.html`.
+2. **Segregação de Estratégias no Service Worker (`public/sw.js`):**
+   - **Navegação e `index.html`:** *Network-First* com fallback no cache offline. Garante que se houver internet o navegador sempre busca o HTML mais recente.
+   - **Assets com Hash (`/assets/*.js`, `/assets/*.css`):** *Cache-First*. Nomes imutáveis gerados pelo compilador são servidos com máxima velocidade.
+   - **Assets sem Hash (sprites, sons, fontes, manifest):** *Network com `cache: 'no-cache'`* e fallback offline. Permite que sprites ou músicas com mesmo nome sejam revalidadas contra o servidor sem prender o jogador em texturas antigas.
+3. **Controle de Atualização no Cliente (`src/main.ts`):**
+   - Registro com `{ updateViaCache: 'none' }` ignora o cache HTTP de 10 minutos do GitHub Pages.
+   - Detecção via `updatefound` e `registration.waiting`.
+   - Revalidação proativa em `visibilitychange` (ao focar a aba) e intervalo de 30 minutos em background.
+   - **Momento Seguro:** O banner nunca surge no meio do combate ativo (`GameScene` despausada e sem Game Over). Fica em espera até pausa, fim de jogo ou retorno ao menu.
+   - **Ação Explícita:** O jogo nunca recarrega automaticamente sozinho durante a partida; a atualização ocorre somente quando o jogador clica em `[ RECARREGAR ]`.
+
+### 12.2 Guia de Teste Local de Ponta a Ponta (E2E)
+Para simular em ambiente local o comportamento exato de deploy no GitHub Pages:
+
+1. **Compilar o Projeto:**
+   ```powershell
+   npm run build
+   node scripts/verify-build.mjs
+   ```
+2. **Subir Servidor Local de Produção:**
+   ```powershell
+   npx http-server dist -p 8080 -c-1
+   ```
+   *(Ou utilize `npx vite preview --port 8080`)*.
+3. **Validar no Navegador:**
+   - Acesse `http://localhost:8080` (em `localhost`, navegadores modernos registram Service Workers mesmo via HTTP).
+   - Abra o DevTools (`F12`) → Aba **Application** (Aplicativo) → **Service Workers**.
+   - Confirme que o Service Worker está ativo e que na seção **Cache Storage** consta a chave `hell-survivor-<sha> • <data>`.
+   - Inicie uma partida para verificar que o rodapé `#build-version` exibe o identificador correto.
+4. **Simular Chegada de Nova Versão:**
+   - Em outro terminal, faça uma alteração pontual e gere novo build com `npm run build`.
+   - No navegador da partida aberta, clique fora da aba e retorne para focar a aba (disparando `visibilitychange`).
+   - O novo Service Worker será instalado e ficará em estado `waiting`.
+   - Se estiver no menu ou pausado, o banner *"NOVA VERSÃO DISPONÍVEL"* surgirá no topo com a estética carmesim.
+   - Clique em `[ RECARREGAR ]`: o banner mudará para `RECARREGANDO...`, o worker enviará `SKIP_WAITING` e a página recarregará na nova versão, expurgando o cache anterior.
+
+### 12.3 Procedimento de Kill-Switch de Emergência
+Se um deploy quebrado for publicado e prender os navegadores dos jogadores:
+
+1. **Copiar o Kill-Switch para a pasta pública:**
+   ```powershell
+   Copy-Item scripts/sw-killswitch.js public/sw.js -Force
+   ```
+2. **Confirmar e Publicar Imediatamente:**
+   ```powershell
+   git add public/sw.js
+   git commit -m "fix(sw): deploy emergency service worker kill-switch"
+   git push origin main
+   ```
+3. **O Que o Kill-Switch Faz nos Clientes:**
+   - Ativa-se imediatamente com `skipWaiting()`.
+   - Limpa **100%** de todas as chaves de Cache (`caches.delete`).
+   - Chama `registration.unregister()` para desregistrar permanentemente o Service Worker.
+   - Força recarga em todas as janelas ativas conectando-as diretamente ao servidor de rede.

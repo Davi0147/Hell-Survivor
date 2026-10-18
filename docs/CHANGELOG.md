@@ -2,6 +2,32 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Pacote P1.1 — Atualização Confiável e Integridade de Cache Web] — 2026-10-18
+### Adicionado & Refatorado
+- **Plugin de Versionamento Inline (`vite.config.ts`)**:
+  - Geração de `BUILD_ID` no formato `<sha curto> • <dd/mm hh:mm>` sem novas dependências externas.
+  - Injeção dinâmica no rodapé `#build-version` do `index.html` e substituição do marcador `__BUILD_ID__` em `dist/sw.js` no hook `closeBundle()`.
+- **Service Worker Versionado e Atômico (`public/sw.js`)**:
+  - `CACHE_NAME = 'hell-survivor-' + BUILD_ID`.
+  - Estratégias segregadas: *Network-First* para navegação e `index.html`; *Cache-First* para scripts/estilos com hash em `/assets/`; *Network com `cache: 'no-cache'`* para estáticos sem hash (sprites, áudios, fontes).
+  - Migração transparente: expurgo imediato do cache legado `'hell-survivor-cache-v1'` via `skipWaiting` apenas na primeira transição.
+  - Ativação sob demanda em versões futuras via escuta da mensagem `SKIP_WAITING`.
+- **Controle de Atualização e Banner Seguro no Cliente (`src/main.ts`)**:
+  - Registro configurado com `{ updateViaCache: 'none' }` (bypassa o cache de 10 min do GitHub Pages).
+  - Ouvintes de `updatefound`, `waiting`, `visibilitychange` e rotina de revalidação a cada 30 minutos em background.
+  - Proteção contra loops de recarga no evento `controllerchange`.
+  - Banner estilizado segundo `docs/DESIGN_SYSTEM.md` (paleta carmesim `#180208`, `#ff0055`, `#f3d17a`, `#720012`, `#240046`, fonte Silkscreen, sem emojis).
+  - Guarda de momento seguro: não exibe no meio do combate ativo (`GameScene` rodando e não pausada/game over); adia até pausa, fim de jogo ou volta ao menu.
+- **Ferramentas de Defesa e Automação (`scripts/`)**:
+  - `scripts/sw-killswitch.js`: script de emergência para cancelamento do worker e limpeza total de caches.
+  - `scripts/verify-build.mjs`: validação de integridade pós-build garantindo correspondência atômica entre `dist/sw.js` e `dist/index.html`.
+- **Pipeline de CI/CD (`.github/workflows/deploy.yml`)**:
+  - Adicionado `fetch-depth: 0` no checkout para expor histórico Git ao build.
+  - Adicionadas etapas de qualidade obrigatórias (`npm run check`) e verificação pós-build (`node scripts/verify-build.mjs`).
+- **Arquitetura & Decisões**:
+  - Registrada proposta DEC-007 em `docs/DECISIONS.md`.
+  - Atualizado `docs/RELEASE_CHECKLIST.md` com protocolo de testes locais E2E e guia do kill-switch.
+
 ## [Hotfix 1 — Ciclo de Vida das Cenas] — 2026-10-18
 ### Corrigido
 - **GameScene (Crash de reinicialização e retry)**:
