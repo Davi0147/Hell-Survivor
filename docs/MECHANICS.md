@@ -28,13 +28,13 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Todo inimigo estende [`BaseEnemy`](../src/entities/enemies/BaseEnemy.ts) (`Phaser.Physics.Arcade.Sprite`).
    - Suporta reaproveitamento/pooling via método `spawn(x, y, hp, speed, damage)`, limpando tints (`clearTint()`), resetando `isDead = false`, `stunTimer = 0` e reabilitando o corpo físico (`body.enable = true`).
 2. **Escalonamento e Realidade no Código (Auditoria Exaustiva dos Inimigos e Chefes):**
-   - **`ZombieDog` (Comum) (`GameScene.spawnZombieDogAt` L1069-1126, `GameScene.updateHordeDirector` L1625-1627):**
+   - **`ZombieDog` (Comum) (`GameScene.spawnZombieDogAt` L1069-1126, `GameScene.spawnEnemyRandomPerimeter` L1625-1627):**
      - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`. A função é testada em `scaling.test.ts`; o uso no spawn não é testado.
      - HP: `Math.round(28 * scaling.hpMultiplier * chMult)`.
      - Velocidade: `Math.floor(Math.min(130, 85 * scaling.speedMultiplier))`.
      - Dano: `Math.round(8 * scaling.damageMultiplier * chMult)`.
      - *História vs Infinito:* No Infinito, o escalonamento de HP (+16%/min vs +12%/min) e Dano (+8%/min vs +6%/min) é mais agressivo. No Modo História, aplica ainda o multiplicador de capítulo `chMult` (1.0 no Cap. 1, 1.2 no Cap. 2).
-   - **`ZombieDog` (Alfa / Elite) (`GameScene.updateHordeDirector` L1617-1622):**
+   - **`ZombieDog` (Alfa / Elite) (`GameScene.spawnEnemyRandomPerimeter` L1617-1622):**
      - Surge **exclusivamente no Modo Infinito** a partir do minuto 2 (`isEndless && scaling.minutes >= 2 && Math.random() < 0.12`).
      - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`. A função é testada em `scaling.test.ts`; o uso no spawn não é testado.
      - HP: `Math.round(75 * scaling.hpMultiplier * chMult)`.
@@ -52,7 +52,7 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
      - Velocidade: Fixa em `46` px/s (com dash rápido de `300` px/s via timer interno).
      - Dano: `Math.round(10 * chMult)`.
      - *História vs Infinito:* Na História, HP (160) e Dano (10) são estáticos com o tempo. No Infinito, ganha +30 HP por minuto.
-   - **`MummyEnemy` (`GameScene.updateHordeDirector` L1587-1593, `GameScene.spawnMummyAt` L1232-1260, `MummyEnemy.ts:82-87`):**
+   - **`MummyEnemy` (`GameScene.spawnEnemyRandomPerimeter` L1587-1593, `GameScene.spawnMummyAt` L1232-1260, `MummyEnemy.ts:82-87`):**
      - Usa `getEnemyScaling` e `getChapterEnemyStatMultiplier()`. A função é testada em `scaling.test.ts`; o uso no spawn não é testado.
      - HP: `Math.round(130 * scaling.hpMultiplier * chMult)`.
      - Velocidade: `Math.floor(Math.min(100, 58 * scaling.speedMultiplier))`.
@@ -60,17 +60,17 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
      - *História vs Infinito:* Escala via `getEnemyScaling` com multiplicadores percentuais completos de HP, velocidade e dano.
    - **`Succubus` menor (`src/entities/enemies/Succubus.ts`):**
      - Código morto (`HP 85, Vel 115, Dano 18`). Nunca é importado, instanciado ou gerado na `GameScene.ts`.
-   - **`Cerberus` (Minichefe do Infinito aos 3 min) (`GameScene.spawnCerberusBoss` L1646):**
+   - **`Cerberus` (Minichefe do Infinito aos 3 min) (`GameScene.spawnTitanCerberus` L1644):**
      - Instanciado como sprite de `ZombieDog` com escala 1.85x e tint púrpura.
      - Constantes estáticas puras: `HP = 1400`, `Velocidade = 95`, `Dano = 20`.
      - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testado em `scaling.test.ts`.
-     - Surge estritamente no Modo Infinito ao atingir 3 minutos (`elapsedMinutes >= 3 && !endless3MinBossSpawned`).
-   - **`Matriarca` (Minichefe do Infinito aos 6 min) (`GameScene.spawnMatriarchBoss` L1676):**
+     - Surge estritamente no Modo Infinito ao atingir 3 minutos (`elapsedSec >= 180 && !this.miniBoss3mSpawned`).
+   - **`Matriarca` (Minichefe Sandbox / Removida do Infinito) (`GameScene.spawnMatriarchSuccubus` L1675):**
      - Instanciada como sprite de `SuccubusBoss` com escala 1.45x.
      - Constantes estáticas puras: `HP = 2400`, `Velocidade = 115`, `Dano = 24`.
      - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testado em `scaling.test.ts`.
-     - Surge estritamente no Modo Infinito ao atingir 6 minutos (`elapsedMinutes >= 6 && !endless6MinBossSpawned`).
-   - **`Succubus Imperial` (Imperatriz Rosalin — Chefe Cap. 1 & Infinito 10m) (`GameScene.spawnSuccubusBoss` L2807 e `GameScene.spawnEndless10MinBoss` L1707, `SuccubusBoss.ts:82-84`):**
+     - **Removida do Modo Infinito no Pacote P1.6 por decisão do dono** (a Succubus deve aparecer exclusivamente como Chefe Suprema do capítulo e aos 10m). Mantida invocável exclusivamente no Modo de Teste (Sandbox) via painel de desenvolvedor F1 (`GameScene.ts:3540`).
+   - **`Succubus Imperial` (Imperatriz Rosalin — Chefe Cap. 1 & Infinito 10m) (`GameScene.spawnSuccubusBoss` L2800 e `GameScene.spawnSuccubusBossEndless` L1706, `SuccubusBoss.ts:82-84`):**
      - **História (Cap. 1):** `HP = 9000`, `Velocidade = 125`, `Dano = 35`, escala `1.75` (`GameScene.ts:2807`).
      - **Infinito (10 min):** `HP = 12000`, `Velocidade = 135`, `Dano = 40`, escala `1.85` (`GameScene.ts:1707`).
      - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testada em `scaling.test.ts`.

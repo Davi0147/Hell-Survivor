@@ -53,7 +53,7 @@ A varredura exaustiva catalogou exatamente **232 valores numéricos** de balance
 | **1. Mecânicas da Nixy** | **14** | i-Frame pós-dano (450ms em `GameScene.ts:362`), cooldown de stamina (1.0s), vida recuperada no revive (50%). |
 | **2. Armas e Evoluções** | **84** | Dano base do Disparo de Almas (25) e upgrade (+6 por nível em `SoulBoltWeapon.ts:50`), velocidade da Foice (3.6 rad/s), dano do Meteoro (80). |
 | **3. Inimigos Comuns** | **41** | Spawn de BloodBat (hp=14, vel=155, dmg=5 em `BloodBat.ts:31`), SkullSlime (vel base=46, dash=300 em `SkullSlime.ts:40-42`), MummyEnemy (hp=130, vel=58, dmg=15 em `MummyEnemy.ts:82-87`). |
-| **4. Chefes de Capítulo** | **41** | Succubus História (HP 9000, vel 125, dmg 35 em `GameScene.ts:2807`), Succubus Infinito 10m (HP 12000, vel 135, dmg 40 em `GameScene.ts:1707`), Matriarca 6m (HP 2400, vel 115, dmg 24 em `GameScene.ts:1676`), Azazel História (HP 16000, vel 138, dmg 42 em `GameScene.ts:2971`), Dive Slam (77 em `SuccubusBoss.ts:467`). |
+| **4. Chefes de Capítulo** | **41** | Succubus História (HP 9000, vel 125, dmg 35 em `GameScene.ts:2807`), Succubus Infinito 10m (HP 12000, vel 135, dmg 40 em `GameScene.ts:1707`), Matriarca (HP 2400, vel 115, dmg 24 em `GameScene.ts:1675`, removida do Infinito, mantida no Sandbox), Azazel História (HP 16000, vel 138, dmg 42 em `GameScene.ts:2971`), Dive Slam (77 em `SuccubusBoss.ts:467`). |
 | **5. Itens de Mapa e Altares** | **19** | Valores de XP de gemas (5, 20, 100, 250, 500 em `SoulGem.ts:36-65`), cura da Taça (50% HP a cada 40s), raio do Altar. |
 | **6. Cenas, Diretor e Progressão** | **33** | Gatilhos de fase da horda (25%, 60% e 85% de purificação), limites de inimigos ativos (40/60). |
 
@@ -74,7 +74,7 @@ A auditoria de código revelou que nem todos os inimigos comuns utilizam a funç
 | **5. MummyEnemy** | [`GameScene.ts:1589-1592`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1589), [`1231-1233`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1231) | **SIM** (HP, Vel, Dmg) | **SIM** (HP, Dmg) | **História:** HP `130 * hpMult * chMult`, Vel `min(100, 58 * spdMult)`, Dano `15 * dmgMult * chMult`.<br>**Infinito:** escalona com multiplicadores completos de `getEnemyScaling`. |
 | **6. Succubus Menor** | [`Succubus.ts:1-95`](file:///E:/Downloads%20HD/Hell%20Survivor/src/entities/enemies/Succubus.ts) | **NÃO** | **NÃO** | **Código Morto:** Arquivo existe, mas nunca é importado ou instanciado na `GameScene.ts`. |
 | **7. Cerberus (Minichefe 3 min)** | [`GameScene.ts:1645`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1645) | **NÃO** | **NÃO** | **Infinito apenas:** Surge aos 3 min. Constantes literais: HP 1400, Vel 95, Dano 20 fixos (sprite de `ZombieDog` escala 2.2x, tint `0xff2222`). |
-| **8. Matriarca (Minichefe 6 min)** | [`GameScene.ts:1675`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1675) | **NÃO** | **NÃO** | **Infinito apenas:** Surge aos 6 min. Constantes literais: HP 2400, Vel 115, Dano 24 fixos (sprite de `SuccubusBoss` escala 1.1x, tint `0xaa22ff`). |
+| **8. Matriarca (Minichefe)** | [`GameScene.ts:1675`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1675) | **NÃO** | **NÃO** | **Sandbox apenas (removida do Infinito no P1.6):** Constantes literais: HP 2400, Vel 115, Dano 24 fixos (sprite de `SuccubusBoss` escala 1.45x, tint `0xff758f`). Invocável via painel Sandbox. |
 
 ### 3.2 Onde `getEnemyScaling` e `getChapterEnemyStatMultiplier` Realmente Operam
 
@@ -96,7 +96,7 @@ A auditoria de código revelou que nem todos os inimigos comuns utilizam a funç
      - Succubus História: 9000 HP / 125 vel / 35 dmg (`GameScene.ts:2805`).
      - Succubus Imperial Infinito 10m: 12000 HP / 135 vel / 40 dmg (`GameScene.ts:1706`).
      - Cerberus Infinito 3m: 1400 HP / 95 vel / 20 dmg (`GameScene.ts:1645`).
-     - Matriarca Succubus Infinito 6m: 2400 HP / 115 vel / 24 dmg (`GameScene.ts:1675`).
+     - Matriarca Succubus (removida do Infinito no P1.6, mantida no Sandbox): 2400 HP / 115 vel / 24 dmg (`GameScene.ts:1675`).
      - Azazel História: 16000 HP / 138 vel / 42 dmg (`GameScene.ts:2969`).
 4. **Cobertura de Testes Unitários e Decisão do Dono:**
    - O arquivo de testes `src/__tests__/scaling.test.ts` protege **exclusivamente a fórmula matemática de `getEnemyScaling`** (e, portanto, afeta apenas `ZombieDog` e `MummyEnemy`).
@@ -181,7 +181,7 @@ A auditoria de código revelou que nem todos os inimigos comuns utilizam a funç
 | **Orbe Sombrio (Succubus)** | **18** | [`SuccubusBoss.ts:311`](file:///E:/Downloads%20HD/Hell%20Survivor/src/entities/enemies/SuccubusBoss.ts#L311) | Projétil disparado pela chefe a 240 px/s (`DarkOrbProjectile.ts:25`). |
 | **Contato Físico (Succubus História)** | **35** | [`GameScene.ts:2805`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L2805) | Dano de colisão corpo-a-corpo padrão da Succubus no Capítulo 1 da campanha. |
 | **Contato Físico (Succubus Infinito 10m)**| **40** | [`GameScene.ts:1706`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1706) | Dano de colisão da Succubus Imperial aos 10 minutos do Modo Infinito. |
-| **Contato Físico (Matriarca Succubus 6m)**| **24** | [`GameScene.ts:1675`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1675) | Dano de colisão da miniboss aos 6 minutos do Modo Infinito. |
+| **Contato Físico (Matriarca Succubus - Sandbox)**| **24** | [`GameScene.ts:1675`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L1675) | Dano de colisão da miniboss no Modo de Teste (Sandbox). Removida da timeline do Infinito. |
 | **Contato Físico (Azazel História)** | **42** | [`GameScene.ts:2969`](file:///E:/Downloads%20HD/Hell%20Survivor/src/scenes/GameScene.ts#L2969) | Dano de colisão corpo-a-corpo padrão do Chefe Azazel no Capítulo 2 da campanha. |
 | **Dash de Azazel (Fase 1)** | **46** | [`AzazelBoss.ts:716`](file:///E:/Downloads%20HD/Hell%20Survivor/src/entities/enemies/AzazelBoss.ts#L716) | Investida a 760 px/s com linha de telegrafia púrpura. |
 | **Raio Abissal de Azazel** | **48** | [`AzazelBoss.ts:847`](file:///E:/Downloads%20HD/Hell%20Survivor/src/entities/enemies/AzazelBoss.ts#L847) | Raio vertical de trovão sobre a posição da heroína. |
