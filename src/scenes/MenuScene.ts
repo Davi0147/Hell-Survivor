@@ -243,6 +243,16 @@ export class MenuScene extends Phaser.Scene {
 
     // 9. Suporte a Teclado (W/S, Cima/Baixo, Enter, Espaço, ESC)
     this.setupKeyboardInput();
+
+    // 10. Limpeza no Desligamento da Cena (DEC-006 / Anti-Leak)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.input.keyboard) {
+        this.input.keyboard.removeAllKeys(true);
+        this.input.keyboard.removeAllListeners();
+      }
+      this.input.removeAllListeners();
+      this.time.removeAllEvents();
+    });
   }
 
   /**
