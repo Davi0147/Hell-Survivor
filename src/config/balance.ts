@@ -128,9 +128,9 @@ export function getChapterConfig(chapter: number): ChapterConfig {
 
 /**
  * FLAG MESTRE DO MODO DE TESTE (SANDBOX & DEBUG):
- * - Em desenvolvimento: deixe `true` para exibir "MODO DE TESTE" diretamente no Menu Principal.
- * - No lançamento oficial: mude para `false` para ocultar do jogador final.
- *   (Mesmo em `false`, você ainda poderá acessá-lo adicionando `?debug=1` na URL ou digitando `DEV` no Menu Principal).
+ * - Em desenvolvimento local: deixe `true` para exibir "MODO DE TESTE" diretamente no Menu Principal.
+ * - No lançamento oficial / site público: o modo é sempre bloqueado (não abre via ?debug=1 nem localStorage).
+ *   (Em ambiente local/localhost, pode ser acessado com `?debug=1` na URL mesmo em build de produção).
  */
 export const ENABLE_DEV_SANDBOX: boolean = true;
 
