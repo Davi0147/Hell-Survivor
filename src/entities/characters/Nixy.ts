@@ -2,6 +2,14 @@ import Phaser from 'phaser';
 import { BaseCharacter } from './BaseCharacter';
 import { BALANCE } from '../../config/balance';
 import { MetaProgressManager } from '../../systems/MetaProgressManager';
+import {
+  getStatusEffectTint,
+  applyAcidRoot as applyAcidRootPure,
+  applySlow as applySlowPure,
+  applyKnockback as applyKnockbackPure,
+  updateStatusEffects,
+  StatusEffectsState,
+} from '../../systems/statusEffects';
 
 export class Nixy extends BaseCharacter {
   private trailTimer: number = 0;
@@ -52,10 +60,42 @@ export class Nixy extends BaseCharacter {
     }
   }
 
+  private getStatusState(): StatusEffectsState {
+    return {
+      rootTimer: this.rootTimer,
+      slowTimer: this.slowTimer,
+      knockbackTimer: this.knockbackTimer,
+      isRooted: this.isRooted,
+      speedDebuffMultiplier: this.speedDebuffMultiplier,
+    };
+  }
+
+  private syncStatusState(state: StatusEffectsState): void {
+    this.rootTimer = state.rootTimer;
+    this.slowTimer = state.slowTimer;
+    this.knockbackTimer = state.knockbackTimer;
+    this.isRooted = state.isRooted;
+    this.speedDebuffMultiplier = state.speedDebuffMultiplier;
+  }
+
+  private updateStatusTint(): void {
+    const tint = getStatusEffectTint({
+      isRooted: this.isRooted,
+      rootTimer: this.rootTimer,
+      slowTimer: this.slowTimer,
+    });
+    if (tint !== null) {
+      this.setTint(tint);
+    } else {
+      this.clearTint();
+    }
+  }
+
   public applyAcidRoot(durationMs: number = 1000): void {
-    this.isRooted = true;
-    this.rootTimer = durationMs;
-    this.setTint(0x55ff77); // Sprite esverdeado do ácido
+    const state = this.getStatusState();
+    applyAcidRootPure(state, durationMs);
+    this.syncStatusState(state);
+    this.updateStatusTint();
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setVelocity(0, 0);
@@ -63,16 +103,17 @@ export class Nixy extends BaseCharacter {
   }
 
   public applySlow(multiplier: number = 0.60, durationMs: number = 600): void {
-    this.speedDebuffMultiplier = Math.min(this.speedDebuffMultiplier, multiplier);
-    this.slowTimer = Math.max(this.slowTimer, durationMs);
-    if (!this.isRooted) {
-      this.setTint(0x70e000); // Verde tóxico do lodo
-    }
+    const state = this.getStatusState();
+    applySlowPure(state, multiplier, durationMs);
+    this.syncStatusState(state);
+    this.updateStatusTint();
   }
 
   public applyKnockback(vx: number, vy: number, durationMs: number = 220): void {
     this.knockbackVelocity = { x: vx, y: vy };
-    this.knockbackTimer = durationMs;
+    const state = this.getStatusState();
+    applyKnockbackPure(state, durationMs);
+    this.syncStatusState(state);
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setVelocity(vx, vy);
@@ -92,9 +133,14 @@ export class Nixy extends BaseCharacter {
     isSprintRequested: boolean,
     deltaMs: number
   ): void {
-    // Gerenciamento de Knockback
+    // 1. Atualiza timers de controle de grupo via módulo puro
+    const statusState = this.getStatusState();
+    updateStatusEffects(statusState, deltaMs);
+    this.syncStatusState(statusState);
+    this.updateStatusTint();
+
+    // 2. Gerenciamento de Knockback (não bloqueia mais o decremento de slow e root)
     if (this.knockbackTimer > 0) {
-      this.knockbackTimer -= deltaMs;
       const body = this.body as Phaser.Physics.Arcade.Body;
       if (body) {
         body.setVelocity(this.knockbackVelocity.x, this.knockbackVelocity.y);
@@ -103,33 +149,14 @@ export class Nixy extends BaseCharacter {
       return;
     }
 
-    // Gerenciamento de Lentidão (Rastro da Múmia)
-    if (this.slowTimer > 0) {
-      this.slowTimer -= deltaMs;
-      if (this.slowTimer <= 0) {
-        this.speedDebuffMultiplier = 1.0;
-        if (!this.isRooted && this.hurtTimer <= 0) {
-          this.clearTint();
-        }
-      }
-    }
-
-    // Gerenciamento de Prisão Ácida
+    // 3. Gerenciamento de Prisão Ácida: bloqueia movimentação e sprint
     if (this.isRooted) {
-      this.rootTimer -= deltaMs;
-      if (this.rootTimer <= 0) {
-        this.isRooted = false;
-        this.clearTint();
-      } else {
-        // Bloqueia movimentação física e sprint enquanto enraizada
-        dx = 0;
-        dy = 0;
-        isSprintRequested = false;
-        this.setTint(0x55ff77);
-      }
+      dx = 0;
+      dy = 0;
+      isSprintRequested = false;
     }
 
-    // Atualiza lógica central de física e estamina
+    // 4. Atualiza física vetorial e estamina da classe base
     this.updateMovement(dx, dy, isSprintRequested, deltaMs);
 
     // Efeito visual de rastro (ghost trail / sombra fantasma) durante o Full Sprint

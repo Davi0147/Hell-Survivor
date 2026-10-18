@@ -87,14 +87,19 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - **Prisão Ácida / Enraizamento (`rootTimer`):** Configurado via `applyAcidRoot(durationMs = 1000)`. Zera a velocidade do corpo físico (`body.setVelocity(0, 0)`), bloqueia vetores de entrada (`dx = 0`, `dy = 0`), impede ativação de sprint e aplica coloração verde ácida (`this.setTint(0x55ff77)`). O timer é decrementado por `deltaMs` no método `Nixy.updateNixy`. Ao expirar, desativa `isRooted = false` e chama `clearTint()`.
    - **Empurrão / Impacto (`knockbackTimer`):** Configurado via `applyKnockback(vx, vy, durationMs = 220)`. Armazena o vetor em `knockbackVelocity` e impõe velocidade contínua diretamente ao corpo físico (`body.setVelocity(this.knockbackVelocity.x, this.knockbackVelocity.y)`) a cada frame enquanto `knockbackTimer > 0`, sem utilizar atrito/arrasto físico da engine. Dispara tremor de câmera via `this.camerasShake(durationMs)`. O timer é decrementado por `deltaMs` no método `Nixy.updateNixy`.
    - **Sombra Fantasma de Sprint (`trailTimer`):** A cada `40ms` (`TRAIL_INTERVAL_MS`) de deslocamento contínuo em sprint, gera uma cópia translúcida (`createSprintGhost`) com tint magenta/rubi (`0xff2a6d`), alfa `0.85`, blend mode aditivo e fade-out de `360ms`.
-2. **Reação a Dano na Classe Base (`BaseCharacter.ts`):**
-   - **Dano Recente (`hurtTimer`):** Configurado em `BaseCharacter.takeDamage` com valor fixo de `250ms`. É decrementado por `deltaMs` em `BaseCharacter.updateMovement`. Não aplica tint colorido; seu propósito exclusivo é ativar a pose de animação de sofrer impacto (`nixy-hurt-${dir}`) com prioridade sobre as animações de corrida e repouso.
+2. **Reação a Dano e Propósito Exclusivo de `hurtTimer` (`BaseCharacter.ts:250ms`):**
+   - O `hurtTimer` (250ms) existe exclusivamente na classe base `BaseCharacter.ts` para disparar a animação visual de impacto (`nixy-hurt-${dir}`) e foi omitido do Livro anterior porque não altera velocidade, física nem coloração.
+   - Ele é inicializado em `BaseCharacter.takeDamage` e decrementado pelo delta de física em `updateMovement`, mantendo precedência na máquina de estados de animação sobre idle/run/sprint.
+   - Ele não concede imunidade mecânica nem frame de invulnerabilidade (que pertence estritamente a `playerInvulnerableTimer` de 450ms na `GameScene`).
+   - Ele não aplica tint de cor no sprite (a heroína não pisca vermelho nem altera sua paleta de cores através do `hurtTimer`).
+   - Por ser puramente um bloqueador transitório de pose de animação e não um status de controle de grupo, opera de forma desacoplada de Slow, Root e Knockback.
 3. **Invulnerabilidade Pós-Dano (`GameScene.ts`):**
    - A imunidade de dano não reside em `Nixy.ts` nem em `BaseCharacter.ts`. Ela é gerenciada centralmente na cena principal através da propriedade `playerInvulnerableTimer` em [`src/scenes/GameScene.ts`](../src/scenes/GameScene.ts).
    - Ao sofrer dano por colisão com monstros, `playerInvulnerableTimer` é inicializado em `450ms` e é decrementado pelo tempo delta (`delta`) a cada quadro dentro de `GameScene.update()`. Enquanto `playerInvulnerableTimer > 0`, novos danos de colisão com inimigos são ignorados.
-4. **Regra de Prioridade Visual de Cores (A ser consolidada no Pacote 2):**
-   - As colorações visuais devem seguir a hierarquia estrita: `Dano (Hurt) > Prisão (Root: 0x55ff77) > Lentidão (Slow: 0x70e000) > Normal (clearTint)`.
-   - A contagem regressiva de todos os timers deve ocorrer sem interrupções antecipadas.
+4. **Regra de Prioridade Visual de Cores e Módulo Puro (`src/systems/statusEffects.ts`):**
+   - As colorações visuais seguem a hierarquia estrita: `Prisão (Root: 0x55ff77) > Lentidão (Slow: 0x70e000) > Normal (clearTint / null)`.
+   - **Decremento sem congelamento:** Os timers de Slow e Root decrementam continuamente mesmo durante o Knockback, evitando acúmulo artificial de penalidades.
+   - **Limpeza não-destrutiva:** Quando um efeito de status expira mas outro ainda possui tempo restante, o tint do efeito restante é reaplicado imediatamente em vez de executar um `clearTint()` cego.
 
 ---
 
