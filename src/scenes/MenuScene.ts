@@ -1276,8 +1276,8 @@ export class MenuScene extends Phaser.Scene {
     SoundManager.getInstance().playMenuClick();
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(160, () => {
+      SoundManager.getInstance().stopMusic();
       if (mode === 'story') {
-        SoundManager.getInstance().stopMusic();
         if (chapter === 2) {
           this.scene.start('GameScene', { mode: 'story', chapter: 2 });
         } else {
