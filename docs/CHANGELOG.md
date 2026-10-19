@@ -2,6 +2,16 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Unreleased / Pacote 3 — Etapa 2: Extração do CombatBubbleSystem] — 2026-10-18
+### Refatoração & Arquitetura (Divisão da GameScene)
+- **Extração do Sistema de Balões de Combate (`src/systems/CombatBubbleSystem.ts`)**:
+  - Extração dos métodos `startBossCombatBanter`, `showCombatSpeechBubble` e `clearCombatSpeechBubbles`, juntamente com os campos `activeCombatBubbles` e `combatBanterTimers` da `GameScene.ts`.
+  - Redução líquida de 155 linhas na `GameScene.ts`, mantendo fachadas públicas de 1 linha para chamadas internas e compatibilidade retroativa com chefes e sistemas.
+  - Implementação da interface de contexto `ICombatBubbleContext` e contrato genérico `ICombatBubbleTarget` respeitando a Regra 18 (sem assumir personagem fixo Nixy).
+  - Encapsulamento do rastreamento suave no `PRE_RENDER` e descarte com cancelamento de timers no shutdown da cena (Regra 13).
+  - 8 testes unitários de contrato em `src/__tests__/combatBubbleSystem.test.ts` cobrindo criação, limpeza, shutdown e cancelamento de banter (suíte total expandida para 125 testes, 100% aprovados).
+  - Prova por mutação executada com inversão de condição em `showCombatSpeechBubble`, capturada em `reports/mutacao-pacote3-e2.txt`.
+
 ## [v0.9.2 — Fila de Level Up Sequencial, Extração do SandboxController & Trava do Lint em 166] — 2026-10-18
 ### Correções de Jogabilidade & Fila de Progressão
 - **Fila Sequencial de Escolha de Cartas ao Subir Múltiplos Níveis (`GameScene.ts` & `UpgradeScene.ts`)**:
