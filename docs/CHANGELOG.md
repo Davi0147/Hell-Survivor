@@ -2,6 +2,25 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.2 — Fila de Level Up Sequencial, Extração do SandboxController & Trava do Lint em 166] — 2026-10-18
+### Correções de Jogabilidade & Fila de Progressão
+- **Fila Sequencial de Escolha de Cartas ao Subir Múltiplos Níveis (`GameScene.ts` & `UpgradeScene.ts`)**:
+  - Correção de bug onde subir múltiplos níveis de uma só vez (ex.: nível 1 para 4 ao coletar grandes gemas de XP) apresentava a tela de escolha de cartas apenas uma única vez, descartando as escolhas dos demais níveis.
+  - Implementada verificação resiliente no topo do loop de atualização (`GameScene.update()`) com guarda de reentrância (`isUpgradeSceneOpening`), garantindo que cada nível ganho ofereça sua respectiva escolha de cartas em sequência contínua.
+  - Blindagem de física: a simulação permanece 100% congelada enquanto houver níveis pendentes na fila, retomando somente após a última escolha ser finalizada.
+  - 6 novos testes unitários adicionados em `src/__tests__/levelUpQueue.test.ts` (suíte total expandida para 117 testes, 100% aprovados).
+
+### Refatoração & Arquitetura (Pacote 3 — Etapa 1)
+- **Extração do Controlador de Sandbox (`src/systems/SandboxController.ts`)**:
+  - Extração de 10 métodos operacionais de trapaça/testes e dos 5 campos de modificadores de trapaça da `GameScene.ts`.
+  - Redução líquida de 150 linhas na `GameScene.ts`, mantendo fachadas públicas de 1 linha para compatibilidade com o painel `DevSandboxPanel.ts`.
+  - Criação da interface de contrato `ISandboxContext`, tipando a ponte entre a cena, o controlador e o painel de testes sem uso de `any`.
+  - 20 testes unitários de contrato em `src/__tests__/sandboxController.test.ts` e prova por mutação registrada.
+
+### Qualidade & Catraca do Lint
+- **Abaixamento da Catraca do ESLint para 166 Avisos**:
+  - A catraca rígida `--max-warnings` do ESLint foi reduzida de 203 para 166 no `package.json` e documentação técnica, blindando a limpeza de tipagem obtida no Pacote 3 contra qualquer novo aviso.
+
 ## [v0.9.1 — Diretor Musical, Blindagem de Ciclo de Vida, Tema Centralizado & Guarda Pre-Commit] — 2026-10-18
 ### Correções Críticas & Blindagem de Áudio (PACOTE ÁUDIO-1)
 - **Diretor de Música Autônomo (`src/systems/MusicDirector.ts`)**:
