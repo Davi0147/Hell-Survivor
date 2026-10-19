@@ -85,7 +85,7 @@
 - [x] **Área de Teste / Galeria Showroom (`TestShowroomSystem.ts`):** Sala isolada em `Y = -20000` fora da arena com todos os sprites, props, itens, armas, projéteis, inimigos, chefes e molduras de cartas lado a lado em escala real com manequins pacíficos.
 - [x] **Editor de Mapas In-Game (`MapEditorSystem.ts` & `mapData.ts`):** 4 abas organizadas (`Estruturas & Altares`, `Cenário & Props`, `Textura do Chão`, `Checklist Obrigatório`), limites estritos e exportação/importação JSON.
 - [x] **Script de Execução e Limpeza de Cache (`JOGAR.bat`):** Script em lote (.bat) de 1 clique que limpa o cache interno do Vite (`node_modules\.vite` e `dist`), libera a porta 3000 de instâncias residuais do node, aguarda a resposta HTTP ativa e abre o jogo automaticamente no navegador padrão via `scripts/jogar-dev.mjs`.
-- [x] **Bot Autônomo de Testes (`AutoPlayTestAgent.ts` — `[F3]`):** Joga sozinho com kiting, captura de altares e escolha automática de upgrades.
+- [x] **Bot Autônomo de Testes (`AutoPlayTestAgent.ts` — `[F3]`):** Joga sozinho com kiting, captura de altares, escolha automática de upgrades e resolução/coleta autônoma de Baús do Abismo sem deadlocks.
 
 ### 1.7. Acessibilidade Multiplataforma (`Concluído ✅`)
 - [x] **Controles Mobile (`TouchControls.ts`):** Joystick virtual flutuante/fixo à esquerda e botões ergonômicos de Sprint, Ultimate e Pausa à direita com sprites dedicados em pixel art (`Analog.png`, `Stick.png`, `Sprint.png`, `UltButton.png`, `Pause.png`), feedback tátil com compressão/tintura e pulso visual de prontidão da Suprema.
