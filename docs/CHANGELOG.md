@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Unreleased / Pacote 3 — Etapa 3: Extração do ArenaScenerySystem] — 2026-10-18
+### Refatoração & Arquitetura (Divisão da GameScene)
+- **Extração do Sistema de Cenário da Arena (`src/systems/ArenaScenerySystem.ts`)**:
+  - Extração dos limites visuais da arena (`drawArenaBorders`), névoa ondulante das bordas (`updateBorderMist`), métodos de props individuais (`addSceneryRock`, `addSceneryTorch`, `addSceneryCrystal`, `addSceneryMushroom`, `addSceneryBones`), instanciação temática em lote (`spawnSceneryProps`), limpeza completa (`clearAllSceneryProps`) e controle de visibilidade (`setSceneryPropsVisible`) da `GameScene.ts`.
+  - Redução líquida de 271 linhas na `GameScene.ts` (333 exclusões, 62 inserções), mantendo fachadas públicas de 1 linha e getters/setters para compatibilidade retroativa absoluta.
+  - Criação da interface estrita de contexto `ISceneryContext` sem nenhum `any` novo.
+  - Decisões arquiteturais fundamentadas: `loadCustomMapLayout` permaneceu na `GameScene.ts` por tocar em 9 elementos interdependentes da cena (player, câmeras, altares, textura, itens, horda, modo); `setArenaFloorTexture` permaneceu na `GameScene.ts` para manipular diretamente o `floorTile` da cena.
+  - Descarte seguro e completo no evento `SHUTDOWN` (Regra 13), limpando gráficos, emissores de partículas e todos os props em cena.
+  - 17 testes unitários de contrato em `src/__tests__/arenaScenerySystem.test.ts` cobrindo desenho de bordas, névoa direcional nas margens, props individuais, spawn em lote, visibilidade e ciclo de destruição (suíte total expandida para 145 testes, 100% aprovados).
+  - Prova por mutação executada com cancelamento da destruição de props em `clearSceneryPropsOnly`, capturada em `reports/mutacao-pacote3-e3.txt` com falha de 2 testes e reversão limpa comprovada via git diff vazio.
+
 ## [Unreleased / Pacote 3 — Etapa 2: Extração do CombatBubbleSystem] — 2026-10-18
 ### Correções do Modo de Teste (Sandbox)
 - **Restauração do Altar de Invocação para "Succubus com Diálogo" (`BossSummonAltar.ts` & `SandboxController.ts`)**:
