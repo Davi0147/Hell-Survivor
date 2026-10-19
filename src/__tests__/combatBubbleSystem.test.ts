@@ -248,13 +248,17 @@ describe('CombatBubbleSystem (Pacote 3 — Etapa 2)', () => {
   });
 
   describe('3. Limpeza no destroy', () => {
-    it('desinscreve do evento PRE_RENDER e destrói todos os balões', () => {
+    it('desinscreve do evento PRE_RENDER, destrói todos os balões e cancela timers de banter', () => {
+      system.startBossCombatBanter();
       system.showCombatSpeechBubble(player, 'Fala ativa', 3000, true);
       expect(system.getActiveBubbles().length).toBe(1);
+      expect(system.getBanterTimers().length).toBe(8);
 
       system.destroy();
 
       expect(system.getActiveBubbles().length).toBe(0);
+      expect(system.getBanterTimers().length).toBe(0);
+      expect(createdTimers.every(t => t.isCancelled)).toBe(true);
       expect(mockContext.events.off).toHaveBeenCalledWith(
         Phaser.Scenes.Events.PRE_RENDER,
         expect.any(Function)
