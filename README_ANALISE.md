@@ -31,7 +31,7 @@ npm run build
 
 > **Status Atual de Qualidade**:
 > - TypeScript: **0 erros** (`tsc --noEmit`).
-> - ESLint: **166 avisos** (limite rígido na catraca de `--max-warnings 166`; qualquer aviso novo quebra o commit/build com erro 1).
+> - ESLint: **164 avisos** (limite rígido na catraca de `--max-warnings 164`; qualquer aviso novo quebra o commit/build com erro 1).
 > - Catraca de Cores: **Travada em 1194 ocorrências** fora do tema via `scripts/verify-theme.mjs` e `scripts/theme-baseline.json`.
 > - Testes: **91 testes unitários passando** em 11 arquivos de teste cobrindo escalonamento, persistência, capítulos, efeitos de status, validação de mapas, desfecho de derrota de chefes, trancamento do sandbox em domínios públicos, tokens/fórmulas de tema e telegrafia, estados e volumes de música pura (`musicConfig`) e máquina atômica do `MusicDirector`.
 > - Guarda Automático: **Ativo via `.githooks/pre-commit`**, executando automaticamente o ciclo de qualidade completo antes de cada commit.
