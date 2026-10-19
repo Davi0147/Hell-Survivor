@@ -57,7 +57,11 @@ export const COLORS = {
   staminaTextGreen: '#10b981',
   cyanMarker: 0x00f5d4,
   soulMagnetBlue: 0x38bdf8,
-  corruptedSoulPurple: 0xa855f7
+  corruptedSoulPurple: 0xa855f7,
+
+  // --- Falas de Combate (Combat Bubbles) ---
+  phraseNixy: '#ff758f',
+  phraseSuccubus: '#c084fc'
 } as const;
 
 export const BOSS_TELEGRAPH = {
