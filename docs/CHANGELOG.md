@@ -3,6 +3,12 @@
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
 ## [Unreleased / Pacote 3 — Etapa 2: Extração do CombatBubbleSystem] — 2026-10-18
+### Correções do Modo de Teste (Sandbox)
+- **Restauração do Altar de Invocação para "Succubus com Diálogo" (`BossSummonAltar.ts` & `SandboxController.ts`)**:
+  - *Defeito*: Ao derrotar a Chefe Succubus em combate, o evento `'boss-defeated'` chamava `bossSummonAltar.complete()`, definindo `isCompleted = true` e tint cinza de forma irreversível. Ao tentar invocar posteriormente a Succubus via "SUCCUBUS (COM DIÁLOGO)" no Sandbox, o jogo ativava o altar e exibia o aviso de aproximação, mas `BossSummonAltar.updateAltar()` abortava na verificação de `isCompleted`, impedindo o início da batalha cinematográfica por proximidade.
+  - *Correção*: Implementado o método cirúrgico `resetForSandbox()` em `BossSummonAltar.ts` que restaura as flags (`isActive = false`, `isBossSpawned = false`, `isCompleted = false`), os timers de animação/partículas e a textura base `'altar-invoc-inactive'` com remoção do tint cinza (`clearTint()`). Chamado exclusivamente por `SandboxController.spawnBoss(true)` antes de invocar `triggerBossEncounter()`, preservando 100% o comportamento do jogo padrão.
+  - *Testes de Contrato*: 3 novos testes adicionados em `src/__tests__/sandboxController.test.ts` validando o retorno ao estado inicial, a precedência do reset antes de `triggerBossEncounter` no spawn com diálogo e a não execução do reset no spawn direto sem diálogo. Prova por mutação gravada em `reports/mutacao-fix-altar.txt`.
+
 ### Refatoração & Arquitetura (Divisão da GameScene)
 - **Extração do Sistema de Balões de Combate (`src/systems/CombatBubbleSystem.ts`)**:
   - Extração dos métodos `startBossCombatBanter`, `showCombatSpeechBubble` e `clearCombatSpeechBubbles`, juntamente com os campos `activeCombatBubbles` e `combatBanterTimers` da `GameScene.ts`.
