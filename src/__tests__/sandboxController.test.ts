@@ -80,6 +80,7 @@ vi.mock('../systems/SoundManager', () => ({
 import { SandboxController, type ISandboxContext } from '../systems/SandboxController';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
+import { BossSummonAltar } from '../entities/items/BossSummonAltar';
 
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 
@@ -221,6 +222,70 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
       ctrl.spawnBoss(true);
       expect(mockContext.currentChapter).toBe(1);
       expect(mockContext.triggerBossEncounter).toHaveBeenCalledTimes(1);
+    });
+
+    it('altar completo, spawned e ativo volta ao estado inicial após resetForSandbox', () => {
+      const fakeAltar = {
+        isActive: true,
+        isBossSpawned: true,
+        isCompleted: true,
+        currentActiveFrame: 2,
+        animTimer: 150,
+        particleTimer: 50,
+        pulseTimer: 300,
+        altarSprite: {
+          setTexture: vi.fn(),
+          clearTint: vi.fn()
+        },
+        auraGraphics: {
+          clear: vi.fn()
+        }
+      };
+
+      BossSummonAltar.prototype.resetForSandbox.call(fakeAltar as unknown as BossSummonAltar);
+
+      expect(fakeAltar.isActive).toBe(false);
+      expect(fakeAltar.isBossSpawned).toBe(false);
+      expect(fakeAltar.isCompleted).toBe(false);
+      expect(fakeAltar.currentActiveFrame).toBe(1);
+      expect(fakeAltar.animTimer).toBe(0);
+      expect(fakeAltar.particleTimer).toBe(0);
+      expect(fakeAltar.pulseTimer).toBe(0);
+      expect(fakeAltar.altarSprite.setTexture).toHaveBeenCalledWith('altar-invoc-inactive');
+      expect(fakeAltar.altarSprite.clearTint).toHaveBeenCalledTimes(1);
+      expect(fakeAltar.auraGraphics.clear).toHaveBeenCalledTimes(1);
+    });
+
+    it('spawnBoss(true) chama resetForSandbox do altar ANTES de triggerBossEncounter', () => {
+      const callOrder: string[] = [];
+      const mockAltar = {
+        resetForSandbox: vi.fn(() => {
+          callOrder.push('resetForSandbox');
+        })
+      };
+      mockContext.bossSummonAltar = mockAltar as unknown as BossSummonAltar;
+      mockContext.triggerBossEncounter = vi.fn(() => {
+        callOrder.push('triggerBossEncounter');
+      });
+
+      const ctrl = new SandboxController(mockContext as unknown as ISandboxContext);
+      ctrl.spawnBoss(true);
+
+      expect(mockAltar.resetForSandbox).toHaveBeenCalledTimes(1);
+      expect(mockContext.triggerBossEncounter).toHaveBeenCalledTimes(1);
+      expect(callOrder).toEqual(['resetForSandbox', 'triggerBossEncounter']);
+    });
+
+    it('spawnBoss(false) NÃO chama resetForSandbox do altar', () => {
+      const mockAltar = {
+        resetForSandbox: vi.fn()
+      };
+      mockContext.bossSummonAltar = mockAltar as unknown as BossSummonAltar;
+
+      const ctrl = new SandboxController(mockContext as unknown as ISandboxContext);
+      ctrl.spawnBoss(false);
+
+      expect(mockAltar.resetForSandbox).not.toHaveBeenCalled();
     });
 
     it('spawnBoss sem diálogo instancia chefe e dispara música de chefe', () => {

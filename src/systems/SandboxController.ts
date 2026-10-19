@@ -146,6 +146,7 @@ export class SandboxController {
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Boss Succubus invocada via Sandbox (Com Diálogo: ${withIntroDialogue})`);
 
     if (withIntroDialogue) {
+      this.context.bossSummonAltar?.resetForSandbox();
       this.context.currentChapter = 1;
       this.context.triggerBossEncounter();
     } else {

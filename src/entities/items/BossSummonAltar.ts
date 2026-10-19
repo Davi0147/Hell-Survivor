@@ -153,4 +153,24 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
     this.altarSprite.setTint(0x777777);
     this.auraGraphics.clear();
   }
+
+  /**
+   * Restaura o altar ao estado inativo inicial exclusivo para repetição de testes no Modo Sandbox.
+   */
+  public resetForSandbox(): void {
+    this.isActive = false;
+    this.isBossSpawned = false;
+    this.isCompleted = false;
+    this.currentActiveFrame = 1;
+    this.animTimer = 0;
+    this.particleTimer = 0;
+    this.pulseTimer = 0;
+    if (this.altarSprite) {
+      this.altarSprite.setTexture('altar-invoc-inactive');
+      this.altarSprite.clearTint();
+    }
+    if (this.auraGraphics) {
+      this.auraGraphics.clear();
+    }
+  }
 }

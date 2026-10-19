@@ -2,6 +2,37 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.3 — Balões de Fala, Cenário da Arena & Correção do Altar no Modo de Teste] — 2026-10-19
+
+### Resumo para o Jogador
+- **O que muda para o jogador**: Nada visível na jogabilidade normal. Todo o comportamento, visuais, limites de arena, névoa, falas de combate e tempos de jogo continuam exatamente idênticos.
+- **Modo de Teste ([F1] Sandbox)**: Correção na invocação "Succubus (com diálogo)". Agora é possível invocar e enfrentar a chefe com o diálogo cinemático múltiplas vezes na mesma sessão de teste, mesmo após ela já ter sido derrotada anteriormente.
+- **Organização interna (código do jogo)**: Continuação da faxina e modularização da cena principal (`GameScene.ts`), separando o sistema de balões de fala de combate (`CombatBubbleSystem.ts`) e o sistema de cenário e bordas da arena (`ArenaScenerySystem.ts`) em módulos dedicados e seguros, com 145 testes automatizados cobrindo cada detalhe.
+
+### Correções do Modo de Teste (Sandbox)
+- **Restauração do Altar de Invocação para "Succubus com Diálogo" (`BossSummonAltar.ts` & `SandboxController.ts`)**:
+  - *Defeito*: Ao derrotar a Chefe Succubus em combate, o evento `'boss-defeated'` chamava `bossSummonAltar.complete()`, definindo `isCompleted = true` e tint cinza de forma irreversível. Ao tentar invocar posteriormente a Succubus via "SUCCUBUS (COM DIÁLOGO)" no Sandbox, o jogo ativava o altar e exibia o aviso de aproximação, mas `BossSummonAltar.updateAltar()` abortava na verificação de `isCompleted`, impedindo o início da batalha cinematográfica por proximidade.
+  - *Correção*: Implementado o método cirúrgico `resetForSandbox()` em `BossSummonAltar.ts` que restaura as flags (`isActive = false`, `isBossSpawned = false`, `isCompleted = false`), os timers de animação/partículas e a textura base `'altar-invoc-inactive'` com remoção do tint cinza (`clearTint()`). Chamado exclusivamente por `SandboxController.spawnBoss(true)` antes de invocar `triggerBossEncounter()`, preservando 100% o comportamento do jogo padrão.
+  - *Testes de Contrato*: 3 novos testes adicionados em `src/__tests__/sandboxController.test.ts` validando o retorno ao estado inicial, a precedência do reset antes de `triggerBossEncounter` no spawn com diálogo e a não execução do reset no spawn direto sem diálogo. Prova por mutação gravada em `reports/mutacao-fix-altar.txt`.
+
+### Refatoração & Arquitetura (Pacote 3 — Etapas 2 e 3)
+- **Extração do Sistema de Balões de Combate (`src/systems/CombatBubbleSystem.ts`)**:
+  - Extração dos métodos `startBossCombatBanter`, `showCombatSpeechBubble` e `clearCombatSpeechBubbles`, juntamente com os campos `activeCombatBubbles` e `combatBanterTimers` da `GameScene.ts`.
+  - Redução líquida de 155 linhas na `GameScene.ts`, mantendo fachadas públicas de 1 linha para chamadas internas e compatibilidade retroativa com chefes e sistemas.
+  - Implementação da interface de contexto `ICombatBubbleContext` e contrato genérico `ICombatBubbleTarget` respeitando a Regra 18 (sem assumir personagem fixo Nixy).
+  - Encapsulamento do rastreamento suave no `PRE_RENDER` e descarte com cancelamento de timers no shutdown da cena (Regra 13).
+  - 8 testes unitários de contrato em `src/__tests__/combatBubbleSystem.test.ts` com prova por mutação registrada em `reports/mutacao-pacote3-e2b.txt`.
+- **Extração do Sistema de Cenário da Arena (`src/systems/ArenaScenerySystem.ts`)**:
+  - Extração dos limites visuais da arena (`drawArenaBorders`), névoa ondulante das bordas (`updateBorderMist`), métodos de props individuais (`addSceneryRock`, `addSceneryTorch`, `addSceneryCrystal`, `addSceneryMushroom`, `addSceneryBones`), instanciação temática em lote (`spawnSceneryProps`), limpeza completa (`clearAllSceneryProps`) e controle de visibilidade (`setSceneryPropsVisible`) da `GameScene.ts`.
+  - Redução líquida de 271 linhas na `GameScene.ts` (333 exclusões, 62 inserções), mantendo fachadas públicas de 1 linha e getters/setters para compatibilidade retroativa absoluta.
+  - Criação da interface estrita de contexto `ISceneryContext` sem nenhum `any` novo.
+  - Decisões arquiteturais fundamentadas: `loadCustomMapLayout` permaneceu na `GameScene.ts` por tocar em 9 elementos interdependentes da cena; `setArenaFloorTexture` permaneceu na `GameScene.ts` para manipular diretamente o `floorTile` da cena.
+  - Descarte seguro e completo no evento `SHUTDOWN` (Regra 13), limpando gráficos, emissores de partículas e todos os props em cena.
+  - 17 testes unitários de contrato em `src/__tests__/arenaScenerySystem.test.ts` (suíte total de 145 testes, 100% aprovados).
+  - Prova por mutação executada com cancelamento da destruição de props em `clearSceneryPropsOnly`, capturada em `reports/mutacao-pacote3-e3.txt`.
+- **Ajuste da Catraca de Linhas e Linter**:
+  - Trava do ESLint ajustada para `--max-warnings 159` no `package.json`.
+
 ## [v0.9.2 — Fila de Level Up Sequencial, Extração do SandboxController & Trava do Lint em 166] — 2026-10-18
 ### Correções de Jogabilidade & Fila de Progressão
 - **Fila Sequencial de Escolha de Cartas ao Subir Múltiplos Níveis (`GameScene.ts` & `UpgradeScene.ts`)**:
