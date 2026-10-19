@@ -24,7 +24,6 @@ import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
-import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome } from '../config/balance';
 import { UIScene } from './UIScene';
@@ -33,13 +32,17 @@ import { TestShowroomSystem } from '../systems/TestShowroomSystem';
 import { MapEditorSystem } from '../systems/MapEditorSystem';
 import { MapStorageManager, ChapterMapConfig } from '../config/mapData';
 import { SandboxController, ISandboxContext, HordeEnemyType } from '../systems/SandboxController';
+import { CombatBubbleSystem, ICombatBubbleContext, ICombatBubbleTarget } from '../systems/CombatBubbleSystem';
 
-export class GameScene extends Phaser.Scene implements ISandboxContext {
+export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
 
   // Controlador do Modo Sandbox / Testes
   public sandboxController!: SandboxController;
+
+  // Sistema de Balões de Fala de Combate (Pacote 3 — Etapa 2)
+  public combatBubbleSystem!: CombatBubbleSystem;
 
   // Modo de Jogo e Campanha
   public gameMode: 'story' | 'endless' | 'sandbox' = 'story';
@@ -102,14 +105,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
   public hasRevivalUsed: boolean = false;
   public isUpgradeSceneOpening: boolean = false;
   private bossMinionTimer: number = 0;
-
-  // Sistema de Balões de Fala Dinâmicos em Combate
-  private activeCombatBubbles: {
-    container: Phaser.GameObjects.Container;
-    target: any;
-    offsetY: number;
-  }[] = [];
-  private combatBanterTimers: Phaser.Time.TimerEvent[] = [];
 
   // Sistema de Combate e Armas
   public weapons: BaseWeapon[] = [];
@@ -217,6 +212,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
       this.sandboxController = new SandboxController(this);
     }
 
+    // Inicializa o sistema de balões de fala de combate (Pacote 3 — Etapa 2)
+    if (!this.combatBubbleSystem) {
+      this.combatBubbleSystem = new CombatBubbleSystem(this);
+    }
+
     // 1. Chão infinito repetido (TileSprite duplicando a textura do piso ativo em proporção adequada)
     const floorScale = 0.10;
     this.floorTile = this.add.tileSprite(width / 2, height / 2, width * 2, height * 2, 'floor-tile');
@@ -280,21 +280,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
       if (this.floorTile && this.cameras.main) {
         this.floorTile.tilePositionX = Math.round(this.cameras.main.scrollX / floorScale);
         this.floorTile.tilePositionY = Math.round(this.cameras.main.scrollY / floorScale);
-      }
-    });
-
-    // Rastreamento suave e estável dos balões de combate no PRE_RENDER (elimina qualquer tremor durante movimento)
-    this.events.on(Phaser.Scenes.Events.PRE_RENDER, () => {
-      for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
-        const bubble = this.activeCombatBubbles[i];
-        const target = bubble.target;
-        const isAlive = target && target.active && !('isDead' in target && target.isDead) && !('currentHp' in target && target.currentHp <= 0);
-        if (isAlive) {
-          bubble.container.setPosition(target.x, target.y + bubble.offsetY);
-        } else {
-          bubble.container.destroy();
-          this.activeCombatBubbles.splice(i, 1);
-        }
       }
     });
 
@@ -455,14 +440,14 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
         this.input.keyboard.removeAllListeners();
       }
       this.input.removeAllListeners();
-      this.combatBanterTimers.forEach(t => t?.remove());
-      this.combatBanterTimers = [];
       this.time.removeAllEvents();
 
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
       this.sandboxController?.destroy();
+      this.combatBubbleSystem?.destroy();
+      this.combatBubbleSystem = undefined!;
       this.testShowroomSystem?.destroy();
       this.mapEditorSystem?.destroy();
       if (this.mapEditorLauncherButton) {
@@ -3390,164 +3375,24 @@ export class GameScene extends Phaser.Scene implements ISandboxContext {
     UltimateSystem.execute(this, this.player, this.enemiesGroup);
   }
 
-  /**
-   * Dispara a sequência de provocações em tempo real entre Nixy e Succubus durante o combate
-   */
-  private startBossCombatBanter(): void {
-    this.clearCombatSpeechBubbles();
-
-    // 1. Nixy: "Só pra deixar claro:" (1.2s após início do combate)
-    const t1 = this.time.delayedCall(1200, () => {
-      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
-      this.showCombatSpeechBubble(this.player, 'Só pra deixar claro:', 1900, true);
-    });
-    this.combatBanterTimers.push(t1);
-
-    // 2. Nixy: "se você sobreviver..." (3.3s após início do combate)
-    const t2 = this.time.delayedCall(3300, () => {
-      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
-      this.showCombatSpeechBubble(this.player, 'se você sobreviver...', 2000, true);
-    });
-    this.combatBanterTimers.push(t2);
-
-    // 3. Nixy: "eu ainda vou terminar o que comecei com essas asas!" (5.5s após início do combate)
-    const t3 = this.time.delayedCall(5500, () => {
-      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
-      this.showCombatSpeechBubble(this.player, 'eu ainda vou terminar o que comecei com essas asas!', 3000, true);
-    });
-    this.combatBanterTimers.push(t3);
-
-    // 4. Succubus: "E se você sobreviver..." (8.8s após início do combate)
-    const t4 = this.time.delayedCall(8800, () => {
-      if (!this.bossInstance || this.bossInstance.isDead || !this.isBossFightActive || this.isGameOver) return;
-      this.showCombatSpeechBubble(this.bossInstance, 'E se você sobreviver...', 2200, false);
-    });
-    this.combatBanterTimers.push(t4);
-
-    // 5. Succubus: "eu arranco sua língua!" (11.2s após início do combate)
-    const t5 = this.time.delayedCall(11200, () => {
-      if (!this.bossInstance || this.bossInstance.isDead || !this.isBossFightActive || this.isGameOver) return;
-      this.showCombatSpeechBubble(this.bossInstance, 'eu arranco sua língua!', 2600, false);
-    });
-    this.combatBanterTimers.push(t5);
-
-    // 6. Nixy: "Olha só!" (14.1s após início do combate)
-    const t6 = this.time.delayedCall(14100, () => {
-      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
-      this.showCombatSpeechBubble(this.player, 'Olha só!', 1600, true);
-    });
-    this.combatBanterTimers.push(t6);
-
-    // 7. Nixy: "Finalmente encontramos algo em que concordamos." (15.9s após início do combate)
-    const t7 = this.time.delayedCall(15900, () => {
-      if (!this.player || this.player.currentHp <= 0 || !this.isBossFightActive || this.isGameOver) return;
-      this.showCombatSpeechBubble(this.player, 'Finalmente encontramos algo em que concordamos.', 3000, true);
-    });
-    this.combatBanterTimers.push(t7);
+  // ==========================================
+  // Fachadas do Sistema de Balões de Fala de Combate (Pacote 3 — Etapa 2)
+  // ==========================================
+  public startBossCombatBanter(): void {
+    this.combatBubbleSystem?.startBossCombatBanter();
   }
 
-  /**
-   * Exibe a fala de combate limpa sobre a cabeça da heroína ou de Rosalin sem caixa/fundo ou nome
-   */
-  private showCombatSpeechBubble(
-    target: any,
+  public showCombatSpeechBubble(
+    target: ICombatBubbleTarget,
     text: string,
     durationMs: number,
-    isNixy: boolean
+    isNixy: boolean = true
   ): void {
-    if (!target || !target.active) return;
-    if ('isDead' in target && target.isDead) return;
-    if ('currentHp' in target && target.currentHp <= 0) return;
-
-    // Remove fala anterior do mesmo alvo, se existir
-    for (let i = this.activeCombatBubbles.length - 1; i >= 0; i--) {
-      if (this.activeCombatBubbles[i].target === target) {
-        this.activeCombatBubbles[i].container.destroy();
-        this.activeCombatBubbles.splice(i, 1);
-      }
-    }
-
-    const offsetY = isNixy ? -34 : -50;
-
-    const container = this.add.container(target.x, target.y + offsetY);
-    container.setDepth(1500);
-    container.setAlpha(0);
-
-    // Texto limpo da fala com a cor do personagem e contorno preto de alta legibilidade (sem caixa de fundo e sem nome em cima!)
-    const phraseColor = isNixy ? '#ff758f' : '#c084fc';
-    const bodyText = this.add.text(0, 0, text, {
-      fontFamily: 'Pixelzone, Silkscreen, monospace',
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: phraseColor,
-      align: 'center',
-      stroke: '#000000',
-      strokeThickness: 3.5,
-      wordWrap: { width: 180 },
-      shadow: {
-        offsetX: 0,
-        offsetY: 2,
-        color: '#000000',
-        blur: 4,
-        stroke: true,
-        fill: true
-      }
-    }).setOrigin(0.5);
-    bodyText.setResolution(2);
-    enableCensoredTextHighlight(bodyText, '#ffd700');
-
-    container.add(bodyText);
-
-    // Animação de entrada suave
-    this.tweens.add({
-      targets: container,
-      alpha: 1,
-      duration: 150,
-      ease: 'Linear'
-    });
-
-    this.activeCombatBubbles.push({
-      container,
-      target,
-      offsetY
-    });
-
-    // Fade-out suave antes de desaparecer
-    const fadeDelay = Math.max(100, durationMs - 250);
-    const fadeTimer = this.time.delayedCall(fadeDelay, () => {
-      if (container.active) {
-        this.tweens.add({
-          targets: container,
-          alpha: 0,
-          duration: 220,
-          onComplete: () => {
-            container.destroy();
-            const idx = this.activeCombatBubbles.findIndex(b => b.container === container);
-            if (idx !== -1) {
-              this.activeCombatBubbles.splice(idx, 1);
-            }
-          }
-        });
-      }
-    });
-    this.combatBanterTimers.push(fadeTimer);
+    this.combatBubbleSystem?.showCombatSpeechBubble(target, text, durationMs, isNixy);
   }
 
-  /**
-   * Limpa todos os balões de fala e timers de provocação do combate
-   */
   public clearCombatSpeechBubbles(): void {
-    for (const timer of this.combatBanterTimers) {
-      if (timer) timer.remove();
-    }
-    this.combatBanterTimers = [];
-
-    for (const item of this.activeCombatBubbles) {
-      if (item.container) {
-        item.container.destroy();
-      }
-    }
-    this.activeCombatBubbles = [];
+    this.combatBubbleSystem?.clearCombatSpeechBubbles();
   }
 
   public registerPoisonPuddle(puddle: any): void {
