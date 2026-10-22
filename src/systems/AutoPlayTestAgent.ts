@@ -4,6 +4,7 @@ import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SoulGem } from '../entities/items/SoulGem';
 import { MapItem } from '../entities/items/MapItem';
 import type { UpgradeScene, UpgradeCard } from '../scenes/UpgradeScene';
+import type { UIScene } from '../scenes/UIScene';
 import { DebugSessionLogger } from './DebugSessionLogger';
 
 export interface TestRunReport {
@@ -34,6 +35,7 @@ export class AutoPlayTestAgent {
   private currentRunId: number = 0;
   private runHistory: TestRunReport[] = [];
   private upgradeDecisionTimer: number = 0;
+  private chestReactionTimer: number = 0;
   private lastPlayerLevel: number = 0;
 
   private constructor() {}
@@ -49,6 +51,8 @@ export class AutoPlayTestAgent {
     this.isEnabled = !this.isEnabled;
     if (this.isEnabled) {
       this.lastPlayerLevel = 0;
+      this.upgradeDecisionTimer = 0;
+      this.chestReactionTimer = 0;
     }
     DebugSessionLogger.getInstance().log(
       'SANDBOX',
@@ -215,6 +219,24 @@ export class AutoPlayTestAgent {
 
         cardToPick.emit('pointerdown');
       }
+    }
+  }
+
+  /**
+   * Resolve a roleta do Baú do Abismo (UIScene) simulando interação para avançar e coletar
+   */
+  public checkAndResolveChestRoulette(uiScene: UIScene, deltaMs: number): void {
+    if (!this.isEnabled || !uiScene || !uiScene.isChestRouletteActive()) {
+      this.chestReactionTimer = 0;
+      return;
+    }
+
+    this.chestReactionTimer += deltaMs;
+    // Aguarda breve delay (250ms) simulando tempo de reação humano antes de confirmar
+    if (this.chestReactionTimer >= 250) {
+      this.chestReactionTimer = 0;
+      DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Bot [F3] interagiu com a roleta do Baú do Abismo.');
+      uiScene.resolveChestRoulette();
     }
   }
 

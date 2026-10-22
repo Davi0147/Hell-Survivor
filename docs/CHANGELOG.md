@@ -2,12 +2,37 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+<<<<<<< HEAD
 ## [v0.9.3 — Balões de Fala, Cenário da Arena & Correção do Altar no Modo de Teste] — 2026-10-19
 
 ### Resumo para o Jogador
 - **O que muda para o jogador**: Nada visível na jogabilidade normal. Todo o comportamento, visuais, limites de arena, névoa, falas de combate e tempos de jogo continuam exatamente idênticos.
 - **Modo de Teste ([F1] Sandbox)**: Correção na invocação "Succubus (com diálogo)". Agora é possível invocar e enfrentar a chefe com o diálogo cinemático múltiplas vezes na mesma sessão de teste, mesmo após ela já ter sido derrotada anteriormente.
 - **Organização interna (código do jogo)**: Continuação da faxina e modularização da cena principal (`GameScene.ts`), separando o sistema de balões de fala de combate (`CombatBubbleSystem.ts`) e o sistema de cenário e bordas da arena (`ArenaScenerySystem.ts`) em módulos dedicados e seguros, com 145 testes automatizados cobrindo cada detalhe.
+=======
+## [Unreleased / Correção da Roleta do Baú do Abismo & Bot Autônomo] — 2026-10-19
+### Correções de Jogabilidade & Interface (UI)
+- **Correção de Crash ao Pressionar Espaço na Roleta do Baú (`UIScene.ts`)**:
+  - *Defeito*: Pressionar a barra de Espaço ou Enter enquanto a roleta de bênçãos do Baú do Abismo estava girando tentava finalizar a coleta prematuramente enquanto um timer assíncrono de rolagem (`this.time.delayedCall`) ainda estava agendado. Ao disparar, chamava `setText` em `headerText` já destruído, gerando o erro fatal `TypeError: Cannot read properties of null (reading 'drawImage')` dentro de `Frame.updateUVs` do Phaser.
+  - *Correção*: Implementado o fluxo seguro de "Pular para o Prêmio" (`revealPrizeNow`): se o jogador pressionar Espaço, Enter ou clicar na tela antes do término, a roleta é interrompida imediatamente, os textos temporários são limpos e o prêmio sorteado é revelado no centro com a devida fanfarra e descrição. Um debounce curto de proteção (180ms) impede que toques repetidos fechem o modal sem que o jogador veja a bênção sorteada. Foram adicionadas guardas estritas contra execução de timers sobre instâncias destruídas (`!modal.scene || !headerText.scene`).
+- **Confirmação e Coleta ao Clicar Fora / em Qualquer Área (`UIScene.ts`)**:
+  - O fundo escuro translúcido (`backdrop`) agora possui cursor de clique interativo (`useHandCursor: true`) e escuta eventos de clique (`pointerdown`). O jogador pode clicar em qualquer lugar da tela tanto para pular o sorteio quanto para coletar a bênção concedida.
+- **Resolução Autônoma do Bot [F3] no Baú (`AutoPlayTestAgent.ts` & `UIScene.ts`)**:
+  - O Bot AI de testes agora detecta a roleta aberta durante o loop de `UIScene.update()` e avança automaticamente (com tempo de reação simulado de 250ms), pulando a animação e coletando o item sem travar ou interromper partidas no modo infinito/história.
+- **Testes Unitários de Contrato (`src/__tests__/chestRoulette.test.ts`)**:
+  - 7 novos testes unitários validando a reação do bot, o avanço e coleta em etapas, a janela de debounce anti-missclick, a proteção contra execução em objetos destruídos e a limpeza de eventos no descarte do modal (suíte total expandida para 152 testes, 100% aprovados).
+
+## [Unreleased / Pacote 3 — Etapa 3: Extração do ArenaScenerySystem] — 2026-10-18
+### Refatoração & Arquitetura (Divisão da GameScene)
+- **Extração do Sistema de Cenário da Arena (`src/systems/ArenaScenerySystem.ts`)**:
+  - Extração dos limites visuais da arena (`drawArenaBorders`), névoa ondulante das bordas (`updateBorderMist`), métodos de props individuais (`addSceneryRock`, `addSceneryTorch`, `addSceneryCrystal`, `addSceneryMushroom`, `addSceneryBones`), instanciação temática em lote (`spawnSceneryProps`), limpeza completa (`clearAllSceneryProps`) e controle de visibilidade (`setSceneryPropsVisible`) da `GameScene.ts`.
+  - Redução líquida de 271 linhas na `GameScene.ts` (333 exclusões, 62 inserções), mantendo fachadas públicas de 1 linha e getters/setters para compatibilidade retroativa absoluta.
+  - Criação da interface estrita de contexto `ISceneryContext` sem nenhum `any` novo.
+  - Decisões arquiteturais fundamentadas: `loadCustomMapLayout` permaneceu na `GameScene.ts` por tocar em 9 elementos interdependentes da cena (player, câmeras, altares, textura, itens, horda, modo); `setArenaFloorTexture` permaneceu na `GameScene.ts` para manipular diretamente o `floorTile` da cena.
+  - Descarte seguro e completo no evento `SHUTDOWN` (Regra 13), limpando gráficos, emissores de partículas e todos os props em cena.
+  - 17 testes unitários de contrato em `src/__tests__/arenaScenerySystem.test.ts` cobrindo desenho de bordas, névoa direcional nas margens, props individuais, spawn em lote, visibilidade e ciclo de destruição (suíte total expandida para 145 testes, 100% aprovados).
+  - Prova por mutação executada com cancelamento da destruição de props em `clearSceneryPropsOnly`, capturada em `reports/mutacao-pacote3-e3.txt` com falha de 2 testes e reversão limpa comprovada via git diff vazio.
+>>>>>>> fix/chest-roulette-skip-and-bot
 
 ### Correções do Modo de Teste (Sandbox)
 - **Restauração do Altar de Invocação para "Succubus com Diálogo" (`BossSummonAltar.ts` & `SandboxController.ts`)**:
