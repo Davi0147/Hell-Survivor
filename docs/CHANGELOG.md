@@ -2,7 +2,17 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Unreleased / Balanceamento do Chefe Azazel, Correção da Roleta do Baú & Bot Autônomo] — 2026-10-21
+## [Unreleased / Pacote UI (Modais), Organização de Repositório & Balanceamento de Azazel] — 2026-10-21
+### Refatoração & Arquitetura (Pacote UI & Organização)
+- **Extração de Modais da `UIScene.ts` para `src/ui/` (`ModalFrame.ts`, `PauseMenu.ts`, `GameOverModal.ts`, `ChapterVictoryModal.ts`)**:
+  - Criação do construtor de moldura compartilhada `createModalFrame` em `src/ui/ModalFrame.ts` e centralização de todos os tokens cromáticos dos modais em `MODAL_THEME` dentro de `src/config/theme.ts`.
+  - Extração completa do `PauseMenu`, `GameOverModal` e `ChapterVictoryModal` para `src/ui/` sem nenhum `any` novo, reduzindo a `UIScene.ts` em ~862 linhas (de 3.027 para 2.165 linhas) e mantendo 100% da API pública e aparência original.
+  - Redução da catraca de cores fora do tema (`verify-theme`) de 1194 para 1107 literais (-87 cores hardcoded) e redução da catraca do ESLint de 159 para 154 avisos.
+  - 5 novos testes unitários de contrato em `src/__tests__/uiModals.test.ts` (suíte total expandida para 17 arquivos e 158 testes, 100% aprovados).
+- **Organização da Raiz e Proteção de Fontes Brutas em `art-source/` com Git LFS**:
+  - Unificação de `Sprites/`, `Sounds/` e `fontes/` dentro de `art-source/` rastreado com **Git LFS** (`.gitattributes`), garantindo que os 20,7 MB de áudio original nunca sejam perdidos ao formatar o PC.
+  - Arquivamento externo das pastas legadas (`backups/`, `backup_v0.7.5/`, `backup_v0.8_pre_azazel/`, `scratch/`) em `D:\HellSurvivor_arquivo`.
+
 ### Balanceamento de Combate (Capítulo 2)
 - **Redução de 70% no Dano Base e Habilidades do Chefe Azazel (`src/config/balance.ts`, `AzazelBoss.ts`, `GameScene.ts`)**:
   - Centralização das constantes do chefe Azazel em `AZAZEL_BOSS_BALANCE` no `src/config/balance.ts` (Regra 4).

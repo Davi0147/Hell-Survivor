@@ -12,8 +12,14 @@ import { TouchControls } from '../ui/TouchControls';
 import { GamepadManager } from '../systems/GamepadManager';
 import { STORAGE_KEYS } from '../config/storageKeys';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
+import { PauseMenu, IPauseGameScene, IPauseMenuHost } from '../ui/PauseMenu';
+import { GameOverModal, GameOverStats, IGameOverModalHost } from '../ui/GameOverModal';
+import { ChapterVictoryModal, ChapterVictoryStats, IChapterVictoryModalHost } from '../ui/ChapterVictoryModal';
 
-export class UIScene extends Phaser.Scene {
+export class UIScene
+  extends Phaser.Scene
+  implements IPauseMenuHost, IGameOverModalHost, IChapterVictoryModalHost
+{
   // Sistema de Diálogos Estilo Persona 5
   private dialogueSystem!: DialogueSystem;
   private hudElements: any[] = [];
@@ -24,12 +30,29 @@ export class UIScene extends Phaser.Scene {
   // Controles Touch Mobile
   public touchControls!: TouchControls;
 
-  // Estado e Container de Pausa / Sandbox
-  public isPaused: boolean = false;
+  // Componentes de Modais Extraídos (Pacote UI)
+  public pauseMenu!: PauseMenu;
+  public gameOverModal!: GameOverModal;
+  public chapterVictoryModal!: ChapterVictoryModal;
+
+  // Estado e Container de Pausa / Sandbox (Fachadas de Contrato)
+  public get isPaused(): boolean {
+    return this.pauseMenu?.isPaused ?? false;
+  }
+  public set isPaused(val: boolean) {
+    if (this.pauseMenu) this.pauseMenu.isPaused = val;
+  }
+
+  public get isGameOverModalOpen(): boolean {
+    return this.gameOverModal?.isOpen ?? false;
+  }
+  public set isGameOverModalOpen(val: boolean) {
+    if (this.gameOverModal) this.gameOverModal.isOpen = val;
+  }
+
   public isChestRouletteOpen: boolean = false;
   public chestRouletteResolver: (() => void) | null = null;
   public sandboxPanel?: DevSandboxPanel;
-  private pauseModalContainer?: Phaser.GameObjects.Container;
 
   // Vinheta de Alerta de Vida Crítica (Low HP)
   private lowHpVignetteGraphics!: Phaser.GameObjects.Graphics;
@@ -84,31 +107,7 @@ export class UIScene extends Phaser.Scene {
   private controlsText!: Phaser.GameObjects.Text;
   private currentControlScheme: 'keyboard' | 'gamepad' = 'keyboard';
   private wasKeyboardKeyPressed: boolean = false;
-
-  // Navegação no Menu de Pausa (ESC / Gamepad / Teclado)
-  private pauseZones: Phaser.GameObjects.Zone[] = [];
-  private pauseSelectedRow: number = 2; // 0 = BGM, 1 = SFX, 2 = Action Buttons
-  private pauseSelectedActionIdx: number = 0; // 0 = CONTINUAR, 1 = REINICIAR, 2 = MENU
-  private pauseActionBtnRenders: ((h: boolean) => void)[] = [];
-  private pauseActionBtnActions: (() => void)[] = [];
-  private pauseRowIndicators: Phaser.GameObjects.Text[] = [];
-  private updatePauseBgmDisplay?: () => void;
-  private updatePauseSfxDisplay?: () => void;
-  private prevPadConfirm: boolean = false;
-  private prevPadCancelOrStart: boolean = false;
-  private prevPadUp: boolean = false;
-  private prevPadDown: boolean = false;
-  private prevPadLeft: boolean = false;
-  private prevPadRight: boolean = false;
   private keyEsc?: Phaser.Input.Keyboard.Key;
-  private lastPauseToggleTime: number = 0;
-
-  // Estado e Navegação do Modal FIM DA JORNADA (Gamepad / Teclado)
-  public isGameOverModalOpen: boolean = false;
-  private gameOverSelectedIndex: number = 0;
-  private gameOverModalContainer?: Phaser.GameObjects.Container;
-  private gameOverBtnRenders: ((h: boolean) => void)[] = [];
-  private gameOverBtnActions: (() => void)[] = [];
 
   // Radar Tático / Minimapa Circular (Canto Superior Esquerdo)
   private radarFrameGraphics!: Phaser.GameObjects.Graphics;
@@ -146,13 +145,12 @@ export class UIScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
-    this.isPaused = false;
+    this.pauseMenu = new PauseMenu(this);
+    this.gameOverModal = new GameOverModal(this);
+    this.chapterVictoryModal = new ChapterVictoryModal(this);
+
     this.isChestRouletteOpen = false;
     this.chestRouletteResolver = null;
-    this.isGameOverModalOpen = false;
-    this.pauseModalContainer = undefined;
-    this.gameOverModalContainer = undefined;
-    this.lastPauseToggleTime = 0;
 
     // 0. Vinheta de Alerta de Vida Baixa (Depth 200 - acima da HUD e abaixo de modais)
     this.lowHpVignetteGraphics = this.add.graphics();
@@ -581,6 +579,9 @@ export class UIScene extends Phaser.Scene {
     // 10. LIMPEZA NO DESLIGAMENTO DA CENA (DEC-006 / ANTI-LEAK)
     // ==========================================
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.pauseMenu?.destroy();
+      this.gameOverModal?.destroy();
+      this.chapterVictoryModal?.destroy();
       if (this.alertTimer) {
         this.alertTimer.remove();
         this.alertTimer = undefined;
@@ -743,15 +744,15 @@ export class UIScene extends Phaser.Scene {
     }
 
     // 3. Se o modal Fim da Jornada (Game Over) estiver aberto, processa controles
-    if (this.isGameOverModalOpen && this.gameOverModalContainer) {
-      this.updateGameOverControls(delta);
+    if (this.isGameOverModalOpen && this.gameOverModal?.container) {
+      this.gameOverModal.updateControls();
       return;
     }
 
     // 4. Processa navegação por gamepad / teclado caso o jogo esteja pausado no ESC
     const gameScene = this.scene.get('GameScene') as any;
-    if (this.isPaused && this.pauseModalContainer) {
-      this.updatePauseControls(delta, gameScene);
+    if (this.isPaused && this.pauseMenu?.container) {
+      this.pauseMenu.updateControls(gameScene);
       return;
     }
 
@@ -1530,128 +1531,11 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
-  public showChapterVictoryModal(stats: { kills: number; level: number; timeSec: number; soulsEarned?: number }, onReturnToMenu: () => void): void {
-    this.setHUDVisible(false);
-    const { width, height } = this.scale;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-
-    const modal = this.add.container(0, 0);
-    modal.setDepth(3500);
-
-    const darkBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.88);
-    darkBg.setInteractive();
-    modal.add(darkBg);
-
-    const panelW = 540;
-    const panelH = 340;
-    const panelX = width / 2;
-    const panelY = height / 2;
-
-    const g = this.add.graphics();
-    g.fillStyle(0x180309, 0.98);
-    g.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(3, 0xf3d17a, 1);
-    g.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(1.5, 0xffffff, 0.6);
-    g.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 11);
-    modal.add(g);
-
-    const title = this.add.text(panelX, panelY - 110, 'CAPÍTULO 1 CONCLUÍDO', {
-      fontFamily: pixelFont,
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#ffd60a',
-      stroke: '#4a0e17',
-      strokeThickness: 4
-    }).setOrigin(0.5);
-    modal.add(title);
-
-    const subtitle = this.add.text(panelX, panelY - 70, 'A SUCCUBUS FOI DERROTADA', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: '#ff7b95',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5);
-    modal.add(subtitle);
-
-    const soulsInfo = typeof stats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${stats.soulsEarned}` : '';
-    const statsText = this.add.text(panelX, panelY - 10, 
-      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: ${stats.level}\nTempo: ${stats.timeSec}s\nChefe: Succubus (DERROTADA)${soulsInfo}`, {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      color: '#ffffff',
-      stroke: '#100306',
-      strokeThickness: 2,
-      align: 'center',
-      lineSpacing: 10
-    }).setOrigin(0.5);
-    modal.add(statsText);
-
-    // Botão 1: Próximo Capítulo
-    const btnW = 200;
-    const btnH = 38;
-    const btnY = panelY + 95;
-    const btn1X = panelX - 110;
-    const btn2X = panelX + 110;
-
-    const btn1Bg = this.add.graphics();
-    const renderBtn1 = (hover: boolean) => {
-      btn1Bg.clear();
-      btn1Bg.fillStyle(hover ? 0x6a040f : 0x370617, 1);
-      btn1Bg.fillRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-      btn1Bg.lineStyle(2, hover ? 0xffd60a : 0x9d0208, 1);
-      btn1Bg.strokeRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-    };
-    renderBtn1(false);
-    modal.add(btn1Bg);
-
-    const btn1Text = this.add.text(btn1X, btnY, 'PRÓXIMO CAPÍTULO', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    modal.add(btn1Text);
-
-    const btn1Zone = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    modal.add(btn1Zone);
-    btn1Zone.on('pointerover', () => renderBtn1(true));
-    btn1Zone.on('pointerout', () => renderBtn1(false));
-    btn1Zone.on('pointerdown', () => {
-      this.showWaveAlert('Capítulo 2 em desenvolvimento nas próximas atualizações!', 3000);
-    });
-
-    // Botão 2: Voltar ao Menu
-    const btn2Bg = this.add.graphics();
-    const renderBtn2 = (hover: boolean) => {
-      btn2Bg.clear();
-      btn2Bg.fillStyle(hover ? 0xff0055 : 0x720012, 1);
-      btn2Bg.fillRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-      btn2Bg.lineStyle(2, hover ? 0xffffff : 0xf3d17a, 1);
-      btn2Bg.strokeRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-    };
-    renderBtn2(false);
-    modal.add(btn2Bg);
-
-    const btn2Text = this.add.text(btn2X, btnY, 'VOLTAR AO MENU', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    modal.add(btn2Text);
-
-    const btn2Zone = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    modal.add(btn2Zone);
-    btn2Zone.on('pointerover', () => renderBtn2(true));
-    btn2Zone.on('pointerout', () => renderBtn2(false));
-    btn2Zone.on('pointerdown', onReturnToMenu);
+  public showChapterVictoryModal(stats: ChapterVictoryStats, onReturnToMenu: () => void): void {
+    if (!this.chapterVictoryModal) {
+      this.chapterVictoryModal = new ChapterVictoryModal(this);
+    }
+    this.chapterVictoryModal.show(stats, onReturnToMenu);
   }
 
   public formatTime(totalSec: number): string {
@@ -2180,603 +2064,56 @@ export class UIScene extends Phaser.Scene {
   }
 
   public showGameOverModal(
-    stats: { kills: number; level: number; timeSec: number; mode: 'story' | 'endless' | 'sandbox'; soulsEarned?: number },
+    stats: GameOverStats,
     onRetry: () => void,
     onReturnToMenu: () => void
   ): void {
-    this.setHUDVisible(false);
-    const { width, height } = this.scale;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-
-    const isNewRecord = stats.mode === 'endless' && stats.timeSec > this.bestRecordSec;
-    if (isNewRecord) {
-      this.saveBestRecordSec(stats.timeSec);
-      this.bestRecordSec = stats.timeSec;
+    if (!this.gameOverModal) {
+      this.gameOverModal = new GameOverModal(this);
     }
-
-    const modal = this.add.container(0, 0);
-    modal.setDepth(3600);
-
-    const darkBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.90);
-    darkBg.setInteractive();
-    modal.add(darkBg);
-
-    const panelW = 560;
-    const panelH = 370;
-    const panelX = width / 2;
-    const panelY = height / 2;
-
-    const g = this.add.graphics();
-    // Fundo carmesim/obsidiana profundo
-    g.fillStyle(0x180208, 0.98);
-    g.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(3, 0xff0055, 1);
-    g.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(1.5, 0xf3d17a, 0.7);
-    g.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 11);
-    modal.add(g);
-
-    const title = this.add.text(panelX, panelY - 125, 'FIM DA JORNADA', {
-      fontFamily: pixelFont,
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#ff0055',
-      stroke: '#000000',
-      strokeThickness: 5
-    }).setOrigin(0.5);
-    modal.add(title);
-
-    const isStory = stats.mode === 'story';
-    const subtitleText = isStory
-      ? 'A MORTE NÃO É O FIM PARA QUEM JÁ ESTÁ NO PURGATÓRIO'
-      : 'SUA ALMA FOI REIVINDICADA PELO ABISMO';
-
-    const subtitle = this.add.text(panelX, panelY - 85, subtitleText, {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#e0aaff',
-      stroke: '#100306',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    modal.add(subtitle);
-
-    const formattedTime = this.formatTime(stats.timeSec);
-    const bestText = stats.mode === 'endless' ? `\nRecorde Pessoal: ${this.formatTime(this.bestRecordSec)}` : '';
-    const newRecordNotice = isNewRecord ? '\nNOVO RECORDE PESSOAL ALCANÇADO!\n' : '\n';
-    const soulsNotice = typeof stats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${stats.soulsEarned}` : '';
-
-    const statsText = this.add.text(panelX, panelY - 5,
-      `Tempo Sobrevivido: ${formattedTime}${bestText}${newRecordNotice}` +
-      `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: LVL ${stats.level}${soulsNotice}`, {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      color: isNewRecord ? '#ffd60a' : '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3,
-      align: 'center',
-      lineSpacing: 8
-    }).setOrigin(0.5);
-    modal.add(statsText);
-
-    // Botões Lado a Lado: [ JOGAR NOVAMENTE ] e [ VOLTAR AO MENU ]
-    const btnW = 230;
-    const btnH = 42;
-    const btn1X = panelX - btnW / 2 - 12;
-    const btn2X = panelX + btnW / 2 + 12;
-    const btnY = panelY + 125;
-
-    // Botão 1: Tentar Novamente / Ressurgir
-    const btn1Bg = this.add.graphics();
-    const renderBtn1 = (h: boolean) => {
-      btn1Bg.clear();
-      btn1Bg.fillStyle(h ? 0xff0055 : 0x720012, 1);
-      btn1Bg.fillRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-      btn1Bg.lineStyle(2, h ? 0xffffff : 0xf3d17a, 1);
-      btn1Bg.strokeRoundedRect(btn1X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-    };
-    renderBtn1(false);
-    modal.add(btn1Bg);
-
-    const btn1Label = isStory ? 'RESSURGIR DAS CINZAS' : 'TENTAR NOVAMENTE';
-    const btn1Text = this.add.text(btn1X, btnY, btn1Label, {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    modal.add(btn1Text);
-
-    const onRetryWrapped = () => {
-      this.isGameOverModalOpen = false;
-      this.cleanupPauseCursor();
-      if (this.gameOverModalContainer) {
-        this.gameOverModalContainer.destroy();
-        this.gameOverModalContainer = undefined;
-      }
-      SoundManager.getInstance().stopMusic();
-      onRetry();
-    };
-
-    const onReturnToMenuWrapped = () => {
-      this.isGameOverModalOpen = false;
-      this.cleanupPauseCursor();
-      if (this.gameOverModalContainer) {
-        this.gameOverModalContainer.destroy();
-        this.gameOverModalContainer = undefined;
-      }
-      SoundManager.getInstance().stopMusic();
-      onReturnToMenu();
-    };
-
-    const btn1Zone = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    btn1Zone.on('pointerover', () => {
-      this.selectGameOverBtn(0);
-    });
-    btn1Zone.on('pointerout', () => renderBtn1(this.gameOverSelectedIndex === 0));
-    btn1Zone.on('pointerdown', onRetryWrapped);
-    modal.add(btn1Zone);
-
-    // Botão 2: Voltar ao Menu
-    const btn2Bg = this.add.graphics();
-    const renderBtn2 = (h: boolean) => {
-      btn2Bg.clear();
-      btn2Bg.fillStyle(h ? 0x240046 : 0x10002b, 1);
-      btn2Bg.fillRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-      btn2Bg.lineStyle(2, h ? 0x00f5d4 : 0x7b2cbf, 1);
-      btn2Bg.strokeRoundedRect(btn2X - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
-    };
-    renderBtn2(false);
-    modal.add(btn2Bg);
-
-    const btn2Text = this.add.text(btn2X, btnY, 'MENU PRINCIPAL', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    modal.add(btn2Text);
-
-    const btn2Zone = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
-    btn2Zone.on('pointerover', () => {
-      this.selectGameOverBtn(1);
-    });
-    btn2Zone.on('pointerout', () => renderBtn2(this.gameOverSelectedIndex === 1));
-    btn2Zone.on('pointerdown', onReturnToMenuWrapped);
-    modal.add(btn2Zone);
-
-    this.isGameOverModalOpen = true;
-    this.gameOverSelectedIndex = 0;
-    this.gameOverModalContainer = modal;
-    this.gameOverBtnRenders = [renderBtn1, renderBtn2];
-    this.gameOverBtnActions = [onRetryWrapped, onReturnToMenuWrapped];
-
-    // Destaque inicial no Botão 1
-    renderBtn1(true);
-    renderBtn2(false);
-
-    // Garante que o cursor virtual de pause esteja limpo
-    this.cleanupPauseCursor();
+    this.gameOverModal.show(stats, onRetry, onReturnToMenu);
   }
 
   // ==========================================
-  // MENU DE PAUSA (ESC / PAUSE GAMEPLAY)
+  // MENU DE PAUSA (ESC / PAUSE GAMEPLAY) — Fachadas do PauseMenu (Pacote UI)
   // ==========================================
-  public togglePause(gameScene: any): void {
-    if (this.dialogueSystem && this.dialogueSystem.isDialogueActive()) return;
-    if (this.scene.isActive('UpgradeScene')) return; // NUNCA pausar/despausar durante a escolha de cartas!
-    if (this.isChestRouletteOpen) return;
-    if (this.isGameOverModalOpen) return;
-    if (gameScene.isGameOver || gameScene.isChapterCompleted) return;
-    if (this.sandboxPanel && this.sandboxPanel.isOpen) {
-      this.sandboxPanel.togglePanel();
-      return;
+  public togglePause(gameScene: IPauseGameScene): void {
+    if (!this.pauseMenu) {
+      this.pauseMenu = new PauseMenu(this);
     }
-
-    const now = Date.now();
-    if (now - this.lastPauseToggleTime < 320) return;
-    this.lastPauseToggleTime = now;
-
-    if (this.isPaused) {
-      this.resumeGame(gameScene);
-    } else {
-      this.pauseGame(gameScene);
-    }
+    this.pauseMenu.togglePause(gameScene);
   }
 
-  public pauseGame(gameScene: any): void {
-    if (this.isPaused || gameScene.isGameOver || gameScene.isChapterCompleted) return;
-    this.isPaused = true;
-    SoundManager.getInstance().playMenuClick();
-    gameScene.physics.pause();
-    gameScene.scene.pause();
-    if (this.touchControls) {
-      this.touchControls.setVisible(false);
+  public pauseGame(gameScene: IPauseGameScene): void {
+    if (!this.pauseMenu) {
+      this.pauseMenu = new PauseMenu(this);
     }
-
-    const { width, height } = this.scale;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-
-    this.cleanupPauseCursor();
-    this.pauseZones = [];
-    this.pauseActionBtnRenders = [];
-    this.pauseActionBtnActions = [];
-    this.pauseRowIndicators = [];
-    this.pauseSelectedRow = 2; // Inicia com foco nos botões de ação (CONTINUAR)
-    this.pauseSelectedActionIdx = 0;
-    this.prevPadConfirm = false;
-    this.prevPadCancelOrStart = true;
-    this.prevPadUp = false;
-    this.prevPadDown = false;
-    this.prevPadLeft = false;
-    this.prevPadRight = false;
-
-    this.pauseModalContainer = this.add.container(0, 0);
-    this.pauseModalContainer.setDepth(3500);
-
-    // 1. Fundo escuro semitransparente que bloqueia cliques no jogo
-    const darkBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.82);
-    darkBg.setInteractive();
-    this.pauseModalContainer.add(darkBg);
-
-    // 2. Painel gótico barroco
-    const panelW = 540;
-    const panelH = 390;
-    const panelX = width / 2;
-    const panelY = height / 2;
-
-    const g = this.add.graphics();
-    g.fillStyle(0x150308, 0.98);
-    g.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(3, 0xc59b27, 1);
-    g.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    g.lineStyle(1.5, 0xff4500, 0.6);
-    g.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 10);
-    this.pauseModalContainer.add(g);
-
-    // 3. Título
-    const title = this.add.text(panelX, panelY - panelH / 2 + 38, 'JOGO PAUSADO', {
-      fontFamily: pixelFont,
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: '#ffa200',
-      stroke: '#300207',
-      strokeThickness: 3
-    }).setOrigin(0.5);
-    this.pauseModalContainer.add(title);
-
-    // 4. Estatísticas da Partida Atual
-    const sec = Math.floor(gameScene.survivalTimeMs / 1000);
-    const runSouls = MetaProgressManager.getInstance().runSoulsCollected;
-    const statsText = this.add.text(
-      panelX,
-      panelY - 95,
-      `TEMPO: ${this.formatTime(sec)}   |   ABATES: ${gameScene.killCount}   |   NÍVEL: ${gameScene.player?.currentLevel || 1}   |   ALMAS: ${runSouls}`,
-      {
-        fontFamily: pixelFont,
-        fontSize: '11px',
-        color: '#f3d17a'
-      }
-    ).setOrigin(0.5);
-    this.pauseModalContainer.add(statsText);
-
-    // Divisória sutil
-    const div = this.add.graphics();
-    div.lineStyle(1.5, 0xc59b27, 0.35);
-    div.lineBetween(panelX - 200, panelY - 75, panelX + 200, panelY - 75);
-    this.pauseModalContainer.add(div);
-
-    // 5. Volume de Música (ao vivo na partida)
-    const bgmRowY = panelY - 30;
-    const bgmIndicator = this.add.text(panelX - 118, bgmRowY - 18, '▶', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: '#ff7700'
-    }).setOrigin(1, 0.5).setVisible(false);
-    this.pauseModalContainer.add(bgmIndicator);
-    this.pauseRowIndicators.push(bgmIndicator);
-
-    const bgmLabel = this.add.text(panelX, bgmRowY - 18, 'VOLUME DA MÚSICA', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    this.pauseModalContainer.add(bgmLabel);
-
-    const bgmPct = this.add.text(
-      panelX + 138,
-      bgmRowY + 10,
-      '',
-      {
-        fontFamily: pixelFont,
-        fontSize: '12px',
-        fontStyle: 'bold',
-        color: '#f3d17a'
-      }
-    ).setOrigin(0, 0.5);
-    this.pauseModalContainer.add(bgmPct);
-
-    const bgmBarGraphics = this.add.graphics();
-    this.pauseModalContainer.add(bgmBarGraphics);
-
-    const updateBgmDisplay = () => {
-      const vol = SoundManager.getInstance().getMusicVolume();
-      bgmPct.setText(`${Math.round(vol * 100)}%`);
-
-      bgmBarGraphics.clear();
-      const barX = panelX - 98;
-      const barY = bgmRowY + 3;
-      const barW = 188;
-      const barH = 14;
-
-      bgmBarGraphics.fillStyle(0x280d15, 1);
-      bgmBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
-
-      const fillW = Math.max(0, barW * vol);
-      if (fillW > 0) {
-        bgmBarGraphics.fillStyle(0xff7700, 1);
-        bgmBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
-      }
-
-      const isSelected = this.pauseSelectedRow === 0;
-      bgmBarGraphics.lineStyle(isSelected ? 2.5 : 1.5, isSelected ? 0xffffff : 0xc59b27, 1);
-      bgmBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
-    };
-    this.updatePauseBgmDisplay = updateBgmDisplay;
-    updateBgmDisplay();
-
-    this.createPauseStepperBtn(panelX - 125, bgmRowY + 10, '-', 0, () => {
-      const cur = SoundManager.getInstance().getMusicVolume();
-      SoundManager.getInstance().setMusicVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
-      updateBgmDisplay();
-    });
-
-    this.createPauseStepperBtn(panelX + 112, bgmRowY + 10, '+', 0, () => {
-      const cur = SoundManager.getInstance().getMusicVolume();
-      SoundManager.getInstance().setMusicVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
-      updateBgmDisplay();
-    });
-
-    // 6. Volume de SFX (ao vivo na partida)
-    const sfxRowY = panelY + 40;
-    const sfxIndicator = this.add.text(panelX - 148, sfxRowY - 18, '▶', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: '#00f5d4'
-    }).setOrigin(1, 0.5).setVisible(false);
-    this.pauseModalContainer.add(sfxIndicator);
-    this.pauseRowIndicators.push(sfxIndicator);
-
-    const sfxLabel = this.add.text(panelX, sfxRowY - 18, 'VOLUME DE EFEITOS (SFX)', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    this.pauseModalContainer.add(sfxLabel);
-
-    const sfxPct = this.add.text(
-      panelX + 138,
-      sfxRowY + 10,
-      '',
-      {
-        fontFamily: pixelFont,
-        fontSize: '12px',
-        fontStyle: 'bold',
-        color: '#00f5d4'
-      }
-    ).setOrigin(0, 0.5);
-    this.pauseModalContainer.add(sfxPct);
-
-    const sfxBarGraphics = this.add.graphics();
-    this.pauseModalContainer.add(sfxBarGraphics);
-
-    const updateSfxDisplay = () => {
-      const vol = SoundManager.getInstance().getSfxVolume();
-      sfxPct.setText(`${Math.round(vol * 100)}%`);
-
-      sfxBarGraphics.clear();
-      const barX = panelX - 98;
-      const barY = sfxRowY + 3;
-      const barW = 188;
-      const barH = 14;
-
-      sfxBarGraphics.fillStyle(0x280d15, 1);
-      sfxBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
-
-      const fillW = Math.max(0, barW * vol);
-      if (fillW > 0) {
-        sfxBarGraphics.fillStyle(0x00f5d4, 1);
-        sfxBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
-      }
-
-      const isSelected = this.pauseSelectedRow === 1;
-      sfxBarGraphics.lineStyle(isSelected ? 2.5 : 1.5, isSelected ? 0xffffff : 0xc59b27, 1);
-      sfxBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
-    };
-    this.updatePauseSfxDisplay = updateSfxDisplay;
-    updateSfxDisplay();
-
-    this.createPauseStepperBtn(panelX - 125, sfxRowY + 10, '-', 1, () => {
-      const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setSfxVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
-      updateSfxDisplay();
-      SoundManager.getInstance().playEnemyHit();
-    });
-
-    this.createPauseStepperBtn(panelX + 112, sfxRowY + 10, '+', 1, () => {
-      const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setSfxVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
-      updateSfxDisplay();
-      SoundManager.getInstance().playEnemyHit();
-    });
-
-    // 7. Botões Inferiores: CONTINUAR | REINICIAR | MENU
-    const btnY = panelY + panelH / 2 - 42;
-    const bW = 150;
-    const bH = 34;
-    const bSpacing = 16;
-    const bTotalW = 3 * bW + 2 * bSpacing;
-    const bStartX = panelX - bTotalW / 2 + bW / 2;
-
-    this.createPauseActionBtn(bStartX, btnY, bW, bH, 'CONTINUAR', 0x225522, 0x00ff88, () => {
-      this.resumeGame(gameScene);
-    });
-
-    this.createPauseActionBtn(bStartX + (bW + bSpacing), btnY, bW, bH, 'REINICIAR', 0x553311, 0xffaa00, () => {
-      MetaProgressManager.getInstance().finalizeRunSouls();
-      this.isPaused = false;
-      this.cleanupPauseCursor();
-      if (this.pauseModalContainer) {
-        this.pauseModalContainer.destroy();
-        this.pauseModalContainer = undefined;
-      }
-      this.scene.stop('UIScene');
-      gameScene.scene.restart({ mode: gameScene.gameMode });
-    });
-
-    this.createPauseActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, 'MENU', 0x551122, 0xff0055, () => {
-      MetaProgressManager.getInstance().finalizeRunSouls();
-      SoundManager.getInstance().stopMusic();
-      this.isPaused = false;
-      this.cleanupPauseCursor();
-      if (this.pauseModalContainer) {
-        this.pauseModalContainer.destroy();
-        this.pauseModalContainer = undefined;
-      }
-      this.scene.stop('UIScene');
-      gameScene.scene.stop('GameScene');
-      this.scene.start('MenuScene');
-    });
-
-    this.updatePauseVisualSelection();
+    this.pauseMenu.pauseGame(gameScene);
   }
 
-  public resumeGame(gameScene: any): void {
-    if (!this.isPaused) return;
-    SoundManager.getInstance().playMenuClick();
-    this.cleanupPauseCursor();
-    if (this.pauseModalContainer) {
-      this.pauseModalContainer.destroy();
-      this.pauseModalContainer = undefined;
-    }
-    gameScene.physics.resume();
-    gameScene.scene.resume();
-    this.isPaused = false;
-    if (this.touchControls) {
-      this.touchControls.setVisible(this.isHUDVisibleState);
-    }
+  public resumeGame(gameScene: IPauseGameScene): void {
+    this.pauseMenu?.resumeGame(gameScene);
   }
 
-  private createPauseStepperBtn(
-    x: number,
-    y: number,
-    symbol: string,
-    rowIndex: number,
-    onClick: () => void
-  ): void {
-    if (!this.pauseModalContainer) return;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-
-    const bg = this.add.graphics();
-    const render = (hover: boolean) => {
-      bg.clear();
-      bg.fillStyle(hover ? 0xff4500 : 0x22050e, 1);
-      bg.fillCircle(x, y, 14);
-      bg.lineStyle(1.5, hover ? 0xffffff : 0xc59b27, 1);
-      bg.strokeCircle(x, y, 14);
-    };
-    render(false);
-    this.pauseModalContainer.add(bg);
-
-    const txt = this.add.text(x, y, symbol, {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    this.pauseModalContainer.add(txt);
-
-    const zone = this.add.zone(x, y, 36, 36);
-    zone.setInteractive({ useHandCursor: true });
-    this.pauseModalContainer.add(zone);
-
-    zone.on('pointerover', () => {
-      render(true);
-      if (this.pauseSelectedRow !== rowIndex) {
-        this.pauseSelectedRow = rowIndex;
-        this.updatePauseVisualSelection();
-      }
-      SoundManager.getInstance().playMenuHover();
-    });
-    zone.on('pointerout', () => render(false));
-    zone.on('pointerdown', () => onClick());
-
-    this.pauseZones.push(zone);
+  public isHUDVisible(): boolean {
+    return this.isHUDVisibleState;
   }
 
-  private createPauseActionBtn(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    label: string,
-    bgCol: number,
-    borderCol: number,
-    onClick: () => void
-  ): void {
-    if (!this.pauseModalContainer) return;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-    const btnIndex = this.pauseActionBtnRenders.length;
+  public getBestRecordValue(): number {
+    return this.bestRecordSec;
+  }
 
-    const bg = this.add.graphics();
-    const txt = this.add.text(x, y, label, {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
+  public updateBestRecordIfHigher(timeSec: number): boolean {
+    if (timeSec > this.bestRecordSec) {
+      this.saveBestRecordSec(timeSec);
+      this.bestRecordSec = timeSec;
+      return true;
+    }
+    return false;
+  }
 
-    const render = (hover: boolean) => {
-      bg.clear();
-      bg.fillStyle(hover ? borderCol : bgCol, 1);
-      bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 6);
-      bg.lineStyle(hover ? 2.5 : 1.5, hover ? 0xffffff : borderCol, 1);
-      bg.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 6);
-      txt.setColor(hover ? '#000000' : '#ffffff');
-    };
-    render(false);
-    this.pauseModalContainer.add(bg);
-    this.pauseModalContainer.add(txt);
-
-    this.pauseActionBtnRenders.push(render);
-    this.pauseActionBtnActions.push(onClick);
-
-    const zone = this.add.zone(x, y, w, h);
-    zone.setInteractive({ useHandCursor: true });
-    this.pauseModalContainer.add(zone);
-
-    zone.on('pointerover', () => {
-      this.pauseSelectedRow = 2;
-      this.pauseSelectedActionIdx = btnIndex;
-      this.updatePauseVisualSelection();
-      SoundManager.getInstance().playMenuHover();
-    });
-    zone.on('pointerdown', () => {
-      SoundManager.getInstance().playMenuClick();
-      onClick();
-    });
-
-    this.pauseZones.push(zone);
+  public onCleanupPauseCursor(): void {
+    this.pauseMenu?.cleanupCursor();
   }
 
   /**
@@ -2818,210 +2155,5 @@ export class UIScene extends Phaser.Scene {
         this.controlsText.setText('[WASD] Mover  |  [Shift] Sprint  |  [E] Ultimate  |  [ESC] Pausa');
       }
     }
-  }
-
-  /**
-   * Atualiza a seleção visual do menu de pausa (indicadores de linha, contornos e botões)
-   */
-  private updatePauseVisualSelection(): void {
-    // 1. Atualizar indicadores de linha (setas ▶)
-    if (this.pauseRowIndicators && this.pauseRowIndicators.length >= 2) {
-      this.pauseRowIndicators[0].setVisible(this.pauseSelectedRow === 0);
-      this.pauseRowIndicators[1].setVisible(this.pauseSelectedRow === 1);
-    }
-
-    // 2. Atualizar contornos visuais das barras de volume
-    if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
-    if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
-
-    // 3. Atualizar botões de ação inferiores (Row 2)
-    for (let i = 0; i < this.pauseActionBtnRenders.length; i++) {
-      const isSelected = this.pauseSelectedRow === 2 && this.pauseSelectedActionIdx === i;
-      this.pauseActionBtnRenders[i](isSelected);
-    }
-  }
-
-  /**
-   * Processa entrada de Gamepad e Teclado para o Menu de Pausa (Navegação discreta por linhas)
-   */
-  private updatePauseControls(_delta: number, gameScene: any): void {
-    if (!this.isPaused || !this.pauseModalContainer) return;
-
-    const nav = GamepadManager.getInstance().getMenuNavigation(this);
-    const k = this.input.keyboard;
-    const now = Date.now();
-
-    // 1. Fechar Pausa / Retomar (ESC no teclado, B ou Start no Gamepad)
-    const escPressed = Boolean(k && Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.ESC)));
-    const pad = GamepadManager.getInstance().getActivePad(this);
-    const padStartCurrent = Boolean(pad && (
-      (pad.buttons[9] && pad.buttons[9].pressed) ||
-      (pad.buttons[8] && pad.buttons[8].pressed)
-    ));
-    const padStartJustDown = padStartCurrent && !this.prevPadCancelOrStart;
-    this.prevPadCancelOrStart = padStartCurrent;
-
-    if (escPressed || nav.cancel || padStartJustDown) {
-      if (now - this.lastPauseToggleTime > 250) {
-        this.lastPauseToggleTime = now;
-        this.resumeGame(gameScene);
-        return;
-      }
-    }
-
-    // 2. Direções Verticais (Mudar Linha: 0 = BGM, 1 = SFX, 2 = Ações)
-    const upPressed = nav.up || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.UP)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.W))
-    ));
-    const downPressed = nav.down || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.S))
-    ));
-
-    if (upPressed && this.pauseSelectedRow > 0) {
-      this.pauseSelectedRow--;
-      SoundManager.getInstance().playMenuHover();
-      this.updatePauseVisualSelection();
-    } else if (downPressed && this.pauseSelectedRow < 2) {
-      this.pauseSelectedRow++;
-      SoundManager.getInstance().playMenuHover();
-      this.updatePauseVisualSelection();
-    }
-
-    // 3. Direções Horizontais (Ajustar Volume ou Mudar Botão de Ação)
-    const leftPressed = nav.left || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.A))
-    ));
-    const rightPressed = nav.right || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.D))
-    ));
-
-    if (this.pauseSelectedRow === 0) {
-      // Ajuste de Volume de Música
-      if (leftPressed) {
-        const cur = SoundManager.getInstance().getMusicVolume();
-        const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
-        SoundManager.getInstance().setMusicVolume(next);
-        if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
-        SoundManager.getInstance().playMenuHover();
-      } else if (rightPressed) {
-        const cur = SoundManager.getInstance().getMusicVolume();
-        const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
-        SoundManager.getInstance().setMusicVolume(next);
-        if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
-        SoundManager.getInstance().playMenuHover();
-      }
-    } else if (this.pauseSelectedRow === 1) {
-      // Ajuste de Volume de Efeitos (SFX)
-      if (leftPressed) {
-        const cur = SoundManager.getInstance().getSfxVolume();
-        const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
-        SoundManager.getInstance().setSfxVolume(next);
-        if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
-        SoundManager.getInstance().playEnemyHit();
-      } else if (rightPressed) {
-        const cur = SoundManager.getInstance().getSfxVolume();
-        const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
-        SoundManager.getInstance().setSfxVolume(next);
-        if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
-        SoundManager.getInstance().playEnemyHit();
-      }
-    } else if (this.pauseSelectedRow === 2) {
-      // Navegação entre botões de ação (0 = CONTINUAR, 1 = REINICIAR, 2 = MENU)
-      if (leftPressed) {
-        this.pauseSelectedActionIdx = (this.pauseSelectedActionIdx - 1 + 3) % 3;
-        SoundManager.getInstance().playMenuHover();
-        this.updatePauseVisualSelection();
-      } else if (rightPressed) {
-        this.pauseSelectedActionIdx = (this.pauseSelectedActionIdx + 1) % 3;
-        SoundManager.getInstance().playMenuHover();
-        this.updatePauseVisualSelection();
-      }
-    }
-
-    // 4. Confirmação (Enter / Espaço / Botão A do Gamepad)
-    const confirmPressed = nav.confirm || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))
-    ));
-
-    if (confirmPressed) {
-      if (this.pauseSelectedRow === 2) {
-        SoundManager.getInstance().playMenuClick();
-        const action = this.pauseActionBtnActions[this.pauseSelectedActionIdx];
-        if (action) action();
-      }
-    }
-  }
-
-  /**
-   * Processa entrada de Gamepad, Teclado e Analógico para a tela Fim da Jornada
-   */
-  private updateGameOverControls(delta: number): void {
-    if (!this.isGameOverModalOpen || !this.gameOverModalContainer) return;
-
-    const nav = GamepadManager.getInstance().getMenuNavigation(this);
-    const k = this.input.keyboard;
-
-    const leftPressed = nav.left || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.A))
-    ));
-    const rightPressed = nav.right || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.D))
-    ));
-
-    if (leftPressed && this.gameOverSelectedIndex !== 0) {
-      this.selectGameOverBtn(0);
-    } else if (rightPressed && this.gameOverSelectedIndex !== 1) {
-      this.selectGameOverBtn(1);
-    }
-
-    const confirmPressed = nav.confirm || Boolean(k && (
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)) ||
-      Phaser.Input.Keyboard.JustDown(k.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))
-    ));
-
-    if (confirmPressed) {
-      SoundManager.getInstance().playMenuClick();
-      this.triggerGameOverChoice(this.gameOverSelectedIndex);
-      return;
-    }
-  }
-
-  private selectGameOverBtn(index: number): void {
-    if (this.gameOverSelectedIndex !== index) {
-      SoundManager.getInstance().playMenuHover();
-    }
-    this.gameOverSelectedIndex = index;
-    if (this.gameOverBtnRenders[0]) this.gameOverBtnRenders[0](index === 0);
-    if (this.gameOverBtnRenders[1]) this.gameOverBtnRenders[1](index === 1);
-  }
-
-  private triggerGameOverChoice(index: number): void {
-    this.isGameOverModalOpen = false;
-    this.cleanupPauseCursor();
-    if (this.gameOverModalContainer) {
-      this.gameOverModalContainer.destroy();
-      this.gameOverModalContainer = undefined;
-    }
-    const action = this.gameOverBtnActions[index];
-    if (action) action();
-  }
-
-  /**
-   * Limpa referências e listas de navegação do menu de pausa
-   */
-  private cleanupPauseCursor(): void {
-    this.pauseZones = [];
-    this.pauseActionBtnRenders = [];
-    this.pauseActionBtnActions = [];
-    this.pauseRowIndicators = [];
-    this.updatePauseBgmDisplay = undefined;
-    this.updatePauseSfxDisplay = undefined;
   }
 }
