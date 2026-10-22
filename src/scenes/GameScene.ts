@@ -25,7 +25,7 @@ import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome } from '../config/balance';
+import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome, AZAZEL_BOSS_BALANCE } from '../config/balance';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
@@ -2753,7 +2753,15 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.azazelBoss = new AzazelBoss(this, bossX, bossY);
     this.azazelBoss.setDepth(22);
     this.enemiesGroup.add(this.azazelBoss);
-    this.azazelBoss.spawn(bossX, bossY, 16000, 138, 42, 1.65, isCinematicIntro);
+    this.azazelBoss.spawn(
+      bossX,
+      bossY,
+      AZAZEL_BOSS_BALANCE.maxHp,
+      AZAZEL_BOSS_BALANCE.speed,
+      AZAZEL_BOSS_BALANCE.baseContactDamage,
+      AZAZEL_BOSS_BALANCE.scale,
+      isCinematicIntro
+    );
 
     if (!isCinematicIntro) {
       this.tweens.add({

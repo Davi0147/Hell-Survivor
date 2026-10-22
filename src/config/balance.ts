@@ -184,3 +184,23 @@ export function getBossDefeatOutcome(gameMode: string): BossDefeatOutcome {
   return 'continue-run';
 }
 
+// ============================================================================
+// 5. CHEFE DO CAPÍTULO 2: AZAZEL, O ANJO CAÍDO (Dano Base reduzido em 70%)
+// ============================================================================
+export const AZAZEL_BOSS_BALANCE = {
+  maxHp: 16000,
+  speed: 138,
+  scale: 1.65,
+  // Todos os valores de dano de Azazel reduzidos em 70% (30% do valor original arredondado)
+  baseContactDamage: 13,        // antes: 42 (42 * 0.30 = 12.6 -> 13)
+  cloneContactDamage: 10,       // antes: 32 (32 * 0.30 = 9.6 -> 10)
+  directedBurstOrbDamage: 9,    // antes: 30 (30 * 0.30 = 9.0 -> 9)
+  teleportOrbDamage: 8,         // antes: 28 (28 * 0.30 = 8.4 -> 8)
+  rapidDashDamage: 14,          // antes: 46 (46 * 0.30 = 13.8 -> 14)
+  lightningBoltDamage: 14,      // antes: 48 (48 * 0.30 = 14.4 -> 14)
+  spiralOrbDamage: 8,           // antes: 26 (26 * 0.30 = 7.8 -> 8)
+  darkFiveDashesDamage: 11,     // antes: 38 (38 * 0.30 = 11.4 -> 11)
+  darkCloneOrbDamage: 8         // antes: 25 (25 * 0.30 = 7.5 -> 8)
+} as const;
+
+

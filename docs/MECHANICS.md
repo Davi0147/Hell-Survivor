@@ -74,8 +74,8 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
      - **História (Cap. 1):** `HP = 9000`, `Velocidade = 125`, `Dano = 35`, escala `1.75` (`GameScene.ts:2807`).
      - **Infinito (10 min):** `HP = 12000`, `Velocidade = 135`, `Dano = 40`, escala `1.85` (`GameScene.ts:1707`).
      - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testada em `scaling.test.ts`.
-   - **`Azazel, O Anjo Caído` (Chefe Cap. 2) (`GameScene.spawnAzazelBoss`, `AzazelBoss.spawn`):**
-     - **Capítulo 2:** `HP = 16000`, `Velocidade = 138`, `Dano = 42`, escala `1.65` (`GameScene.ts:2971`).
+   - **`Azazel, O Anjo Caído` (Chefe Cap. 2) (`GameScene.spawnAzazelBoss`, `AzazelBoss.spawn`, `AZAZEL_BOSS_BALANCE` em `src/config/balance.ts`):**
+     - **Capítulo 2:** `HP = 16000`, `Velocidade = 138`, `Dano Base = 13` (reduzido em 70% a partir de `42`), escala `1.65`. Todos os golpes e projéteis de Azazel usam `AZAZEL_BOSS_BALANCE` com redução de 70%: clone espectral (`10`), rajada direcionada (`9`), orbes pós-teleporte (`8`), investida rápida (`14`), tempestade de raios (`14`), barragem em espiral (`8`), 5 avanços na escuridão (`11`) e tiros dos 8 clones (`8`).
      - **NÃO usa `getEnemyScaling`** e **NÃO usa `getChapterEnemyStatMultiplier()`**. Não é testado em `scaling.test.ts`.
    - > **Nota de Auditoria e Decisão do Dono:** O teste automatizado `src/__tests__/scaling.test.ts` protege **exclusivamente a função matemática pura `getEnemyScaling`** (cujos multiplicadores só são consumidos por `ZombieDog` e `MummyEnemy`). `BloodBat` e `SkullSlime` usam lógica inline separada, e os minichefes/chefes usam literais estáticos. **A função é testada; o uso no spawn não é testado.**
 3. **Controle de Grupo e Resistência:**

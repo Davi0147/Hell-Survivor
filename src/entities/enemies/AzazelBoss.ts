@@ -4,6 +4,7 @@ import { Nixy } from '../characters/Nixy';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
 import { SoundManager } from '../../systems/SoundManager';
 import { BOSS_TELEGRAPH } from '../../config/theme';
+import { AZAZEL_BOSS_BALANCE } from '../../config/balance';
 
 export type AzazelCombatPhase = 1 | 2 | 3 | 4; // 1: 100->50%, 2: 50->20% (Escuridão), 3: Cristais (Oculto), 4: 20->0% (Showdown Final)
 
@@ -44,8 +45,8 @@ export class AzazelPhantomClone extends BaseEnemy {
     this.maxHp = parentBoss.maxHp;
     this.hp = parentBoss.hp;
     this.speed = 0;
-    this.damage = 32;
-    this.setScale(1.65);
+    this.damage = AZAZEL_BOSS_BALANCE.cloneContactDamage;
+    this.setScale(AZAZEL_BOSS_BALANCE.scale);
     this.setDepth(22);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -114,10 +115,10 @@ export class AzazelPhantomClone extends BaseEnemy {
 }
 
 export class AzazelBoss extends BaseEnemy {
-  public maxHp: number = 16000;
-  public hp: number = 16000;
-  public speed: number = 138;
-  public damage: number = 42;
+  public maxHp: number = AZAZEL_BOSS_BALANCE.maxHp;
+  public hp: number = AZAZEL_BOSS_BALANCE.maxHp;
+  public speed: number = AZAZEL_BOSS_BALANCE.speed;
+  public damage: number = AZAZEL_BOSS_BALANCE.baseContactDamage;
   public isBoss: boolean = true;
   public isInvulnerable: boolean = false;
   public combatPhase: AzazelCombatPhase = 1;
@@ -211,10 +212,10 @@ export class AzazelBoss extends BaseEnemy {
   public override spawn(
     x: number,
     y: number,
-    hp: number = 16000,
-    speed: number = 138,
-    damage: number = 42,
-    customScale: number = 1.65,
+    hp: number = AZAZEL_BOSS_BALANCE.maxHp,
+    speed: number = AZAZEL_BOSS_BALANCE.speed,
+    damage: number = AZAZEL_BOSS_BALANCE.baseContactDamage,
+    customScale: number = AZAZEL_BOSS_BALANCE.scale,
     isCinematicIntro: boolean = false
   ): void {
     super.spawn(x, y, hp, speed, damage);
@@ -569,7 +570,7 @@ export class AzazelBoss extends BaseEnemy {
       this.scene.time.delayedCall(idx * 95, () => {
         if (!this.active || this.isDead || this.combatPhase === 2 || this.combatPhase === 3) return;
         const curAngle = Math.atan2(player.y - this.y, player.x - this.x) + offset;
-        this.spawnAzazelOrb(this.x, this.y, curAngle, 320, 30);
+        this.spawnAzazelOrb(this.x, this.y, curAngle, 320, AZAZEL_BOSS_BALANCE.directedBurstOrbDamage);
       });
     });
   }
@@ -636,7 +637,7 @@ export class AzazelBoss extends BaseEnemy {
       if (!this.active || this.isDead || this.combatPhase === 2 || this.combatPhase === 3) return;
       const a = Math.atan2(player.y - this.y, player.x - this.x);
       [-0.22, 0, 0.22].forEach((off) => {
-        this.spawnAzazelOrb(this.x, this.y, a + off, 300, 28);
+        this.spawnAzazelOrb(this.x, this.y, a + off, 300, AZAZEL_BOSS_BALANCE.teleportOrbDamage);
       });
     });
   }
@@ -714,7 +715,7 @@ export class AzazelBoss extends BaseEnemy {
     }
 
     if (Math.hypot(this.x - player.x, this.y - player.y) <= 44) {
-      player.takeDamage(46);
+      player.takeDamage(AZAZEL_BOSS_BALANCE.rapidDashDamage);
       this.scene.cameras.main.shake(170, 0.016);
       this.endDash();
       return;
@@ -845,7 +846,7 @@ export class AzazelBoss extends BaseEnemy {
 
     // Dano se o jogador estiver no raio de impacto
     if (Math.hypot(player.x - x, player.y - y) <= radius) {
-      player.takeDamage(48);
+      player.takeDamage(AZAZEL_BOSS_BALANCE.lightningBoltDamage);
     }
   }
 
@@ -882,8 +883,8 @@ export class AzazelBoss extends BaseEnemy {
     if (this.spiralShotTimer <= 0) {
       this.spiralShotTimer = 115;
       this.spiralAngle += 0.36;
-      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle, 265, 26);
-      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle + Math.PI, 265, 26);
+      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle, 265, AZAZEL_BOSS_BALANCE.spiralOrbDamage);
+      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle + Math.PI, 265, AZAZEL_BOSS_BALANCE.spiralOrbDamage);
     }
 
     if (this.stateTimer <= 0) {
@@ -1053,7 +1054,7 @@ export class AzazelBoss extends BaseEnemy {
       });
 
       if (Math.hypot(this.x - player.x, this.y - player.y) <= 42) {
-        player.takeDamage(38);
+        player.takeDamage(AZAZEL_BOSS_BALANCE.darkFiveDashesDamage);
         this.scene.cameras.main.shake(140, 0.014);
       }
 
@@ -1170,7 +1171,7 @@ export class AzazelBoss extends BaseEnemy {
       const selected = allShooters.slice(0, 3);
       for (const s of selected) {
         const shotAngle = Math.atan2(player.y - s.y, player.x - s.x);
-        this.spawnAzazelOrb(s.x, s.y, shotAngle, 265, 25);
+        this.spawnAzazelOrb(s.x, s.y, shotAngle, 265, AZAZEL_BOSS_BALANCE.darkCloneOrbDamage);
       }
     }
 
