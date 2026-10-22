@@ -2,7 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Unreleased / Pacote UI (Modais), Organização de Repositório & Balanceamento de Azazel] — 2026-10-21
+## [v0.9.4 — Pacote UI, Organização de Repositório & Balanceamento de Azazel] — 2026-10-21
+
+### Resumo para o Jogador
+- **Balanceamento do Chefe Azazel**: O dano de contato e de todas as habilidades mágicas e tiros do Boss Azazel (Capítulo 2) foram reduzidos em 70%, tornando a batalha mais justa e equilibrada.
+- **Roleta do Baú do Abismo**: Agora é possível avançar/pular a animação da roleta com segurança pressionando Espaço, Enter ou clicando em qualquer lugar da tela (inclusive no fundo escuro), sem risco de travamento. O Bot de testes [F3] agora também avança sozinho.
+- **Interface e Modais**: Os menus de Pausa, Fim de Jogo e Vitória de Capítulo foram padronizados numa moldura compartilhada sem alterar o visual clássico do jogo, preparando o terreno para futuras personalizações de estilo.
+- **Proteção dos Arquivos Originais**: Músicas, sprites e fontes brutas agora ficam salvos e protegidos no repositório através de Git LFS.
 ### Refatoração & Arquitetura (Pacote UI & Organização)
 - **Extração de Modais da `UIScene.ts` para `src/ui/` (`ModalFrame.ts`, `PauseMenu.ts`, `GameOverModal.ts`, `ChapterVictoryModal.ts`)**:
   - Criação do construtor de moldura compartilhada `createModalFrame` em `src/ui/ModalFrame.ts` e centralização de todos os tokens cromáticos dos modais em `MODAL_THEME` dentro de `src/config/theme.ts`.
