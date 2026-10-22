@@ -32,7 +32,6 @@ Thumbs.db
 .env.*.local
 
 # Raw Source Assets (processed into public/)
-Sounds/
 backups/
 backup_*/
 scratch/
