@@ -185,6 +185,34 @@ export function getBossDefeatOutcome(gameMode: string): BossDefeatOutcome {
 }
 
 // ============================================================================
+// 4. INIMIGOS COMUNS, ELITES, MINICHEFES E CHEFE DO CAPÍTULO 1
+// ============================================================================
+// Fonte única dos atributos de combate. `hp`/`speed`/`damage` são os valores base;
+// o escalonamento por tempo (getEnemyScaling) e o multiplicador de capítulo são
+// aplicados no momento do spawn pela GameScene.
+export const ENEMY_BALANCE = {
+  zombieDog: { hp: 35, speed: 85, damage: 9 },
+  zombieDogElite: { hp: 140, speed: 90, damage: 13, scale: 1.35, minMinutes: 2, chance: 0.12 },
+  // Variante elite invocada manualmente pelo Modo de Teste
+  zombieDogEliteSandbox: { hp: 180, speed: 96, damage: 15, scale: 1.35 },
+  // Guardas dos props de mapa (cães postados em pontos fixos)
+  zombieDogMapGuard: { hp: 45, speed: 95, damage: 11 },
+  skullSlime: { hp: 160, speed: 46, damage: 10, endlessHpPerMinute: 30 },
+  bloodBat: { hp: 14, speed: 155, damage: 5, endlessHpPerMinute: 3, endlessSpeedPerMinute: 5 },
+  mummy: { hp: 130, speed: 58, damage: 15 },
+  // Horda da Dimensão Abissal (Fase 3 do Azazel)
+  azazelDimensionDog: { hp: 48, speed: 92, damage: 11 },
+  azazelDimensionMummy: { hp: 150, speed: 62, damage: 16 },
+  titanCerberus: { hp: 1400, speed: 95, damage: 20, scale: 1.85 },
+  matriarchSuccubus: { hp: 2400, speed: 115, damage: 24, scale: 1.45 },
+} as const;
+
+export const SUCCUBUS_BOSS_BALANCE = {
+  story: { hp: 9000, speed: 125, damage: 35, scale: 1.75 },
+  endless: { hp: 12000, speed: 135, damage: 40, scale: 1.85 },
+} as const;
+
+// ============================================================================
 // 5. CHEFE DO CAPÍTULO 2: AZAZEL, O ANJO CAÍDO (Dano Base reduzido em 70%)
 // ============================================================================
 export const AZAZEL_BOSS_BALANCE = {

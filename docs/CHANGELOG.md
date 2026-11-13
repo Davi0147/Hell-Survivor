@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.5 — Organização, Balanceamento Centralizado & Correção de Tela Preta] — 2026-11-13
+
+### Resumo para o Jogador
+- **Tela preta ao abrir o jogo**: corrigido o caso em que o jogo carregava com a aba em segundo plano (ou num app que ainda estava abrindo) e ficava com a tela toda preta até redimensionar a janela.
+- **Nada muda no combate**: inimigos e chefes têm exatamente a mesma vida, velocidade e dano de antes.
+
+### Organização do Projeto
+- **Atributos de inimigos e chefes centralizados (`src/config/balance.ts`)**: criadas as tabelas `ENEMY_BALANCE` e `SUCCUBUS_BOSS_BALANCE`. `GameScene.ts` e `SandboxController.ts` não têm mais números de HP, velocidade e dano escritos direto no código. Novo teste `enemyBalance.test.ts` protege a hierarquia de ameaça (comum < minichefe < chefe).
+- **Correção em `src/main.ts`**: um `ResizeObserver` reajusta o canvas quando o contêiner muda de tamanho.
+- **Código morto removido**: `src/entities/enemies/Succubus.ts` (nunca era usado).
+- **Documentação enxugada**: `AGENTS.md` reescrito (papéis de dono e programadora, 13 regras técnicas); removidos `README_ANALISE.md`, `docs/DEVELOPMENT_RULES.md`, `docs/TIMELINE.md`, `docs/RELEASE_CHECKLIST.md`, `docs/BALANCE_AUDIT.md`, `docs/GUIA_DO_DONO.md` e a pasta `.agent/`. `docs/MECHANICS.md` deixa de repetir números e aponta para `balance.ts`.
+- **Novo `docs/ART_PROMPTS.md`**: prompts prontos para gerar ícones, efeitos de ataque, animações de chefes, inimigos e cenário no estilo do jogo.
+
 ## [v0.9.4 — Pacote UI, Organização de Repositório & Balanceamento de Azazel] — 2026-10-21
 
 ### Resumo para o Jogador

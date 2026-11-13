@@ -208,7 +208,6 @@ O Modo Infinito é a arena definitiva para testar a maestria mecânica, empurrar
 Hell Survivor/
 ├── docs/
 │   ├── GDD.md                  # Este documento oficial de Game Design
-│   └── TIMELINE.md             # Linha do tempo e roadmap detalhado por fases
 ├── public/                     # Assets estáticos servidos pelo Vite
 │   ├── assets/
 │   │   ├── sprites/

@@ -20,6 +20,14 @@ async function bootstrap() {
   const game = new Phaser.Game(GAME_CONFIG);
   (window as any).__PHASER_GAME__ = game;
   initPWAInstallPrompt();
+
+  // Se a página carrega com o contêiner ainda sem tamanho (aba em segundo plano, WebView
+  // abrindo, painel recolhido), o Phaser calcula um canvas 0x0 e não recalcula sozinho,
+  // deixando a tela preta. Reajusta sempre que o contêiner mudar de tamanho.
+  const container = document.getElementById('game-container');
+  if (container && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => game.scale.refresh()).observe(container);
+  }
 }
 
 if (document.readyState === 'loading') {

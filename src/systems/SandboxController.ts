@@ -10,6 +10,7 @@ import type { BossSummonAltar } from '../entities/items/BossSummonAltar';
 import type { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
+import { ENEMY_BALANCE } from '../config/balance';
 
 export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'titan_cerberus' | 'matriarch';
 
@@ -129,13 +130,13 @@ export class SandboxController {
       const sy = p.y + Math.sin(angle) * dist;
 
       if (type === 'dog') {
-        this.context.spawnZombieDogAt(sx, sy, 35, 85, 9);
+        this.context.spawnZombieDogAt(sx, sy, ENEMY_BALANCE.zombieDog.hp, ENEMY_BALANCE.zombieDog.speed, ENEMY_BALANCE.zombieDog.damage);
       } else if (type === 'elite_dog') {
-        this.context.spawnZombieDogAt(sx, sy, 180, 96, 15, true, 1.35);
+        this.context.spawnZombieDogAt(sx, sy, ENEMY_BALANCE.zombieDogEliteSandbox.hp, ENEMY_BALANCE.zombieDogEliteSandbox.speed, ENEMY_BALANCE.zombieDogEliteSandbox.damage, true, ENEMY_BALANCE.zombieDogEliteSandbox.scale);
       } else if (type === 'slime') {
         this.context.spawnSkullSlimeAt(sx, sy);
       } else if (type === 'mummy') {
-        this.context.spawnMummyAt(sx, sy, 130, 58, 15);
+        this.context.spawnMummyAt(sx, sy, ENEMY_BALANCE.mummy.hp, ENEMY_BALANCE.mummy.speed, ENEMY_BALANCE.mummy.damage);
       }
     }
   }

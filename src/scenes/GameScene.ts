@@ -25,7 +25,7 @@ import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome, AZAZEL_BOSS_BALANCE } from '../config/balance';
+import { PERFORMANCE_LIMITS, getEnemyScaling, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome, AZAZEL_BOSS_BALANCE, ENEMY_BALANCE, SUCCUBUS_BOSS_BALANCE } from '../config/balance';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
@@ -1113,7 +1113,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
         for (let i = 0; i < 2; i++) {
           const a = Phaser.Math.FloatBetween(0, Math.PI * 2);
           const p = this.clampToArena(this.bossInstance.x + Math.cos(a) * 150, this.bossInstance.y + Math.sin(a) * 150);
-          this.spawnZombieDogAt(p.x, p.y, 45, 95, 11);
+          this.spawnZombieDogAt(p.x, p.y, ENEMY_BALANCE.zombieDogMapGuard.hp, ENEMY_BALANCE.zombieDogMapGuard.speed, ENEMY_BALANCE.zombieDogMapGuard.damage);
         }
         this.spawnBloodBatFlock(3);
       }
@@ -1156,9 +1156,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public spawnZombieDogAt(
     x: number,
     y: number,
-    hp: number = 35,
-    speed: number = 85,
-    damage: number = 9,
+    hp: number = ENEMY_BALANCE.zombieDog.hp,
+    speed: number = ENEMY_BALANCE.zombieDog.speed,
+    damage: number = ENEMY_BALANCE.zombieDog.damage,
     isElite: boolean = false,
     eliteScale: number = 1.0,
     customDrop?: GemType
@@ -1245,9 +1245,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     const minutes = this.survivalTimeMs / 60000;
     const chMult = this.getChapterEnemyStatMultiplier();
-    const hp = Math.round((160 + (this.gameMode === 'endless' ? minutes * 30 : 0)) * chMult);
-    const dmg = Math.round(10 * chMult);
-    enemy.spawn(x, y, hp, 46, dmg);
+    const slime = ENEMY_BALANCE.skullSlime;
+    const hp = Math.round((slime.hp + (this.gameMode === 'endless' ? minutes * slime.endlessHpPerMinute : 0)) * chMult);
+    const dmg = Math.round(slime.damage * chMult);
+    enemy.spawn(x, y, hp, slime.speed, dmg);
   }
 
   private spawnBloodBatAt(x: number, y: number): void {
@@ -1283,9 +1284,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     const minutes = this.survivalTimeMs / 60000;
     const chMult = this.getChapterEnemyStatMultiplier();
-    const hp = Math.round((14 + (this.gameMode === 'endless' ? minutes * 3 : 0)) * chMult);
-    const speed = Math.floor(155 + (this.gameMode === 'endless' ? minutes * 5 : 0));
-    const dmg = Math.round(5 * chMult);
+    const bat = ENEMY_BALANCE.bloodBat;
+    const hp = Math.round((bat.hp + (this.gameMode === 'endless' ? minutes * bat.endlessHpPerMinute : 0)) * chMult);
+    const speed = Math.floor(bat.speed + (this.gameMode === 'endless' ? minutes * bat.endlessSpeedPerMinute : 0));
+    const dmg = Math.round(bat.damage * chMult);
     enemy.spawn(x, y, hp, speed, dmg);
   }
 
@@ -1308,9 +1310,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public spawnMummyAt(
     x: number,
     y: number,
-    hp: number = 130,
-    speed: number = 58,
-    damage: number = 15
+    hp: number = ENEMY_BALANCE.mummy.hp,
+    speed: number = ENEMY_BALANCE.mummy.speed,
+    damage: number = ENEMY_BALANCE.mummy.damage
   ): void {
     const clamped = this.clampToArena(x, y);
     x = clamped.x;
@@ -1360,7 +1362,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       const dist = Phaser.Math.Between(300, 440);
       const sx = this.player.x + Math.cos(angle) * dist;
       const sy = this.player.y + Math.sin(angle) * dist;
-      this.spawnZombieDogAt(sx, sy, 48, 92, 11);
+      this.spawnZombieDogAt(sx, sy, ENEMY_BALANCE.azazelDimensionDog.hp, ENEMY_BALANCE.azazelDimensionDog.speed, ENEMY_BALANCE.azazelDimensionDog.damage);
     }
 
     if (Math.random() < 0.45) {
@@ -1370,7 +1372,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     if (Math.random() < 0.25) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       const dist = Phaser.Math.Between(320, 420);
-      this.spawnMummyAt(this.player.x + Math.cos(angle) * dist, this.player.y + Math.sin(angle) * dist, 150, 62, 16);
+      this.spawnMummyAt(this.player.x + Math.cos(angle) * dist, this.player.y + Math.sin(angle) * dist, ENEMY_BALANCE.azazelDimensionMummy.hp, ENEMY_BALANCE.azazelDimensionMummy.speed, ENEMY_BALANCE.azazelDimensionMummy.damage);
     }
   }
 
@@ -1674,9 +1676,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       if (activeMummies < maxMummies && Math.random() < mummyChance) {
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
         const dist = Phaser.Math.Between(320, 440);
-        const hp = Math.floor(130 * scaling.hpMultiplier);
-        const speed = Math.floor(58 * scaling.speedMultiplier);
-        const dmg = Math.floor(15 * scaling.damageMultiplier);
+        const hp = Math.floor(ENEMY_BALANCE.mummy.hp * scaling.hpMultiplier);
+        const speed = Math.floor(ENEMY_BALANCE.mummy.speed * scaling.speedMultiplier);
+        const dmg = Math.floor(ENEMY_BALANCE.mummy.damage * scaling.damageMultiplier);
         this.spawnMummyAt(this.player.x + Math.cos(angle) * dist, this.player.y + Math.sin(angle) * dist, hp, speed, dmg);
       }
     }
@@ -1701,16 +1703,16 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       const spawnX = this.player.x + Math.cos(angle) * dist;
       const spawnY = this.player.y + Math.sin(angle) * dist;
 
-      const isElite = this.gameMode === 'endless' && scaling.minutes >= 2 && Math.random() < 0.12;
+      const isElite = this.gameMode === 'endless' && scaling.minutes >= ENEMY_BALANCE.zombieDogElite.minMinutes && Math.random() < ENEMY_BALANCE.zombieDogElite.chance;
       if (isElite) {
-        const eliteHp = Math.floor(140 * scaling.hpMultiplier);
-        const eliteSpeed = Math.floor(90 * scaling.speedMultiplier);
-        const eliteDmg = Math.floor(13 * scaling.damageMultiplier);
-        this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, 1.35);
+        const eliteHp = Math.floor(ENEMY_BALANCE.zombieDogElite.hp * scaling.hpMultiplier);
+        const eliteSpeed = Math.floor(ENEMY_BALANCE.zombieDogElite.speed * scaling.speedMultiplier);
+        const eliteDmg = Math.floor(ENEMY_BALANCE.zombieDogElite.damage * scaling.damageMultiplier);
+        this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, ENEMY_BALANCE.zombieDogElite.scale);
       } else {
-        const hp = Math.floor(35 * scaling.hpMultiplier);
-        const speed = Math.floor(85 * scaling.speedMultiplier);
-        const dmg = Math.floor(9 * scaling.damageMultiplier);
+        const hp = Math.floor(ENEMY_BALANCE.zombieDog.hp * scaling.hpMultiplier);
+        const speed = Math.floor(ENEMY_BALANCE.zombieDog.speed * scaling.speedMultiplier);
+        const dmg = Math.floor(ENEMY_BALANCE.zombieDog.damage * scaling.damageMultiplier);
         this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
       }
     }
@@ -1730,7 +1732,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     titan.setDepth(15);
     this.enemiesGroup.add(titan);
 
-    titan.spawn(x, y, 1400, 95, 20, true, 1.85, 'purple');
+    const titanStats = ENEMY_BALANCE.titanCerberus;
+    titan.spawn(x, y, titanStats.hp, titanStats.speed, titanStats.damage, true, titanStats.scale, 'purple');
 
     titan.on('enemy-killed', (ex: number, ey: number) => {
       this.killCount++;
@@ -1760,7 +1763,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     matriarch.setDepth(21);
     this.enemiesGroup.add(matriarch);
 
-    matriarch.spawn(x, y, 2400, 115, 24, 1.45);
+    const matriarchStats = ENEMY_BALANCE.matriarchSuccubus;
+    matriarch.spawn(x, y, matriarchStats.hp, matriarchStats.speed, matriarchStats.damage, matriarchStats.scale);
     matriarch.setTint(0xff758f);
 
     matriarch.on('boss-defeated', () => {
@@ -1791,7 +1795,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.bossInstance.setDepth(25);
     this.enemiesGroup.add(this.bossInstance);
 
-    this.bossInstance.spawn(bossX, bossY, 12000, 135, 40, 1.85);
+    const endlessBoss = SUCCUBUS_BOSS_BALANCE.endless;
+    this.bossInstance.spawn(bossX, bossY, endlessBoss.hp, endlessBoss.speed, endlessBoss.damage, endlessBoss.scale);
 
     this.cameras.main.flash(300, 255, 0, 85);
     this.cameras.main.shake(400, 0.025);
@@ -2589,7 +2594,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.bossInstance = new SuccubusBoss(this, bossX, bossY);
     this.bossInstance.setDepth(22);
     this.enemiesGroup.add(this.bossInstance);
-    this.bossInstance.spawn(bossX, bossY, 9000, 125, 35, 1.75, isCinematicIntro);
+    const storyBoss = SUCCUBUS_BOSS_BALANCE.story;
+    this.bossInstance.spawn(bossX, bossY, storyBoss.hp, storyBoss.speed, storyBoss.damage, storyBoss.scale, isCinematicIntro);
 
     this.cameras.main.flash(260, 255, 0, 85);
     this.cameras.main.shake(300, 0.022);

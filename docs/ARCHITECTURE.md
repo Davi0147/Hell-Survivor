@@ -28,7 +28,7 @@ flowchart TD
 | Arquivo | Responsabilidade Real | Onde Moram os Números / Constantes | Quem Consome |
 | :--- | :--- | :--- | :--- |
 | [`gameConfig.ts`](../src/config/gameConfig.ts) | Resolução de tela base, `pixelArt`, física Arcade sem gravidade e lista ordenada de cenas. | Dimensões em `gameConfig.ts` | `main.ts` |
-| [`balance.ts`](../src/config/balance.ts) | Atributos base da heroína, balanceamento de projéteis, curva de XP, limites rígidos de entidades, limites espaciais da arena, escalonamento por minuto e flag do Sandbox. | `BALANCE`, `PERFORMANCE_LIMITS`, `ARENA_CONFIG`, `getEnemyScaling()` | `BaseCharacter`, `Nixy`, `SoulBoltWeapon`, `GameScene`, `MenuScene`, `UIScene` |
+| [`balance.ts`](../src/config/balance.ts) | Atributos base da heroína, balanceamento de projéteis, curva de XP, limites rígidos de entidades, limites espaciais da arena, escalonamento por minuto, atributos de inimigos e chefes e flag do Sandbox. | `BALANCE`, `ENEMY_BALANCE`, `SUCCUBUS_BOSS_BALANCE`, `AZAZEL_BOSS_BALANCE`, `PERFORMANCE_LIMITS`, `ARENA_CONFIG`, `getEnemyScaling()` | `BaseCharacter`, `Nixy`, `SoulBoltWeapon`, `GameScene`, `MenuScene`, `UIScene` |
 | [`mapData.ts`](../src/config/mapData.ts) | Estruturas `ChapterMapConfig`, layouts padrão (`DEFAULT_CHAPTER_1_MAP`, `DEFAULT_CHAPTER_2_MAP`, `DEFAULT_AZAZEL_DIM_MAP` cap. `202`) e `MapStorageManager` (leitura/gravação de mapas customizados no `localStorage`). | Coordenadas e listas de props em `mapData.ts` | `GameScene`, `MapEditorSystem` |
 
 ---
@@ -59,7 +59,6 @@ flowchart TD
   - [`BloodBat.ts`](../src/entities/enemies/BloodBat.ts): Voador rápido em bando.
   - [`SkullSlime.ts`](../src/entities/enemies/SkullSlime.ts): Inimigo pulsante com salto curto.
   - [`MummyEnemy.ts`](../src/entities/enemies/MummyEnemy.ts): Movimento em zigue-zague com poças de veneno desacelerantes e knockback no contato.
-  - [`Succubus.ts`](../src/entities/enemies/Succubus.ts): Inimigo de suporte avançado.
 - **Chefes de Capítulo:**
   - [`SuccubusBoss.ts`](../src/entities/enemies/SuccubusBoss.ts): Chefe do Cap. 1 (Imperatriz Rosalin). Máquina de estados com investida telegrafada, orbes sombrios (`DarkOrbProjectile`) e salto aéreo de impacto.
   - [`AzazelBoss.ts`](../src/entities/enemies/AzazelBoss.ts): Chefe do Cap. 2 (Azazel) + `AzazelPhantomClone`. Combate em 4 fases: arena delimitada, domínio da escuridão com investidas e clones com vida compartilhada, banimento dimensional e confronto final.

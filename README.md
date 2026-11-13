@@ -2,7 +2,6 @@
 
 > Jogo de Sobrevivência e Ação Roguelite inspirado em *Vampire Survivors* com estética gótico-barroca e narrativa com diálogos estilizados no estilo *Persona 5*.
 
-![Build](https://img.shields.io/badge/Build-v0.2.1--Chapter1-ff0055?style=for-the-badge)
 ![Tech](https://img.shields.io/badge/Phaser%203-TypeScript-00f5d4?style=for-the-badge)
 ![Vite](https://img.shields.io/badge/Bundler-Vite%206-ffd60a?style=for-the-badge)
 
@@ -76,5 +75,6 @@ Assuma o controle de **Nixy**, uma heroína dotada de poderes sombrios e lâmina
 ## 📜 Documentação
 
 * [Game Design Document (GDD)](docs/GDD.md)
-* [Linha do Tempo & Roadmap de Fases](docs/TIMELINE.md)
-* [Regras de Desenvolvimento e Workflow Git](docs/DEVELOPMENT_RULES.md)
+* [Guia do Projeto e Regras](AGENTS.md)
+* [Arquitetura](docs/ARCHITECTURE.md) e [Mecânicas](docs/MECHANICS.md)
+* [Prompts de Arte](docs/ART_PROMPTS.md)

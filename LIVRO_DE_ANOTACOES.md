@@ -1,7 +1,7 @@
 # Livro de Anotações & Status do Projeto — Hell Survivor
 
 > **📌 Regras Obrigatórias do Projeto (`Sandbox-First`, `Showroom-First`, `Level-Editor-First`):**
-> Todas as regras invioláveis de desenvolvimento e manutenção foram consolidadas em **[`AGENTS.md`](AGENTS.md)**.
+> As regras do projeto estão em **[`AGENTS.md`](AGENTS.md)**.
 > Documentos de arquitetura e contratos: **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | **[`docs/MECHANICS.md`](docs/MECHANICS.md)** | **[`docs/CHANGELOG.md`](docs/CHANGELOG.md)**.
 
 ---
@@ -47,16 +47,9 @@
   - Morcego de Sangue (`BloodBat`);
   - Skull Slime (`SkullSlime`);
   - Múmia do Abismo (`MummyEnemy` — movimentação em zigue-zague, poças de veneno tóxico com lentidão de `-40%` e dano periódico que duram 5 segundos após a morte da múmia, além de knockback no contato);
-  - Succubus Menor (`Succubus` — código morto em `src/entities/enemies/Succubus.ts`, nunca instanciado na cena);
-  - Titã Cerberus (minichefe do Infinito aos 3 min — sprite de `ZombieDog`, 1400 HP, vel 95, dano 20 fixos);
-  - Matriarca Succubus (minichefe do Infinito aos 6 min — sprite de `SuccubusBoss`, 2400 HP, vel 115, dano 24 fixos).
-- [x] **Realidade do Escalonamento no Código vs Testes Unitários:**
-  - `getEnemyScaling(survivalTimeMs, isEndless)` em `src/config/balance.ts`: calcula HP (+12% hist / +16% inf por min), Dano (+6% hist / +8% inf por min) e Velocidade (+2%/min até teto de 1.30x).
-  - **Inimigos que realmente usam `getEnemyScaling` e `getChapterEnemyStatMultiplier()`:** `ZombieDog` (comum e Alfa) e `MummyEnemy`.
-  - **Inimigos que usam fórmulas lineares inline próprias:** `BloodBat` (HP `(14 + (isEndless ? min*3 : 0))*chMult`, Vel `155 + (isEndless ? min*5 : 0)`, Dano `5*chMult`) e `SkullSlime` (HP `(160 + (isEndless ? min*30 : 0))*chMult`, Vel fixa `46`, Dano `10*chMult`).
-  - **Minichefes que usam literais fixos:** Cerberus (1400/95/20) e Matriarca (2400/115/24) não usam scaling nem multiplicador de capítulo.
-  - **Proteção de Testes:** `src/__tests__/scaling.test.ts` protege **exclusivamente** `ZombieDog` e `MummyEnemy`.
-  - > **Decisão do dono:** manter comportamento atual ou unificar em `getEnemyScaling` no futuro.
+  - Titã Cerberus (minichefe do Infinito aos 3 min — sprite de `ZombieDog`);
+  - Matriarca Succubus (apenas no Modo de Teste — sprite de `SuccubusBoss`).
+- [x] **Atributos e Escalonamento:** todos os valores base moram em `src/config/balance.ts` (`ENEMY_BALANCE`, `SUCCUBUS_BOSS_BALANCE`, `AZAZEL_BOSS_BALANCE`); as regras de escalonamento estão em `docs/MECHANICS.md` §2.
 - [x] **Limites Rígidos e Viewport Culling (`PERFORMANCE_LIMITS`):**
   - Máximo de `120` inimigos ativos simultâneos e `150` gemas no chão (com fusão de gemas excedentes e culling fora da `camera.worldView + 100px`).
 
@@ -95,7 +88,13 @@
 
 ## ⏳ 2. O Que Está Pendente (`[ ]`)
 
-### 2.1. Roteiro de Blindagem Arquitetural e Qualidade (Em Execução)
+### 2.1. Roteiro de Organização e Qualidade (Em Execução)
+- [x] **Pacote A (v0.9.5):** atributos de inimigos, minichefes e Rosalin centralizados em `balance.ts`; remoção de código e documentos mortos; `AGENTS.md` reescrito.
+- [ ] **Pacote D:** trocar `window.setTimeout`/`setInterval` do `MusicDirector` por timers seguros e dividir o `SoundManager` (antigo Pacote 4).
+- [ ] **Pacote E:** continuar fatiando `GameScene.ts` e `UIScene.ts` (spawns, chefes, roleta) e reduzir os `any`.
+- [ ] **Arte:** substituir efeitos desenhados por código pelos sprites gerados a partir de `docs/ART_PROMPTS.md`.
+
+#### Histórico dos pacotes anteriores
 - [x] **Pacote 0:** Baseline Git (`baseline-pre-refactor`), `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/MECHANICS.md`, `docs/CHANGELOG.md` e atualização deste Livro de Status.
 - [x] **Pacote 0.5:** Consolidação de documentação, alinhamento estrito dos contratos com o código real e enriquecimento do histórico.
 - [x] **Pacote 1:** Rede de segurança com `npm run check` (`tsc --noEmit` + `eslint` em modo catraca + `vitest`) e 21 testes unitários de lógica pura (`getEnemyScaling`, `MetaProgressManager`, validador realista de mapas `validateMap`). 19 passando, 2 falhas esperadas (`it.fails`) para bugs do Pacote 2, 0 erros no lint (214 warnings de baseline).
@@ -112,7 +111,6 @@
 - [x] **Hotfix de Fila de Level Up (Múltiplos Níveis — commit `952a2a1`):** Resolução do bug em que subir múltiplos níveis simultaneamente exibia apenas uma seleção de cartas. Adicionado processamento sequencial no topo do `GameScene.update()` com guarda de reentrância (`isUpgradeSceneOpening`), física mantida congelada até esvaziar a fila e 6 novos testes em `src/__tests__/levelUpQueue.test.ts` (117 testes totais aprovados).
 - [x] **Hotfix Modo de Teste (Reset do Altar de Invocação para Succubus com Diálogo — branch `fix/sandbox-altar-reset`):** Resolução do defeito onde, após derrotar a Succubus, a invocação 'com diálogo' no F1 não disparava o confronto ao chegar ao altar devido a `isCompleted = true` residual e `isBossSpawned = true`. Criado método cirúrgico `resetForSandbox()` em `BossSummonAltar.ts` chamado exclusivamente por `SandboxController.spawnBoss(true)` antes de `triggerBossEncounter()`, restaurando flags, timers e textura `'altar-invoc-inactive'`. 3 testes de contrato adicionados (128 testes passando) e prova por mutação registrada em `reports/mutacao-fix-altar.txt`.
 - [x] **Pacote 3 (Modularização Segura da GameScene.ts):** Concluídas as três etapas de extração com sucesso: Etapa 1 (`SandboxController`), Etapa 2 (`CombatBubbleSystem`) e Etapa 3 (`ArenaScenerySystem` — limites da arena, névoa e props via `ISceneryContext`). Redução líquida substancial na `GameScene.ts`, fachadas de 1 linha preservando compatibilidade retroativa, 145 testes unitários de contrato aprovados e eliminação de `any` legado nos props de cenário.
-- [ ] **Pacote 4:** Refatoração interna do `SoundManager.ts` (`playTone`/`playNoise`, `BGM_TRACKS`, limite de vozes/cooldown de horda, remoção de `window.setTimeout` e divisão interna mantendo a fachada pública).
 
 ### 2.2. Expansões Futuras de Gameplay (Backlog)
 - [ ] **Ciclo de Chefes do Modo Infinito (postergado para pós-publicação por decisão do dono):** Implementação de rotação cíclica progressiva de chefes (ex.: Cérbero aos 3m, Succubus aos 10m, Azazel ou variantes em ondas seguintes) utilizando como especificação e base arquitetural a ficha técnica formalizada em [`docs/FICHA_CICLO_DE_CHEFES.md`](docs/FICHA_CICLO_DE_CHEFES.md).
