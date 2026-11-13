@@ -90,7 +90,8 @@
 
 ### 2.1. Roteiro de Organização e Qualidade (Em Execução)
 - [x] **Pacote A (v0.9.5):** atributos de inimigos, minichefes e Rosalin centralizados em `balance.ts`; remoção de código e documentos mortos; `AGENTS.md` reescrito.
-- [ ] **Pacote D:** trocar `window.setTimeout`/`setInterval` do `MusicDirector` por timers seguros e dividir o `SoundManager` (antigo Pacote 4).
+- [x] **Pacote B (v0.9.6):** spawn de inimigos extraído para `EnemySpawnSystem.ts`; 12 assets duplicados removidos; timers do `MusicDirector` mantidos como exceção consciente.
+- [ ] **Pacote D:** dividir o `SoundManager.ts` (1.354 linhas) mantendo a fachada pública.
 - [ ] **Pacote E:** continuar fatiando `GameScene.ts` e `UIScene.ts` (spawns, chefes, roleta) e reduzir os `any`.
 - [ ] **Arte:** substituir efeitos desenhados por código pelos sprites gerados a partir de `docs/ART_PROMPTS.md`.
 

@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.6 — Sistema de Spawn Separado & Limpeza de Assets] — 2026-11-13
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** O jogo fica cerca de 2,7 MB mais leve para baixar.
+
+### Organização do Projeto
+- **Novo `src/systems/EnemySpawnSystem.ts`**: toda a criação de inimigos comuns, elites e minichefes e a composição das ondas por fase saíram da `GameScene.ts` (418 linhas a menos), ligadas pelo contrato `IEnemySpawnContext`. A cena mantém fachadas de 1 linha.
+- **Assets duplicados removidos de `public/`**: 12 arquivos idênticos a outros e sem nenhuma referência no código (cópias de gemas, retratos, ícone e uma segunda cópia da textura do chão).
+- **Lint**: imports sem uso removidos; limite de avisos baixado de 154 para 152.
+- **`MusicDirector`**: os timers do navegador foram mantidos de propósito (a música atravessa cenas e segue o relógio real); a exceção está registrada na regra 3 do `AGENTS.md`.
+
 ## [v0.9.5 — Organização, Balanceamento Centralizado & Correção de Tela Preta] — 2026-11-13
 
 ### Resumo para o Jogador

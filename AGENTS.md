@@ -38,7 +38,7 @@ Mapa dos módulos em `docs/ARCHITECTURE.md`, contratos de mecânicas em `docs/ME
 
 1. **Balanceamento só em `balance.ts`.** Nada de HP, dano, velocidade ou cooldown escrito direto em cenas e entidades.
 2. **Visual só via `theme.ts`.** Sem cores hexadecimais novas soltas no código (`scripts/verify-theme.mjs` trava isso). Sem emojis em textos do Phaser; use as fontes pixel-art do projeto.
-3. **Timers do Phaser.** Em gameplay e cenas use `this.time.delayedCall` / `this.time.addEvent`, nunca `window.setTimeout` / `setInterval`, para respeitar pausa e troca de cena.
+3. **Timers do Phaser.** Em gameplay e cenas use `this.time.delayedCall` / `this.time.addEvent`, nunca `window.setTimeout` / `setInterval`, para respeitar pausa e troca de cena. Exceção consciente: `MusicDirector` usa timers do navegador porque a música é global, atravessa trocas de cena e precisa seguir o relógio real mesmo com o jogo pausado.
 4. **Ciclo de vida de cenas.** Zere o estado em `init()`, crie grupos no começo de `create()`, limpe ouvintes e timers no `SHUTDOWN`. Ao abrir modal ou diálogo, pause a física.
 5. **Persistência.** `localStorage` só via `STORAGE_KEYS`, sempre com `try/catch`, sem quebrar saves antigos (migre).
 6. **Tipagem.** Nenhum `any` novo. Ao mexer num arquivo, reduza os que já existem.
