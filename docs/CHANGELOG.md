@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.11 — Anúncios de Tela em Arquivo Próprio] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** As frases de Azazel, os alertas de onda e os anúncios dourados aparecem igual.
+
+### Organização do Projeto
+- **Novo `src/ui/ScreenAnnouncer.ts`**: frase de chefe no centro, faixa de alerta de onda e anúncio dourado de evento saíram da `UIScene.ts` (1.351 → 1.088 linhas). A `UIScene` mantém `showCenterBossPhrase`, `showWaveAlert` e `showCenterAnnouncement` como fachadas.
 ## [v0.9.10 — Roleta do Baú em Arquivo Próprio] — 2026-11-14
 
 ### Resumo para o Jogador
