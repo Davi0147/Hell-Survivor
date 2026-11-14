@@ -33,6 +33,7 @@ import { ArenaScenerySystem, ISceneryContext } from '../systems/ArenaScenerySyst
 import { CHAPTER_OPENING_DIALOGUE, ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, getStoryRevivalDialogue, getBossRematchDialogue } from '../config/dialogues';
 import { EnemySpawnSystem, IEnemySpawnContext } from '../systems/EnemySpawnSystem';
 import { PickupSpawnSystem, IPickupSpawnContext } from '../systems/PickupSpawnSystem';
+import { PlayerInputSystem } from '../systems/PlayerInputSystem';
 
 export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext {
   public player!: Nixy;
@@ -157,16 +158,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   }
 
   // Teclas de controle
-  private keyW!: Phaser.Input.Keyboard.Key;
-  private keyA!: Phaser.Input.Keyboard.Key;
-  private keyS!: Phaser.Input.Keyboard.Key;
-  private keyD!: Phaser.Input.Keyboard.Key;
-  private keyUp!: Phaser.Input.Keyboard.Key;
-  private keyLeft!: Phaser.Input.Keyboard.Key;
-  private keyDown!: Phaser.Input.Keyboard.Key;
-  private keyRight!: Phaser.Input.Keyboard.Key;
-  private keyShift!: Phaser.Input.Keyboard.Key;
-  private keySpace!: Phaser.Input.Keyboard.Key;
+  private playerInput!: PlayerInputSystem;
   private keyE!: Phaser.Input.Keyboard.Key;
 
   constructor() {
@@ -314,19 +306,21 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       }
     });
 
-    // 4. Mapeamento de Teclado
+    // 4. Controles de movimento (teclado, gamepad, toque e bot [F3])
+    this.playerInput = new PlayerInputSystem(this, {
+      onUltimatePressed: () => {
+        if (this.player.isUltimateReady && !this.isGameOver) this.triggerUltimate();
+      },
+      onPausePressed: () => {
+        if (this.isGameOver || this.isChapterCompleted || this.scene.isActive('UpgradeScene')) return;
+        const uiScene = this.scene.get('UIScene') as UIScene;
+        if (uiScene) uiScene.togglePause(this);
+      }
+    });
+
+    // Atalhos de teclado (Suprema e pausa)
     const keyboard = this.input.keyboard;
     if (keyboard) {
-      this.keyW = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-      this.keyA = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-      this.keyS = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-      this.keyD = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-      this.keyUp = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
-      this.keyLeft = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
-      this.keyDown = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
-      this.keyRight = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
-      this.keyShift = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-      this.keySpace = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
       this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
       this.keyE.on('down', () => {
@@ -634,66 +628,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     this.survivalTimeMs += delta;
 
-    // 1. Leitura dos vetores de entrada (Input manual ou Agente Autônomo de Teste)
-    let dx = 0;
-    let dy = 0;
-    let isSprintRequested = false;
-
-    if (AutoPlayTestAgent.getInstance().isEnabled) {
-      const aiInput = AutoPlayTestAgent.getInstance().updateAgent(this, delta);
-      dx = aiInput.dx;
-      dy = aiInput.dy;
-      isSprintRequested = aiInput.isSprint;
-    } else {
-      // 1.1 Teclado (WASD / Setas + Shift / Espaço)
-      if (this.keyA?.isDown || this.keyLeft?.isDown) dx -= 1;
-      if (this.keyD?.isDown || this.keyRight?.isDown) dx += 1;
-      if (this.keyW?.isDown || this.keyUp?.isDown) dy -= 1;
-      if (this.keyS?.isDown || this.keyDown?.isDown) dy += 1;
-      isSprintRequested = Boolean(this.keyShift?.isDown || this.keySpace?.isDown);
-
-      // 1.2 Gamepad Físico (Xbox, PlayStation, Controles USB)
-      const padInput = GamepadManager.getInstance().getGameplayInput(this);
-      if (padInput.isActive) {
-        if (Math.abs(padInput.dx) > 0.05 || Math.abs(padInput.dy) > 0.05) {
-          dx = padInput.dx;
-          dy = padInput.dy;
-        }
-        if (padInput.isSprint) {
-          isSprintRequested = true;
-        }
-        if (padInput.isUltimate && this.player.isUltimateReady && !this.isGameOver) {
-          this.triggerUltimate();
-        }
-        if (padInput.isPause && !this.isGameOver && !this.isChapterCompleted && !this.scene.isActive('UpgradeScene')) {
-          const uiScene = this.scene.get('UIScene') as UIScene;
-          if (uiScene) uiScene.togglePause(this);
-        }
-      }
-
-      // 1.3 Controles Touch na Tela (Mobile / Tablet)
-      const uiScene = this.scene.get('UIScene') as any;
-      if (uiScene && uiScene.touchControls && (uiScene.touchControls.isActive || uiScene.touchControls.forceEnabled)) {
-        const touchInput = uiScene.touchControls.getInput();
-        if (touchInput.hasMovement) {
-          dx = touchInput.dx;
-          dy = touchInput.dy;
-        }
-        if (touchInput.isSprint) {
-          isSprintRequested = true;
-        }
-      }
-    }
-
-    // Se o jogador estiver travado por transição cinematográfica de Azazel, bloqueia o movimento
-    if (this.isPlayerMovementLocked) {
-      dx = 0;
-      dy = 0;
-      isSprintRequested = false;
-    }
+    // 1. Controles (teclado, gamepad, toque ou bot [F3]); travas cinematográficas zeram o movimento
+    const move = this.playerInput.read(delta, this.isPlayerMovementLocked);
 
     // 2. Atualizar lógica e animações da Nixy
-    this.player.updateNixy(dx, dy, isSprintRequested, delta);
+    this.player.updateNixy(move.dx, move.dy, move.isSprint, delta);
 
     // 3. Atualizar tempo de imunidade
     if (this.playerInvulnerableTimer > 0) {

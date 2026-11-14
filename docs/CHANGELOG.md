@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.16 — Controles em Sistema Próprio] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** Teclado, controle (gamepad), toque na tela e o bot de testes [F3] movem a heroína do mesmo jeito.
+
+### Organização do Projeto
+- **Novo `src/systems/PlayerInputSystem.ts`**: junta os quatro tipos de controle em um só vetor de movimento, com a mesma prioridade de antes (bot > toque > gamepad > teclado). `GameScene.ts` caiu de 2.140 para 2.080 linhas.
+- **Lint**: 2 `any` a menos; limite de avisos baixado de 140 para 138.
 ## [v0.9.15 — Coletáveis Atualizados pelo Próprio Sistema] — 2026-11-14
 
 ### Resumo para o Jogador
