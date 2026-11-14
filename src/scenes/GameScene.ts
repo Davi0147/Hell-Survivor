@@ -124,7 +124,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public bossSummonAltar: BossSummonAltar | null = null;
   public isHordeSpawningPaused: boolean = false;
   private spawnTimer: number = 0;
-  private mapItemSpawnTimer: number = 0;
   public killCount: number = 0;
   private playerInvulnerableTimer: number = 0;
   public poisonPuddles: any[] = [];
@@ -201,7 +200,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.bossSummonAltar = null;
     this.isHordeSpawningPaused = false;
     this.spawnTimer = 0;
-    this.mapItemSpawnTimer = 0;
     this.bossMinionTimer = 0;
     this.playerInvulnerableTimer = 0;
     this.poisonPuddles = [];
@@ -720,64 +718,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     const cTop = worldView.y - margin;
     const cBottom = worldView.bottom + margin;
 
-    // 5. Atualizar Gemas de Alma no Chão (Culling + Atração Magnética e Coleta)
-    const activeGems = this.gemsGroup.getChildren() as SoulGem[];
-    for (let i = 0; i < activeGems.length; i++) {
-      const g = activeGems[i];
-      if (g.active) {
-        const inView = g.x >= cLeft && g.x <= cRight && g.y >= cTop && g.y <= cBottom;
-        g.setVisible(inView);
-        if (g.isAttracted || inView) {
-          g.updateGem(this.player, delta);
-        }
-      }
-    }
-
-    // 5.1. Atualizar Almas Corrompidas no Chão (Culling + Atração Magnética e Coleta)
-    if (this.soulsGroup) {
-      const activeSouls = this.soulsGroup.getChildren() as CorruptedSoulItem[];
-      for (let i = 0; i < activeSouls.length; i++) {
-        const s = activeSouls[i];
-        if (s.active) {
-          const inView = s.x >= cLeft && s.x <= cRight && s.y >= cTop && s.y <= cBottom;
-          s.setVisible(inView);
-          if (s.isAttracted || inView) {
-            s.updateSoul(this.player, delta);
-          }
-        }
-      }
-    }
-
-    // 5.1. Atualizar Itens Especiais de Mapa (Culling + Levitação)
-    const activeMapItems = this.mapItemsGroup.getChildren() as MapItem[];
-    for (let i = 0; i < activeMapItems.length; i++) {
-      const item = activeMapItems[i];
-      if (item.active) {
-        const inView = item.x >= cLeft && item.x <= cRight && item.y >= cTop && item.y <= cBottom;
-        item.setVisible(inView);
-        if (inView) {
-          item.updateItem(delta);
-        }
-      }
-    }
-
-    // 5.2. Spawner Periódico de Itens de Mapa (a cada ~40s, até no máximo 4 itens simultâneos no mapa)
-    if (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn) {
-      this.mapItemSpawnTimer += delta;
-      if (this.mapItemSpawnTimer >= 40000) {
-        this.mapItemSpawnTimer = 0;
-        if (this.mapItemsGroup.countActive() < 4) {
-          this.spawnRandomMapItem();
-        }
-      }
-    }
-
-    // 5.3. Atualizar Altar de Ascensão e Spawner Periódico
-    if (this.altarInstance && this.altarInstance.active && !this.altarInstance.isDestroyed) {
-      this.altarInstance.updateAltar(this.player, delta);
-    } else {
-      this.updateAltarSpawning(delta);
-    }
+    // 5. Gemas, almas, itens de mapa e Altar de Ascensão (culling, coleta e surgimento)
+    this.pickupSpawner.update(delta);
 
     // 5.4. Atualizar Altar de Invocação do Chefe
     if (this.bossSummonAltar && this.bossSummonAltar.active) {

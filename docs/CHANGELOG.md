@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.15 — Coletáveis Atualizados pelo Próprio Sistema] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** Gemas e almas continuam sendo atraídas e coletadas igual, e os itens de mapa seguem surgindo a cada 40 segundos (no máximo 4).
+
+### Organização do Projeto
+- **`PickupSpawnSystem.update`**: a atualização por quadro de gemas, almas, itens de mapa e Altar de Ascensão saiu do `update()` da `GameScene.ts` (2.198 → 2.140 linhas).
+- **Balanceamento em `balance.ts`**: XP de cada cor de gema (`BALANCE.XP.gemValues`) e o relógio de itens de mapa (`BALANCE.MAP_ITEMS`), antes números soltos no código. Novo teste `pickupBalance.test.ts` (170 testes no total).
 ## [v0.9.14 — Drops e Itens em Sistema Próprio] — 2026-11-14
 
 ### Resumo para o Jogador

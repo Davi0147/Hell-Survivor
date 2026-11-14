@@ -34,7 +34,22 @@ export const BALANCE = {
   XP: {
     baseXpToLevel: 20,
     levelExponent: 1.25,
-  }
+    /** XP entregue por cada cor de gema. */
+    gemValues: {
+      green: 5,
+      blue: 20,
+      red: 100,
+      orange: 100,
+      purple: 250,
+      gold: 500,
+    },
+  },
+
+  /** Itens de mapa (cálice, ímã, baú) que surgem sozinhos durante a partida. */
+  MAP_ITEMS: {
+    spawnIntervalMs: 40000,
+    maxActive: 4,
+  },
 };
 
 export const DIRECTIONS_8 = [

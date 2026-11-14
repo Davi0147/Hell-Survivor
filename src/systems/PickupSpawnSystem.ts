@@ -6,7 +6,7 @@ import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAltarEvolutionCards } from './UpgradeCatalog';
 import { DebugSessionLogger } from './DebugSessionLogger';
-import { PERFORMANCE_LIMITS, getChapterConfig } from '../config/balance';
+import { BALANCE, PERFORMANCE_LIMITS, getChapterConfig } from '../config/balance';
 
 /** Contrato mínimo que a cena de jogo expõe para o PickupSpawnSystem. */
 export interface IPickupSpawnContext {
@@ -17,19 +17,21 @@ export interface IPickupSpawnContext {
   readonly currentChapter: number;
   readonly isGameOver: boolean;
   readonly isChapterCompleted: boolean;
+  readonly gameMode: 'story' | 'endless' | 'sandbox';
+  readonly sandboxAutoSpawn: boolean;
   altarInstance: EvolutionAltar | null;
   clampToArena(x: number, y: number, margin?: number): { x: number; y: number };
 }
 
-/** XP de cada cor de gema. */
-const GEM_XP: Record<GemType, number> = {
-  green: 5,
-  blue: 20,
-  red: 100,
-  orange: 100,
-  purple: 250,
-  gold: 500
-};
+const GEM_XP: Record<GemType, number> = BALANCE.XP.gemValues;
+
+/** Retângulo do mundo considerado "na tela" (câmera + margem de culling). */
+interface ViewBounds {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
 
 /**
  * PickupSpawnSystem — cria (com pooling) o que o jogador recolhe no chão:
@@ -37,8 +39,71 @@ const GEM_XP: Record<GemType, number> = {
  */
 export class PickupSpawnSystem {
   private altarSpawnTimer = 0;
+  private mapItemSpawnTimer = 0;
 
   constructor(private readonly scene: Phaser.Scene, private readonly ctx: IPickupSpawnContext) {}
+
+  /**
+   * Atualização por quadro: esconde o que está fora da câmera, atrai/coleta
+   * gemas e almas, anima itens, cuida do relógio de itens de mapa e do altar.
+   */
+  public update(delta: number): void {
+    const view = this.getViewBounds();
+    const inView = (o: { x: number; y: number }): boolean =>
+      o.x >= view.left && o.x <= view.right && o.y >= view.top && o.y <= view.bottom;
+    const player = this.ctx.player;
+
+    const gems = this.ctx.gemsGroup.getChildren() as SoulGem[];
+    for (let i = 0; i < gems.length; i++) {
+      const g = gems[i];
+      if (!g.active) continue;
+      const visible = inView(g);
+      g.setVisible(visible);
+      // Gema já atraída continua vindo mesmo fora da tela
+      if (g.isAttracted || visible) g.updateGem(player, delta);
+    }
+
+    const souls = this.ctx.soulsGroup.getChildren() as CorruptedSoulItem[];
+    for (let i = 0; i < souls.length; i++) {
+      const s = souls[i];
+      if (!s.active) continue;
+      const visible = inView(s);
+      s.setVisible(visible);
+      if (s.isAttracted || visible) s.updateSoul(player, delta);
+    }
+
+    const items = this.ctx.mapItemsGroup.getChildren() as MapItem[];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item.active) continue;
+      const visible = inView(item);
+      item.setVisible(visible);
+      if (visible) item.updateItem(delta);
+    }
+
+    if (this.ctx.gameMode !== 'sandbox' || this.ctx.sandboxAutoSpawn) {
+      this.mapItemSpawnTimer += delta;
+      if (this.mapItemSpawnTimer >= BALANCE.MAP_ITEMS.spawnIntervalMs) {
+        this.mapItemSpawnTimer = 0;
+        if (this.ctx.mapItemsGroup.countActive() < BALANCE.MAP_ITEMS.maxActive) {
+          this.spawnRandomMapItem();
+        }
+      }
+    }
+
+    const altar = this.ctx.altarInstance;
+    if (altar && altar.active && !altar.isDestroyed) {
+      altar.updateAltar(player, delta);
+    } else {
+      this.updateAltarSpawning(delta);
+    }
+  }
+
+  private getViewBounds(): ViewBounds {
+    const wv = this.scene.cameras.main.worldView;
+    const m = PERFORMANCE_LIMITS.VIEWPORT_CULLING_MARGIN;
+    return { left: wv.x - m, right: wv.right + m, top: wv.y - m, bottom: wv.bottom + m };
+  }
 
   public spawnGemAt(x: number, y: number, type: GemType): void {
     const gemXpValue = GEM_XP[type] ?? GEM_XP.green;
