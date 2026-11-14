@@ -22,6 +22,9 @@ O dono não é programador. Todo relatório começa com um resumo curto em lingu
 |---|---|
 | Números de balanceamento (HP, dano, velocidade, cooldowns, metas, limites) | `src/config/balance.ts` |
 | Cores, fontes, telegrafia de chefes | `src/config/theme.ts` (padrões em `docs/DESIGN_SYSTEM.md`) |
+| Falas e roteiro do Modo História | `src/config/dialogues.ts` |
+| Cartas de upgrade e evoluções (o que cada uma faz) | `src/systems/UpgradeCatalog.ts` |
+| Criação de inimigos e composição das ondas | `src/systems/EnemySpawnSystem.ts` |
 | Chaves de `localStorage` | `src/config/storageKeys.ts` |
 | Mapas e validação | `src/config/mapData.ts`, `src/config/mapValidation.ts` |
 | Cenas | `src/scenes/` |

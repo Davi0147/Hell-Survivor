@@ -2,6 +2,16 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.7 — Roteiro e Catálogo de Cartas em Arquivos Próprios] — 2026-11-13
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** Falas e cartas são exatamente as mesmas.
+
+### Organização do Projeto
+- **Novo `src/config/dialogues.ts` (roteiro)**: todas as falas do Modo História saíram da `GameScene.ts` (abertura dos capítulos, primeiro encontro com Rosalin e Azazel, falas de ressurreição e de revanche). Para mudar um texto, basta editar esse arquivo. `GameScene.ts` caiu de 2.862 para 2.333 linhas.
+- **Novo `src/systems/UpgradeCatalog.ts`**: o catálogo de cartas de Level Up e de Evolução de Altar saiu da `UpgradeScene.ts`, que caiu de 1.528 para 762 linhas e agora só desenha e anima as cartas.
+- **Novo teste `dialogues.test.ts`**: garante que toda fala tem texto, falante e retrato, e que ressurreição e revanche existem para qualquer número de mortes (168 testes no total).
+
 ## [v0.9.6 — Sistema de Spawn Separado & Limpeza de Assets] — 2026-11-13
 
 ### Resumo para o Jogador

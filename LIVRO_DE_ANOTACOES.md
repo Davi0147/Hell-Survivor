@@ -91,6 +91,8 @@
 ### 2.1. Roteiro de Organização e Qualidade (Em Execução)
 - [x] **Pacote A (v0.9.5):** atributos de inimigos, minichefes e Rosalin centralizados em `balance.ts`; remoção de código e documentos mortos; `AGENTS.md` reescrito.
 - [x] **Pacote B (v0.9.6):** spawn de inimigos extraído para `EnemySpawnSystem.ts`; 12 assets duplicados removidos; timers do `MusicDirector` mantidos como exceção consciente.
+- [x] **Pacote C (v0.9.7):** roteiro extraído para `src/config/dialogues.ts` e catálogo de cartas para `src/systems/UpgradeCatalog.ts`.
+- [ ] **Pacote F:** extrair os encontros de chefe da `GameScene.ts` (cerca de 600 linhas, estado compartilhado; fazer junto com o rebalanceamento das lutas).
 - [ ] **Pacote D:** dividir o `SoundManager.ts` (1.354 linhas) mantendo a fachada pública.
 - [ ] **Pacote E:** continuar fatiando `GameScene.ts` e `UIScene.ts` (spawns, chefes, roleta) e reduzir os `any`.
 - [ ] **Arte:** substituir efeitos desenhados por código pelos sprites gerados a partir de `docs/ART_PROMPTS.md`.
