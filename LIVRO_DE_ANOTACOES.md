@@ -97,6 +97,7 @@
 - [x] **Pacote E1 (v0.9.9):** radar e seta de borda do altar extraídos da `UIScene.ts` (2.159 → 1.696 linhas) para `src/ui/TacticalRadar.ts` e `src/ui/AltarEdgeIndicator.ts`, com tipos no lugar de `any`; catraca do lint 152 → 144.
 - [x] **Pacote E2 (v0.9.10):** roleta do Baú do Abismo extraída da `UIScene.ts` (1.696 → 1.351 linhas) para `src/ui/ChestRouletteModal.ts`; catraca do lint 144 → 143.
 - [x] **Pacote E3 (v0.9.11):** anúncios de tela (frase de chefe, faixa de onda, anúncio dourado) extraídos da `UIScene.ts` (1.351 → 1.088 linhas) para `src/ui/ScreenAnnouncer.ts`.
+- [x] **Pacote E4 (v0.9.12):** topo central da HUD (purificação, vida do chefe, cronômetro do Infinito) extraído para `src/ui/TopCenterHud.ts` (`UIScene.ts` 1.088 → 914 linhas).
 - [ ] **Pacote E:** continuar fatiando `GameScene.ts` e `UIScene.ts` (spawns, chefes, roleta) e reduzir os `any`.
 - [ ] **Arte:** substituir efeitos desenhados por código pelos sprites gerados a partir de `docs/ART_PROMPTS.md`.
 

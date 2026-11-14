@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.12 — Topo da HUD em Arquivo Próprio] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** A barra de purificação, a barra de vida do chefe e o cronômetro do Infinito aparecem igual.
+
+### Organização do Projeto
+- **Novo `src/ui/TopCenterHud.ts`**, com o contrato tipado `ITopCenterHudWorld` no lugar de leituras soltas da `GameScene`. `UIScene.ts` caiu de 1.088 para 914 linhas.
 ## [v0.9.11 — Anúncios de Tela em Arquivo Próprio] — 2026-11-14
 
 ### Resumo para o Jogador

@@ -17,6 +17,7 @@ import { GameOverModal, GameOverStats, IGameOverModalHost } from '../ui/GameOver
 import { ChapterVictoryModal, ChapterVictoryStats, IChapterVictoryModalHost } from '../ui/ChapterVictoryModal';
 import { ChestRouletteModal, IChestRouletteGameScene } from '../ui/ChestRouletteModal';
 import { ScreenAnnouncer } from '../ui/ScreenAnnouncer';
+import { TopCenterHud } from '../ui/TopCenterHud';
 import { TacticalRadar } from '../ui/TacticalRadar';
 import { AltarEdgeIndicator } from '../ui/AltarEdgeIndicator';
 
@@ -117,17 +118,8 @@ export class UIScene
   // Radar tático (canto superior esquerdo)
   private radar!: TacticalRadar;
 
-  // Barra de Purificação de Almas (Capítulo 1)
-  private purifyBarGraphics!: Phaser.GameObjects.Graphics;
-  private purifyLabelText!: Phaser.GameObjects.Text;
-
-  // Barra de Vida da Chefe (Boss HP Bar)
-  private bossBarGraphics!: Phaser.GameObjects.Graphics;
-  private bossNameText!: Phaser.GameObjects.Text;
-
-  // Elementos do Modo Infinito (Topo Central)
-  private endlessTimerText!: Phaser.GameObjects.Text;
-  private endlessRecordText!: Phaser.GameObjects.Text;
+  // Topo central (purificação, vida do chefe, cronômetro do Infinito)
+  private topCenterHud!: TopCenterHud;
   private bestRecordSec: number = 0;
 
   // Seta de borda para o objetivo fora da tela
@@ -347,59 +339,10 @@ export class UIScene
     }).setOrigin(0, 0.5).setDepth(60);
 
     // ==========================================
-    // 5. TOPO CENTRAL: PURIFICAÇÃO DE ALMAS & BARRA DA CHEFE
-    // ==========================================
-    this.purifyBarGraphics = this.add.graphics();
-    this.purifyBarGraphics.setDepth(110);
-
-    this.purifyLabelText = this.add.text(width / 2, 19, 'PURIFICAÇÃO DE ALMAS', {
-      fontFamily: pixelFont,
-      fontSize: '8px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#0e0208',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(112);
-
-    this.bossBarGraphics = this.add.graphics();
-    this.bossBarGraphics.setDepth(115);
-    this.bossBarGraphics.setVisible(false);
-
-    this.bossNameText = this.add.text(width / 2, 17, 'ROSALIN [CHEFE DO CAPÍTULO 1]', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ff0055',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(116);
-    this.bossNameText.setVisible(false);
-
-    // ==========================================
-    // 5.1 TOPO CENTRAL: CRONÔMETRO E RECORDE DO MODO INFINITO
+    // 5. TOPO CENTRAL: PURIFICAÇÃO, VIDA DO CHEFE E CRONÔMETRO DO INFINITO
     // ==========================================
     this.bestRecordSec = this.getBestRecordSec();
-    const formattedBest = this.formatTime(this.bestRecordSec);
-
-    this.endlessTimerText = this.add.text(width / 2, 22, '00:00', {
-      fontFamily: pixelFont,
-      fontSize: '15px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#3a0812',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(115);
-    this.endlessTimerText.setVisible(false);
-
-    this.endlessRecordText = this.add.text(width / 2, 38, `RECORDE: ${formattedBest}`, {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#0e0208',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(116);
-    this.endlessRecordText.setVisible(false);
+    this.topCenterHud = new TopCenterHud(this, pixelFont, this.formatTime(this.bestRecordSec), (sec) => this.formatTime(sec));
 
     this.announcer = new ScreenAnnouncer(this, pixelFont);
 
@@ -490,12 +433,7 @@ export class UIScene
       this.killsText,
       this.soulsIcon,
       this.soulsText,
-      this.purifyBarGraphics,
-      this.purifyLabelText,
-      this.bossBarGraphics,
-      this.bossNameText,
-      this.endlessTimerText,
-      this.endlessRecordText,
+      ...this.topCenterHud.getHudElements(),
       this.controlsText,
       this.xpBarBg,
       this.xpBarFill,
@@ -749,119 +687,8 @@ export class UIScene
     this.xpText.setText(`LVL ${p.currentLevel}   [ ${p.currentXp} / ${p.xpToNextLevel} XP ]`);
     this.levelTag.setText(`LVL ${p.currentLevel}`);
 
-    // Atualizar Barra de Purificação de Almas (Modo História), Barra de Vida da Chefe, ou Cronômetro (Modo Infinito)
-    if (gameScene.isBossFightActive && gameScene.bossInstance && gameScene.bossInstance.active) {
-      // Exibe Barra de Vida da Chefe
-      this.purifyBarGraphics.setVisible(false);
-      this.purifyLabelText.setVisible(false);
-      this.bossBarGraphics.setVisible(true);
-      this.bossNameText.setVisible(true);
-
-      const isAzazel = gameScene.currentChapter === 2 || gameScene.bossInstance === gameScene.azazelBoss;
-      if (isAzazel) {
-        if (gameScene.bossInstance.combatPhase === 3) {
-          const cap = gameScene.azazelCrystalsCaptured || 0;
-          this.bossNameText.setText(`AZAZEL [CRISTAIS PURIFICADOS: ${cap}/3]`);
-        } else {
-          this.bossNameText.setText('AZAZEL [CHEFE DO CAPÍTULO 2]');
-        }
-      } else {
-        this.bossNameText.setText('ROSALIN [CHEFE DO CAPÍTULO 1]');
-      }
-
-      if (gameScene.gameMode === 'endless') {
-        this.endlessTimerText.setVisible(true);
-        this.endlessTimerText.setY(48);
-        this.endlessRecordText.setVisible(false);
-        const sec = Math.floor(gameScene.survivalTimeMs / 1000);
-        this.endlessTimerText.setText(this.formatTime(sec));
-      } else {
-        this.endlessTimerText.setVisible(false);
-        this.endlessRecordText.setVisible(false);
-      }
-
-      const bG = this.bossBarGraphics;
-      bG.clear();
-
-      const bW = 460;
-      const bH = 12;
-      const bX = width / 2 - bW / 2;
-      const bY = 28;
-
-      const boss = gameScene.bossInstance;
-      const bossHpRatio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
-
-      // Fundo e borda ouro da barra da chefe
-      bG.fillStyle(0x1a0208, 0.96);
-      bG.fillRoundedRect(bX, bY, bW, bH, 4);
-      bG.lineStyle(2, 0xc59b27, 1);
-      bG.strokeRoundedRect(bX, bY, bW, bH, 4);
-      bG.lineStyle(1, 0xf3d17a, 0.8);
-      bG.strokeRoundedRect(bX + 1, bY + 1, bW - 2, bH - 2, 3);
-
-      // Preenchimento vermelho sangue com brilho
-      if (bossHpRatio > 0.01) {
-        bG.fillStyle(0xd90429, 1);
-        bG.fillRoundedRect(bX + 2, bY + 2, (bW - 4) * bossHpRatio, bH - 4, 3);
-        bG.fillStyle(0xff4d6d, 0.85);
-        bG.fillRect(bX + 3, bY + 3, (bW - 6) * bossHpRatio, 2);
-      }
-    } else if (gameScene.gameMode === 'endless') {
-      // MODO INFINITO: Exibe Cronômetro e Recorde Pessoal
-      this.purifyBarGraphics.setVisible(false);
-      this.purifyLabelText.setVisible(false);
-      this.bossBarGraphics.setVisible(false);
-      this.bossNameText.setVisible(false);
-
-      this.endlessTimerText.setY(22);
-      this.endlessTimerText.setVisible(true);
-      this.endlessRecordText.setVisible(true);
-
-      const sec = Math.floor(gameScene.survivalTimeMs / 1000);
-      this.endlessTimerText.setText(this.formatTime(sec));
-    } else if (gameScene.gameMode === 'story' && !gameScene.isBossFightActive) {
-      // MODO HISTÓRIA: Exibe Barra de Purificação de Almas (SEM NÚMEROS VISÍVEIS)
-      this.endlessTimerText.setVisible(false);
-      this.endlessRecordText.setVisible(false);
-      this.bossBarGraphics.setVisible(false);
-      this.bossNameText.setVisible(false);
-
-      this.purifyBarGraphics.setVisible(true);
-      this.purifyLabelText.setVisible(true);
-
-      const pG = this.purifyBarGraphics;
-      pG.clear();
-
-      const pW = 320;
-      const pH = 8;
-      const pX = width / 2 - pW / 2;
-      const pY = 28;
-
-      // Fundo e borda
-      pG.fillStyle(0x140208, 0.94);
-      pG.fillRoundedRect(pX, pY, pW, pH, 3);
-      pG.lineStyle(1.5, 0xc59b27, 0.9);
-      pG.strokeRoundedRect(pX, pY, pW, pH, 3);
-
-      // Preenchimento carmesim suave
-      const purifyRatio = Phaser.Math.Clamp(
-        gameScene.chapterPurifiedSouls / gameScene.chapterTargetSouls,
-        0,
-        1
-      );
-      if (purifyRatio > 0.01) {
-        pG.fillStyle(0xff0055, 1);
-        pG.fillRoundedRect(pX + 1.5, pY + 1.5, (pW - 3) * purifyRatio, pH - 3, 2);
-      }
-    } else if (gameScene.gameMode === 'sandbox' && !gameScene.isBossFightActive) {
-      // MODO DE TESTE (SANDBOX): Oculta barras de progresso no topo pois a pílula rápida do Sandbox ocupa este espaço
-      this.endlessTimerText.setVisible(false);
-      this.endlessRecordText.setVisible(false);
-      this.bossBarGraphics.setVisible(false);
-      this.bossNameText.setVisible(false);
-      this.purifyBarGraphics.setVisible(false);
-      this.purifyLabelText.setVisible(false);
-    }
+    // Topo central: purificação, vida do chefe ou cronômetro do Infinito
+    this.topCenterHud.update(gameScene);
 
     // ==========================================
     // ALERTA DE VIDA CRÍTICA (LOW HP VIGNETTE & HEARTBEAT)
@@ -910,8 +737,7 @@ export class UIScene
       this.radar?.clearBlips();
       if (this.hpBarFill) this.hpBarFill.clear();
       if (this.staminaBarFill) this.staminaBarFill.clear();
-      if (this.purifyBarGraphics) this.purifyBarGraphics.clear();
-      if (this.bossBarGraphics) this.bossBarGraphics.clear();
+      this.topCenterHud?.clear();
       this.announcer?.hideWaveAlert();
     }
   }
