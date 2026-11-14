@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ARENA_CONFIG } from '../config/balance';
+import type { MapEntityProp } from '../config/mapData';
 
 /**
  * Interface estrita de contexto que expõe apenas o necessário da cena para o ArenaScenerySystem
@@ -8,6 +9,7 @@ export interface ISceneryContext {
   readonly add: Phaser.GameObjects.GameObjectFactory;
   readonly tweens: Phaser.Tweens.TweenManager;
   readonly cameras: Phaser.Cameras.Scene2D.CameraManager;
+  readonly textures: Phaser.Textures.TextureManager;
   mapItemsGroup?: Phaser.GameObjects.Group;
   bossSummonAltar?: { setVisible(visible: boolean): void } | null;
 }
@@ -185,6 +187,34 @@ export class ArenaScenerySystem {
     bones.setDepth(-15);
     bones.setScale(0.80 + Math.random() * 0.35);
     this.sceneryProps.push(bones);
+  }
+
+  /**
+   * Coloca os props de um mapa salvo (editor ou padrão do capítulo).
+   * Tipos de cenário conhecidos usam os montadores com animação; altares e
+   * demais texturas viram imagens simples.
+   */
+  public placeMapProps(props: MapEntityProp[]): void {
+    for (const p of props) {
+      switch (p.type) {
+        case 'scenery-tocha': this.addSceneryTorch(p.x, p.y); break;
+        case 'scenery-rocha': this.addSceneryRock(p.x, p.y, 0); break;
+        case 'scenery-rocha-2': this.addSceneryRock(p.x, p.y, 1); break;
+        case 'scenery-cristal': this.addSceneryCrystal(p.x, p.y); break;
+        case 'scenery-ossos': this.addSceneryBones(p.x, p.y); break;
+        case 'scenery-cogumelos': this.addSceneryMushroom(p.x, p.y); break;
+        default: {
+          if (!this.context.textures.exists(p.type)) break;
+          // Altares ficam um pouco mais ao fundo e menores por padrão
+          const isAltar = p.type.startsWith('altar-');
+          const img = this.context.add.image(p.x, p.y, p.type);
+          img.setOrigin(0.5, 0.5);
+          img.setDepth(isAltar ? -12 : -10);
+          img.setScale(p.scale ?? (isAltar ? 0.55 : 1.0));
+          this.sceneryProps.push(img);
+        }
+      }
+    }
   }
 
   public addProp(prop: Phaser.GameObjects.GameObject): void {

@@ -102,6 +102,7 @@
 - [x] **Pacote E6 (v0.9.14):** drops e itens (gemas, almas, itens de mapa, Altar de Ascensão) extraídos da `GameScene.ts` (2.333 → 2.198 linhas) para `src/systems/PickupSpawnSystem.ts`.
 - [x] **Pacote E7 (v0.9.15):** atualização por quadro dos coletáveis movida para `PickupSpawnSystem.update` (`GameScene.ts` 2.198 → 2.140 linhas); XP das gemas e relógio de itens de mapa passaram para `balance.ts`.
 - [x] **Pacote E8 (v0.9.16):** leitura de controles (teclado, gamepad, toque, bot) extraída para `src/systems/PlayerInputSystem.ts` (`GameScene.ts` 2.140 → 2.080 linhas); catraca do lint 140 → 138.
+- [x] **Pacote E9 (v0.9.17):** colocação de props do mapa movida para `ArenaScenerySystem.placeMapProps` (`GameScene.ts` 2.080 → 2.051 linhas); emoji removido do botão do Editor (regra 2).
 - [ ] **Pacote E:** continuar fatiando `GameScene.ts` e `UIScene.ts` (spawns, chefes, roleta) e reduzir os `any`.
 - [ ] **Arte:** substituir efeitos desenhados por código pelos sprites gerados a partir de `docs/ART_PROMPTS.md`.
 

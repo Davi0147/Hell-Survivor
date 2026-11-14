@@ -179,6 +179,9 @@ describe('ArenaScenerySystem (Pacote 3 — Etapa 3)', () => {
           }
         }
       } as unknown as Phaser.Cameras.Scene2D.CameraManager,
+      textures: {
+        exists: (key: string) => key !== 'textura-inexistente'
+      } as unknown as Phaser.Textures.TextureManager,
       mapItemsGroup: {
         children: true,
         getChildren: () => mapItems
@@ -211,6 +214,23 @@ describe('ArenaScenerySystem (Pacote 3 — Etapa 3)', () => {
       system.drawArenaBorders();
       expect(firstGraphics.destroyed).toBe(true);
       expect(firstEmitter.destroyed).toBe(true);
+    });
+  });
+
+  describe('placeMapProps', () => {
+    it('usa escala e profundidade de altar, imagem comum e ignora textura inexistente', () => {
+      system.placeMapProps([
+        { type: 'altar-1', x: 10, y: 20 },
+        { type: 'prop-qualquer', x: 30, y: 40, scale: 2 },
+        { type: 'textura-inexistente', x: 0, y: 0 }
+      ]);
+
+      expect(createdImages.map((i) => i.key)).toEqual(['altar-1', 'prop-qualquer']);
+      expect(createdImages[0].depth).toBe(-12);
+      expect(createdImages[0].scale).toBe(0.55);
+      expect(createdImages[1].depth).toBe(-10);
+      expect(createdImages[1].scale).toBe(2);
+      expect(system.sceneryProps.length).toBe(2);
     });
   });
 

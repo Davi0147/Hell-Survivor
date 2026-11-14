@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.17 — Props do Mapa no Sistema de Cenário] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** Os mapas carregam os mesmos objetos de cenário.
+- **Modo de Teste:** o botão do Editor de Mapas agora usa a fonte pixel do jogo (antes tinha um emoji, que alguns aparelhos mostram como quadrado).
+
+### Organização do Projeto
+- **`ArenaScenerySystem.placeMapProps`**: a colocação dos objetos de um mapa salvo saiu da `GameScene.ts` (2.080 → 2.051 linhas), com teste novo (171 testes no total).
 ## [v0.9.16 — Controles em Sistema Próprio] — 2026-11-14
 
 ### Resumo para o Jogador

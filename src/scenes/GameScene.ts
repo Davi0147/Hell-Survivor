@@ -34,6 +34,7 @@ import { CHAPTER_OPENING_DIALOGUE, ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE
 import { EnemySpawnSystem, IEnemySpawnContext } from '../systems/EnemySpawnSystem';
 import { PickupSpawnSystem, IPickupSpawnContext } from '../systems/PickupSpawnSystem';
 import { PlayerInputSystem } from '../systems/PlayerInputSystem';
+import { FONTS } from '../config/theme';
 
 export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext {
   public player!: Nixy;
@@ -1165,35 +1166,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 4. Instancia os props definidos no mapa
     if (map.props && Array.isArray(map.props)) {
-      for (const p of map.props) {
-        if (p.type === 'scenery-tocha') {
-          this.addSceneryTorch(p.x, p.y);
-        } else if (p.type === 'scenery-rocha') {
-          this.addSceneryRock(p.x, p.y, 0);
-        } else if (p.type === 'scenery-rocha-2') {
-          this.addSceneryRock(p.x, p.y, 1);
-        } else if (p.type === 'scenery-cristal') {
-          this.addSceneryCrystal(p.x, p.y);
-        } else if (p.type === 'scenery-ossos') {
-          this.addSceneryBones(p.x, p.y);
-        } else if (p.type === 'scenery-cogumelos') {
-          this.addSceneryMushroom(p.x, p.y);
-        } else if (p.type.startsWith('altar-')) {
-          if (this.textures.exists(p.type)) {
-            const altarImg = this.add.image(p.x, p.y, p.type);
-            altarImg.setOrigin(0.5, 0.5);
-            altarImg.setDepth(-12);
-            altarImg.setScale(p.scale ?? 0.55);
-            this.sceneryProps.push(altarImg);
-          }
-        } else if (this.textures.exists(p.type)) {
-          const img = this.add.image(p.x, p.y, p.type);
-          img.setOrigin(0.5, 0.5);
-          img.setDepth(-10);
-          img.setScale(p.scale ?? 1.0);
-          this.sceneryProps.push(img);
-        }
-      }
+      this.arenaScenerySystem.placeMapProps(map.props);
     } else {
       this.spawnSceneryProps();
     }
@@ -1206,9 +1179,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       }
       if (this.gameMode !== 'sandbox' && map.itemSpawners && Array.isArray(map.itemSpawners)) {
         for (const sp of map.itemSpawners) {
-          const types: ('chalice' | 'chest' | 'magnet')[] = ['chalice', 'chest', 'magnet'];
-          const chosen = Phaser.Math.RND.pick(types);
-          this.spawnMapItem(sp.x, sp.y, chosen);
+          // Tipo sorteado entre cálice, ímã e baú
+          this.spawnMapItem(sp.x, sp.y);
         }
       }
     }
@@ -1252,9 +1224,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     bg.fillRoundedRect(-65, -18, 130, 36, 8);
     bg.strokeRoundedRect(-65, -18, 130, 36, 8);
 
-    const text = this.add.text(0, 0, '🗺️ EDITOR [M]', {
-      fontFamily: 'monospace',
-      fontSize: '13px',
+    const text = this.add.text(0, 0, 'EDITOR [M]', {
+      fontFamily: FONTS.body,
+      fontSize: '11px',
       fontStyle: 'bold',
       color: '#e2e8f0'
     }).setOrigin(0.5);
