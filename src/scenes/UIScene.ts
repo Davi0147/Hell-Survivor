@@ -17,6 +17,7 @@ import { GameOverModal, GameOverStats, IGameOverModalHost } from '../ui/GameOver
 import { ChapterVictoryModal, ChapterVictoryStats, IChapterVictoryModalHost } from '../ui/ChapterVictoryModal';
 import { ChestRouletteModal, IChestRouletteGameScene } from '../ui/ChestRouletteModal';
 import { ScreenAnnouncer } from '../ui/ScreenAnnouncer';
+import { StatusPanelHud } from '../ui/StatusPanelHud';
 import { TopCenterHud } from '../ui/TopCenterHud';
 import { TacticalRadar } from '../ui/TacticalRadar';
 import { AltarEdgeIndicator } from '../ui/AltarEdgeIndicator';
@@ -63,43 +64,13 @@ export class UIScene
   // Vinheta de Alerta de Vida Crítica (Low HP)
   private lowHpVignetteGraphics!: Phaser.GameObjects.Graphics;
 
-  // Painel de Status Demônico (Canto Inferior Direito)
-  private statusHudImage!: Phaser.GameObjects.Image;
-  private charNameImage!: Phaser.GameObjects.Image;
-  private baroquePanelGraphics!: Phaser.GameObjects.Graphics;
-  private ultGaugeBg!: Phaser.GameObjects.Image;
-  private vialGraphics!: Phaser.GameObjects.Graphics;
-  private ultGaugeFrame!: Phaser.GameObjects.Image;
-  private ultimatePctText!: Phaser.GameObjects.Text;
-  private ultimateReadyBadge!: Phaser.GameObjects.Text;
-  private hpBarFill!: Phaser.GameObjects.Graphics;
-  private staminaBarFill!: Phaser.GameObjects.Graphics;
-  private hpText!: Phaser.GameObjects.Text;
-  private staminaText!: Phaser.GameObjects.Text;
+  // Painel de status (canto inferior direito)
+  private statusPanel!: StatusPanelHud;
 
   // Barra Superior de Experiência (XP) e Nível
   private xpBarBg!: Phaser.GameObjects.Graphics;
   private xpBarFill!: Phaser.GameObjects.Graphics;
   private xpText!: Phaser.GameObjects.Text;
-  private levelTag!: Phaser.GameObjects.Text;
-
-  // Dimensões do Painel
-  private panelX: number = 0;
-  private panelY: number = 0;
-  private panelW: number = 440;
-  private panelH: number = 116;
-  private vialX: number = 0;
-  private vialY: number = 0;
-  private barsX: number = 0;
-  private barsW: number = 328;
-  private hpBarY: number = 0;
-  private stBarY: number = 0;
-
-  // Retrato Gigante da Nixy (O DOBRO DO TAMANHO: 340px, livre sem caixa ou fundo)
-  private portraitImage!: Phaser.GameObjects.Image;
-  private portraitBaseX: number = 0;
-  private portraitBaseY: number = 0;
-  private portraitSize: number = 340;
 
   // Painel Superior Direito Minimalista (Abates e Almas)
   private killsPanelGraphics!: Phaser.GameObjects.Graphics;
@@ -150,161 +121,15 @@ export class UIScene
     this.radar = new TacticalRadar(this, pixelFont);
 
     // ==========================================
-    // 1. RETRATO GIGANTE DA NIXY (340px - DOBRO DO TAMANHO)
+    // 1-2. RETRATO E PAINEL DE STATUS (CANTO INFERIOR DIREITO)
     // ==========================================
-    // Fica em primeiro plano (Depth 150), sobrepondo a borda direita da HUD
-    this.portraitBaseX = width - this.portraitSize / 2 + 60;
-    this.portraitBaseY = height - this.portraitSize / 2 + 15;
-
-    this.portraitImage = this.add.image(this.portraitBaseX, this.portraitBaseY, 'nixy-portrait-idle');
-    this.portraitImage.setDisplaySize(this.portraitSize, this.portraitSize);
-    this.portraitImage.setDepth(150);
-
-    // ==========================================
-    // 2. PAINEL DE STATUS DEMÔNICO (STATUS HUD & NOME DO PERSONAGEM)
-    // ==========================================
-    const hudScale = 1.6;
-    this.panelW = Math.round(280 * hudScale); // 448
-    this.panelH = Math.round(131 * hudScale); // 210
-
-    const hudBottom = height - 14;
-    this.panelX = width - this.portraitSize - this.panelW + 225;
-    this.panelY = hudBottom - this.panelH;
-
-    const hudCenterX = this.panelX + this.panelW / 2;
-    const hudCenterY = this.panelY + this.panelH / 2;
-
-    // Sprite de fundo e moldura de pedra demoníaca com lava (Depth 30)
-    this.statusHudImage = this.add.image(hudCenterX, hudCenterY, 'ui-status-hud');
-    this.statusHudImage.setDisplaySize(this.panelW, this.panelH);
-    this.statusHudImage.setDepth(30);
-
-    // Sprite do Nome Oficial do Personagem (Depth 62 - sobre o topo da moldura)
-    const gs = this.scene.get('GameScene') as any;
-    const charId = (gs && gs.player && gs.player.characterId) ? gs.player.characterId : 'nixy';
-    const charNameTexture = this.textures.exists(`ui-char-name-${charId}`) ? `ui-char-name-${charId}` : 'ui-char-name-nixy';
-    const nameW = 220;
-    const nameH = 100;
-    const nameCenterX = hudCenterX;
-    const nameCenterY = this.panelY + 40;
-
-    this.charNameImage = this.add.image(nameCenterX, nameCenterY, charNameTexture);
-    this.charNameImage.setDisplaySize(nameW, nameH);
-    this.charNameImage.setDepth(62);
-
-    // Medidor de Suprema: Ult Gauge posicionado no lado esquerdo da cavidade
-    this.vialX = this.panelX + Math.round(36 * hudScale) + 40;
-    this.vialY = this.panelY + 125;
-
-    this.barsX = this.vialX + 56;
-    this.barsW = 230;
-    this.hpBarY = this.vialY - 9;
-    this.stBarY = this.hpBarY + 24;
-
-    // Desenho base dos slots das barras (Depth 35)
-    this.baroquePanelGraphics = this.add.graphics();
-    this.baroquePanelGraphics.setDepth(35);
-    this.drawBaroqueFrame();
-
-    // Medidor de Suprema: Ult Gauge (Fundo, Barra Líquida Dinâmica e Moldura Ornamental)
-    this.ultGaugeBg = this.add.image(this.vialX, this.vialY, 'ult-gauge-bg');
-    this.ultGaugeBg.setScale(2.0).setOrigin(0.5).setDepth(48);
-
-    this.vialGraphics = this.add.graphics();
-    this.vialGraphics.setDepth(50);
-    this.drawUltimateOrb(0, false);
-
-    this.ultGaugeFrame = this.add.image(this.vialX, this.vialY, 'ult-gauge-frame');
-    this.ultGaugeFrame.setScale(2.0).setOrigin(0.5).setDepth(52);
-
-    // Texto de porcentagem centralizado durante o carregamento
-    this.ultimatePctText = this.add.text(this.vialX, this.vialY, '0%', {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3.5
-    }).setOrigin(0.5).setDepth(60);
-
-    // Prompt [E] pulsante no centro do medidor quando 100% pronta
-    this.ultimateReadyBadge = this.add.text(this.vialX, this.vialY, '[E]', {
-      fontFamily: pixelFont,
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#ffd60a',
-      stroke: '#000000',
-      strokeThickness: 4,
-      shadow: {
-        offsetX: 0,
-        offsetY: 0,
-        color: '#ff0055',
-        blur: 10,
-        stroke: true,
-        fill: true
-      }
-    }).setOrigin(0.5).setDepth(65);
-    this.ultimateReadyBadge.setVisible(false);
-
-    // Zona interativa sobre o frasco para ativar por clique de mouse
-    const vialZone = this.add.zone(this.vialX, this.vialY, 74, 74);
-    vialZone.setOrigin(0.5);
-    vialZone.setInteractive({ useHandCursor: true });
-    vialZone.on('pointerdown', () => {
-      if (!this.isHUDVisibleState || this.isDialogueActive()) return;
-      const gs = this.scene.get('GameScene') as any;
-      if (gs && gs.player && gs.player.isUltimateReady) {
-        gs.triggerUltimate();
-      }
-    });
+    const gsForName = this.scene.get('GameScene') as { player?: { characterId?: string } } | null;
+    this.statusPanel = new StatusPanelHud(this, pixelFont, gsForName?.player?.characterId ?? 'nixy', () => this.tryTriggerUltimate());
 
     // Tecla [E] também escutada diretamente na UIScene
     if (this.input.keyboard) {
-      this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E).on('down', () => {
-        if (!this.isHUDVisibleState || this.isDialogueActive()) return;
-        const gs = this.scene.get('GameScene') as any;
-        if (gs && gs.player && gs.player.isUltimateReady) {
-          gs.triggerUltimate();
-        }
-      });
+      this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E).on('down', () => this.tryTriggerUltimate());
     }
-
-    // Barras dinâmicas (Depth 40)
-    this.hpBarFill = this.add.graphics();
-    this.hpBarFill.setDepth(40);
-
-    this.staminaBarFill = this.add.graphics();
-    this.staminaBarFill.setDepth(40);
-
-    // Nível: LVL 1 em ouro antigo com contorno preto
-    this.levelTag = this.add.text(this.barsX, this.hpBarY - 18, 'LVL 1', {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setDepth(60);
-
-    // Texto de Vida sobreposto na barra de HP
-    this.hpText = this.add.text(this.barsX + this.barsW / 2, this.hpBarY + 9, '100 / 100 HP', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(60);
-
-    // Texto de Estamina sobreposto na barra de Estamina
-    this.staminaText = this.add.text(this.barsX + this.barsW / 2, this.stBarY + 7, '100% STAMINA', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(60);
 
     // ==========================================
     // 4. CANTO SUPERIOR DIREITO: ABATES E ALMAS (MINIMALISTA SEM FUNDO)
@@ -414,20 +239,7 @@ export class UIScene
     // Lista consolidada de todos os elementos da HUD para controle unificado de visibilidade
     this.hudElements = [
       ...this.radar.getHudElements(),
-      this.portraitImage,
-      this.statusHudImage,
-      this.charNameImage,
-      this.baroquePanelGraphics,
-      this.ultGaugeBg,
-      this.vialGraphics,
-      this.ultGaugeFrame,
-      this.ultimatePctText,
-      this.ultimateReadyBadge,
-      this.hpBarFill,
-      this.staminaBarFill,
-      this.levelTag,
-      this.hpText,
-      this.staminaText,
+      ...this.statusPanel.getHudElements(),
       this.killsPanelGraphics,
       this.killsIcon,
       this.killsText,
@@ -478,83 +290,12 @@ export class UIScene
     });
   }
 
-  /**
-   * Desenha os trilhos base das barras de Vida e Estamina dentro da cavidade de pedra do StatusHud
-   */
-  private drawBaroqueFrame(): void {
-    const g = this.baroquePanelGraphics;
-    g.clear();
-
-    const hpX = this.barsX;
-    const hpY = this.hpBarY;
-    const bW = this.barsW;
-    const hpH = 18;
-
-    // Fundo escuro e moldura do slot da barra de Vida (HP)
-    g.fillStyle(0x140104, 0.95);
-    g.fillRect(hpX, hpY, bW, hpH);
-    g.lineStyle(1.5, 0xc59b27, 0.9);
-    g.strokeRect(hpX, hpY, bW, hpH);
-
-    // Fundo escuro e moldura do slot da barra de Estamina (ST)
-    const stX = this.barsX;
-    const stY = this.stBarY;
-    const stH = 14;
-
-    g.fillStyle(0x120a02, 0.95);
-    g.fillRect(stX, stY, bW, stH);
-    g.lineStyle(1.5, 0xc59b27, 0.8);
-    g.strokeRect(stX, stY, bW, stH);
-  }
-
-  /**
-   * Desenha a barra líquida mística dentro do novo Medidor da Suprema (Ult Gauge)
-   * O líquido sobe entre o fundo (ult-gauge-bg) e a moldura frontal (ult-gauge-frame).
-   * Violeta místico durante o carregamento; Carmesim ardente ao atingir 100%.
-   */
-  private drawUltimateOrb(chargeRatio: number, isReady: boolean): void {
-    const g = this.vialGraphics;
-    g.clear();
-
-    const cx = this.vialX;
-    const cy = this.vialY;
-
-    // Dimensões da janela interna transparente da moldura (40x40 escalado em 2.0x)
-    const winW = 46;
-    const winH = 46;
-    const winLeft = cx - winW / 2;
-    const winBottom = cy + 22;
-    const winTop = cy - 24;
-
-    const clampedRatio = Phaser.Math.Clamp(chargeRatio, 0, 1);
-
-    // Se pronta, projeta um halo e aura dourada pulsante ao redor do medidor
-    if (isReady) {
-      const now = this.time.now;
-      const pulse = Math.sin(now * 0.008);
-      g.lineStyle(3, 0xff0055, 0.7 + pulse * 0.3);
-      g.strokeRoundedRect(cx - 40 - pulse, cy - 40 - pulse, 80 + pulse * 2, 80 + pulse * 2, 10);
-      g.lineStyle(1.5, 0xffd60a, 0.9);
-      g.strokeRoundedRect(cx - 38, cy - 38, 76, 76, 8);
-    }
-
-    // Líquido místico subindo verticalmente enquanto carrega
-    if (clampedRatio > 0.02) {
-      const fillH = winH * clampedRatio;
-      const fillY = winBottom - fillH;
-
-      // 1. Corpo principal do líquido (Violeta místico / Carmesim ardente)
-      g.fillStyle(isReady ? 0xd90429 : 0x7b2cbf, 0.95);
-      g.fillRect(winLeft, fillY, winW, fillH);
-
-      // 2. Camada de brilho interno translúcido
-      g.fillStyle(isReady ? 0xff0054 : 0x9d4edd, 0.65);
-      g.fillRect(winLeft + 3, fillY + 2, winW - 6, Math.max(0, fillH - 4));
-
-      // 3. Onda / menisco de energia na superfície do líquido
-      const wave = isReady ? 0 : Math.sin(this.time.now * 0.007) * 1.5;
-      g.fillStyle(isReady ? 0xffd60a : 0x00f5d4, 1);
-      g.fillRect(winLeft, Math.max(winTop, fillY + wave), winW, 3);
+  /** Suprema pelo clique no frasco ou pela tecla [E]. */
+  private tryTriggerUltimate(): void {
+    if (!this.isHUDVisibleState || this.isDialogueActive()) return;
+    const gs = this.scene.get('GameScene') as { player?: { isUltimateReady?: boolean }; triggerUltimate?: () => void } | null;
+    if (gs?.player?.isUltimateReady && gs.triggerUltimate) {
+      gs.triggerUltimate();
     }
   }
 
@@ -599,76 +340,10 @@ export class UIScene
 
     const p = gameScene.player;
 
-    // Atualizar Medidor da Suprema (Ult Gauge)
-    const ultRatio = Phaser.Math.Clamp(p.ultimateCharge / p.maxUltimateCharge, 0, 1);
-    const isUltReady = p.isUltimateReady;
-    this.drawUltimateOrb(ultRatio, isUltReady);
-
-    if (isUltReady) {
-      this.ultimatePctText.setVisible(false);
-      this.ultimateReadyBadge.setVisible(true);
-
-      const promptLabel = this.currentControlScheme === 'gamepad' ? '[Y]' : '[E]';
-      if (this.ultimateReadyBadge.text !== promptLabel) {
-        this.ultimateReadyBadge.setText(promptLabel);
-      }
-
-      // Efeito de pulso rítmico no prompt [E] ou [Y]
-      const badgeScale = 1.0 + Math.sin(this.time.now * 0.008) * 0.14;
-      this.ultimateReadyBadge.setScale(badgeScale);
-    } else {
-      this.ultimateReadyBadge.setVisible(false);
-      this.ultimatePctText.setVisible(true);
-      this.ultimatePctText.setText(`${Math.floor(ultRatio * 100)}%`);
-    }
-
+    // Painel de status: Suprema, vida, estamina, nível e retrato
+    this.statusPanel.update(p, this.currentControlScheme);
     if (this.touchControls) {
-      this.touchControls.update(isUltReady);
-    }
-
-    // Atualizar Barra de Vida (HP) com gradiente carmesim
-    const hpRatio = Math.max(0, p.currentHp / p.maxHp);
-    this.hpBarFill.clear();
-    this.hpBarFill.fillStyle(0xd90429, 1);
-    this.hpBarFill.fillRect(this.barsX + 2, this.hpBarY + 2, (this.barsW - 4) * hpRatio, 14);
-    this.hpText.setText(`${Math.max(0, Math.round(p.currentHp))} / ${p.maxHp} HP`);
-
-    // Atualizar Barra de Estamina (ST)
-    this.staminaBarFill.clear();
-    const stRatio = Math.max(0, p.currentStamina / p.maxStamina);
-    // Cor dinâmica: Ciano durante sprint, magenta esgotado, dourado/parchment normal
-    const stColor = p.isSprinting ? 0x00f5d4 : (stRatio < 0.2 ? 0xf72585 : 0xe0a96d);
-    this.staminaBarFill.fillStyle(stColor, 1);
-    this.staminaBarFill.fillRect(this.barsX + 2, this.stBarY + 2, (this.barsW - 4) * stRatio, 10);
-    this.staminaText.setText(`${Math.round(p.currentStamina)}% STAMINA`);
-
-    // Atualizar sprite de nome caso o personagem mude
-    if (p.characterId && this.charNameImage) {
-      const charNameKey = `ui-char-name-${p.characterId}`;
-      if (this.textures.exists(charNameKey) && this.charNameImage.texture.key !== charNameKey) {
-        this.charNameImage.setTexture(charNameKey);
-      }
-    }
-
-    // Feedback de Dano no Retrato Gigante da Nixy
-    if (p.hurtTimer > 0) {
-      if (this.portraitImage.texture.key !== 'nixy-portrait-damage') {
-        this.portraitImage.setTexture('nixy-portrait-damage');
-        this.portraitImage.setDisplaySize(this.portraitSize, this.portraitSize);
-      }
-
-      // Tremor orgânico livre (-6px a +6px)
-      const shakeX = Phaser.Math.Between(-6, 6);
-      const shakeY = Phaser.Math.Between(-6, 6);
-      this.portraitImage.setPosition(this.portraitBaseX + shakeX, this.portraitBaseY + shakeY);
-      this.portraitImage.setTint(0xff4444);
-    } else {
-      if (this.portraitImage.texture.key !== 'nixy-portrait-idle') {
-        this.portraitImage.setTexture('nixy-portrait-idle');
-        this.portraitImage.setDisplaySize(this.portraitSize, this.portraitSize);
-      }
-      this.portraitImage.setPosition(this.portraitBaseX, this.portraitBaseY);
-      this.portraitImage.clearTint();
+      this.touchControls.update(p.isUltimateReady);
     }
 
     // Atualizar Abates e Almas Corrompidas (Apenas valores numéricos com ícones)
@@ -685,7 +360,6 @@ export class UIScene
     this.xpBarFill.fillStyle(0x00f5d4, 1);
     this.xpBarFill.fillRect(0, 0, width * xpRatio, 13);
     this.xpText.setText(`LVL ${p.currentLevel}   [ ${p.currentXp} / ${p.xpToNextLevel} XP ]`);
-    this.levelTag.setText(`LVL ${p.currentLevel}`);
 
     // Topo central: purificação, vida do chefe ou cronômetro do Infinito
     this.topCenterHud.update(gameScene);
@@ -735,8 +409,7 @@ export class UIScene
     }
     if (!visible) {
       this.radar?.clearBlips();
-      if (this.hpBarFill) this.hpBarFill.clear();
-      if (this.staminaBarFill) this.staminaBarFill.clear();
+      this.statusPanel?.clearBars();
       this.topCenterHud?.clear();
       this.announcer?.hideWaveAlert();
     }

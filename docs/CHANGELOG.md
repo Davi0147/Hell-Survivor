@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.13 — Painel de Status em Arquivo Próprio] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** Retrato, barras de vida e estamina e o medidor da Suprema funcionam igual, incluindo o clique no frasco e a tecla [E].
+
+### Organização do Projeto
+- **Novo `src/ui/StatusPanelHud.ts`** com o contrato `IStatusPanelPlayer` (o painel não assume mais que o jogador é a Nixy pelo tipo). `UIScene.ts` caiu de 914 para 587 linhas, menos de um terço do tamanho do início do Pacote E (2.159).
+- **Lint**: 3 `any` a menos; limite de avisos baixado de 143 para 140.
 ## [v0.9.12 — Topo da HUD em Arquivo Próprio] — 2026-11-14
 
 ### Resumo para o Jogador
