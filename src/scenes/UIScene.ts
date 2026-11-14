@@ -15,6 +15,8 @@ import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 import { PauseMenu, IPauseGameScene, IPauseMenuHost } from '../ui/PauseMenu';
 import { GameOverModal, GameOverStats, IGameOverModalHost } from '../ui/GameOverModal';
 import { ChapterVictoryModal, ChapterVictoryStats, IChapterVictoryModalHost } from '../ui/ChapterVictoryModal';
+import { TacticalRadar } from '../ui/TacticalRadar';
+import { AltarEdgeIndicator } from '../ui/AltarEdgeIndicator';
 
 export class UIScene
   extends Phaser.Scene
@@ -109,14 +111,8 @@ export class UIScene
   private wasKeyboardKeyPressed: boolean = false;
   private keyEsc?: Phaser.Input.Keyboard.Key;
 
-  // Radar Tático / Minimapa Circular (Canto Superior Esquerdo)
-  private radarFrameGraphics!: Phaser.GameObjects.Graphics;
-  private radarBlipsGraphics!: Phaser.GameObjects.Graphics;
-  private radarCenterX: number = 74;
-  private radarCenterY: number = 84;
-  private radarRadius: number = 54;
-  private radarWorldRange: number = 750;
-  private radarTagText!: Phaser.GameObjects.Text;
+  // Radar tático (canto superior esquerdo)
+  private radar!: TacticalRadar;
 
   // Barra de Purificação de Almas (Capítulo 1)
   private purifyBarGraphics!: Phaser.GameObjects.Graphics;
@@ -132,10 +128,9 @@ export class UIScene
   private waveAlertBanner!: Phaser.GameObjects.Text;
   private bestRecordSec: number = 0;
 
-  // Indicador de Borda para o Altar de Ascensão (quando fora da tela)
-  private altarIndicatorContainer!: Phaser.GameObjects.Container;
-  private altarIndicatorGraphics!: Phaser.GameObjects.Graphics;
-  private altarIndicatorText!: Phaser.GameObjects.Text;
+  // Seta de borda para o objetivo fora da tela
+  private altarEdgeIndicator!: AltarEdgeIndicator;
+
 
   constructor() {
     super('UIScene');
@@ -159,30 +154,7 @@ export class UIScene
     // ==========================================
     // 0. RADAR TÁTICO / MINIMAPA CIRCULAR (CANTO SUPERIOR ESQUERDO)
     // ==========================================
-    this.radarFrameGraphics = this.add.graphics();
-    this.radarFrameGraphics.setDepth(100);
-    this.drawRadarFrame();
-
-    this.radarBlipsGraphics = this.add.graphics();
-    this.radarBlipsGraphics.setDepth(101);
-
-    this.radarTagText = this.add.text(this.radarCenterX, this.radarCenterY + this.radarRadius + 10, 'RADAR // 750m', {
-      fontFamily: pixelFont,
-      fontSize: '8px',
-      fontStyle: 'bold',
-      color: '#c59b27',
-      stroke: '#0e0308',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(102);
-
-    const radarNorthText = this.add.text(this.radarCenterX, this.radarCenterY - this.radarRadius - 7, 'N', {
-      fontFamily: pixelFont,
-      fontSize: '8px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#0e0308',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(102);
+    this.radar = new TacticalRadar(this, pixelFont);
 
     // ==========================================
     // 1. RETRATO GIGANTE DA NIXY (340px - DOBRO DO TAMANHO)
@@ -507,10 +479,7 @@ export class UIScene
 
     // Lista consolidada de todos os elementos da HUD para controle unificado de visibilidade
     this.hudElements = [
-      this.radarFrameGraphics,
-      this.radarBlipsGraphics,
-      this.radarTagText,
-      radarNorthText,
+      ...this.radar.getHudElements(),
       this.portraitImage,
       this.statusHudImage,
       this.charNameImage,
@@ -542,25 +511,9 @@ export class UIScene
       this.xpText
     ];
 
-    // 8. Indicador de Borda para o Altar de Ascensão (quando fora da tela)
-    this.altarIndicatorContainer = this.add.container(0, 0);
-    this.altarIndicatorContainer.setDepth(150);
-    this.altarIndicatorContainer.setVisible(false);
-
-    this.altarIndicatorGraphics = this.add.graphics();
-    this.altarIndicatorContainer.add(this.altarIndicatorGraphics);
-
-    this.altarIndicatorText = this.add.text(0, 0, '', {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#ffe600',
-      stroke: '#000000',
-      strokeThickness: 2.5
-    }).setOrigin(0.5);
-    this.altarIndicatorContainer.add(this.altarIndicatorText);
-
-    this.hudElements.push(this.altarIndicatorContainer);
+    // 8. Seta de borda para o objetivo fora da tela
+    this.altarEdgeIndicator = new AltarEdgeIndicator(this, pixelFont);
+    this.hudElements.push(this.altarEdgeIndicator.getHudElement());
 
     // ==========================================
     // 8. CONSOLE DE TESTE & GRAVADOR DE SESSÃO (SANDBOX / DEV MODE)
@@ -597,56 +550,6 @@ export class UIScene
       this.input.removeAllListeners();
       this.time.removeAllEvents();
     });
-  }
-
-  /**
-   * Desenha a moldura barroca e retículo tático do radar circular
-   */
-  private drawRadarFrame(): void {
-    const g = this.radarFrameGraphics;
-    g.clear();
-
-    const cx = this.radarCenterX;
-    const cy = this.radarCenterY;
-    const r = this.radarRadius;
-
-    // 1. Fundo obsidiana translúcido profundo
-    g.fillStyle(0x0e0308, 0.92);
-    g.fillCircle(cx, cy, r);
-
-    // 2. Anéis concêntricos de alcance tático (35% e 70%)
-    g.lineStyle(1, 0x4a0e17, 0.5);
-    g.strokeCircle(cx, cy, r * 0.35);
-    g.strokeCircle(cx, cy, r * 0.70);
-
-    // 3. Retículo de mira carmesim sutil
-    g.lineStyle(1, 0x3d0b13, 0.6);
-    g.lineBetween(cx - r + 3, cy, cx + r - 3, cy);
-    g.lineBetween(cx, cy - r + 3, cx, cy + r - 3);
-
-    // 4. Borda externa barroca em ouro envelhecido
-    g.lineStyle(2, 0xc59b27, 1);
-    g.strokeCircle(cx, cy, r);
-
-    // Filete interno dourado fino
-    g.lineStyle(1, 0xf3d17a, 0.75);
-    g.strokeCircle(cx, cy, r - 2);
-
-    // 5. Marcadores cardinais em ouro nos 4 pontos (Norte, Sul, Leste, Oeste)
-    g.lineStyle(2, 0xf3d17a, 1);
-    g.lineBetween(cx, cy - r, cx, cy - r + 5); // Norte
-    g.lineBetween(cx, cy + r, cx, cy + r - 5); // Sul
-    g.lineBetween(cx + r, cy, cx + r - 5, cy); // Leste
-    g.lineBetween(cx - r, cy, cx - r + 5, cy); // Oeste
-
-    // 6. Pequenas tachas douradas nos eixos diagonais (45 graus)
-    const cos45 = 0.7071;
-    for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
-      const px = cx + sx * r * cos45;
-      const py = cy + sy * r * cos45;
-      g.fillStyle(0xc59b27, 0.85);
-      g.fillCircle(px, py, 1.5);
-    }
   }
 
   /**
@@ -999,377 +902,10 @@ export class UIScene
     }
 
     // Atualizar Radar Tático / Minimapa
-    this.updateRadar(p, gameScene);
+    this.radar.update(p, gameScene);
 
     // Atualizar Indicador Direcional de Borda para o Altar de Ascensão (quando fora da tela)
-    this.updateAltarOffscreenIndicator(p, gameScene);
-  }
-
-  /**
-   * Atualiza dinamicamente as posições dos blips de entidades no radar
-   */
-  private updateRadar(p: any, gameScene: any): void {
-    const g = this.radarBlipsGraphics;
-    g.clear();
-
-    const cx = this.radarCenterX;
-    const cy = this.radarCenterY;
-    const r = this.radarRadius;
-    const maxWorldDist = this.radarWorldRange;
-    const maxBlipRadius = r - 4;
-
-    // ==========================================
-    // 1. BLIPS DE INIMIGOS (DETECÇÃO UNIVERSAL AUTOMÁTICA)
-    // ==========================================
-    // (Gemas de XP não são exibidas no radar, apenas inimigos e futuros itens de mapa)
-    if (gameScene.enemiesGroup) {
-      const enemies = gameScene.enemiesGroup.getChildren();
-
-      for (let i = 0; i < enemies.length; i++) {
-        const enemy = enemies[i] as any;
-        if (!enemy.active || !enemy.visible || enemy.isDead) continue;
-
-        const dx = enemy.x - p.x;
-        const dy = enemy.y - p.y;
-        const dist = Math.hypot(dx, dy);
-        const angle = Math.atan2(dy, dx);
-
-        // Identifica Chefes e Mini-Chefes (HP alto >= 80 ou textura succubus/boss/azazel)
-        const isBoss = (enemy.maxHp && enemy.maxHp >= 80) ||
-          (enemy.texture?.key && (enemy.texture.key.includes('succubus') || enemy.texture.key.includes('boss') || enemy.texture.key.includes('azazel')));
-
-        if (isBoss) {
-          // Chefe/Succubus/Azazel: bola um pouco maior (raio 4.5 vs 2.5 dos comuns)
-          const isOffRadar = dist > maxWorldDist;
-          const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
-          const bx = cx + Math.cos(angle) * blipDist;
-          const by = cy + Math.sin(angle) * blipDist;
-
-          g.fillStyle(0xff0055, 1);
-          g.fillCircle(bx, by, 4.5);
-        } else {
-          // Inimigo comum: desenha se dentro do alcance do radar
-          if (dist > maxWorldDist) continue;
-
-          const blipDist = (dist / maxWorldDist) * maxBlipRadius;
-          const bx = cx + Math.cos(angle) * blipDist;
-          const by = cy + Math.sin(angle) * blipDist;
-
-          g.fillStyle(0xff2a4d, 0.9);
-          g.fillCircle(bx, by, 2.5);
-        }
-      }
-    }
-
-    // ==========================================
-    // 2. BLIPS DE ITENS DE MAPA (VERDE VIBRANTE COM INDICADOR DIRECIONAL)
-    // ==========================================
-    if (gameScene.mapItemsGroup) {
-      const items = gameScene.mapItemsGroup.getChildren();
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i] as any;
-        if (!item.active || !item.visible) continue;
-
-        const dx = item.x - p.x;
-        const dy = item.y - p.y;
-        const dist = Math.hypot(dx, dy);
-        const angle = Math.atan2(dy, dx);
-
-        // Se estiver fora do alcance do radar, fixa na borda apontando para o item
-        const isOffRadar = dist > maxWorldDist;
-        const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
-        const bx = cx + Math.cos(angle) * blipDist;
-        const by = cy + Math.sin(angle) * blipDist;
-
-        // Ponto verde esmeralda vibrante com contorno branco fino para fácil leitura
-        g.fillStyle(0x00ff66, 1);
-        g.fillCircle(bx, by, 3.8);
-        g.lineStyle(1, 0xffffff, 0.9);
-        g.strokeCircle(bx, by, 3.8);
-      }
-    }
-
-    // ==========================================
-    // 2.05. BLIPS DOS 3 CRISTAIS DE AZAZEL (FASE 3 - CIANO/MAGENTA PULSANTE)
-    // ==========================================
-    if (gameScene.azazelCrystals && Array.isArray(gameScene.azazelCrystals)) {
-      for (const crystal of gameScene.azazelCrystals) {
-        if (!crystal || !crystal.active || crystal.isCompleted || crystal.isDestroyed) continue;
-        const dx = crystal.x - p.x;
-        const dy = crystal.y - p.y;
-        const dist = Math.hypot(dx, dy);
-        const angle = Math.atan2(dy, dx);
-
-        const isOffRadar = dist > maxWorldDist;
-        const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
-        const bx = cx + Math.cos(angle) * blipDist;
-        const by = cy + Math.sin(angle) * blipDist;
-
-        g.fillStyle(0x00f5d4, 1);
-        g.fillCircle(bx, by, 5.2);
-        g.lineStyle(1.8, 0xff0055, 1);
-        g.strokeCircle(bx, by, 5.2);
-      }
-    }
-
-    // ==========================================
-    // 2.1. BLIP DO ALTAR DE ASCENSÃO (MARCADO COM "X" NO MINIMAPA)
-    // ==========================================
-    if (gameScene.altarInstance && gameScene.altarInstance.active && !gameScene.altarInstance.isDestroyed) {
-      const altar = gameScene.altarInstance;
-      const dx = altar.x - p.x;
-      const dy = altar.y - p.y;
-      const dist = Math.hypot(dx, dy);
-      const angle = Math.atan2(dy, dx);
-
-      // Se estiver fora do alcance do radar, fixa na borda do radar apontando na direção do Altar
-      const isOffRadar = dist > maxWorldDist;
-      const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
-      const bx = cx + Math.cos(angle) * blipDist;
-      const by = cy + Math.sin(angle) * blipDist;
-
-      // Desenho do "X" do Altar no minimapa (sem círculo ao redor)
-      const xArm = 4.5;
-      // Contorno escuro para máxima visibilidade contra o mapa
-      g.lineStyle(3.8, 0x000000, 0.95);
-      g.beginPath();
-      g.moveTo(bx - xArm, by - xArm);
-      g.lineTo(bx + xArm, by + xArm);
-      g.moveTo(bx + xArm, by - xArm);
-      g.lineTo(bx - xArm, by + xArm);
-      g.strokePath();
-
-      // Traço nítido do "X" em vermelho vibrante
-      g.lineStyle(2.4, 0xff1e27, 1);
-      g.beginPath();
-      g.moveTo(bx - xArm, by - xArm);
-      g.lineTo(bx + xArm, by + xArm);
-      g.moveTo(bx + xArm, by - xArm);
-      g.lineTo(bx - xArm, by + xArm);
-      g.strokePath();
-
-      // Ponto dourado no centro do X
-      g.fillStyle(0xffe600, 1);
-      g.fillCircle(bx, by, 1.2);
-    }
-
-    // ==========================================
-    // 2.2. BLIP DO ALTAR DE INVOCAÇÃO DO CHEFE NO MINIMAPA
-    // ==========================================
-    if (gameScene.bossSummonAltar && !gameScene.bossSummonAltar.isCompleted) {
-      const bAltar = gameScene.bossSummonAltar;
-      const dx = bAltar.x - p.x;
-      const dy = bAltar.y - p.y;
-      const dist = Math.hypot(dx, dy);
-      const angle = Math.atan2(dy, dx);
-
-      const isOffRadar = dist > maxWorldDist;
-      const blipDist = isOffRadar ? maxBlipRadius : (dist / maxWorldDist) * maxBlipRadius;
-      const bx = cx + Math.cos(angle) * blipDist;
-      const by = cy + Math.sin(angle) * blipDist;
-
-      if (bAltar.isActive) {
-        // Altar Ativo: Chamas incandescentes pulsantes no radar (alaranjado/ouro)
-        const pulse = Math.sin(this.time.now * 0.008) * 1.5;
-        g.fillStyle(0xff2200, 0.7);
-        g.fillCircle(bx, by, 7.5 + pulse);
-
-        // Losango de chamas
-        g.fillStyle(0xff9900, 1);
-        g.fillTriangle(bx, by - 6 - pulse, bx - 4, by, bx + 4, by);
-        g.fillTriangle(bx, by + 6 + pulse, bx - 4, by, bx + 4, by);
-
-        // Núcleo dourado ardente
-        g.fillStyle(0xffe600, 1);
-        g.fillCircle(bx, by, 2.2);
-      } else {
-        // Altar Inativo: Pedra ancestral escura com runa sutil
-        g.fillStyle(0x0e0206, 0.85);
-        g.fillCircle(bx, by, 4.5);
-        g.lineStyle(1.2, 0x665566, 0.8);
-        g.strokeCircle(bx, by, 4.5);
-        g.fillStyle(0xaa3344, 0.9);
-        g.fillCircle(bx, by, 1.5);
-      }
-    }
-
-    // ==========================================
-    // 3. JOGADOR (CENTRO DO RADAR COM PONTEIRO DIRECIONAL)
-    // ==========================================
-    // Determina o ângulo da direção atual da heroína
-    const dirMap: Record<string, number> = {
-      'east': 0,
-      'south-east': Math.PI * 0.25,
-      'south': Math.PI * 0.5,
-      'south-west': Math.PI * 0.75,
-      'west': Math.PI,
-      'north-west': -Math.PI * 0.75,
-      'north': -Math.PI * 0.5,
-      'north-east': -Math.PI * 0.25
-    };
-
-    let dirAngle = dirMap[p.currentDirection] ?? Math.PI * 0.5;
-    if (p.body && p.body.velocity && (p.body.velocity.x !== 0 || p.body.velocity.y !== 0)) {
-      dirAngle = Math.atan2(p.body.velocity.y, p.body.velocity.x);
-    }
-
-    // Ponteiro triangular em ciano apontando para onde Nixy está virada
-    const arrowLen = 9;
-    const tipX = cx + Math.cos(dirAngle) * arrowLen;
-    const tipY = cy + Math.sin(dirAngle) * arrowLen;
-    const leftX = cx + Math.cos(dirAngle + 2.45) * 5;
-    const leftY = cy + Math.sin(dirAngle + 2.45) * 5;
-    const rightX = cx + Math.cos(dirAngle - 2.45) * 5;
-    const rightY = cy + Math.sin(dirAngle - 2.45) * 5;
-
-    g.fillStyle(0x00f5d4, 1);
-    g.fillTriangle(tipX, tipY, leftX, leftY, rightX, rightY);
-
-    // Ponto central de Nixy (Ciano brilhante com núcleo branco)
-    g.fillStyle(0x00f5d4, 1);
-    g.fillCircle(cx, cy, 3.5);
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(cx, cy, 1.5);
-  }
-
-  /**
-   * Atualiza o indicador direcional de borda de tela para o Altar de Ascensão.
-   * Quando o altar está fora da visão da câmera, aponta exatamente para sua direção
-   * com badge [X] e distância em metros. Quando o jogador se aproxima e o altar entra na tela,
-   * o indicador é ocultado automaticamente para não poluir a visão.
-   */
-  private updateAltarOffscreenIndicator(p: any, gameScene: any): void {
-    if (!this.altarIndicatorContainer) return;
-
-    // Prioridade máxima: se o Altar de Invocação do Chefe despertou
-    let targetAltar: any = null;
-    let isBossAltar = false;
-
-    if (gameScene.azazelCrystals && Array.isArray(gameScene.azazelCrystals) && gameScene.azazelCrystals.length > 0) {
-      let nearestCrystal: any = null;
-      let minDist = Infinity;
-      for (const c of gameScene.azazelCrystals) {
-        if (c && c.active && !c.isCompleted && !c.isDestroyed) {
-          const d = Math.hypot(c.x - p.x, c.y - p.y);
-          if (d < minDist) {
-            minDist = d;
-            nearestCrystal = c;
-          }
-        }
-      }
-      if (nearestCrystal) {
-        targetAltar = nearestCrystal;
-        isBossAltar = true;
-      }
-    }
-
-    if (!targetAltar) {
-      if (gameScene.bossSummonAltar && gameScene.bossSummonAltar.isActive && !gameScene.bossSummonAltar.isBossSpawned) {
-        targetAltar = gameScene.bossSummonAltar;
-        isBossAltar = true;
-      } else if (gameScene.altarInstance && gameScene.altarInstance.active && !gameScene.altarInstance.isDestroyed) {
-        targetAltar = gameScene.altarInstance;
-        isBossAltar = false;
-      }
-    }
-
-    if (!targetAltar) {
-      this.altarIndicatorContainer.setVisible(false);
-      return;
-    }
-
-    const cam = gameScene.cameras?.main;
-    if (!cam) {
-      this.altarIndicatorContainer.setVisible(false);
-      return;
-    }
-
-    // Verifica se o Altar está dentro da visão visível da câmera (com folga de 30px)
-    const margin = 30;
-    const isAltarOnScreen =
-      targetAltar.x >= cam.worldView.x + margin &&
-      targetAltar.x <= cam.worldView.right - margin &&
-      targetAltar.y >= cam.worldView.y + margin &&
-      targetAltar.y <= cam.worldView.bottom - margin;
-
-    if (isAltarOnScreen) {
-      this.altarIndicatorContainer.setVisible(false);
-      return;
-    }
-
-    // Se o Altar está fora da tela, ativa o indicador na borda da tela
-    this.altarIndicatorContainer.setVisible(true);
-
-    const { width, height } = this.scale;
-    const scX = width / 2;
-    const scY = height / 2;
-
-    const dx = targetAltar.x - p.x;
-    const dy = targetAltar.y - p.y;
-    const dist = Math.hypot(dx, dy);
-    const angle = Math.atan2(dy, dx);
-
-    // Margem segura da tela
-    const marginX = 52;
-    const marginY = 56;
-    const halfW = width / 2 - marginX;
-    const halfH = height / 2 - marginY;
-
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const scaleFactor = Math.min(
-      Math.abs(halfW / (cos || 0.0001)),
-      Math.abs(halfH / (sin || 0.0001))
-    );
-
-    const edgeX = scX + cos * scaleFactor;
-    const edgeY = scY + sin * scaleFactor;
-
-    this.altarIndicatorContainer.setPosition(Math.round(edgeX), Math.round(edgeY));
-
-    // Desenha o marcador de borda com seta e badge
-    const g = this.altarIndicatorGraphics;
-    g.clear();
-
-    // Seta / Triângulo apontando para o Altar
-    const arrowDist = 18;
-    const tipX = Math.cos(angle) * arrowDist;
-    const tipY = Math.sin(angle) * arrowDist;
-    const perpAngle = angle + Math.PI / 2;
-    const wingX1 = Math.cos(perpAngle) * 7.5;
-    const wingY1 = Math.sin(perpAngle) * 7.5;
-    const wingX2 = -Math.cos(perpAngle) * 7.5;
-    const wingY2 = -Math.sin(perpAngle) * 7.5;
-
-    g.fillStyle(isBossAltar ? 0x28040d : 0x18040a, 0.95);
-    g.beginPath();
-    g.moveTo(tipX, tipY);
-    g.lineTo(wingX1, wingY1);
-    g.lineTo(wingX2, wingY2);
-    g.closePath();
-    g.fill();
-
-    const arrowStroke = isBossAltar ? 0xff4500 : 0xff002b;
-    g.lineStyle(2, arrowStroke, 1);
-    g.beginPath();
-    g.moveTo(tipX, tipY);
-    g.lineTo(wingX1, wingY1);
-    g.lineTo(wingX2, wingY2);
-    g.closePath();
-    g.stroke();
-
-    // Fundo do badge de distância (compacto, sem [X])
-    const badgeW = isBossAltar ? 48 : 44;
-    const badgeH = 20;
-    g.fillStyle(isBossAltar ? 0x1a0509 : 0x0e0206, 0.94);
-    g.fillRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
-    g.lineStyle(1.5, isBossAltar ? 0xff7700 : 0xffe600, 0.95);
-    g.strokeRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
-
-    // Texto: apenas a distância em metros
-    const distMeters = Math.max(1, Math.round(dist / 10));
-    this.altarIndicatorText.setText(`${distMeters}m`);
-    this.altarIndicatorText.setColor(isBossAltar ? '#ffaa00' : '#ffe600');
+    this.altarEdgeIndicator.update(p, gameScene);
   }
 
   public setHUDVisible(visible: boolean): void {
@@ -1383,7 +919,7 @@ export class UIScene
       this.touchControls.setVisible(visible);
     }
     if (!visible) {
-      if (this.radarBlipsGraphics) this.radarBlipsGraphics.clear();
+      this.radar?.clearBlips();
       if (this.hpBarFill) this.hpBarFill.clear();
       if (this.staminaBarFill) this.staminaBarFill.clear();
       if (this.purifyBarGraphics) this.purifyBarGraphics.clear();

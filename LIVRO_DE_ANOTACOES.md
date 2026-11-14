@@ -94,6 +94,7 @@
 - [x] **Pacote C (v0.9.7):** roteiro extraído para `src/config/dialogues.ts` e catálogo de cartas para `src/systems/UpgradeCatalog.ts`.
 - [ ] **Pacote F:** extrair os encontros de chefe da `GameScene.ts` (cerca de 600 linhas, estado compartilhado; fazer junto com o rebalanceamento das lutas).
 - [x] **Pacote D (v0.9.8):** `SoundManager.ts` dividido (1.693 → 447 linhas); os 39 efeitos sonoros foram para `src/systems/audio/` por tema, com a fachada pública intacta.
+- [x] **Pacote E1 (v0.9.9):** radar e seta de borda do altar extraídos da `UIScene.ts` (2.159 → 1.696 linhas) para `src/ui/TacticalRadar.ts` e `src/ui/AltarEdgeIndicator.ts`, com tipos no lugar de `any`; catraca do lint 152 → 144.
 - [ ] **Pacote E:** continuar fatiando `GameScene.ts` e `UIScene.ts` (spawns, chefes, roleta) e reduzir os `any`.
 - [ ] **Arte:** substituir efeitos desenhados por código pelos sprites gerados a partir de `docs/ART_PROMPTS.md`.
 

@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.9 — Radar em Arquivo Próprio] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** O radar e a seta que aponta para o altar funcionam igual.
+
+### Organização do Projeto
+- **Novo `src/ui/TacticalRadar.ts`** (minimapa circular) e **`src/ui/AltarEdgeIndicator.ts`** (seta de borda com a distância até cristal, altar de invocação ou altar de ascensão), com o contrato tipado em `src/ui/radarTypes.ts`. `UIScene.ts` caiu de 2.159 para 1.696 linhas.
+- **Lint**: 8 `any` a menos; limite de avisos baixado de 152 para 144.
 ## [v0.9.8 — Sons Organizados por Tema] — 2026-11-14
 
 ### Resumo para o Jogador
