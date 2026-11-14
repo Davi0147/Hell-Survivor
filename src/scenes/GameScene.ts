@@ -16,7 +16,6 @@ import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import { BossSummonAltar } from '../entities/items/BossSummonAltar';
 import { AzazelCrystal } from '../entities/items/AzazelCrystal';
-import { UpgradeScene } from './UpgradeScene';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
@@ -33,8 +32,9 @@ import { CombatBubbleSystem, ICombatBubbleContext, ICombatBubbleTarget } from '.
 import { ArenaScenerySystem, ISceneryContext } from '../systems/ArenaScenerySystem';
 import { CHAPTER_OPENING_DIALOGUE, ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, getStoryRevivalDialogue, getBossRematchDialogue } from '../config/dialogues';
 import { EnemySpawnSystem, IEnemySpawnContext } from '../systems/EnemySpawnSystem';
+import { PickupSpawnSystem, IPickupSpawnContext } from '../systems/PickupSpawnSystem';
 
-export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext {
+export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
 
@@ -49,6 +49,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   // Sistema de Spawn de Inimigos, Elites e Minichefes
   public enemySpawner!: EnemySpawnSystem;
+  public pickupSpawner!: PickupSpawnSystem;
 
   // Modo de Jogo e Campanha
   public gameMode: 'story' | 'endless' | 'sandbox' = 'story';
@@ -122,10 +123,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public altarInstance: EvolutionAltar | null = null;
   public bossSummonAltar: BossSummonAltar | null = null;
   public isHordeSpawningPaused: boolean = false;
-  private altarSpawnTimer: number = 0;
-  private get ALTAR_SPAWN_INTERVAL(): number {
-    return getChapterConfig(this.currentChapter).altarSpawnIntervalMs;
-  }
   private spawnTimer: number = 0;
   private mapItemSpawnTimer: number = 0;
   public killCount: number = 0;
@@ -203,7 +200,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.altarInstance = null;
     this.bossSummonAltar = null;
     this.isHordeSpawningPaused = false;
-    this.altarSpawnTimer = 0;
     this.spawnTimer = 0;
     this.mapItemSpawnTimer = 0;
     this.bossMinionTimer = 0;
@@ -251,6 +247,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.arenaScenerySystem = new ArenaScenerySystem(this);
     this.enemySpawner = new EnemySpawnSystem(this, this);
     }
+    // Recriado a cada partida para zerar o relógio do Altar de Ascensão
+    this.pickupSpawner = new PickupSpawnSystem(this, this);
 
     // 1. Chão infinito repetido (TileSprite duplicando a textura do piso ativo em proporção adequada)
     const floorScale = 0.10;
@@ -950,55 +948,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   }
 
   public spawnGemAt(x: number, y: number, type: GemType): void {
-    let gemXpValue = 5;
-    if (type === 'blue') gemXpValue = 20;
-    else if (type === 'red' || type === 'orange') gemXpValue = 100;
-    else if (type === 'purple') gemXpValue = 250;
-    else if (type === 'gold') gemXpValue = 500;
-
-    // Fusão inteligente (Vampire Survivors style) se exceder o limite de gemas no mapa
-    const activeGems = (this.gemsGroup.getChildren() as SoulGem[]).filter((g) => g.active);
-    if (activeGems.length >= PERFORMANCE_LIMITS.MAX_ACTIVE_GEMS) {
-      // Encontra a gema ativa mais próxima do ponto de spawn e funde o XP nela
-      let closestGem: SoulGem | undefined;
-      let closestDist = Infinity;
-      for (const g of activeGems) {
-        const d = Math.hypot(g.x - x, g.y - y);
-        if (d < closestDist) {
-          closestDist = d;
-          closestGem = g;
-        }
-      }
-      if (closestGem) {
-        closestGem.addBonusXp(gemXpValue);
-        return;
-      }
-    }
-
-    let gem = this.gemsGroup.getChildren().find(
-      (child) => !child.active
-    ) as SoulGem | undefined;
-
-    if (!gem) {
-      gem = new SoulGem(this, x, y);
-      this.gemsGroup.add(gem);
-    }
-
-    gem.spawn(x, y, type);
+    this.pickupSpawner.spawnGemAt(x, y, type);
   }
 
   public spawnSoulItem(x: number, y: number, value: number = 1): void {
-    const clamped = this.clampToArena(x, y, 60);
-    let soul = this.soulsGroup.getChildren().find(
-      (child) => !child.active
-    ) as CorruptedSoulItem | undefined;
-
-    if (!soul) {
-      soul = new CorruptedSoulItem(this, clamped.x, clamped.y);
-      this.soulsGroup.add(soul);
-    }
-
-    soul.spawn(clamped.x, clamped.y, value);
+    this.pickupSpawner.spawnSoulItem(x, y, value);
   }
 
   private triggerDemonRevival(): void {
@@ -1037,110 +991,21 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   }
 
   public spawnMapItem(x: number, y: number, type?: MapItemType): MapItem {
-    const clamped = this.clampToArena(x, y, 160);
-    x = clamped.x;
-    y = clamped.y;
-    const types: MapItemType[] = ['chalice', 'magnet', 'chest'];
-    const chosenType = type ?? Phaser.Math.RND.pick(types);
-    const item = new MapItem(this, x, y, chosenType);
-    this.mapItemsGroup.add(item);
-    return item;
+    return this.pickupSpawner.spawnMapItem(x, y, type);
   }
 
   public spawnRandomMapItem(): void {
-    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const dist = Phaser.Math.Between(450, 750);
-    const x = this.player.x + Math.cos(angle) * dist;
-    const y = this.player.y + Math.sin(angle) * dist;
-    this.spawnMapItem(x, y);
+    this.pickupSpawner.spawnRandomMapItem();
   }
 
-  /**
-   * Spawner Periódico do Altar de Ascensão Rúnico.
-   * Surge a cada ~75 segundos no mapa se a Nixy possuir armas não evoluídas.
-   */
   public updateAltarSpawning(delta: number): void {
-    if (this.isGameOver || this.isChapterCompleted) return;
-    if (this.altarInstance && this.altarInstance.active && !this.altarInstance.isDestroyed) return;
-
-    // Se o jogador não possui armas disponíveis para evoluir, não spawna o altar
-    const evolutionsAvailable = UpgradeScene.getAltarEvolutionCards(this.player, this);
-    if (evolutionsAvailable.length === 0) return;
-
-    this.altarSpawnTimer += delta;
-    if (this.altarSpawnTimer >= this.ALTAR_SPAWN_INTERVAL) {
-      this.altarSpawnTimer = 0;
-      this.spawnEvolutionAltar();
-    }
+    this.pickupSpawner.updateAltarSpawning(delta);
   }
 
-  /**
-   * Instancia um Altar de Ascensão no mapa com círculo de captura e 3 estágios visuais
-   */
   public spawnEvolutionAltar(customX?: number, customY?: number): EvolutionAltar | null {
-    if (this.altarInstance && this.altarInstance.active && !this.altarInstance.isDestroyed) {
-      return this.altarInstance;
-    }
-
-    const evolutionsAvailable = UpgradeScene.getAltarEvolutionCards(this.player, this);
-    if (evolutionsAvailable.length === 0) {
-      DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Tentativa de spawnar altar ignorada: todas as armas já evoluídas');
-      return null;
-    }
-
-    let spawnX = customX;
-    let spawnY = customY;
-
-    if (spawnX === undefined || spawnY === undefined) {
-      // Posiciona entre 320px e 460px de distância da Nixy em ângulo aleatório
-      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const dist = Phaser.Math.Between(320, 460);
-      spawnX = this.player.x + Math.cos(angle) * dist;
-      spawnY = this.player.y + Math.sin(angle) * dist;
-    }
-
-    const clamped = this.clampToArena(spawnX, spawnY, 200);
-    spawnX = clamped.x;
-    spawnY = clamped.y;
-
-    this.altarInstance = new EvolutionAltar(this, spawnX, spawnY);
-    this.altarInstance.on('altar-completed', (altar: EvolutionAltar) => {
-      this.handleAltarCompleted(altar);
-    });
-
-    DebugSessionLogger.getInstance().log(
-      'ALTAR',
-      'INFO',
-      `Altar de Ascensão rúnico surgiu em (${Math.round(spawnX)}, ${Math.round(spawnY)})`
-    );
-
-    return this.altarInstance;
+    return this.pickupSpawner.spawnEvolutionAltar(customX, customY);
   }
 
-  /**
-   * Acionado quando o jogador conclui 100% da carga do Altar de Ascensão
-   */
-  private handleAltarCompleted(altar: EvolutionAltar): void {
-    if (this.isGameOver || this.isChapterCompleted) return;
-    if (this.scene.isActive('UpgradeScene')) return;
-
-    DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Ascensão completado 100%! Abrindo seleção suprema...');
-    this.cameras.main.flash(300, 255, 230, 0);
-    this.physics.pause();
-    this.scene.pause();
-
-    this.scene.launch('UpgradeScene', {
-      player: this.player,
-      gameScene: this,
-      isAltar: true,
-      onAltarChosen: () => {
-        altar.explodeAndDestroy();
-        if (this.altarInstance === altar) {
-          this.altarInstance = null;
-        }
-      }
-    });
-  }
 
   /**
    * Concede 1.5s de imunidade de segurança e afasta monstros ao sair da tela do Baú

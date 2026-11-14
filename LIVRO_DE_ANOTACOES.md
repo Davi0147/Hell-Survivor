@@ -99,6 +99,7 @@
 - [x] **Pacote E3 (v0.9.11):** anúncios de tela (frase de chefe, faixa de onda, anúncio dourado) extraídos da `UIScene.ts` (1.351 → 1.088 linhas) para `src/ui/ScreenAnnouncer.ts`.
 - [x] **Pacote E4 (v0.9.12):** topo central da HUD (purificação, vida do chefe, cronômetro do Infinito) extraído para `src/ui/TopCenterHud.ts` (`UIScene.ts` 1.088 → 914 linhas).
 - [x] **Pacote E5 (v0.9.13):** painel de status (retrato, vida, estamina, nível, Suprema) extraído para `src/ui/StatusPanelHud.ts` (`UIScene.ts` 914 → 587 linhas); catraca do lint 143 → 140.
+- [x] **Pacote E6 (v0.9.14):** drops e itens (gemas, almas, itens de mapa, Altar de Ascensão) extraídos da `GameScene.ts` (2.333 → 2.198 linhas) para `src/systems/PickupSpawnSystem.ts`.
 - [ ] **Pacote E:** continuar fatiando `GameScene.ts` e `UIScene.ts` (spawns, chefes, roleta) e reduzir os `any`.
 - [ ] **Arte:** substituir efeitos desenhados por código pelos sprites gerados a partir de `docs/ART_PROMPTS.md`.
 

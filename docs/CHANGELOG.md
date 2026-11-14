@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.14 — Drops e Itens em Sistema Próprio] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** Gemas, almas, itens de mapa e o Altar de Ascensão surgem e funcionam igual.
+
+### Organização do Projeto
+- **Novo `src/systems/PickupSpawnSystem.ts`** (contrato `IPickupSpawnContext`), no mesmo formato do `EnemySpawnSystem`. A tabela de XP por cor de gema virou uma lista única (`GEM_XP`). `GameScene.ts` caiu de 2.333 para 2.198 linhas.
 ## [v0.9.13 — Painel de Status em Arquivo Próprio] — 2026-11-14
 
 ### Resumo para o Jogador
