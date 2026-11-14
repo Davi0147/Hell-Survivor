@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.8 — Sons Organizados por Tema] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade nem no som.** Todos os efeitos sonoros são os mesmos.
+
+### Organização do Projeto
+- **`SoundManager.ts` dividido** (1.693 → 447 linhas): os 39 efeitos sintetizados foram para `src/systems/audio/` em cinco arquivos por tema (`uiSfx`, `dialogueSfx`, `combatSfx`, `cutsceneSfx`, `weaponSfx`). O `SoundManager` continua sendo a única porta de entrada, com os mesmos métodos; ele só cuida de volume, canal de saída e limitadores de repetição (digitação, dano, batimento).
 ## [v0.9.7 — Roteiro e Catálogo de Cartas em Arquivos Próprios] — 2026-11-13
 
 ### Resumo para o Jogador
