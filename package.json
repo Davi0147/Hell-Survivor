@@ -1,14 +1,14 @@
 {
   "name": "hell-survivor",
   "private": true,
-  "version": "0.9.9",
+  "version": "0.9.10",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "start": "vite --force --open",
     "dev:fresh": "vite --force --open",
     "build": "tsc && vite build",
-    "check": "tsc --noEmit && eslint src --max-warnings 144 && node scripts/verify-theme.mjs && vitest run",
+    "check": "tsc --noEmit && eslint src --max-warnings 143 && node scripts/verify-theme.mjs && vitest run",
     "test": "vitest run",
     "preview": "vite preview"
   },

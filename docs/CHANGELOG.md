@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.10 — Roleta do Baú em Arquivo Próprio] — 2026-11-14
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** A roleta do Baú do Abismo gira, pula e entrega a bênção igual.
+
+### Organização do Projeto
+- **Novo `src/ui/ChestRouletteModal.ts`**: a roleta saiu da `UIScene.ts` (1.696 → 1.351 linhas), seguindo o mesmo formato dos modais de Pausa e Game Over. A `UIScene` mantém as mesmas funções de acesso (`showChestRoulette`, `isChestRouletteActive`, `resolveChestRoulette`), e o tipo `any` da cena de jogo virou o contrato `IChestRouletteGameScene`.
+- **Lint**: limite de avisos baixado de 144 para 143.
 ## [v0.9.9 — Radar em Arquivo Próprio] — 2026-11-14
 
 ### Resumo para o Jogador
