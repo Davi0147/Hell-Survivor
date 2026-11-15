@@ -36,7 +36,7 @@ import { PickupSpawnSystem, IPickupSpawnContext } from '../systems/PickupSpawnSy
 import { PlayerInputSystem } from '../systems/PlayerInputSystem';
 import { BossFightSystem, IBossFightContext, BossId } from '../systems/BossFightSystem';
 import { RunEndSystem, IRunEndContext } from '../systems/RunEndSystem';
-import { FONTS } from '../config/theme';
+import { FONTS, getArenaFloorTint } from '../config/theme';
 
 export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext {
   public player!: Nixy;
@@ -263,7 +263,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.floorTile.setScrollFactor(0);
     this.floorTile.setDepth(-100);
     this.floorTile.setTileScale(floorScale, floorScale);
-    this.floorTile.setTint(0x423232); // Diminui a cor e saturação das pedras para destacar monstros e Nixy
+    // Chão escurecido para destacar monstros e heroína; a cor muda por capítulo
+    this.floorTile.setTint(getArenaFloorTint('floor-tile', this.currentChapter));
 
     // 2. Carrega o mapa ativo do capítulo correspondente (Cap 1 ou Cap 2)
     const activeMap = MapStorageManager.getActiveMap(this.currentChapter);
@@ -917,11 +918,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public setArenaFloorTexture(textureKey: string): void {
     if (!this.floorTile || !this.textures.exists(textureKey)) return;
     this.floorTile.setTexture(textureKey);
-    if (textureKey === 'floor-tile-2') {
-      this.floorTile.setTint(0x684b4b);
-    } else {
-      this.floorTile.setTint(0x423232);
-    }
+    this.floorTile.setTint(getArenaFloorTint(textureKey, this.currentChapter));
   }
 
   /**

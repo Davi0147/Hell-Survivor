@@ -178,3 +178,44 @@ Para um **personagem jogável novo**, peça o conjunto completo no mesmo padrão
 |---|---|
 | `floor-<tema>.png` | `seamless tileable top-down floor texture, <cracked hellstone with glowing lava veins / bone-littered catacomb tiles / frozen abyss ice with trapped souls>, 256x256, no visible seams, dark and low contrast so characters stand out` |
 | `prop-<nome>.png` | `top-down 3/4 view dungeon prop, <gothic broken pillar / iron torture cage / pile of skulls with candles / demonic statue / lava crack>, 96x96, soft shadow at the base` |
+
+### 9.1. Cenário próprio de cada capítulo (lista fechada)
+
+Hoje os capítulos 1 e 2 usam o mesmo chão e os mesmos objetos; só a cor do chão muda. Para cada capítulo ter a sua cara, gere **um conjunto por capítulo**: 1 chão + 6 objetos + 1 altar. Salve em `art-source/novos/cenario/` com os nomes abaixo e eu coloco no jogo e no Editor de Mapas.
+
+Regras para todos: chão em 512x512, emendável nos quatro lados, **escuro e com pouco contraste** (os monstros precisam aparecer); objetos em 96x96 com fundo transparente e sombra suave na base.
+
+**Capítulo 1 — Catacumbas de Rosalin** (quente, carmesim, luxo decadente)
+
+| Arquivo | Prompt |
+|---|---|
+| `floor-ch1.png` | `seamless tileable top-down floor texture, dark cracked catacomb flagstones with faint crimson veins and scattered rose petals, 512x512, no visible seams, very dark, low contrast` |
+| `ch1-prop-pillar.png` | `broken gothic marble pillar wrapped in thorned rose vines` |
+| `ch1-prop-candelabra.png` | `tall iron candelabra with dripping red candles, small warm flame` |
+| `ch1-prop-coffin.png` | `open velvet-lined coffin tilted on its side` |
+| `ch1-prop-skulls.png` | `pile of skulls with melted candles on top` |
+| `ch1-prop-statue.png` | `cracked statue of a winged succubus, one wing missing` |
+| `ch1-prop-thorns.png` | `cluster of black thorn bushes with a few red roses` |
+| `ch1-altar.png` | `circular summoning altar carved with a heart-shaped pentagram, crimson glow` (2 quadros: apagado e aceso) |
+
+**Capítulo 2 — Santuário Caído de Azazel** (frio, azul-violeta, ruína celestial)
+
+| Arquivo | Prompt |
+|---|---|
+| `floor-ch2.png` | `seamless tileable top-down floor texture, shattered pale cathedral marble with black feather stains and thin violet lightning cracks, 512x512, no visible seams, very dark, low contrast` |
+| `ch2-prop-pillar.png` | `fallen white cathedral column, cracked, blackened at the base` |
+| `ch2-prop-wing.png` | `giant broken stone angel wing lying on the ground` |
+| `ch2-prop-halo.png` | `shattered golden halo half buried in rubble, faint glow` |
+| `ch2-prop-brazier.png` | `iron brazier burning with cold violet fire` |
+| `ch2-prop-statue.png` | `headless angel statue holding a broken sword` |
+| `ch2-prop-feathers.png` | `heap of black feathers with small violet embers` |
+| `ch2-altar.png` | `circular summoning altar with a fallen-angel sigil, violet lightning glow` (2 quadros: apagado e aceso) |
+
+**Dimensão Corrompida (fase dos cristais do Azazel)**
+
+| Arquivo | Prompt |
+|---|---|
+| `floor-dimension.png` | `seamless tileable top-down floor texture, void-black glass floor with floating magenta cracks and distant stars underneath, 512x512, no visible seams, very dark` |
+| `dimension-prop-shard.png` | `floating jagged obsidian shard with magenta inner glow` |
+
+**Capítulo 3** ainda não tem tema definido. Quando você escolher o bioma e o chefe, eu escrevo a lista dele no mesmo formato.

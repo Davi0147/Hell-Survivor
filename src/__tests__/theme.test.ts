@@ -133,3 +133,20 @@ describe('Theme Configuration (theme.ts)', () => {
     });
   });
 });
+
+describe('Chão por capítulo (getArenaFloorTint)', () => {
+  it('cada capítulo tem a sua cor de chão', async () => {
+    const { getArenaFloorTint } = await import('../config/theme');
+    expect(getArenaFloorTint('floor-tile', 1)).not.toBe(getArenaFloorTint('floor-tile', 2));
+  });
+
+  it('textura com cor própria vence a cor do capítulo', async () => {
+    const { getArenaFloorTint, ARENA_FLOOR_TINT } = await import('../config/theme');
+    expect(getArenaFloorTint('floor-tile-2', 2)).toBe(ARENA_FLOOR_TINT.byTexture['floor-tile-2']);
+  });
+
+  it('capítulo desconhecido cai na cor padrão', async () => {
+    const { getArenaFloorTint, ARENA_FLOOR_TINT } = await import('../config/theme');
+    expect(getArenaFloorTint('floor-tile', 99)).toBe(ARENA_FLOOR_TINT.fallback);
+  });
+});

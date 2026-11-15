@@ -65,6 +65,25 @@ export const COLORS = {
   phraseSuccubus: '#c084fc'
 } as const;
 
+/**
+ * Identidade visual do chão de cada capítulo. Enquanto um capítulo não tem textura
+ * própria, a cor (tint) é o que o diferencia dos outros.
+ *  - `byTexture`: cor fixa para uma textura específica (vence o capítulo).
+ *  - `byChapter`: cor do capítulo quando a textura é a padrão.
+ */
+export const ARENA_FLOOR_TINT = {
+  fallback: 0x423232,
+  byTexture: { 'floor-tile-2': 0x684b4b } as Record<string, number>,
+  byChapter: {
+    1: 0x423232, // Catacumbas de Rosalin: pedra quente e escura
+    2: 0x2f3350, // Santuário caído de Azazel: pedra fria azul-violeta
+  } as Record<number, number>,
+} as const;
+
+export function getArenaFloorTint(textureKey: string, chapter: number): number {
+  return ARENA_FLOOR_TINT.byTexture[textureKey] ?? ARENA_FLOOR_TINT.byChapter[chapter] ?? ARENA_FLOOR_TINT.fallback;
+}
+
 export const BOSS_TELEGRAPH = {
   /** Cor carmesim principal de advertência (valor padrão Succubus: 0xff0055) */
   color: 0xff0055,
