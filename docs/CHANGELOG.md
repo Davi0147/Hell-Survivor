@@ -2,7 +2,24 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [v0.9.18 — Limpeza do Lint e Tipos] — 2026-11-15
+## [v0.9.19 — Lutas de Chefe Justas] — 2026-11-15
+
+### Resumo para o Jogador
+- **Azazel agora pode ser vencido.** Havia um defeito na fase dos cristais: purificar um cristal não contava, então a luta nunca saía daquela fase. Corrigido.
+- **Rosalin bate menos forte por golpe.** Antes o salto esmagador tirava 77 de vida e a investida 53 (a heroína começa com 100): dois erros e era o fim. Agora são 42 e 30, os orbes caíram de 26 para 12 e o contato de 35 para 20. Os avisos no chão continuam iguais, então a luta segue exigindo desviar.
+- **Azazel:** investida e raios, que dão para desviar, passaram de 14 para 18. Os orbes continuam fracos porque são muitos na tela. As investidas no escuro agora avisam por 0,42s (era 0,36s) e travam a mira na metade final.
+- **Fôlego entre as fases do Azazel:** um Cálice de Cura aparece ao entrar na fase dos cristais e outro ao voltar para o duelo final.
+- **Chefe cansa em luta longa.** Se a sua build causa pouco dano e a luta passa de 1min40 (Rosalin) ou 3min (Azazel), o chefe começa a receber dano extra, aumentando a cada 15s. Um aviso aparece na tela. Builds fortes nem chegam a ver isso.
+- **Revanche mais leve no Modo História.** Cada morte para o mesmo chefe tira 7% da vida e 5% do dano dele na próxima tentativa (até 4 mortes, ou seja, no máximo -28% de vida e -20% de dano).
+- **Reforços da Rosalin** vêm a cada 11s (era 8,5s) e só depois que a luta começa de verdade.
+
+### Organização do Projeto
+- **Novo `src/systems/BossFightSystem.ts`**: Altar de Invocação, entradas cinematográficas, diálogos de revanche, música, reforços, fases do Azazel, recompensas e fim de capítulo saíram da `GameScene.ts`.
+- **Novo `src/systems/RunEndSystem.ts`**: morte, Pacto Demoníaco, registro de recordes e tela de Game Over.
+- **`GameScene.ts`: 2.051 → 1.267 linhas.**
+- **Balanceamento em `balance.ts`**: os danos e tempos da Rosalin estavam escritos direto no código da chefe; agora moram em `SUCCUBUS_BOSS_BALANCE.attacks`. Novos blocos `BOSS_FATIGUE`, `BOSS_MERCY` e `REVIVAL_BALANCE`.
+- **Chefes recebem `BaseCharacter`** em vez de assumir que o jogador é a Nixy.
+- **Testes: 171 → 213**, incluindo regras de justiça (nenhum golpe da Rosalin tira mais de 45% da vida base; golpe mais forte é o mais telegrafado).## [v0.9.18 — Limpeza do Lint e Tipos] — 2026-11-15
 
 ### Resumo para o Jogador
 - **Nada muda na jogabilidade.**

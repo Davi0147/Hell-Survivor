@@ -92,7 +92,7 @@
 - [x] **Pacote A (v0.9.5):** atributos de inimigos, minichefes e Rosalin centralizados em `balance.ts`; remoção de código e documentos mortos; `AGENTS.md` reescrito.
 - [x] **Pacote B (v0.9.6):** spawn de inimigos extraído para `EnemySpawnSystem.ts`; 12 assets duplicados removidos; timers do `MusicDirector` mantidos como exceção consciente.
 - [x] **Pacote C (v0.9.7):** roteiro extraído para `src/config/dialogues.ts` e catálogo de cartas para `src/systems/UpgradeCatalog.ts`.
-- [ ] **Pacote F:** extrair os encontros de chefe da `GameScene.ts` (cerca de 600 linhas, estado compartilhado; fazer junto com o rebalanceamento das lutas).
+- [x] **Pacote F (v0.9.19):** lutas de chefe extraídas para `src/systems/BossFightSystem.ts` e fim de jogo (morte, Pacto Demoníaco) para `src/systems/RunEndSystem.ts` (`GameScene.ts` 2.051 → 1.267 linhas). Rebalanceamento: golpes da Rosalin sem matar em dois erros, exaustão do chefe em luta longa, revanche mais leve a cada morte, cálices entre as fases do Azazel. Corrigido o defeito que impedia concluir a fase dos cristais do Azazel.
 - [x] **Pacote D (v0.9.8):** `SoundManager.ts` dividido (1.693 → 447 linhas); os 39 efeitos sonoros foram para `src/systems/audio/` por tema, com a fachada pública intacta.
 - [x] **Pacote E1 (v0.9.9):** radar e seta de borda do altar extraídos da `UIScene.ts` (2.159 → 1.696 linhas) para `src/ui/TacticalRadar.ts` e `src/ui/AltarEdgeIndicator.ts`, com tipos no lugar de `any`; catraca do lint 152 → 144.
 - [x] **Pacote E2 (v0.9.10):** roleta do Baú do Abismo extraída da `UIScene.ts` (1.696 → 1.351 linhas) para `src/ui/ChestRouletteModal.ts`; catraca do lint 144 → 143.

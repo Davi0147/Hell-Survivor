@@ -1,9 +1,12 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
-import { Nixy } from '../characters/Nixy';
+import type { BaseCharacter } from '../characters/BaseCharacter';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
 import { SoundManager } from '../../systems/SoundManager';
 import { BOSS_TELEGRAPH } from '../../config/theme';
+import { SUCCUBUS_BOSS_BALANCE } from '../../config/balance';
+
+const ATK = SUCCUBUS_BOSS_BALANCE.attacks;
 
 type BossState =
   | 'INTRO'
@@ -22,14 +25,18 @@ export class SuccubusBoss extends BaseEnemy {
   public damage: number = 35;
   public isBoss: boolean = true;
   public isInvulnerable: boolean = false;
+  /** Multiplica o dano dos golpes (revanche e Modo Infinito). */
+  public attackDamageMultiplier: number = 1;
+  /** Multiplica o dano recebido (exaustão em lutas longas). */
+  public damageTakenMultiplier: number = 1;
 
   private bossState: BossState = 'CHASE';
   private stateTimer: number = 0;
 
   // Cooldowns das Habilidades
-  private dashCooldown: number = 4500;
-  private shootCooldown: number = 3500;
-  private airJumpCooldown: number = 13000;
+  private dashCooldown: number = ATK.dashFirstCooldownMs;
+  private shootCooldown: number = ATK.orbFirstCooldownMs;
+  private airJumpCooldown: number = ATK.slamFirstCooldownMs;
 
   // Habilidade 1: Investida Telegrafada (Telegraphed Dash)
   private dashTargetVector: { x: number; y: number } = { x: 1, y: 0 };
@@ -43,9 +50,9 @@ export class SuccubusBoss extends BaseEnemy {
   // Habilidade 3: Salto Aéreo Esmagador (Meteor Dive Slam)
   private slamTargetPos: { x: number; y: number } = { x: 0, y: 0 };
   private slamCircleGraphics!: Phaser.GameObjects.Graphics;
-  private readonly SLAM_CHARGE_DURATION = 3600; // ~3.6s de tensão com círculo crescendo
-  private readonly SLAM_MAX_RADIUS = 190;
-  private readonly SLAM_RECOVERY_DURATION = 2000; // Janela de dano livre
+  private readonly SLAM_CHARGE_DURATION = ATK.slamChargeMs;
+  private readonly SLAM_MAX_RADIUS = ATK.slamRadius;
+  private readonly SLAM_RECOVERY_DURATION = ATK.slamRecoveryMs; // Janela de dano livre
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'succubus-idle-south');
@@ -90,9 +97,11 @@ export class SuccubusBoss extends BaseEnemy {
     this.bossState = isCinematicIntro ? 'INTRO' : 'CHASE';
     this.isInvulnerable = isCinematicIntro;
     this.stateTimer = 0;
-    this.dashCooldown = 4500;
-    this.shootCooldown = 3500;
-    this.airJumpCooldown = 13000;
+    this.attackDamageMultiplier = 1;
+    this.damageTakenMultiplier = 1;
+    this.dashCooldown = ATK.dashFirstCooldownMs;
+    this.shootCooldown = ATK.orbFirstCooldownMs;
+    this.airJumpCooldown = ATK.slamFirstCooldownMs;
     this.play('succubus-fly-south', true);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -129,7 +138,7 @@ export class SuccubusBoss extends BaseEnemy {
     this.emit('boss-spawned', this.hp, this.maxHp);
   }
 
-  public updateBoss(player: Nixy, deltaMs: number): void {
+  public updateBoss(player: BaseCharacter, deltaMs: number): void {
     if (this.isDead || !this.active) return;
 
     if (this.bossState === 'INTRO' || this.isInvulnerable) {
@@ -201,7 +210,7 @@ export class SuccubusBoss extends BaseEnemy {
   // =========================================================================
   // ESTADO 1: CHASE (PERSEGUIÇÃO FLUIDA)
   // =========================================================================
-  private chasePlayer(player: Nixy, deltaMs: number): void {
+  private chasePlayer(player: BaseCharacter, deltaMs: number): void {
     const stunMult = this.updateStunState(deltaMs);
     const dx = player.x - this.x;
     const dy = player.y - this.y;
@@ -223,9 +232,9 @@ export class SuccubusBoss extends BaseEnemy {
   // =========================================================================
   // HABILIDADE 1: INVESTIDA EM LINHA TELEGRAFADA (TELEGRAPHED DASH)
   // =========================================================================
-  private startTelegraphDash(player: Nixy): void {
+  private startTelegraphDash(player: BaseCharacter): void {
     this.bossState = 'TELEGRAPH_DASH';
-    this.stateTimer = 1000; // 1.0 segundo de mira e carregamento da linha (mais rápido e tenso)
+    this.stateTimer = ATK.dashTelegraphMs;
 
     // Para imediatamente a velocidade
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -240,7 +249,7 @@ export class SuccubusBoss extends BaseEnemy {
     this.setTint(0xff2244);
   }
 
-  private updateTelegraphDash(player: Nixy, deltaMs: number): void {
+  private updateTelegraphDash(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
 
     // Atualiza suavemente a mira nos primeiros 450ms
@@ -253,7 +262,7 @@ export class SuccubusBoss extends BaseEnemy {
     }
 
     // Desenha a linha telegrafada crescendo em largura e brilho
-    const progress = 1 - Math.max(0, this.stateTimer / 1000);
+    const progress = 1 - Math.max(0, this.stateTimer / ATK.dashTelegraphMs);
     const g = this.dashLineGraphics;
     g.clear();
 
@@ -289,7 +298,7 @@ export class SuccubusBoss extends BaseEnemy {
     }
   }
 
-  private updateDashing(player: Nixy, deltaMs: number): void {
+  private updateDashing(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
 
     // Rastro fantasma vermelho de alta velocidade
@@ -311,7 +320,7 @@ export class SuccubusBoss extends BaseEnemy {
     // Checa colisão destrutiva com a Nixy durante a investida
     const distToPlayer = Math.hypot(this.x - player.x, this.y - player.y);
     if (distToPlayer <= 44) {
-      player.takeDamage(53); // Dano pesado de investida proporcional
+      player.takeDamage(this.scaleAttack(ATK.dashDamage));
       this.scene.cameras.main.shake(180, 0.018);
       this.endDash();
       return;
@@ -325,7 +334,7 @@ export class SuccubusBoss extends BaseEnemy {
   private endDash(): void {
     this.dashLineGraphics.clear();
     this.clearTint();
-    this.dashCooldown = 4800;
+    this.dashCooldown = ATK.dashCooldownMs;
     this.bossState = 'CHASE';
 
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -335,8 +344,8 @@ export class SuccubusBoss extends BaseEnemy {
   // =========================================================================
   // HABILIDADE 2: DISPARO DE PROJÉTEIS SOMBRIOS
   // =========================================================================
-  private fireDarkProjectiles(player: Nixy): void {
-    this.shootCooldown = 3800;
+  private fireDarkProjectiles(player: BaseCharacter): void {
+    this.shootCooldown = ATK.orbCooldownMs;
 
     const dx = player.x - this.x;
     const dy = player.y - this.y;
@@ -358,7 +367,7 @@ export class SuccubusBoss extends BaseEnemy {
           this.projectilesGroup.add(proj);
         }
 
-        proj.fire(this.x, this.y, baseAngle + offset, 275, 26);
+        proj.fire(this.x, this.y, baseAngle + offset, ATK.orbSpeed, this.scaleAttack(ATK.orbDamage));
       });
     });
   }
@@ -366,7 +375,7 @@ export class SuccubusBoss extends BaseEnemy {
   // =========================================================================
   // HABILIDADE 3: SALTO AÉREO ESMAGADOR (METEOR DIVE SLAM)
   // =========================================================================
-  private startAirJump(player: Nixy): void {
+  private startAirJump(player: BaseCharacter): void {
     this.bossState = 'AIR_JUMP';
     this.stateTimer = this.SLAM_CHARGE_DURATION; // 4.8s no máximo
     this.slamTargetPos = { x: player.x, y: player.y };
@@ -388,7 +397,7 @@ export class SuccubusBoss extends BaseEnemy {
     });
   }
 
-  private updateAirJump(player: Nixy, deltaMs: number): void {
+  private updateAirJump(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
 
     const elapsed = this.SLAM_CHARGE_DURATION - this.stateTimer;
@@ -422,7 +431,7 @@ export class SuccubusBoss extends BaseEnemy {
     }
   }
 
-  private executeDiveSlam(player: Nixy): void {
+  private executeDiveSlam(player: BaseCharacter): void {
     this.slamCircleGraphics.clear();
     const tx = this.slamTargetPos.x;
     const ty = this.slamTargetPos.y;
@@ -465,7 +474,7 @@ export class SuccubusBoss extends BaseEnemy {
         // Aplicação do dano massivo se a Nixy for pega pelo círculo
         const distToNixy = Math.hypot(tx - player.x, ty - player.y);
         if (distToNixy <= this.SLAM_MAX_RADIUS) {
-          player.takeDamage(77);
+          player.takeDamage(this.scaleAttack(ATK.slamDamage));
         }
 
         // Fica parada e vulnerável no centro até a recuperação
@@ -485,7 +494,7 @@ export class SuccubusBoss extends BaseEnemy {
     // Quando termina a janela de recuperação, volta a se mover normalmente
     if (this.stateTimer <= 0) {
       this.clearTint();
-      this.airJumpCooldown = 19000;
+      this.airJumpCooldown = ATK.slamCooldownMs;
       this.bossState = 'CHASE';
     }
   }
@@ -496,19 +505,21 @@ export class SuccubusBoss extends BaseEnemy {
   public override takeDamage(amount: number): void {
     if (this.isDead || !this.active || this.isInvulnerable || this.bossState === 'INTRO') return;
 
+    amount *= this.damageTakenMultiplier;
+    const taken = SUCCUBUS_BOSS_BALANCE.damageTaken;
     let finalDamage: number;
 
     // 1. Janela de vulnerabilidade: durante a recuperação do Salto Esmagador (SLAM_RECOVERY), recebe +25% de dano
     if (this.bossState === 'SLAM_RECOVERY') {
-      finalDamage = Math.round(amount * 1.25);
+      finalDamage = Math.round(amount * taken.recovering);
     }
     // 2. Barreira Mística Demoníaca: durante canalização da investida ou salto aéreo, mitiga 35% do dano
     else if (this.bossState === 'TELEGRAPH_DASH' || this.bossState === 'AIR_JUMP') {
-      finalDamage = Math.max(1, Math.round(amount * 0.65));
+      finalDamage = Math.max(1, Math.round(amount * taken.channeling));
     }
     // 3. Couraça Infernal: resistência passiva de 15% contra disparos contínuos e foices
     else {
-      finalDamage = Math.max(1, Math.round(amount * 0.85));
+      finalDamage = Math.max(1, Math.round(amount * taken.normal));
     }
 
     super.takeDamage(finalDamage);
@@ -547,6 +558,10 @@ export class SuccubusBoss extends BaseEnemy {
         this.emit('boss-defeated');
       }
     });
+  }
+
+  private scaleAttack(base: number): number {
+    return Math.max(1, Math.round(base * this.attackDamageMultiplier));
   }
 
   private updateFacingAnimation(angleRad: number): void {

@@ -32,6 +32,7 @@ export const COLORS = {
   crimsonBeam: 0xff2a5f,
   crimsonTextTelegraph: '#ff0055',
   crimsonTextAlert: '#ff2255',
+  dangerTint: 0xff0000,
 
   // --- Neutros, Textos e Contornos (Neutrals) ---
   white: 0xffffff,

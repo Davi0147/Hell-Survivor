@@ -222,28 +222,119 @@ export const ENEMY_BALANCE = {
   matriarchSuccubus: { hp: 2400, speed: 115, damage: 24, scale: 1.45 },
 } as const;
 
+// Regra de ouro das lutas de chefe: nenhum golpe sozinho tira mais de ~45% da vida
+// base da heroína (100 HP), e todo golpe forte é telegrafado. Quem erra duas vezes
+// seguidas ainda está vivo; quem erra sempre, morre.
 export const SUCCUBUS_BOSS_BALANCE = {
-  story: { hp: 9000, speed: 125, damage: 35, scale: 1.75 },
-  endless: { hp: 12000, speed: 135, damage: 40, scale: 1.85 },
+  story: { hp: 9000, speed: 125, damage: 20, scale: 1.75, attackDamageMultiplier: 1 },
+  endless: { hp: 12000, speed: 135, damage: 24, scale: 1.85, attackDamageMultiplier: 1.2 },
+  attacks: {
+    dashDamage: 30,
+    dashTelegraphMs: 1000,
+    dashCooldownMs: 4800,
+    dashFirstCooldownMs: 4500,
+    orbDamage: 12,
+    orbSpeed: 275,
+    orbCooldownMs: 3800,
+    orbFirstCooldownMs: 3500,
+    slamDamage: 42,
+    slamRadius: 190,
+    slamChargeMs: 3600,
+    slamRecoveryMs: 2000,
+    slamCooldownMs: 19000,
+    slamFirstCooldownMs: 13000,
+  },
+  // Dano recebido conforme o que ela está fazendo
+  damageTaken: { normal: 0.85, channeling: 0.65, recovering: 1.25 },
+  // Reforços que ela chama durante a luta
+  minions: { intervalMs: 11000, dogs: 2, bats: 3 },
+  // Almas entregues ao vencer (sorteio entre min e max)
+  soulReward: { min: 60, max: 80 },
 } as const;
 
 // ============================================================================
-// 5. CHEFE DO CAPÍTULO 2: AZAZEL, O ANJO CAÍDO (Dano Base reduzido em 70%)
+// 5. CHEFE DO CAPÍTULO 2: AZAZEL, O ANJO CAÍDO
 // ============================================================================
 export const AZAZEL_BOSS_BALANCE = {
   maxHp: 16000,
   speed: 138,
   scale: 1.65,
-  // Todos os valores de dano de Azazel reduzidos em 70% (30% do valor original arredondado)
-  baseContactDamage: 13,        // antes: 42 (42 * 0.30 = 12.6 -> 13)
-  cloneContactDamage: 10,       // antes: 32 (32 * 0.30 = 9.6 -> 10)
-  directedBurstOrbDamage: 9,    // antes: 30 (30 * 0.30 = 9.0 -> 9)
-  teleportOrbDamage: 8,         // antes: 28 (28 * 0.30 = 8.4 -> 8)
-  rapidDashDamage: 14,          // antes: 46 (46 * 0.30 = 13.8 -> 14)
-  lightningBoltDamage: 14,      // antes: 48 (48 * 0.30 = 14.4 -> 14)
-  spiralOrbDamage: 8,           // antes: 26 (26 * 0.30 = 7.8 -> 8)
-  darkFiveDashesDamage: 11,     // antes: 38 (38 * 0.30 = 11.4 -> 11)
-  darkCloneOrbDamage: 8         // antes: 25 (25 * 0.30 = 7.5 -> 8)
+  /** Fração do dano que atravessa a armadura dele. */
+  damageTaken: 0.85,
+  baseContactDamage: 13,
+  cloneContactDamage: 10,
+  // Chuva de projéteis: pouco dano por orbe porque são muitos na tela
+  directedBurstOrbDamage: 9,
+  teleportOrbDamage: 8,
+  spiralOrbDamage: 8,
+  darkCloneOrbDamage: 8,
+  // Golpes telegrafados: doem mais porque dá para desviar
+  rapidDashDamage: 18,
+  lightningBoltDamage: 18,
+  darkFiveDashesDamage: 12,
+  /** Fase da escuridão: tempo de mira de cada investida (ms). */
+  darkDashAimMs: 420,
+  /** Fase dos cristais: quantos cristais, e de quanto em quanto tempo nasce uma leva. */
+  crystalCount: 3,
+  dimensionWaveIntervalMs: 1100,
+  /** Cálice de cura entregue ao entrar na fase dos cristais e ao voltar para o duelo final. */
+  healOnPhaseChange: true,
+  soulReward: { min: 90, max: 120 },
 } as const;
 
+// ============================================================================
+// 6. REDE DE SEGURANÇA DAS LUTAS DE CHEFE (para qualquer build conseguir passar)
+// ============================================================================
+/**
+ * Exaustão: se a luta se arrasta (build com pouco dano), o chefe cansa e passa a
+ * receber dano extra, em degraus. Build forte nunca chega a ver isso.
+ */
+export interface BossFatigueConfig {
+  startsAfterMs: number;
+  stepMs: number;
+  bonusPerStep: number;
+  maxBonus: number;
+}
+
+export const BOSS_FATIGUE: Record<'rosalin' | 'azazel', BossFatigueConfig> = {
+  rosalin: { startsAfterMs: 100000, stepMs: 15000, bonusPerStep: 0.15, maxBonus: 1.5 },
+  azazel: { startsAfterMs: 180000, stepMs: 15000, bonusPerStep: 0.15, maxBonus: 1.5 },
+};
+
+/** Multiplicador de dano recebido pelo chefe depois de `elapsedMs` de combate. */
+export function getBossFatigueMultiplier(elapsedMs: number, cfg: BossFatigueConfig): number {
+  if (elapsedMs < cfg.startsAfterMs) return 1;
+  const steps = 1 + Math.floor((elapsedMs - cfg.startsAfterMs) / cfg.stepMs);
+  return 1 + Math.min(cfg.maxBonus, steps * cfg.bonusPerStep);
+}
+
+/**
+ * Revanche: cada morte para o mesmo chefe no Modo História deixa a próxima
+ * tentativa um pouco mais leve (menos vida e menos dano), até um teto.
+ */
+export const BOSS_MERCY = {
+  hpReductionPerDeath: 0.07,
+  damageReductionPerDeath: 0.05,
+  maxStacks: 4,
+} as const;
+
+export function getBossMercy(deathsToBoss: number): { hpMultiplier: number; damageMultiplier: number; stacks: number } {
+  const stacks = Math.max(0, Math.min(BOSS_MERCY.maxStacks, Math.floor(deathsToBoss)));
+  return {
+    hpMultiplier: 1 - stacks * BOSS_MERCY.hpReductionPerDeath,
+    damageMultiplier: 1 - stacks * BOSS_MERCY.damageReductionPerDeath,
+    stacks,
+  };
+}
+
+// ============================================================================
+// 7. FIM DE JOGO: PACTO DEMONÍACO (ressurreição única por partida)
+// ============================================================================
+export const REVIVAL_BALANCE = {
+  hpFraction: 0.5,
+  invulnerableMs: 3500,
+  shockwaveRadius: 260,
+  shockwaveDamage: 40,
+  shockwaveKnockback: 350,
+} as const;
 

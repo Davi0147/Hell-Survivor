@@ -89,8 +89,8 @@ export class AzazelCrystal extends Phaser.GameObjects.Container {
 
     if (this.progress >= 100) {
       this.isCompleted = true;
-      this.explodeAndDestroy();
-      this.emit('crystal-completed', this);
+      // Avisa ANTES de destruir: destroy() remove todos os ouvintes do objeto
+      this.explodeAndDestroy(() => this.emit('crystal-completed', this));
     }
   }
 
@@ -153,12 +153,13 @@ export class AzazelCrystal extends Phaser.GameObjects.Container {
     });
   }
 
-  public explodeAndDestroy(): void {
+  public explodeAndDestroy(beforeDestroy?: () => void): void {
     if (this.isDestroyed) return;
     this.isDestroyed = true;
 
     const currentScene = this.scene;
     if (!currentScene || !currentScene.cameras || !currentScene.cameras.main) {
+      beforeDestroy?.();
       this.destroy();
       return;
     }
@@ -200,6 +201,7 @@ export class AzazelCrystal extends Phaser.GameObjects.Container {
       });
     }
 
+    beforeDestroy?.();
     this.destroy();
   }
 }

@@ -73,17 +73,26 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Nenhum ataque especial de grande impacto (investidas rápidas, quedas de meteoro, raios caindo do céu) causa dano imediato sem aviso visual.
    - Todo ataque perigoso projeta previamente guias visuais no chão (`Phaser.GameObjects.Graphics`) com linha direcional ou área circular preenchida progressivamente durante um intervalo de tempo justo para reação do jogador antes do dano ser ativado.
 3. **Estrutura de Fases do Azazel (Verificado no Código):**
-   Conforme implementado em `src/entities/enemies/AzazelBoss.ts` e `src/scenes/GameScene.ts`, a luta contra Azazel possui **4 Fases de Combate (`AzazelCombatPhase = 1 | 2 | 3 | 4`)**:
+   Conforme implementado em `src/entities/enemies/AzazelBoss.ts` e `src/systems/BossFightSystem.ts`, a luta contra Azazel possui **4 Fases de Combate (`AzazelCombatPhase = 1 | 2 | 3 | 4`)**:
    - **Fase 1 (100% → 50% HP):** Arena delimitada, investidas telegrafadas, tempestade de raios e barragem espiral (`AzazelBoss.ts`).
    - **Fase 2 (50% → 20% HP — *"AQUI É O MEU MUNDO"*):** Domínio da Escuridão Total (HUD oculta, música amplificada via `boostCurrentMusicVolume`), alternando em ciclo: (1) 5 investidas rápidas sequenciais do próprio Azazel com telegrafia relâmpago (`startDarkFiveDashes` / `spawnNextDarkPhantomDash`) e (2) um anel de 8 atiradores orbitando o jogador por 10s (`startDarkEightClones`: Azazel original no índice 0 + 7 clones espectrais `AzazelPhantomClone` com HP compartilhado, disparando salvas periódicas via `spawnAzazelOrb`); gatilho em `takeDamage` ao atingir o limiar de 50% de HP.
-   - **Fase 3 (Trava aos 20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (`map 202`, `floor-tile-2` / `chao2`), disparado pelo evento `'azazel-phase3-dimension-start'`, onde Azazel fica oculto/invulnerável enquanto o jogador purifica os 3 Cristais em meio a uma horda intensa (`GameScene.ts`; gatilho ao atingir 20% de HP).
-   - **Fase 4 (20% → 0% HP — Showdown Final):** Azazel reaparece com velocidade ampliada (+20%) para o confronto decisivo até 0% de HP (`GameScene.ts` e `AzazelBoss.ts`).
+   - **Fase 3 (Trava aos 20% HP — *"SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ"*):** Banimento para a Dimensão Abissal (`map 202`, `floor-tile-2` / `chao2`), disparado pelo evento `'azazel-phase3-dimension-start'`, onde Azazel fica oculto/invulnerável enquanto o jogador purifica os 3 Cristais em meio a uma horda intensa (`BossFightSystem.ts`; gatilho ao atingir 20% de HP).
+   - **Fase 4 (20% → 0% HP — Showdown Final):** Azazel reaparece com velocidade ampliada (+20%) para o confronto decisivo até 0% de HP (`BossFightSystem.ts` e `AzazelBoss.ts`).
 4. **Limpeza Gráfica e Restauração:**
    - Na derrota do chefe, todos os gráficos de telegrafia, clones e overlays de escuridão devem ser destruídos imediatamente.
    - O zoom da câmera deve ser restaurado suavemente para o padrão de exploração via tween.
 
 ---
 
+## 4.1. Rede de Segurança das Lutas de Chefe (`src/config/balance.ts`)
+
+1. **Teto de dano por golpe:** nenhum golpe da Rosalin no Modo História tira mais de 45% da vida base da heroína, e o golpe mais forte é sempre o mais telegrafado. No Azazel, nenhum golpe passa de 25% (são muitos na tela). Travado por `src/__tests__/bossBalance.test.ts`.
+2. **Exaustão (`BOSS_FATIGUE`, `getBossFatigueMultiplier`):** depois de `startsAfterMs` de combate, o chefe recebe `bonusPerStep` de dano extra a cada `stepMs`, até `maxBonus`. O relógio é do `BossFightSystem` e zera a cada luta; o multiplicador é aplicado em `damageTakenMultiplier` do chefe.
+3. **Revanche (`BOSS_MERCY`, `getBossMercy`):** só no Modo História. Cada morte registrada em `MetaProgressManager.getDeathsToBoss` reduz vida e dano do chefe na próxima tentativa, até `maxStacks`. Infinito e Modo de Teste sempre enfrentam a luta cheia.
+4. **Cálices do Azazel (`healOnPhaseChange`):** um Cálice de Cura ao entrar na fase dos cristais e outro ao voltar para o duelo final.
+5. **Pacto Demoníaco (`REVIVAL_BALANCE`):** uma ressurreição por partida, tratada pelo `RunEndSystem`.
+
+---
 ## 5. Contrato de Altares, Cristais e Geração no Mapa (`src/entities/items/`)
 
 1. **Altar de Invocação do Chefe (`BossSummonAltar`):**
@@ -94,9 +103,9 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Quando colocado na lista `props` de um mapa customizado/editor (`altar-1`), o carregador `loadCustomMapLayout` instancia uma imagem estática decorativa (`setDepth(-12)`), sem lógica de captura.
    - Durante a captura do altar interativo, o jogador deve permanecer dentro do raio de captura (`captureRadius` em `EvolutionAltar.ts`) até completar a barra circular rúnica, emitindo `'altar-completed'`.
 3. **Cristais de Azazel (`AzazelCrystal`):**
-   - **Comportamento Real do Código:** Os 3 cristais são gerados dinamicamente em tempo de execução pela `GameScene` dentro de `startAzazelPhase3Dimension()` em ângulos e distâncias aleatórias ao redor do jogador na Fase 3 da luta.
+   - **Comportamento Real do Código:** Os 3 cristais são gerados dinamicamente em tempo de execução pelo `BossFightSystem` dentro de `startAzazelCrystalPhase()` em ângulos e distâncias aleatórias ao redor do jogador na Fase 3 da luta.
    - **Campo Morto Deprecated:** O campo `azazelCrystals` em `ChapterMapConfig` / `DEFAULT_AZAZEL_DIM_MAP` está marcado como `@deprecated` (não é lido por `loadCustomMapLayout` e será removido no Pacote 2).
-   - A captura exige permanência no raio do cristal (`captureRadius` em `AzazelCrystal.ts`) durante o tempo estabelecido. Ao completar, valida a câmera antes da explosão e emite `'crystal-completed'`.
+   - A captura exige permanência no raio do cristal (`captureRadius` em `AzazelCrystal.ts`) durante o tempo estabelecido. Ao completar, valida a câmera, solta a explosão e emite `'crystal-completed'` **antes** de `destroy()` (que remove os ouvintes).
 
 ---
 

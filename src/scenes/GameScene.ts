@@ -14,14 +14,14 @@ import { CorruptedSoulItem } from '../entities/items/CorruptedSoulItem';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
-import { BossSummonAltar } from '../entities/items/BossSummonAltar';
-import { AzazelCrystal } from '../entities/items/AzazelCrystal';
+import type { BossSummonAltar } from '../entities/items/BossSummonAltar';
+import type { AzazelCrystal } from '../entities/items/AzazelCrystal';
 import { UltimateSystem } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig, getBossDefeatOutcome, AZAZEL_BOSS_BALANCE, ENEMY_BALANCE, SUCCUBUS_BOSS_BALANCE } from '../config/balance';
+import { PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig } from '../config/balance';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
@@ -30,13 +30,15 @@ import { MapStorageManager, ChapterMapConfig } from '../config/mapData';
 import { SandboxController, ISandboxContext, HordeEnemyType } from '../systems/SandboxController';
 import { CombatBubbleSystem, ICombatBubbleContext, ICombatBubbleTarget } from '../systems/CombatBubbleSystem';
 import { ArenaScenerySystem, ISceneryContext } from '../systems/ArenaScenerySystem';
-import { CHAPTER_OPENING_DIALOGUE, ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, getStoryRevivalDialogue, getBossRematchDialogue } from '../config/dialogues';
+import { CHAPTER_OPENING_DIALOGUE, getStoryRevivalDialogue } from '../config/dialogues';
 import { EnemySpawnSystem, IEnemySpawnContext } from '../systems/EnemySpawnSystem';
 import { PickupSpawnSystem, IPickupSpawnContext } from '../systems/PickupSpawnSystem';
 import { PlayerInputSystem } from '../systems/PlayerInputSystem';
+import { BossFightSystem, IBossFightContext, BossId } from '../systems/BossFightSystem';
+import { RunEndSystem, IRunEndContext } from '../systems/RunEndSystem';
 import { FONTS } from '../config/theme';
 
-export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext {
+export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
 
@@ -52,6 +54,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   // Sistema de Spawn de Inimigos, Elites e Minichefes
   public enemySpawner!: EnemySpawnSystem;
   public pickupSpawner!: PickupSpawnSystem;
+
+  // Lutas de chefe (altar, fases, recompensas) e fim de jogo (morte e Pacto Demoníaco)
+  public bossFights!: BossFightSystem;
+  private runEnd!: RunEndSystem;
 
   // Modo de Jogo e Campanha
   public gameMode: 'story' | 'endless' | 'sandbox' = 'story';
@@ -101,19 +107,31 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public isBossFightActive: boolean = false;
   public bossInstance?: SuccubusBoss;
   public azazelBoss?: AzazelBoss;
-  public azazelCrystals: AzazelCrystal[] = [];
-  public azazelCrystalsCaptured: number = 0;
   public isPlayerMovementLocked: boolean = false;
-  public isAzazelPhase3HordeActive: boolean = false;
   public survivalTimeMs: number = 0;
   public isChapterCompleted: boolean = false;
   public isGameOver: boolean = false;
   public miniBoss3mSpawned: boolean = false;
   public boss10mSpawned: boolean = false;
   public isRevival: boolean = false;
-  public hasRevivalUsed: boolean = false;
   public isUpgradeSceneOpening: boolean = false;
-  private bossMinionTimer: number = 0;
+
+  // Estado das lutas de chefe exposto para HUD, radar e Modo de Teste (mora no BossFightSystem)
+  public get azazelCrystals(): AzazelCrystal[] {
+    return this.bossFights?.crystals ?? [];
+  }
+  public get azazelCrystalsCaptured(): number {
+    return this.bossFights?.crystalsCaptured ?? 0;
+  }
+  public get isAzazelPhase3HordeActive(): boolean {
+    return this.bossFights?.isPhase3HordeActive ?? false;
+  }
+  public set isAzazelPhase3HordeActive(active: boolean) {
+    if (this.bossFights) this.bossFights.isPhase3HordeActive = active;
+  }
+  public get hasRevivalUsed(): boolean {
+    return this.runEnd?.hasRevivalUsed ?? false;
+  }
 
   // Sistema de Combate e Armas
   public weapons: BaseWeapon[] = [];
@@ -170,7 +188,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.gameMode = data?.mode ?? 'story';
     this.currentChapter = data?.chapter ?? 1;
     this.isRevival = data?.isRevival ?? false;
-    this.hasRevivalUsed = false;
     MetaProgressManager.getInstance().finalizeRunSouls();
     this.sandboxController = new SandboxController(this);
 
@@ -185,15 +202,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.survivalTimeMs = 0;
     this.bossInstance = undefined;
     this.azazelBoss = undefined;
-    this.azazelCrystals = [];
-    this.azazelCrystalsCaptured = 0;
     this.isPlayerMovementLocked = false;
-    this.isAzazelPhase3HordeActive = false;
     this.altarInstance = null;
     this.bossSummonAltar = null;
     this.isHordeSpawningPaused = false;
     this.spawnTimer = 0;
-    this.bossMinionTimer = 0;
     this.playerInvulnerableTimer = 0;
     this.poisonPuddles = [];
     this.weapons = [];
@@ -240,6 +253,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     }
     // Recriado a cada partida para zerar o relógio do Altar de Ascensão
     this.pickupSpawner = new PickupSpawnSystem(this, this);
+    this.bossFights = new BossFightSystem(this, this);
+    this.runEnd = new RunEndSystem(this, this);
 
     // 1. Chão infinito repetido (TileSprite duplicando a textura do piso ativo em proporção adequada)
     const floorScale = 0.10;
@@ -472,6 +487,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
       this.sandboxController?.destroy();
+      this.bossFights?.destroy();
       this.combatBubbleSystem?.destroy();
       this.combatBubbleSystem = undefined!;
       this.arenaScenerySystem?.destroy();
@@ -603,20 +619,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       return;
     }
 
-    // Verificar se Nixy foi derrotada
-    if (this.player.currentHp <= 0) {
-      if (this.sandboxGodMode) {
-        this.player.currentHp = this.player.maxHp;
-      } else {
-        const hasExtraRevival = MetaProgressManager.getInstance().getModifiers().hasExtraRevival;
-        if (hasExtraRevival && !this.hasRevivalUsed) {
-          this.triggerDemonRevival();
-        } else {
-          this.handlePlayerDeath();
-          return;
-        }
-      }
-    }
+    // Vida zerada: Pacto Demoníaco, ou fim de partida
+    if (this.runEnd.checkPlayerDeath()) return;
 
     if (this.sandboxInfiniteUlt) {
       this.player.ultimateCharge = this.player.maxUltimateCharge;
@@ -662,19 +666,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 5. Gemas, almas, itens de mapa e Altar de Ascensão (culling, coleta e surgimento)
     this.pickupSpawner.update(delta);
 
-    // 5.4. Atualizar Altar de Invocação do Chefe
-    if (this.bossSummonAltar && this.bossSummonAltar.active) {
-      this.bossSummonAltar.updateAltar(this.player, delta);
-    }
-
-    // 5.4.1. Atualizar Cristais de Azazel (Fase 3 - 5 segundos na zona de captura)
-    if (this.azazelCrystals.length > 0) {
-      for (const crystal of this.azazelCrystals) {
-        if (crystal && crystal.active && !crystal.isCompleted) {
-          crystal.updateCrystal(this.player, delta);
-        }
-      }
-    }
+    // 5.4. Lutas de chefe: altar, cristais, reforços e exaustão
+    this.bossFights.update(delta);
 
     // 5.5. Atualizar Poças de Veneno da Múmia no Chão (desacoplado do ciclo de vida dos inimigos)
     for (let i = this.poisonPuddles.length - 1; i >= 0; i--) {
@@ -753,31 +746,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
           if (uiScene) {
             uiScene.showWaveAlert('ALERTA CRÍTICO: SUCCUBUS DESPERTA!', 5000);
           }
-          this.spawnSuccubusBossEndless();
+          this.bossFights.spawnEndlessTimedBoss();
         }
-      }
-    } else if (this.isAzazelPhase3HordeActive) {
-      // Na Fase 3 de Azazel (Dimensão chao2 com 3 Cristais), monstros são spawnados em grandes quantidades!
-      this.spawnTimer += delta;
-      if (this.spawnTimer >= 920) {
-        this.spawnTimer = 0;
-        this.spawnAzazelDimensionHordeWave();
-      }
-    } else if (this.bossInstance && this.bossInstance.active && !this.bossInstance.isDead) {
-      // Durante o confronto contra a Boss, ela invoca reforços periodicamente para auxiliá-la
-      this.bossMinionTimer += delta;
-      if (this.bossMinionTimer >= 8500) {
-        this.bossMinionTimer = 0;
-        this.showCombatSpeechBubble(this.bossInstance, 'Lacaios, devorem essa vadia!', 2000, false);
-        SoundManager.getInstance().playEnemyDeath();
-
-        // Invoca 2 Cães Zumbis e 3 Morcegos de Sangue nos arredores do confronto
-        for (let i = 0; i < 2; i++) {
-          const a = Phaser.Math.FloatBetween(0, Math.PI * 2);
-          const p = this.clampToArena(this.bossInstance.x + Math.cos(a) * 150, this.bossInstance.y + Math.sin(a) * 150);
-          this.spawnZombieDogAt(p.x, p.y, ENEMY_BALANCE.zombieDogMapGuard.hp, ENEMY_BALANCE.zombieDogMapGuard.speed, ENEMY_BALANCE.zombieDogMapGuard.damage);
-        }
-        this.spawnBloodBatFlock(3);
       }
     }
 
@@ -826,7 +796,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.enemySpawner.spawnMummyAt(x, y, hp, speed, damage);
   }
 
-  private spawnAzazelDimensionHordeWave(): void {
+  public spawnAzazelDimensionHordeWave(): void {
     this.enemySpawner.spawnAzazelDimensionHordeWave();
   }
 
@@ -836,41 +806,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public spawnSoulItem(x: number, y: number, value: number = 1): void {
     this.pickupSpawner.spawnSoulItem(x, y, value);
-  }
-
-  private triggerDemonRevival(): void {
-    this.hasRevivalUsed = true;
-    this.player.currentHp = Math.max(1, Math.round(this.player.maxHp * 0.5));
-    this.playerInvulnerableTimer = 3500;
-    this.playRespawnStarEffect();
-
-    SoundManager.getInstance().playLevelUp();
-    this.cameras.main.flash(350, 192, 132, 252);
-    this.cameras.main.shake(350, 0.02);
-
-    // Efeito de onda de choque mística que repele monstros próximos
-    if (this.enemiesGroup) {
-      const enemies = this.enemiesGroup.getChildren() as BaseEnemy[];
-      for (const enemy of enemies) {
-        if (enemy.active && !enemy.isDead) {
-          const dx = enemy.x - this.player.x;
-          const dy = enemy.y - this.player.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < 260) {
-            enemy.takeDamage(40);
-            const body = enemy.body as Phaser.Physics.Arcade.Body;
-            if (body && dist > 0) {
-              body.setVelocity((dx / dist) * 350, (dy / dist) * 350);
-            }
-          }
-        }
-      }
-    }
-
-    const uiScene = this.scene.get('UIScene') as UIScene;
-    if (uiScene) {
-      uiScene.showWaveAlert('PACTO DEMONÍACO ATIVADO!\nNIXY RESSUSCITOU COM 50% DE VIDA!', 3000);
-    }
   }
 
   public spawnMapItem(x: number, y: number, type?: MapItemType): MapItem {
@@ -894,7 +829,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
    * Concede 1.5s de imunidade de segurança e afasta monstros ao sair da tela do Baú
    */
   public grantChestSafetyGrace(): void {
-    this.playerInvulnerableTimer = Math.max(this.playerInvulnerableTimer, 1500);
+    this.grantInvulnerability(1500);
 
     // Empurrão místico suave em inimigos muito próximos para não punir a heroína
     if (this.enemiesGroup) {
@@ -923,153 +858,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public spawnMatriarchSuccubus(): void {
     this.enemySpawner.spawnMatriarchSuccubus();
-  }
-
-  /**
-   * Spawna a Succubus Imperial como Chefe Suprema do Modo Infinito (10:00)
-   */
-  private spawnSuccubusBossEndless(): void {
-    this.isBossFightActive = true;
-    SoundManager.getInstance().playBossMusic(2200);
-    const bossX = this.player.x + 240;
-    const bossY = this.player.y - 140;
-
-    this.bossInstance = new SuccubusBoss(this, bossX, bossY);
-    this.bossInstance.setDepth(25);
-    this.enemiesGroup.add(this.bossInstance);
-
-    const endlessBoss = SUCCUBUS_BOSS_BALANCE.endless;
-    this.bossInstance.spawn(bossX, bossY, endlessBoss.hp, endlessBoss.speed, endlessBoss.damage, endlessBoss.scale);
-
-    this.cameras.main.flash(300, 255, 0, 85);
-    this.cameras.main.shake(400, 0.025);
-
-    this.bossInstance.on('boss-defeated', () => {
-      this.isBossFightActive = false;
-      this.bossInstance = undefined;
-      this.killCount += 5;
-      this.player.gainUltimateCharge(100);
-
-      // Recompensa suprema: 3 Gemas Roxas, 60-80 Almas, Baú de Upgrade e celebração de sobrevivência
-      this.spawnGemAt(bossX - 30, bossY, 'purple');
-      this.spawnGemAt(bossX, bossY, 'purple');
-      this.spawnGemAt(bossX + 30, bossY, 'purple');
-      this.spawnSoulItem(bossX, bossY, Phaser.Math.Between(60, 80));
-      this.spawnMapItem(bossX, bossY - 40, 'chest');
-
-      this.cameras.main.flash(400, 255, 215, 0);
-      this.cameras.main.shake(400, 0.025);
-
-      const uiScene = this.scene.get('UIScene') as UIScene;
-      if (uiScene) {
-        uiScene.showWaveAlert('CHEFE SUPREMA DERROTADA! A SOBREVIVÊNCIA CONTINUA...', 5000);
-      }
-    });
-  }
-
-  /**
-   * Trata a derrota de Nixy exibindo a tela de Game Over e computando recordes
-   */
-  private handlePlayerDeath(): void {
-    if (this.isGameOver) return;
-    this.isGameOver = true;
-    this.isPlayerMovementLocked = false;
-    this.isAzazelPhase3HordeActive = false;
-    SoundManager.getInstance().stopMusic(1200);
-    SoundManager.getInstance().playGameOver();
-
-    const uiSceneEarly = this.scene.get('UIScene') as UIScene;
-    if (uiSceneEarly) {
-      uiSceneEarly.setHUDVisible(true);
-    }
-
-    // Finaliza economia de almas e recordes
-    const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
-    MetaProgressManager.getInstance().recordRun(
-      Math.floor(this.survivalTimeMs / 1000),
-      this.killCount,
-      false,
-      this.gameMode
-    );
-    if (this.gameMode === 'story') {
-      const bossId = this.isBossFightActive
-        ? (this.currentChapter === 2 || this.azazelBoss?.active ? 'azazel' : 'rosalin')
-        : undefined;
-      MetaProgressManager.getInstance().recordStoryDeath(bossId);
-    }
-
-    this.physics.pause();
-    this.clearCombatSpeechBubbles();
-    if (this.player?.body) {
-      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-    }
-
-    // Efeito dramático de morte
-    this.cameras.main.shake(400, 0.02);
-    this.cameras.main.flash(200, 255, 0, 0);
-    this.player.setTint(0xff0000);
-
-    // Registro da run no Agente de Testes Autônomo (Bot IA)
-    if (AutoPlayTestAgent.getInstance().isEnabled) {
-      AutoPlayTestAgent.getInstance().recordRun({
-        runId: 0,
-        timestamp: new Date().toLocaleTimeString(),
-        gameMode: this.gameMode,
-        survivalTimeSec: Math.floor(this.survivalTimeMs / 1000),
-        levelReached: this.player.currentLevel,
-        kills: this.killCount,
-        hpRemaining: 0,
-        equippedWeapons: this.weapons.map((w) => (w as { name?: string }).name || 'Arma'),
-        deathCause: 'Dano fatal de monstros'
-      });
-    }
-
-    this.time.delayedCall(700, () => {
-      const uiScene = this.scene.get('UIScene') as UIScene;
-      if (uiScene) {
-        uiScene.setHUDVisible(true);
-        uiScene.showGameOverModal(
-          {
-            kills: this.killCount,
-            level: this.player.currentLevel,
-            timeSec: Math.floor(this.survivalTimeMs / 1000),
-            mode: this.gameMode,
-            soulsEarned
-          },
-          () => {
-            // Reiniciar o modo e capítulo atuais com mecânica de ressurreição (Hades)
-            SoundManager.getInstance().stopMusic();
-            if (this.physics?.world) {
-              this.physics.resume();
-            }
-            this.scene.stop('UIScene');
-            this.scene.start('GameScene', { mode: this.gameMode, isRevival: true, chapter: this.currentChapter });
-          },
-          () => {
-            // Retornar ao Menu Principal
-            SoundManager.getInstance().stopMusic();
-            if (this.physics?.world) {
-              this.physics.resume();
-            }
-            this.scene.stop('UIScene');
-            this.scene.stop('GameScene');
-            this.scene.start('MenuScene');
-          }
-        );
-
-        if (AutoPlayTestAgent.getInstance().isEnabled) {
-          // Se o Bot IA estiver jogando sozinho para testes contínuos, reinicia após 1.5s
-          this.time.delayedCall(1500, () => {
-            SoundManager.getInstance().stopMusic();
-            if (this.physics?.world) {
-              this.physics.resume();
-            }
-            this.scene.stop('UIScene');
-            this.scene.start('GameScene', { mode: this.gameMode, isRevival: true, chapter: this.currentChapter });
-          });
-        }
-      }
-    });
   }
 
   /**
@@ -1160,7 +948,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     if (!this.isBossFightActive) {
       const portalX = map.bossPortal?.x ?? 1450;
       const portalY = map.bossPortal?.y ?? -1200;
-      this.spawnBossSummonAltar(portalX, portalY);
+      this.bossFights.spawnSummonAltar(portalX, portalY);
     } else if (this.bossSummonAltar) {
       this.bossSummonAltar.setVisible(false);
     }
@@ -1304,618 +1092,45 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     });
   }
 
-  /**
-   * Instancia o Altar de Invocação do Chefe no mapa (inicialmente inativo)
-   */
-  private spawnBossSummonAltar(altarX: number = 1450, altarY: number = -1200): void {
-    if (this.bossSummonAltar) {
-      this.bossSummonAltar.destroy();
-      this.bossSummonAltar = null;
-    }
-    this.bossSummonAltar = new BossSummonAltar(this, altarX, altarY);
-    this.bossSummonAltar.on('boss-summon-triggered', () => {
-      this.handleBossSummonTriggered();
-    });
-  }
+  // ===========================================================================
+  // Fachadas das lutas de chefe e do fim de jogo (lógica no BossFightSystem / RunEndSystem)
+  // ===========================================================================
 
-  /**
-   * Desperta o Altar de Invocação e interrompe o nascimento de novas hordas normais
-   */
   public activateBossSummonAltar(): void {
-    if (!this.bossSummonAltar || this.bossSummonAltar.isActive) return;
-    this.bossSummonAltar.activate();
-    this.isHordeSpawningPaused = true;
-
-    const bossLabel = this.currentChapter === 2 ? 'AZAZEL' : 'ROSALIN';
-    const uiScene = this.scene.get('UIScene') as UIScene;
-    if (uiScene) {
-      uiScene.showCenterAnnouncement('O ALTAR DE INVOCAÇÃO FOI INVOCADO!', `SIGA O MARCADOR PARA O CONFRONTO CONTRA ${bossLabel}`);
-    }
-    DebugSessionLogger.getInstance().log('ALTAR', 'INFO', `Altar de Invocação ativado (${bossLabel})! Hordas pausadas.`);
+    this.bossFights.activateSummonAltar();
   }
 
-  /**
-   * Acionado quando Nixy chega ao Altar de Invocação Ativo
-   */
-  private handleBossSummonTriggered(): void {
-    if (this.isBossFightActive) return;
-
-    if (this.currentChapter === 2) {
-      this.triggerAzazelEncounterFromAltar();
-      return;
-    }
-
-    this.isBossFightActive = true;
-    SoundManager.getInstance().playBossMusic(2200);
-
-    // 1. Dissipa todos os inimigos normais da arena
-    const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
-    for (const m of mobs) {
-      if (m.active && !(m instanceof SuccubusBoss)) {
-        m.takeDamage(999);
-      }
-    }
-
-    // 2. Limpa quaisquer balões de combate antigos antes do diálogo
-    this.clearCombatSpeechBubbles();
-
-    // 3. Posiciona Nixy em frente ao Altar olhando para cima
-    if (this.bossSummonAltar) {
-      const pBody = this.player.body as Phaser.Physics.Arcade.Body;
-      if (pBody) {
-        pBody.setVelocity(0, 0);
-      }
-      this.player.currentDirection = 'north';
-      this.player.play('nixy-idle-north');
-    }
-
-    this.cameras.main.flash(350, 255, 60, 60);
-    this.cameras.main.shake(250, 0.02);
-
-    // 4. Spawna Rosalin materializando sobre o pentagrama do altar em modo INTRO (invulnerável e estática)
-    this.spawnSuccubusBoss(false, true);
-
-    // 5. Inicia diálogo pré-boss (a Rosalin já está sobre o altar, sem levar dano!)
-    this.time.delayedCall(300, () => {
-      this.triggerBossDialogueOnly();
-    });
-  }
-
-  /**
-   * Inicia o confronto épico contra a Boss Rosalin
-   */
   public triggerBossEncounter(): void {
-    if (this.bossSummonAltar && !this.bossSummonAltar.isActive) {
-      this.activateBossSummonAltar();
-      return;
-    }
-    this.handleBossSummonTriggered();
-  }
-
-  private triggerBossDialogueOnly(): void {
-    const deathsToRosalin = this.gameMode === 'story'
-      ? MetaProgressManager.getInstance().getDeathsToBoss('rosalin')
-      : 0;
-
-    const lines: DialogueLine[] = deathsToRosalin > 0
-      ? getBossRematchDialogue('rosalin', deathsToRosalin)
-      : ROSALIN_INTRO_DIALOGUE;
-
-    this.playDialogue(lines, () => {
-      this.clearCombatSpeechBubbles();
-      if (!this.bossInstance || !this.bossInstance.active) {
-        this.spawnSuccubusBoss(true, false);
-      } else {
-        // Ativa Rosalin para o combate: ela agora se move, pode levar dano e ataca!
-        this.bossInstance.startCombat();
-        this.startBossCombatBanter();
-      }
-    });
+    this.bossFights.triggerEncounter();
   }
 
   public spawnSuccubusBoss(startBanterImmediate: boolean = true, isCinematicIntro: boolean = false): void {
-    let bossX = this.player.x + 220;
-    let bossY = this.player.y - 140;
-
-    const activeMap = MapStorageManager.getActiveMap(this.currentChapter);
-    if (this.bossSummonAltar && this.bossSummonAltar.isActive) {
-      bossX = this.bossSummonAltar.x;
-      bossY = this.bossSummonAltar.y - 15;
-    } else if (activeMap?.bossSpawn) {
-      bossX = activeMap.bossSpawn.x;
-      bossY = activeMap.bossSpawn.y;
-    }
-
-    this.bossInstance = new SuccubusBoss(this, bossX, bossY);
-    this.bossInstance.setDepth(22);
-    this.enemiesGroup.add(this.bossInstance);
-    const storyBoss = SUCCUBUS_BOSS_BALANCE.story;
-    this.bossInstance.spawn(bossX, bossY, storyBoss.hp, storyBoss.speed, storyBoss.damage, storyBoss.scale, isCinematicIntro);
-
-    this.cameras.main.flash(260, 255, 0, 85);
-    this.cameras.main.shake(300, 0.022);
-
-    // Inicia os balões dinâmicos de fala em tempo real durante a batalha apenas se solicitado
-    if (startBanterImmediate) {
-      this.startBossCombatBanter();
-    }
-
-    this.bossInstance.on('boss-defeated', () => {
-      if (this.bossSummonAltar) {
-        this.bossSummonAltar.complete();
-      }
-      this.handleBossDefeated();
-    });
+    this.bossFights.spawnRosalin(startBanterImmediate, isCinematicIntro);
   }
 
-  // ===========================================================================
-  // CAPÍTULO 2: BOSS FIGHT ÉPICA DE AZAZEL (3 FASES + MÚSICA SINCRONIZADA)
-  // ===========================================================================
-
-  /**
-   * Inicia o encontro cinematográfico contra Azazel no Altar:
-   * 1. Toca intro.mp3 baixo em loop durante o diálogo.
-   * 2. Ao fechar o diálogo, Nixy continua parada de frente para Azazel enquanto intro.mp3 termina seu último loop.
-   * 3. Entra mid.mp3 (~2s): Azazel levanta a mão e grita acima da cabeça "SUA ALMA É MINHA!".
-   * 4. Entra fight.mp3 em loop e começa a batalha!
-   */
   public triggerAzazelEncounterFromAltar(): void {
-    this.isBossFightActive = true;
-    this.isPlayerMovementLocked = true;
-
-    // 1. Inicia a música intro.mp3 tocando baixo em loop durante o diálogo
-    SoundManager.getInstance().playAzazelIntroMusic();
-
-    // 2. Dissipa todos os inimigos normais da arena
-    const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
-    for (const m of mobs) {
-      if (m.active && !(m instanceof AzazelBoss)) {
-        m.takeDamage(9999);
-      }
-    }
-
-    this.clearCombatSpeechBubbles();
-
-    // 3. Posiciona Nixy parada de frente para Azazel
-    const pBody = this.player.body as Phaser.Physics.Arcade.Body;
-    if (pBody) {
-      pBody.setVelocity(0, 0);
-    }
-    this.player.currentDirection = 'north';
-    this.player.play('nixy-idle-north');
-
-    this.cameras.main.flash(350, 255, 20, 70);
-    this.cameras.main.shake(250, 0.02);
-
-    // 4. Spawna Azazel sobre o altar em modo INTRO (parado e invulnerável)
-    this.spawnAzazelBoss(true);
-
-    // Posiciona Nixy alinhada à frente de Azazel se necessário
-    if (this.azazelBoss) {
-      this.player.setPosition(this.azazelBoss.x, this.azazelBoss.y + 135);
-      this.player.currentDirection = 'north';
-      this.player.play('nixy-idle-north');
-    }
-
-    // 5. Abre o diálogo pré-boss com Azazel
-    this.time.delayedCall(300, () => {
-      this.triggerAzazelDialogueOnly();
-    });
-  }
-
-  private triggerAzazelDialogueOnly(): void {
-    const deathsToAzazel = this.gameMode === 'story'
-      ? MetaProgressManager.getInstance().getDeathsToBoss('azazel')
-      : 0;
-
-    // Diálogo placeholder do Capítulo 2 (pronto para ser substituído pelo roteiro definitivo depois)
-    const lines: DialogueLine[] = deathsToAzazel > 0
-      ? getBossRematchDialogue('azazel', deathsToAzazel)
-      : AZAZEL_INTRO_DIALOGUE;
-
-    this.playDialogue(lines, () => {
-      this.clearCombatSpeechBubbles();
-      // O chat sai, mas o jogador continua parado de frente para o Azazel enquanto a intro termina seu último loop!
-      this.isPlayerMovementLocked = true;
-      if (this.player?.body) {
-        (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-      }
-      this.player.currentDirection = 'north';
-      this.player.play('nixy-idle-north');
-
-      SoundManager.getInstance().finishAzazelIntroAndTransition(
-        // onMidStart: Toca o mid.mp3 (~2s), Azazel levanta a mão e grita em destaque "SUA ALMA É MINHA!"
-        () => {
-          // Diminui o zoom da câmera suavemente para 1.35x para dar visão ampla de todos os raios e investidas
-          this.tweens.add({
-            targets: this.cameras.main,
-            zoom: 1.35,
-            duration: 1200,
-            ease: 'Cubic.easeInOut'
-          });
-
-          if (this.azazelBoss && this.azazelBoss.active) {
-            this.azazelBoss.playMidPrepareScream(this.player);
-          }
-        },
-        // onFightStart: Terminou os 2s do mid, entra fight.mp3 em loop e libera o combate!
-        () => {
-          this.isPlayerMovementLocked = false;
-          if (this.azazelBoss && this.azazelBoss.active) {
-            this.azazelBoss.startCombat();
-          }
-        }
-      );
-    });
+    this.bossFights.startAzazelEncounter();
   }
 
   public spawnAzazelBoss(isCinematicIntro: boolean = false): void {
-    let bossX = this.player.x;
-    let bossY = this.player.y - 160;
-
-    const activeMap = MapStorageManager.getActiveMap(this.currentChapter);
-    if (this.bossSummonAltar && this.bossSummonAltar.isActive) {
-      bossX = this.bossSummonAltar.x;
-      bossY = this.bossSummonAltar.y - 15;
-    } else if (activeMap?.bossSpawn) {
-      bossX = activeMap.bossSpawn.x;
-      bossY = activeMap.bossSpawn.y;
-    }
-
-    const clamped = this.clampToArena(bossX, bossY, 220);
-    bossX = clamped.x;
-    bossY = clamped.y;
-
-    this.azazelBoss = new AzazelBoss(this, bossX, bossY);
-    this.azazelBoss.setDepth(22);
-    this.enemiesGroup.add(this.azazelBoss);
-    this.azazelBoss.spawn(
-      bossX,
-      bossY,
-      AZAZEL_BOSS_BALANCE.maxHp,
-      AZAZEL_BOSS_BALANCE.speed,
-      AZAZEL_BOSS_BALANCE.baseContactDamage,
-      AZAZEL_BOSS_BALANCE.scale,
-      isCinematicIntro
-    );
-
-    if (!isCinematicIntro) {
-      this.tweens.add({
-        targets: this.cameras.main,
-        zoom: 1.35,
-        duration: 900,
-        ease: 'Cubic.easeOut'
-      });
-    }
-
-    // Eventos de controle de câmera, movimento, HUD e fases de Azazel
-    this.azazelBoss.on('azazel-lock-player', (locked: boolean) => {
-      this.isPlayerMovementLocked = locked;
-      if (locked && this.player?.body) {
-        (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-      }
-    });
-
-    this.azazelBoss.on('azazel-center-phrase', (phrase: string, durationMs: number) => {
-      const uiScene = this.scene.get('UIScene') as UIScene;
-      if (uiScene) {
-        uiScene.showCenterBossPhrase(phrase, durationMs);
-      }
-    });
-
-    this.azazelBoss.on('azazel-darkness-active', (isDark: boolean) => {
-      const uiScene = this.scene.get('UIScene') as UIScene;
-      if (uiScene) {
-        uiScene.setHUDVisible(!isDark);
-      }
-      if (isDark) {
-        // Limpa monstros comuns para que no escuro total só se veja Nixy e os ataques de Azazel
-        const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
-        for (const m of mobs) {
-          if (m.active && !(m instanceof AzazelBoss) && !(m instanceof AzazelPhantomClone)) {
-            m.takeDamage(99999);
-          }
-        }
-      }
-    });
-
-    this.azazelBoss.on('azazel-clone-created', (clone: AzazelPhantomClone) => {
-      this.enemiesGroup.add(clone);
-    });
-
-    this.azazelBoss.on('azazel-phase3-dimension-start', () => {
-      this.startAzazelPhase3Dimension();
-    });
-
-    this.azazelBoss.on('boss-defeated', () => {
-      if (this.bossSummonAltar) {
-        this.bossSummonAltar.complete();
-      }
-      this.handleAzazelDefeated();
-    });
-  }
-
-  /**
-   * Fase 3 de Azazel (20% HP):
-   * Teleporta Nixy para o novo mapa com o piso chao2.jpg, restaura a HUD,
-   * spawna monstros em grandes quantidades e faz surgir 3 Cristais de Azazel em posições aleatórias (5s cada).
-   */
-  public startAzazelPhase3Dimension(): void {
-    const uiScene = this.scene.get('UIScene') as UIScene;
-    if (uiScene) {
-      uiScene.setHUDVisible(true);
-    }
-
-    this.cameras.main.flash(420, 220, 0, 70);
-    this.cameras.main.shake(380, 0.022);
-
-    // 1. Carrega o mapa da Dimensão Corrompida de Azazel (chapter 202 -> chao2.jpg)
-    const dimMap = MapStorageManager.getActiveMap(202);
-    this.loadCustomMapLayout(dimMap);
-    this.setArenaFloorTexture('floor-tile-2');
-    this.playRespawnStarEffect();
-
-    // 2. Remove cristais anteriores se houver e gera 3 Cristais em posições aleatórias ao redor
-    this.clearAzazelCrystals();
-    this.azazelCrystalsCaptured = 0;
-
-    const baseAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const crystalCoords: { x: number; y: number }[] = [];
-    for (let i = 0; i < 3; i++) {
-      const angle = baseAngle + (i * (Math.PI * 2 / 3)) + Phaser.Math.FloatBetween(-0.32, 0.32);
-      const dist = Phaser.Math.Between(290, 480);
-      const rawX = this.player.x + Math.cos(angle) * dist;
-      const rawY = this.player.y + Math.sin(angle) * dist;
-      crystalCoords.push(this.clampToArena(rawX, rawY, 200));
-    }
-
-    crystalCoords.forEach((pt) => {
-      const crystal = new AzazelCrystal(this, pt.x, pt.y);
-      crystal.on('crystal-completed', () => {
-        this.handleAzazelCrystalCaptured();
-      });
-      this.azazelCrystals.push(crystal);
-    });
-
-    // 3. Inicia o nascimento intenso de monstros na dimensão de Azazel
-    this.isAzazelPhase3HordeActive = true;
-    this.spawnAzazelDimensionHordeWave();
-    this.spawnAzazelDimensionHordeWave();
-
-    if (uiScene) {
-      uiScene.showWaveAlert('DIMENSÃO DE AZAZEL: PURIFIQUE OS 3 CRISTAIS (5s CADA)!', 4500);
-    }
-  }
-
-  private handleAzazelCrystalCaptured(): void {
-    this.azazelCrystalsCaptured++;
-    const uiScene = this.scene.get('UIScene') as UIScene;
-
-    if (this.azazelCrystalsCaptured < 3) {
-      if (uiScene) {
-        uiScene.showWaveAlert(`CRISTAL PURIFICADO (${this.azazelCrystalsCaptured}/3)!`, 2600);
-      }
-      return;
-    }
-
-    // Todos os 3 Cristais foram purificados!
-    this.isAzazelPhase3HordeActive = false;
-    this.clearAzazelCrystals();
-
-    // A tela treme intensamente e a horda da dimensão é pulverizada
-    this.cameras.main.shake(680, 0.028);
-    this.cameras.main.flash(380, 255, 0, 68);
-
-    const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
-    for (const m of mobs) {
-      if (m.active && !(m instanceof AzazelBoss) && !(m instanceof AzazelPhantomClone)) {
-        m.takeDamage(99999);
-      }
-    }
-
-    if (uiScene) {
-      uiScene.showWaveAlert('OS 3 CRISTAIS CAÍRAM! AZAZEL REAPARECE PARA O CONFRONTO FINAL!', 4000);
-    }
-
-    // Azazel reaparece com os 20% de vida restantes e todos os golpes da Fase 1
-    if (this.azazelBoss && !this.azazelBoss.isDead) {
-      const clamped = this.clampToArena(this.player.x, this.player.y - 220, 240);
-      this.azazelBoss.resumeFinalShowdown(clamped.x, clamped.y, this.player);
-    }
+    this.bossFights.spawnAzazel(isCinematicIntro);
   }
 
   public clearAzazelCrystals(): void {
-    for (const c of this.azazelCrystals) {
-      if (c && !c.isDestroyed && c.active) {
-        c.destroy();
-      }
-    }
-    this.azazelCrystals = [];
+    this.bossFights?.clearCrystals();
   }
 
-  private handleAzazelDefeated(): void {
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Azazel derrotado!');
-    this.isPlayerMovementLocked = false;
-    this.isAzazelPhase3HordeActive = false;
-    this.clearAzazelCrystals();
-
-    // Restaura o zoom padrão da câmera para 2.0x
-    this.tweens.add({
-      targets: this.cameras.main,
-      zoom: 2.0,
-      duration: 1000,
-      ease: 'Cubic.easeInOut'
-    });
-
-    const uiScene = this.scene.get('UIScene') as UIScene;
-    if (uiScene) {
-      uiScene.setHUDVisible(true);
-    }
-
-    if (this.gameMode === 'sandbox') {
-      this.isBossFightActive = false;
-      this.clearCombatSpeechBubbles();
-      const bx = this.azazelBoss ? this.azazelBoss.x : this.player.x;
-      const by = this.azazelBoss ? this.azazelBoss.y : this.player.y;
-      this.azazelBoss = undefined;
-      SoundManager.getInstance().playBattleMusic(1500);
-      this.spawnGemAt(bx - 25, by, 'purple');
-      this.spawnGemAt(bx + 25, by, 'purple');
-      this.spawnSoulItem(bx, by, Phaser.Math.Between(90, 120));
-      this.spawnMapItem(bx, by - 35, 'chest');
-      if (uiScene) {
-        uiScene.showWaveAlert('AZAZEL DERROTADO! (MODO DE TESTE CONTINUA)', 4000);
-      }
-      return;
-    }
-
-    // Recompensa de almas corrompidas do Capítulo 2 (90 a 120 almas)
-    MetaProgressManager.getInstance().collectRunSoul(Phaser.Math.Between(90, 120));
-
-    this.isChapterCompleted = true;
-    this.clearCombatSpeechBubbles();
-    SoundManager.getInstance().stopMusic(1500);
-    this.physics.pause();
-    if (this.player?.body) {
-      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-    }
-
-    // Dissipa inimigos restantes da arena
-    const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
-    for (const m of mobs) {
-      if (m.active && m !== this.azazelBoss) {
-        m.takeDamage(99999);
-      }
-    }
-
-    const runStats = {
-      kills: this.killCount,
-      level: this.player.currentLevel,
-      timeSec: Math.floor(this.survivalTimeMs / 1000)
-    };
-
-    // Transição cinematográfica para a cena de encerramento do Capítulo 2
-    this.time.delayedCall(800, () => {
-      this.cameras.main.fadeOut(700, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        SoundManager.getInstance().stopMusic();
-        this.scene.stop('UIScene');
-        this.scene.start('Chapter1EndScene', { runStats, chapter: 2 });
-      });
-    });
+  public getActiveBossId(): BossId | undefined {
+    return this.bossFights.getActiveBossId();
   }
 
-  private handleBossDefeated(): void {
-    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Succubus derrotada!');
-
-    const outcome = getBossDefeatOutcome(this.gameMode);
-
-    if (outcome === 'continue-run') {
-      this.isBossFightActive = false;
-      this.isHordeSpawningPaused = false;
-      this.clearCombatSpeechBubbles();
-      const bx = this.bossInstance ? this.bossInstance.x : this.player.x;
-      const by = this.bossInstance ? this.bossInstance.y : this.player.y;
-      this.bossInstance = undefined;
-      SoundManager.getInstance().playBattleMusic(1500);
-
-      if (this.gameMode === 'sandbox') {
-        this.spawnGemAt(bx - 25, by, 'purple');
-        this.spawnGemAt(bx + 25, by, 'purple');
-        this.spawnSoulItem(bx, by, Phaser.Math.Between(60, 80));
-        this.spawnMapItem(bx, by - 35, 'chest');
-        const uiScene = this.scene.get('UIScene') as UIScene;
-        if (uiScene) {
-          uiScene.showWaveAlert('SUCCUBUS DERROTADA! (MODO DE TESTE CONTINUA)', 4000);
-        }
-        return;
-      }
-
-      // Modo Infinito ('endless'): não encerra o capítulo, não zera nível e continua a partida
-      this.killCount += 5;
-      this.player.gainUltimateCharge(100);
-
-      // Recompensa suprema da Succubus do Infinito: 3 Gemas Roxas, 60-80 Almas, Baú de Upgrade e aviso na tela
-      this.spawnGemAt(bx - 30, by, 'purple');
-      this.spawnGemAt(bx, by, 'purple');
-      this.spawnGemAt(bx + 30, by, 'purple');
-      this.spawnSoulItem(bx, by, Phaser.Math.Between(60, 80));
-      this.spawnMapItem(bx, by - 40, 'chest');
-
-      this.cameras.main.flash(400, 255, 215, 0);
-      this.cameras.main.shake(400, 0.025);
-
-      const uiScene = this.scene.get('UIScene') as UIScene;
-      if (uiScene) {
-        uiScene.showWaveAlert('CHEFE SUPREMA DERROTADA! A SOBREVIVÊNCIA CONTINUA...', 5000);
-      }
-      return;
-    }
-
-    // Recompensa de almas corrompidas do capítulo (60 a 80 almas)
-    MetaProgressManager.getInstance().collectRunSoul(Phaser.Math.Between(60, 80));
-
-    this.isChapterCompleted = true;
-    this.clearCombatSpeechBubbles();
-    SoundManager.getInstance().stopMusic(1500);
-    this.physics.pause();
-    if (this.player?.body) {
-      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-    }
-
-    // Dissipa inimigos restantes da arena
-    const mobs = this.enemiesGroup.getChildren() as BaseEnemy[];
-    for (const m of mobs) {
-      if (m.active && m !== this.bossInstance) {
-        m.takeDamage(9999);
-      }
-    }
-
-    const runStats = {
-      kills: this.killCount,
-      level: this.player.currentLevel,
-      timeSec: Math.floor(this.survivalTimeMs / 1000)
-    };
-
-    // Transição cinematográfica para o desfecho do Capítulo 1
-    this.time.delayedCall(800, () => {
-      this.cameras.main.fadeOut(700, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        SoundManager.getInstance().stopMusic();
-        this.scene.stop('UIScene');
-        this.scene.start('Chapter1EndScene', { runStats, chapter: 1 });
-      });
-    });
+  public notifyPlayerDeath(): void {
+    this.bossFights.onPlayerDeath();
   }
 
-  private showChapterVictoryModal(): void {
-    this.isChapterCompleted = true;
-    this.physics.pause();
-
-    const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
-    MetaProgressManager.getInstance().recordRun(
-      Math.floor(this.survivalTimeMs / 1000),
-      this.killCount,
-      true,
-      this.gameMode
-    );
-
-    const uiScene = this.scene.get('UIScene') as UIScene;
-    if (uiScene) {
-      uiScene.showChapterVictoryModal(
-        {
-          kills: this.killCount,
-          level: this.player.currentLevel,
-          timeSec: Math.floor(this.survivalTimeMs / 1000),
-          soulsEarned
-        },
-        () => {
-          this.scene.stop('UIScene');
-          this.scene.stop('GameScene');
-          this.scene.start('MenuScene');
-        }
-      );
-    }
+  /** Deixa o jogador intocável por contato durante `ms` (nunca encurta uma imunidade maior). */
+  public grantInvulnerability(ms: number): void {
+    this.playerInvulnerableTimer = Math.max(this.playerInvulnerableTimer, ms);
   }
 
   /**

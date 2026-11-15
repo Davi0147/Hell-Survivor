@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Nixy } from '../characters/Nixy';
+import type { BaseCharacter } from '../characters/BaseCharacter';
 
 export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
   public damage: number = 18;
@@ -51,7 +51,7 @@ export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  public onHitPlayer(player: Nixy): void {
+  public onHitPlayer(player: BaseCharacter): void {
     if (!this.active) return;
     player.takeDamage(this.damage);
     this.scene.cameras.main.shake(100, 0.008);

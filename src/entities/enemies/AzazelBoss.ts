@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
-import { Nixy } from '../characters/Nixy';
+import type { BaseCharacter } from '../characters/BaseCharacter';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
 import { SoundManager } from '../../systems/SoundManager';
 import { BOSS_TELEGRAPH } from '../../config/theme';
@@ -122,6 +122,10 @@ export class AzazelBoss extends BaseEnemy {
   public isBoss: boolean = true;
   public isInvulnerable: boolean = false;
   public combatPhase: AzazelCombatPhase = 1;
+  /** Multiplica o dano dos golpes (revanche). */
+  public attackDamageMultiplier: number = 1;
+  /** Multiplica o dano recebido (exaustão em lutas longas). */
+  public damageTakenMultiplier: number = 1;
 
   private bossState: AzazelState = 'INTRO';
   private stateTimer: number = 0;
@@ -221,6 +225,8 @@ export class AzazelBoss extends BaseEnemy {
     super.spawn(x, y, hp, speed, damage);
     this.setScale(customScale);
     this.combatPhase = 1;
+    this.attackDamageMultiplier = 1;
+    this.damageTakenMultiplier = 1;
     this.bossState = isCinematicIntro ? 'INTRO' : 'CHASE';
     this.isInvulnerable = isCinematicIntro;
     this.arenaCenter = { x, y };
@@ -259,7 +265,7 @@ export class AzazelBoss extends BaseEnemy {
    * Acionado exatamente quando o mid.mp3 (~2s) começa a tocar após o último loop da intro.mp3:
    * Azazel ergue a mão (Rise Hand) e grita acima da cabeça em destaque: "SUA ALMA É MINHA!"
    */
-  public playMidPrepareScream(player?: Nixy): void {
+  public playMidPrepareScream(player?: BaseCharacter): void {
     if (this.isDead) return;
 
     let dir = 'south';
@@ -357,7 +363,7 @@ export class AzazelBoss extends BaseEnemy {
     return this.phantomClones;
   }
 
-  public updateBoss(player: Nixy, deltaMs: number): void {
+  public updateBoss(player: BaseCharacter, deltaMs: number): void {
     if (this.isDead || !this.active) return;
 
     // Atualiza texto flutuante se estiver visível
@@ -456,7 +462,7 @@ export class AzazelBoss extends BaseEnemy {
   // =========================================================================
   // BARREIRA DA ARENA DELIMITADA AO REDOR DO SPAWN DE AZAZEL
   // =========================================================================
-  private updateArenaBarrier(player: Nixy): void {
+  private updateArenaBarrier(player: BaseCharacter): void {
     if (!this.arenaGraphics || !this.arenaGraphics.scene) return;
     this.arenaGraphics.clear();
 
@@ -510,7 +516,7 @@ export class AzazelBoss extends BaseEnemy {
   // =========================================================================
   // PERSEGUIÇÃO PADRÃO E ANIMAÇÃO DE CORRIDA (8 DIREÇÕES)
   // =========================================================================
-  private chasePlayer(player: Nixy, deltaMs: number): void {
+  private chasePlayer(player: BaseCharacter, deltaMs: number): void {
     const stunMult = this.updateStunState(deltaMs);
     const dx = player.x - this.x;
     const dy = player.y - this.y;
@@ -556,7 +562,7 @@ export class AzazelBoss extends BaseEnemy {
   // =========================================================================
   // GOLPE 1: DISPARO DIRECIONADO NA DIREÇÃO DO JOGADOR
   // =========================================================================
-  private fireDirectedBurst(player: Nixy): void {
+  private fireDirectedBurst(player: BaseCharacter): void {
     this.shotCooldown = 2700;
 
     const dx = player.x - this.x;
@@ -586,13 +592,13 @@ export class AzazelBoss extends BaseEnemy {
     }
 
     SoundManager.getInstance().playAzazelOrbShoot();
-    proj.fire(x, y, angle, speed, dmg, 'azazel-orb');
+    proj.fire(x, y, angle, speed, this.scaleAttack(dmg), 'azazel-orb');
   }
 
   // =========================================================================
   // GOLPE 2: TELEPORTE TÁTICO PARA PRÓXIMO DO JOGADOR (MIND-GAME)
   // =========================================================================
-  private performTacticalTeleport(player: Nixy): void {
+  private performTacticalTeleport(player: BaseCharacter): void {
     this.teleportCooldown = 4600;
     SoundManager.getInstance().playAzazelTeleport();
 
@@ -645,7 +651,7 @@ export class AzazelBoss extends BaseEnemy {
   // =========================================================================
   // GOLPE 3: AVANÇO RÁPIDO NA DIREÇÃO DO JOGADOR (RAPID DASH)
   // =========================================================================
-  private startTelegraphDash(player: Nixy): void {
+  private startTelegraphDash(player: BaseCharacter): void {
     this.bossState = 'TELEGRAPH_DASH';
     this.stateTimer = 650; // Mira rápida de 0.65s
 
@@ -658,7 +664,7 @@ export class AzazelBoss extends BaseEnemy {
     this.setTint(0xff2255);
   }
 
-  private updateTelegraphDash(player: Nixy, deltaMs: number): void {
+  private updateTelegraphDash(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
 
     if (this.stateTimer > 220) {
@@ -697,7 +703,7 @@ export class AzazelBoss extends BaseEnemy {
     }
   }
 
-  private updateDashing(player: Nixy, deltaMs: number): void {
+  private updateDashing(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
 
     if (Math.random() < 0.55) {
@@ -715,7 +721,7 @@ export class AzazelBoss extends BaseEnemy {
     }
 
     if (Math.hypot(this.x - player.x, this.y - player.y) <= 44) {
-      player.takeDamage(AZAZEL_BOSS_BALANCE.rapidDashDamage);
+      player.takeDamage(this.scaleAttack(AZAZEL_BOSS_BALANCE.rapidDashDamage));
       this.scene.cameras.main.shake(170, 0.016);
       this.endDash();
       return;
@@ -738,7 +744,7 @@ export class AzazelBoss extends BaseEnemy {
   // =========================================================================
   // GOLPE 4: TEMPESTADE DE RAIOS (LEVANTA A MÃO -> MARCA O CHÃO -> 1S DEPOIS CAI)
   // =========================================================================
-  private startLightningStorm(player: Nixy): void {
+  private startLightningStorm(player: BaseCharacter): void {
     this.bossState = 'LIGHTNING_STORM';
     this.stateTimer = 1150;
     this.lightningCooldown = 8200;
@@ -771,7 +777,7 @@ export class AzazelBoss extends BaseEnemy {
     }
   }
 
-  private updateLightningStormState(player: Nixy, deltaMs: number): void {
+  private updateLightningStormState(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
     this.updateHandAnimation(angle);
@@ -781,7 +787,7 @@ export class AzazelBoss extends BaseEnemy {
     }
   }
 
-  private updateLightningMarkers(player: Nixy, deltaMs: number): void {
+  private updateLightningMarkers(player: BaseCharacter, deltaMs: number): void {
     if (this.lightningMarkers.length === 0) return;
 
     this.telegraphGraphics.clear();
@@ -812,7 +818,7 @@ export class AzazelBoss extends BaseEnemy {
     }
   }
 
-  private triggerLightningBoltImpact(x: number, y: number, radius: number, player: Nixy): void {
+  private triggerLightningBoltImpact(x: number, y: number, radius: number, player: BaseCharacter): void {
     SoundManager.getInstance().playAzazelLightningStrike();
     this.scene.cameras.main.shake(150, 0.012);
 
@@ -846,14 +852,14 @@ export class AzazelBoss extends BaseEnemy {
 
     // Dano se o jogador estiver no raio de impacto
     if (Math.hypot(player.x - x, player.y - y) <= radius) {
-      player.takeDamage(AZAZEL_BOSS_BALANCE.lightningBoltDamage);
+      player.takeDamage(this.scaleAttack(AZAZEL_BOSS_BALANCE.lightningBoltDamage));
     }
   }
 
   // =========================================================================
   // GOLPE 5: BARRAGEM EM ESPIRAL (LEVANTA A MÃO + FICA TREMENDO + ATIRA EM ESPIRAL)
   // =========================================================================
-  private startSpiralBarrage(player: Nixy): void {
+  private startSpiralBarrage(player: BaseCharacter): void {
     this.bossState = 'SPIRAL_BARRAGE';
     this.stateTimer = 2600; // 2.6 segundos tremendo e disparando em espiral
     this.spiralCooldown = 12000;
@@ -867,7 +873,7 @@ export class AzazelBoss extends BaseEnemy {
     this.updateHandAnimation(this.spiralAngle);
   }
 
-  private updateSpiralBarrage(player: Nixy, deltaMs: number): void {
+  private updateSpiralBarrage(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
     this.spiralShotTimer -= deltaMs;
 
@@ -896,7 +902,7 @@ export class AzazelBoss extends BaseEnemy {
   // =========================================================================
   // TRANSIÇÃO E FASE 2: "AQUI É O MEU MUNDO" (50% -> 20% HP NA ESCURIDÃO)
   // =========================================================================
-  public triggerPhase2DarknessDomain(player: Nixy): void {
+  public triggerPhase2DarknessDomain(player: BaseCharacter): void {
     this.combatPhase = 2;
     this.bossState = 'TRANSITIONING';
     this.isInvulnerable = true;
@@ -960,7 +966,7 @@ export class AzazelBoss extends BaseEnemy {
     }
   }
 
-  private startDarkFiveDashes(player: Nixy): void {
+  private startDarkFiveDashes(player: BaseCharacter): void {
     if (this.isDead || this.combatPhase !== 2) return;
     this.deactivatePhantomClones();
 
@@ -970,7 +976,7 @@ export class AzazelBoss extends BaseEnemy {
     this.spawnNextDarkPhantomDash(player);
   }
 
-  private spawnNextDarkPhantomDash(player: Nixy): void {
+  private spawnNextDarkPhantomDash(player: BaseCharacter): void {
     if (this.isDead || this.combatPhase !== 2) return;
 
     this.darkDashCount++;
@@ -1004,21 +1010,21 @@ export class AzazelBoss extends BaseEnemy {
 
     SoundManager.getInstance().playAzazelTeleport();
     this.darkDashSubState = 'AIM';
-    this.stateTimer = 360; // Linha projetada muito rápida (0.36s)
+    this.stateTimer = AZAZEL_BOSS_BALANCE.darkDashAimMs;
   }
 
-  private updateDarkFiveDashes(player: Nixy, deltaMs: number): void {
+  private updateDarkFiveDashes(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
 
     if (this.darkDashSubState === 'AIM') {
-      // Atualiza mira nos primeiros 180ms
-      if (this.stateTimer > 180) {
+      // Trava a mira na metade final, para dar tempo de sair da linha
+      if (this.stateTimer > AZAZEL_BOSS_BALANCE.darkDashAimMs / 2) {
         const aimAngle = Math.atan2(player.y - this.y, player.x - this.x);
         this.darkDashVector = { x: Math.cos(aimAngle), y: Math.sin(aimAngle) };
         this.updateRunAnimation(aimAngle);
       }
 
-      const progress = 1 - Math.max(0, this.stateTimer / 360);
+      const progress = 1 - Math.max(0, this.stateTimer / AZAZEL_BOSS_BALANCE.darkDashAimMs);
       this.telegraphGraphics.clear();
       const endX = this.x + this.darkDashVector.x * 620;
       const endY = this.y + this.darkDashVector.y * 620;
@@ -1054,7 +1060,7 @@ export class AzazelBoss extends BaseEnemy {
       });
 
       if (Math.hypot(this.x - player.x, this.y - player.y) <= 42) {
-        player.takeDamage(AZAZEL_BOSS_BALANCE.darkFiveDashesDamage);
+        player.takeDamage(this.scaleAttack(AZAZEL_BOSS_BALANCE.darkFiveDashesDamage));
         this.scene.cameras.main.shake(140, 0.014);
       }
 
@@ -1070,7 +1076,7 @@ export class AzazelBoss extends BaseEnemy {
     }
   }
 
-  private startDarkEightClones(player: Nixy): void {
+  private startDarkEightClones(player: BaseCharacter): void {
     if (this.isDead || this.combatPhase !== 2) return;
 
     this.bossState = 'DARK_EIGHT_CLONES';
@@ -1127,7 +1133,7 @@ export class AzazelBoss extends BaseEnemy {
     }
   }
 
-  private updateDarkEightClones(player: Nixy, deltaMs: number): void {
+  private updateDarkEightClones(player: BaseCharacter, deltaMs: number): void {
     this.stateTimer -= deltaMs;
     this.darkCloneShotTimer -= deltaMs;
 
@@ -1185,7 +1191,7 @@ export class AzazelBoss extends BaseEnemy {
   // =========================================================================
   // TRANSIÇÃO E FASE 3: "SUA POBRE ALMA FRÁGIL NÃO ENCONTRARÁ PAZ" (20% HP -> CHAO2 + 3 CRISTAIS)
   // =========================================================================
-  public triggerPhase3CorruptedDimension(player: Nixy): void {
+  public triggerPhase3CorruptedDimension(player: BaseCharacter): void {
     this.combatPhase = 3;
     this.bossState = 'TRANSITIONING';
     this.isInvulnerable = true;
@@ -1236,7 +1242,7 @@ export class AzazelBoss extends BaseEnemy {
    * Acionado quando o jogador captura os 3 Cristais de Azazel na dimensão chao2:
    * A tela treme e Azazel reaparece com os 20% de vida restantes e os golpes da Fase 1!
    */
-  public resumeFinalShowdown(spawnX: number, spawnY: number, player: Nixy): void {
+  public resumeFinalShowdown(spawnX: number, spawnY: number, player: BaseCharacter): void {
     if (this.isDead) return;
 
     this.combatPhase = 4;
@@ -1268,6 +1274,10 @@ export class AzazelBoss extends BaseEnemy {
     });
   }
 
+  private scaleAttack(base: number): number {
+    return Math.max(1, Math.round(base * this.attackDamageMultiplier));
+  }
+
   private deactivateAllProjectiles(): void {
     const projs = this.projectilesGroup.getChildren() as DarkOrbProjectile[];
     for (const p of projs) {
@@ -1294,7 +1304,7 @@ export class AzazelBoss extends BaseEnemy {
       return;
     }
 
-    const mitigated = Math.max(1, Math.round(amount * 0.85));
+    const mitigated = Math.max(1, Math.round(amount * AZAZEL_BOSS_BALANCE.damageTaken * this.damageTakenMultiplier));
     const phase2Threshold = Math.ceil(this.maxHp * 0.50); // 8,000 HP
     const phase3Threshold = Math.ceil(this.maxHp * 0.20); // 3,200 HP
 
@@ -1302,7 +1312,7 @@ export class AzazelBoss extends BaseEnemy {
     if (this.combatPhase === 1 && this.hp - mitigated <= phase2Threshold) {
       this.hp = phase2Threshold;
       this.emit('boss-hp-changed', this.hp, this.maxHp);
-      const player = (this.scene as Phaser.Scene & { player: Nixy }).player;
+      const player = (this.scene as Phaser.Scene & { player?: BaseCharacter }).player;
       if (player) {
         this.triggerPhase2DarknessDomain(player);
       }
@@ -1313,7 +1323,7 @@ export class AzazelBoss extends BaseEnemy {
     if (this.combatPhase === 2 && this.hp - mitigated <= phase3Threshold) {
       this.hp = phase3Threshold;
       this.emit('boss-hp-changed', this.hp, this.maxHp);
-      const player = (this.scene as Phaser.Scene & { player: Nixy }).player;
+      const player = (this.scene as Phaser.Scene & { player?: BaseCharacter }).player;
       if (player) {
         this.triggerPhase3CorruptedDimension(player);
       }
