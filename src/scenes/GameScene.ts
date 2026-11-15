@@ -3,7 +3,7 @@ import { Nixy } from '../entities/characters/Nixy';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
-import { MummyEnemy } from '../entities/enemies/MummyEnemy';
+import { MummyEnemy, PoisonPuddle } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
@@ -146,7 +146,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   private spawnTimer: number = 0;
   public killCount: number = 0;
   private playerInvulnerableTimer: number = 0;
-  public poisonPuddles: any[] = [];
+  public poisonPuddles: PoisonPuddle[] = [];
 
   // Elementos de Cenário e Fumaça nas Bordas (delegados ao ArenaScenerySystem)
   public get sceneryProps(): Phaser.GameObjects.GameObject[] {
@@ -356,8 +356,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
       keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F3).on('down', () => {
         const active = AutoPlayTestAgent.getInstance().toggle();
-        const uiScene = this.scene.get('UIScene') as any;
-        if (uiScene && typeof uiScene.showWaveAlert === 'function') {
+        const uiScene = this.scene.get('UIScene') as UIScene | undefined;
+        if (uiScene) {
           uiScene.showWaveAlert(
             active ? 'BOT IA: TESTE AUTÔNOMO ATIVADO [F3]' : 'BOT IA: CONTROLE MANUAL RESTAURADO [F3]',
             2500
@@ -1163,7 +1163,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.combatBubbleSystem?.clearCombatSpeechBubbles();
   }
 
-  public registerPoisonPuddle(puddle: any): void {
+  public registerPoisonPuddle(puddle: PoisonPuddle): void {
     this.poisonPuddles.push(puddle);
   }
 

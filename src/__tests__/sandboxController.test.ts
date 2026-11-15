@@ -407,7 +407,7 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
 
     it('removeWeapon remove a arma da lista e limpa seus projéteis', () => {
       const weaponInstance = new DummyWeapon();
-      mockContext.weapons = [weaponInstance];
+      mockContext.weapons = [weaponInstance as unknown as ISandboxContext['weapons'][number]];
 
       const ctrl = new SandboxController(mockContext as unknown as ISandboxContext);
       ctrl.removeWeapon(DummyWeapon);

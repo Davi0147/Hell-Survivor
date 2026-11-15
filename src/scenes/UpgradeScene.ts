@@ -7,16 +7,19 @@ import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 
+/** Cena de jogo que abriu a tela de cartas: além das armas, sinaliza a reabertura da fila de níveis. */
+export type UpgradeHostScene = UpgradeGameScene & { isUpgradeSceneOpening?: boolean; survivalTimeMs?: number };
+
 export interface UpgradeSceneData {
   player: BaseCharacter;
-  gameScene: any;
+  gameScene: UpgradeHostScene;
   isAltar?: boolean;
   onAltarChosen?: () => void;
 }
 
 export class UpgradeScene extends Phaser.Scene {
   private player!: BaseCharacter;
-  private gameScene!: any;
+  private gameScene!: UpgradeHostScene;
   private isAltar: boolean = false;
   private onAltarChosen?: () => void;
   private cardContainers: Phaser.GameObjects.Container[] = [];
@@ -39,7 +42,7 @@ export class UpgradeScene extends Phaser.Scene {
     return this.player;
   }
 
-  public getGameScene(): any {
+  public getGameScene(): UpgradeHostScene {
     return this.gameScene;
   }
 

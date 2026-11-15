@@ -1,3 +1,4 @@
+import type { GameScene } from './GameScene';
 import Phaser from 'phaser';
 import { DialogueSystem, DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
@@ -188,7 +189,7 @@ export class UIScene
       });
       this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
       this.keyEsc.on('down', () => {
-        const gs = this.scene.get('GameScene') as any;
+        const gs = this.scene.get('GameScene') as GameScene | undefined;
         if (gs && !gs.isGameOver && !gs.isChapterCompleted && !this.scene.isActive('UpgradeScene')) {
           this.togglePause(gs);
         }
@@ -257,7 +258,7 @@ export class UIScene
     // ==========================================
     // 8. CONSOLE DE TESTE & GRAVADOR DE SESSÃO (SANDBOX / DEV MODE)
     // ==========================================
-    const gameScene = this.scene.get('GameScene') as any;
+    const gameScene = this.scene.get('GameScene') as GameScene | undefined;
     if (gameScene && (gameScene.gameMode === 'sandbox' || isDevSandboxEnabled())) {
       this.sandboxPanel = new DevSandboxPanel(this, gameScene);
     }
@@ -318,7 +319,7 @@ export class UIScene
     }
 
     // 4. Processa navegação por gamepad / teclado caso o jogo esteja pausado no ESC
-    const gameScene = this.scene.get('GameScene') as any;
+    const gameScene = this.scene.get('GameScene') as GameScene;
     if (this.isPaused && this.pauseMenu?.container) {
       this.pauseMenu.updateControls(gameScene);
       return;

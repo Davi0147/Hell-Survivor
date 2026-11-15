@@ -1,7 +1,14 @@
+import type { UIScene } from '../scenes/UIScene';
 import Phaser from 'phaser';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { Nixy } from '../entities/characters/Nixy';
 import { DamageTextSystem } from './DamageTextSystem';
+
+/** O que a Suprema usa da cena além do Phaser: as poças de veneno que ela purifica. */
+type UltimateHostScene = Phaser.Scene & {
+  poisonPuddles?: Array<Phaser.GameObjects.Sprite>;
+  clearAllPoisonPuddles?(): void;
+};
 
 export class UltimateSystem {
   /**
@@ -21,15 +28,13 @@ export class UltimateSystem {
     const cameras = scene.cameras.main;
 
     // Oculta a HUD da UIScene durante a exibição da animação cinematográfica da Suprema
-    const uiScene = scene.scene.get('UIScene') as any;
-    if (uiScene && typeof uiScene.setHUDVisible === 'function') {
+    const uiScene = scene.scene.get('UIScene') as UIScene | undefined;
+    if (uiScene) {
       uiScene.setHUDVisible(false);
     }
 
     // Purifica o campo de batalha dissipando quaisquer poças de veneno/gosma ativas
-    if ((scene as any).clearAllPoisonPuddles) {
-      (scene as any).clearAllPoisonPuddles();
-    }
+    (scene as UltimateHostScene).clearAllPoisonPuddles?.();
 
     // =========================================================================
     // ETAPA 1: ANIME CUT-IN CINEMATOGRÁFICO (PERSONA 5 COMIC NOIR)
@@ -258,7 +263,7 @@ export class UltimateSystem {
     enemiesGroup: Phaser.GameObjects.Group
   ): { x: number; y: number } {
     const enemies = enemiesGroup.getChildren().filter(
-      (child) => (child as any).active && !(child as any).isDead
+      (child) => child.active && !(child as BaseEnemy).isDead
     ) as BaseEnemy[];
 
     if (enemies.length === 0) {
@@ -410,7 +415,7 @@ export class UltimateSystem {
     }
 
     // Dissipa poças de veneno/gosma atingidas pela detonação da Suprema
-    const gameScene = scene as any;
+    const gameScene = scene as UltimateHostScene;
     if (gameScene.poisonPuddles) {
       for (let i = gameScene.poisonPuddles.length - 1; i >= 0; i--) {
         const p = gameScene.poisonPuddles[i];

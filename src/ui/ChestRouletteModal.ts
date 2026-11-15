@@ -1,16 +1,14 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
-import type { UpgradeCard } from '../systems/UpgradeCatalog';
+import type { UpgradeCard, UpgradeGameScene } from '../systems/UpgradeCatalog';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 
 /** O que a roleta usa da GameScene: pausar/retomar e dar a imunidade de saída. */
-export interface IChestRouletteGameScene {
-  physics?: { pause(): void; resume(): void };
-  scene?: { pause(): void; resume(): void };
+export type IChestRouletteGameScene = UpgradeGameScene & {
   isGameOver?: boolean;
   isChapterCompleted?: boolean;
   grantChestSafetyGrace?: () => void;
-}
+};
 
 /** Modal da roleta de bênção do Baú do Abismo (instância por UIScene). */
 export class ChestRouletteModal {
@@ -309,7 +307,7 @@ export class ChestRouletteModal {
       SoundManager.getInstance().playMenuClick();
 
       // Aplica a bênção
-      if (chosenCard) {
+      if (chosenCard && gameScene) {
         chosenCard.apply(player, gameScene);
       } else {
         player.heal(player.maxHp);

@@ -2,7 +2,16 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [v0.9.19 — Lutas de Chefe Justas] — 2026-11-15
+## [v0.9.20 — Contrato da GameScene Tipado] — 2026-11-15
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.** É uma arrumação interna que faz o computador avisar sozinho quando uma mudança futura quebrar cartas, Modo de Teste, gravador de sessão ou Editor de Mapas.
+
+### Organização do Projeto
+- **Avisos do lint: 54 → 0.** A catraca agora é `--max-warnings 0`: qualquer `any` novo trava o commit.
+- **Contratos estreitos no lugar de `any`**: `UpgradeGameScene` (o que as cartas usam: a cena e a lista de armas), `IAutoPlayWorld` (o que o bot [F3] enxerga), `ILoggerWorld` (o que o gravador de sessão lê), `MapItemHostScene` (o que cálice, ímã e baú usam) e `EquippedWeapon` (o que ferramentas podem perguntar a uma arma).
+- **Poças de veneno** tipadas como `PoisonPuddle`; aviso de instalação (PWA) e vibração do controle sem `any`.
+- **Editor de Mapas** fala com a `GameScene` pelos métodos reais (`setArenaFloorTexture`, `setHUDVisible`) em vez de checar "às cegas" se existem.## [v0.9.19 — Lutas de Chefe Justas] — 2026-11-15
 
 ### Resumo para o Jogador
 - **Azazel agora pode ser vencido.** Havia um defeito na fase dos cristais: purificar um cristal não contava, então a luta nunca saía daquela fase. Corrigido.

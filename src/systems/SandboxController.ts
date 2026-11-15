@@ -8,6 +8,7 @@ import { MapItem, type MapItemType } from '../entities/items/MapItem';
 import type { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BossSummonAltar } from '../entities/items/BossSummonAltar';
 import type { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
+import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { ENEMY_BALANCE } from '../config/balance';
@@ -24,8 +25,7 @@ export interface ISandboxContext extends Phaser.Scene {
   readonly enemiesGroup: Phaser.GameObjects.Group;
   readonly gemsGroup: Phaser.GameObjects.Group;
   readonly mapItemsGroup: Phaser.GameObjects.Group;
-  readonly weapons: Array<{
-    name?: string;
+  readonly weapons: Array<BaseWeapon & {
     destroy?: () => void;
     projectilesGroup?: { clear: (destroy: boolean, remove: boolean) => void };
   }>;

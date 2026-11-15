@@ -1,6 +1,14 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from '../enemies/BaseEnemy';
 
+/** O que ferramentas (logger, Modo de Teste) podem perguntar a qualquer arma equipada. */
+export type EquippedWeapon = BaseWeapon & {
+  isEvolved?: boolean;
+  getLevel?(): number;
+  getBladeCount?(): number;
+  projectilesGroup?: Phaser.GameObjects.Group;
+};
+
 export abstract class BaseWeapon {
   public scene: Phaser.Scene;
   public name: string;

@@ -32,7 +32,7 @@ export class BloodDaggersWeapon extends BaseWeapon {
     });
 
     // Registra overlap físico automaticamente com o grupo de inimigos da cena
-    const gs = scene as any;
+    const gs = scene as Phaser.Scene & { enemiesGroup?: Phaser.GameObjects.Group };
     if (gs.enemiesGroup && scene.physics) {
       scene.physics.add.overlap(
         this.projectilesGroup,

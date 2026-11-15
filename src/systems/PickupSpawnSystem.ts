@@ -4,7 +4,7 @@ import { CorruptedSoulItem } from '../entities/items/CorruptedSoulItem';
 import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
-import { getAltarEvolutionCards } from './UpgradeCatalog';
+import { getAltarEvolutionCards, UpgradeGameScene } from './UpgradeCatalog';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { BALANCE, PERFORMANCE_LIMITS, getChapterConfig } from '../config/balance';
 
@@ -41,7 +41,7 @@ export class PickupSpawnSystem {
   private altarSpawnTimer = 0;
   private mapItemSpawnTimer = 0;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly ctx: IPickupSpawnContext) {}
+  constructor(private readonly scene: UpgradeGameScene, private readonly ctx: IPickupSpawnContext) {}
 
   /**
    * Atualização por quadro: esconde o que está fora da câmera, atrai/coleta

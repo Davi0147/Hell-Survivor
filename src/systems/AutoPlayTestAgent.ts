@@ -1,10 +1,21 @@
-import { Nixy } from '../entities/characters/Nixy';
+import type Phaser from 'phaser';
+import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SoulGem } from '../entities/items/SoulGem';
 import { MapItem } from '../entities/items/MapItem';
 import type { UpgradeScene, UpgradeCard } from '../scenes/UpgradeScene';
 import type { UIScene } from '../scenes/UIScene';
 import { DebugSessionLogger } from './DebugSessionLogger';
+
+/** O que o bot de testes enxerga do mundo para pilotar a heroína. */
+export interface IAutoPlayWorld {
+  readonly player: BaseCharacter;
+  readonly enemiesGroup?: Phaser.GameObjects.Group;
+  readonly gemsGroup?: Phaser.GameObjects.Group;
+  readonly mapItemsGroup?: Phaser.GameObjects.Group;
+  readonly time: { now: number };
+  triggerUltimate(): void;
+}
 
 export interface TestRunReport {
   runId: number;
@@ -66,10 +77,10 @@ export class AutoPlayTestAgent {
   /**
    * Pilota a heroína Nixy de forma autônoma a cada frame
    */
-  public updateAgent(gameScene: any, _deltaMs: number): { dx: number; dy: number; isSprint: boolean } {
+  public updateAgent(gameScene: IAutoPlayWorld, _deltaMs: number): { dx: number; dy: number; isSprint: boolean } {
     if (!this.isEnabled) return { dx: 0, dy: 0, isSprint: false };
 
-    const player: Nixy = gameScene.player;
+    const player = gameScene.player;
     if (!player || player.currentHp <= 0) return { dx: 0, dy: 0, isSprint: false };
 
     // Rastreamento de subidas de nível realizadas durante a atuação do bot

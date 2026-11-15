@@ -241,7 +241,7 @@ export class GamepadManager {
     if (!pad || !pad.vibration) return;
 
     try {
-      (pad.vibration as any).playEffect('dual-rumble', {
+      pad.vibration.playEffect('dual-rumble', {
         startDelay: 0,
         duration: durationMs,
         weakMagnitude: Phaser.Math.Clamp(weakMagnitude, 0, 1),

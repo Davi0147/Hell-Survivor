@@ -1,3 +1,23 @@
+import type Phaser from 'phaser';
+import type { EquippedWeapon } from '../entities/weapons/BaseWeapon';
+import type { BaseCharacter } from '../entities/characters/BaseCharacter';
+
+/** O que o gravador de sessão lê da cena de jogo para montar a telemetria. */
+export interface ILoggerWorld {
+  readonly game?: Phaser.Game;
+  readonly player?: BaseCharacter;
+  readonly gameMode?: string;
+  readonly survivalTimeMs?: number;
+  readonly sandboxGodMode?: boolean;
+  readonly sandboxInfiniteUlt?: boolean;
+  readonly sandboxInfiniteStamina?: boolean;
+  readonly sandboxAutoSpawn?: boolean;
+  readonly enemiesGroup?: Phaser.GameObjects.Group;
+  readonly gemsGroup?: Phaser.GameObjects.Group;
+  readonly mapItemsGroup?: Phaser.GameObjects.Group;
+  readonly weapons?: ReadonlyArray<{ name?: string }>;
+  readonly bossInstance?: { active: boolean; isDead: boolean; hp: number; maxHp: number } | null;
+}
 import { STORAGE_KEYS } from '../config/storageKeys';
 
 export type DebugLogCategory =
@@ -20,7 +40,7 @@ export interface DebugLogEntry {
   category: DebugLogCategory;
   severity: 'INFO' | 'WARN' | 'ERROR';
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface TelemetrySnapshot {
@@ -111,7 +131,7 @@ export class DebugSessionLogger {
     category: DebugLogCategory,
     severity: 'INFO' | 'WARN' | 'ERROR',
     message: string,
-    details?: Record<string, any>
+    details?: Record<string, unknown>
   ): void {
     const now = Date.now();
     const elapsedSec = Number(((now - this.sessionStartMs) / 1000).toFixed(2));
@@ -164,7 +184,7 @@ export class DebugSessionLogger {
   /**
    * Coleta telemetria a cada 1s durante o jogo e verifica anomalias automaticamente
    */
-  public sampleTelemetry(gameScene: any): void {
+  public sampleTelemetry(gameScene: ILoggerWorld): void {
     const now = Date.now();
     if (now - this.lastSampleTimeMs < 1000) return;
     this.lastSampleTimeMs = now;
@@ -206,7 +226,7 @@ export class DebugSessionLogger {
     }
   }
 
-  public captureSnapshot(gameScene?: any): TelemetrySnapshot {
+  public captureSnapshot(gameScene?: ILoggerWorld): TelemetrySnapshot {
     if (!gameScene) {
       return {
         fps: 60,
@@ -239,7 +259,7 @@ export class DebugSessionLogger {
     let projectilesActive = 0;
     const equippedWeapons: string[] = [];
     if (Array.isArray(gameScene.weapons)) {
-      for (const w of gameScene.weapons) {
+      for (const w of gameScene.weapons as ReadonlyArray<EquippedWeapon>) {
         const lvlInfo =
           typeof w.getLevel === 'function'
             ? ` (Nív ${w.getLevel()})`
@@ -262,12 +282,12 @@ export class DebugSessionLogger {
 
     const boss = gameScene.bossInstance;
     const bossActive = Boolean(boss && boss.active && !boss.isDead);
-    const bossHp = bossActive ? `${Math.ceil(boss.hp)}/${boss.maxHp}` : undefined;
+    const bossHp = boss && bossActive ? `${Math.ceil(boss.hp)}/${boss.maxHp}` : undefined;
 
     let currentBgm = 'Nenhuma';
     let audioState = 'OK';
     try {
-      const sm = (window as any).__hellSurvivorSoundManager;
+      const sm = (window as Window & { __hellSurvivorSoundManager?: { currentBgmKey?: string; audioCtx?: AudioContext } }).__hellSurvivorSoundManager;
       if (sm) {
         currentBgm = sm.currentBgmKey || 'Nenhuma';
         audioState = sm.audioCtx?.state || 'OK';
@@ -331,7 +351,7 @@ export class DebugSessionLogger {
   /**
    * Gera um Relatório Completo e estruturado pronto para colar no chat da IA
    */
-  public generateAIReport(gameScene?: any): string {
+  public generateAIReport(gameScene?: ILoggerWorld): string {
     const snap = this.captureSnapshot(gameScene);
     const p = gameScene?.player;
     const anomalies = this.entries.filter((e) => e.severity !== 'INFO' || e.category === 'ANOMALY');
@@ -340,7 +360,7 @@ export class DebugSessionLogger {
       '=== RELATÓRIO DE DIAGNÓSTICO & SESSÃO (HELL SURVIVOR) ===',
       `Data/Hora: ${new Date().toLocaleString('pt-BR')}`,
       `Modo de Jogo: ${gameScene?.gameMode?.toUpperCase() || 'MENU'}`,
-      `Tempo de Sobrevivência: ${gameScene ? (gameScene.survivalTimeMs / 1000).toFixed(1) + 's' : '0s'}`,
+      `Tempo de Sobrevivência: ${((gameScene?.survivalTimeMs ?? 0) / 1000).toFixed(1)}s`,
       `Performance: FPS Atual=${snap.fps} | FPS Médio=${snap.avgFps} | FPS Mínimo=${snap.minFps}`,
       `Entidades Ativas: Inimigos=${snap.enemiesActive} | Gemas=${snap.gemsActive} | ItensMapa=${snap.mapItemsActive} | Projéteis=${snap.projectilesActive}`,
       `Boss Ativa: ${snap.bossActive ? 'SIM (HP: ' + snap.bossHp + ')' : 'NÃO'}`,
@@ -384,7 +404,7 @@ export class DebugSessionLogger {
     return lines.filter((l) => l !== undefined).join('\n');
   }
 
-  public async copyReportToClipboard(gameScene?: any): Promise<boolean> {
+  public async copyReportToClipboard(gameScene?: ILoggerWorld): Promise<boolean> {
     const report = this.generateAIReport(gameScene);
     try {
       await navigator.clipboard.writeText(report);
@@ -406,7 +426,7 @@ export class DebugSessionLogger {
     }
   }
 
-  public downloadJsonLog(gameScene?: any): void {
+  public downloadJsonLog(gameScene?: ILoggerWorld): void {
     const payload = {
       generatedAt: new Date().toISOString(),
       snapshot: this.captureSnapshot(gameScene),

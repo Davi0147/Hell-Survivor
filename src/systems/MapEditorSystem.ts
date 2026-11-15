@@ -81,7 +81,7 @@ export class MapEditorSystem {
 
   constructor(scene: GameScene) {
     this.scene = scene;
-    this.editingChapter = (scene as any).currentChapter || 1;
+    this.editingChapter = scene.currentChapter || 1;
     this.currentMap = MapStorageManager.getActiveMap(this.editingChapter);
   }
 
@@ -112,15 +112,12 @@ export class MapEditorSystem {
     this.scene.testShowroomSystem?.setVisible(false);
 
     // 2. Oculta o HUD de jogo (UIScene)
-    const uiScene = this.scene.scene.get('UIScene') as any;
-    if (uiScene && typeof uiScene.setHUDVisible === 'function') {
-      uiScene.setHUDVisible(false);
-    }
+    this.scene.setHUDVisible(false);
 
     // 3. Carrega o mapa ativo e monta os elementos editáveis
     this.currentMap = MapStorageManager.getActiveMap(this.editingChapter);
-    if ((this.scene as any).setArenaFloorTexture) {
-      (this.scene as any).setArenaFloorTexture(
+    {
+      this.scene.setArenaFloorTexture(
         this.currentMap.floorTexture || (this.editingChapter === 202 ? 'floor-tile-2' : 'floor-tile')
       );
     }
@@ -153,10 +150,7 @@ export class MapEditorSystem {
     this.scene.setMapEditorLauncherButtonVisible(true);
     this.scene.testShowroomSystem?.setVisible(true);
 
-    const uiScene = this.scene.scene.get('UIScene') as any;
-    if (uiScene && typeof uiScene.setHUDVisible === 'function') {
-      uiScene.setHUDVisible(true);
-    }
+    this.scene.setHUDVisible(true);
 
     this.restoreCameraState();
     DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Editor de Mapas Fechado.');
@@ -201,7 +195,7 @@ export class MapEditorSystem {
     };
 
     // Zoom da Câmera Livre com a Roda do Mouse
-    this.scene.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
+    this.scene.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
       if (!this.isOpen) return;
       const cam = this.scene.cameras.main;
       const zoomFactor = deltaY > 0 ? 0.9 : 1.1;
@@ -688,8 +682,8 @@ export class MapEditorSystem {
 
       this.currentMap = MapStorageManager.getActiveMap(this.editingChapter);
       this.mapSwitchButton!.textContent = getMapLabel(this.editingChapter);
-      if ((this.scene as any).setArenaFloorTexture) {
-        (this.scene as any).setArenaFloorTexture(
+      {
+        this.scene.setArenaFloorTexture(
           this.currentMap.floorTexture || (this.editingChapter === 202 ? 'floor-tile-2' : 'floor-tile')
         );
       }
@@ -941,8 +935,8 @@ export class MapEditorSystem {
         btn.onclick = () => {
           this.currentMap.floorTexture = t.key;
           MapStorageManager.saveCustomMap(this.currentMap, this.editingChapter);
-          if ((this.scene as any).setArenaFloorTexture) {
-            (this.scene as any).setArenaFloorTexture(t.key);
+          {
+            this.scene.setArenaFloorTexture(t.key);
           }
           this.renderDynamicPalette();
           this.showToast(`Textura do chão alterada para: ${t.key === 'floor-tile' ? 'Catacumbas' : 'Dimensão Abissal'}!`);
@@ -1097,7 +1091,7 @@ export class MapEditorSystem {
 
     this.scene.loadCustomMapLayout(this.currentMap);
     this.showToast('MAPA CARREGADO COM SUCESSO! BOM JOGO!', '#10b981');
-    DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Mapa Customizado Aplicado para Teste.', this.currentMap);
+    DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', 'Mapa Customizado Aplicado para Teste.', { ...this.currentMap });
   }
 
   public downloadMapJsonFile(): void {

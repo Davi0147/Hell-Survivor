@@ -1,3 +1,5 @@
+import type Phaser from 'phaser';
+import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
@@ -12,10 +14,8 @@ import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
  * A cena de upgrade (src/scenes/UpgradeScene.ts) só desenha e anima o que este arquivo devolve.
  */
 
-// A cena de jogo é acessada de forma solta pelas cartas (armas, grupos, timers); tipar esse
-// contrato é um passo futuro, por isso o `any` herdado fica concentrado neste alias.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type UpgradeGameScene = any;
+/** O que as cartas usam da cena de jogo: a lista de armas equipadas e a própria cena (para criar armas novas). */
+export type UpgradeGameScene = Phaser.Scene & { weapons: BaseWeapon[] };
 
 export interface RichTextSegment {
   text: string;
@@ -39,8 +39,8 @@ export interface UpgradeCard {
   levelLabel?: string;
   glowColor?: number;
   richLines?: RichTextSegment[][];
-  apply: (player: BaseCharacter, gameScene: any) => void;
-  isAvailable?: (player: BaseCharacter, gameScene: any) => boolean;
+  apply: (player: BaseCharacter, gameScene: UpgradeGameScene) => void;
+  isAvailable?: (player: BaseCharacter, gameScene: UpgradeGameScene) => boolean;
 }
 
 // Paleta semântica padronizada para leitura imediata nas cartas
@@ -52,8 +52,8 @@ export const C_SPEED   = '#38bdf8'; // Azul ciano para Velocidade / Estamina / C
 export const C_UTILITY = '#fbbf24'; // Dourado para Quantidades / Projéteis / Alcance / Perfuração
 export const C_EVO     = '#ffe600'; // Ouro radiante para Evoluções Supremas
 
-export function getAvailableUpgrades(player: BaseCharacter, gameScene: any): UpgradeCard[] {
-  const weapons: any[] = gameScene.weapons || [];
+export function getAvailableUpgrades(player: BaseCharacter, gameScene: UpgradeGameScene): UpgradeCard[] {
+  const weapons: BaseWeapon[] = gameScene.weapons || [];
   const dmgMult = 1 + (player.bonusDamagePercent || 0) / 100;
 
   const soulBoltWeapon = weapons.find((w) => w instanceof SoulBoltWeapon) as SoulBoltWeapon | undefined;
@@ -599,8 +599,8 @@ export function getAvailableUpgrades(player: BaseCharacter, gameScene: any): Upg
  * Retorna até 3 cartas de Evolução Suprema das armas equipadas e ainda não evoluídas.
  * Concedido exclusivamente ao capturar 100% de um Altar de Ascensão.
  */
-export function getAltarEvolutionCards(player: BaseCharacter, gameScene: any): UpgradeCard[] {
-  const weapons: any[] = gameScene.weapons || [];
+export function getAltarEvolutionCards(player: BaseCharacter, gameScene: UpgradeGameScene): UpgradeCard[] {
+  const weapons: BaseWeapon[] = gameScene.weapons || [];
   const dmgMult = 1 + (player.bonusDamagePercent || 0) / 100;
   const cards: UpgradeCard[] = [];
 

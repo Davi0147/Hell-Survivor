@@ -1,3 +1,5 @@
+import type { UIScene } from '../scenes/UIScene';
+import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import Phaser from 'phaser';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { SoundManager } from './SoundManager';
@@ -14,7 +16,7 @@ import type { ISandboxContext } from './SandboxController';
 type SandboxTab = 'CHEATS' | 'SPAWNER' | 'WEAPONS' | 'UPGRADES' | 'LOGS';
 
 export class DevSandboxPanel {
-  private uiScene: Phaser.Scene;
+  private uiScene: UIScene;
   private gameScene: ISandboxContext;
 
   private topBarContainer!: Phaser.GameObjects.Container;
@@ -35,7 +37,7 @@ export class DevSandboxPanel {
 
   private readonly pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
-  constructor(uiScene: Phaser.Scene, gameScene: ISandboxContext) {
+  constructor(uiScene: UIScene, gameScene: ISandboxContext) {
     this.uiScene = uiScene;
     this.gameScene = gameScene;
 
@@ -343,10 +345,10 @@ export class DevSandboxPanel {
         }
       },
       {
-        label: `SIMULAR CONTROLES TOUCH MOBILE: ${(this.uiScene as any).touchControls?.forceEnabled ? 'ATIVADO' : 'DESATIVADO'}`,
-        active: Boolean((this.uiScene as any).touchControls?.forceEnabled),
+        label: `SIMULAR CONTROLES TOUCH MOBILE: ${this.uiScene.touchControls?.forceEnabled ? 'ATIVADO' : 'DESATIVADO'}`,
+        active: Boolean(this.uiScene.touchControls?.forceEnabled),
         onClick: () => {
-          const tc = (this.uiScene as any).touchControls;
+          const tc = this.uiScene.touchControls;
           if (tc) {
             tc.setForceEnabled(!tc.forceEnabled);
             DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Controles Touch Mobile alterados para: ${tc.forceEnabled}`);
@@ -781,7 +783,7 @@ export class DevSandboxPanel {
   private renderWeaponsTab(x: number, y: number, w: number, _h: number): void {
     const gs = this.gameScene;
     const p = gs.player;
-    const weapons: any[] = gs.weapons || [];
+    const weapons: BaseWeapon[] = gs.weapons || [];
 
     this.addSectionTitle(x, y, 'GERENCIADOR COMPLETO DE ARMAS ATIVAS & EVOLUÇÕES SUPREMAS');
 
@@ -993,10 +995,10 @@ export class DevSandboxPanel {
       }).setOrigin(0, 0.5);
       this.contentContainer.add(titleTxt);
 
-      const statusTxt = this.uiScene.add.text(x + 14, rowY + 31, wc.getStatus(wc.instance as any), {
+      const statusTxt = this.uiScene.add.text(x + 14, rowY + 31, wc.getStatus(wc.instance as never), {
         fontFamily: this.pixelFont,
         fontSize: '8px',
-        color: (wc.instance as any)?.isEvolved ? '#ffe600' : hasWeapon ? '#00f5d4' : '#64748b'
+        color: wc.instance?.isEvolved ? '#ffe600' : hasWeapon ? '#00f5d4' : '#64748b'
       }).setOrigin(0, 0.5);
       this.contentContainer.add(statusTxt);
 
@@ -1318,7 +1320,7 @@ export class DevSandboxPanel {
         action: () => {
           this.togglePanel(false);
           const cards = UpgradeScene.getAvailableUpgrades(p, gs);
-          (this.uiScene as any).showChestRoulette(cards, p, gs);
+          this.uiScene.showChestRoulette(cards, p, gs);
           DebugSessionLogger.getInstance().log('ITEM', 'INFO', 'Roleta do Baú aberta diretamente via Sandbox.');
         }
       },

@@ -1,3 +1,11 @@
+import type { IChestRouletteGameScene } from '../../ui/ChestRouletteModal';
+
+/** O que um item de mapa usa da cena de jogo ao ser coletado. */
+export type MapItemHostScene = IChestRouletteGameScene & {
+  gemsGroup?: Phaser.GameObjects.Group;
+  soulsGroup?: Phaser.GameObjects.Group;
+  spawnSoulItem?(x: number, y: number, value?: number): void;
+};
 import Phaser from 'phaser';
 import { BaseCharacter } from '../characters/BaseCharacter';
 import { SoundManager } from '../../systems/SoundManager';
@@ -68,7 +76,7 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  public collect(player: BaseCharacter, gameScene: any): void {
+  public collect(player: BaseCharacter, gameScene: MapItemHostScene): void {
     if (!this.active) return;
     this.setActive(false);
     this.setVisible(false);

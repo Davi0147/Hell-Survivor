@@ -164,7 +164,7 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   }
 
   public takeDamage(amount: number, bypassGodMode: boolean = false): void {
-    const gs = this.scene as any;
+    const gs = this.scene as Phaser.Scene & { sandboxGodMode?: boolean };
     if (gs && gs.sandboxGodMode && !bypassGodMode) {
       return;
     }

@@ -1,3 +1,4 @@
+import type { UIScene } from '../scenes/UIScene';
 import Phaser from 'phaser';
 import { GameScene } from '../scenes/GameScene';
 import { SoundManager } from './SoundManager';
@@ -525,8 +526,8 @@ export class TestShowroomSystem {
     // Estrela ritual nos pés na chegada
     this.scene.playRespawnStarEffect();
 
-    const uiScene = this.scene.scene.get('UIScene') as any;
-    if (uiScene && typeof uiScene.showCenterAnnouncement === 'function') {
+    const uiScene = this.scene.scene.get('UIScene') as UIScene | undefined;
+    if (uiScene) {
       uiScene.showCenterAnnouncement('TELEPORTE ATIVADO', toastMsg);
     }
 

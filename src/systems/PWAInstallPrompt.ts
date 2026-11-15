@@ -6,7 +6,13 @@
 
 import { STORAGE_KEYS } from '../config/storageKeys';
 
-let deferredPrompt: any = null;
+/** Evento do Chrome/Android que permite oferecer a instalação (ainda fora dos tipos padrão do DOM). */
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let bannerElement: HTMLElement | null = null;
 
 export function initPWAInstallPrompt(): void {
@@ -32,7 +38,7 @@ export function initPWAInstallPrompt(): void {
   // 3. Captura o evento nativo de instalação do Chrome / Android
   window.addEventListener('beforeinstallprompt', (e: Event) => {
     e.preventDefault();
-    deferredPrompt = e;
+    deferredPrompt = e as BeforeInstallPromptEvent;
     // Exibe banner nativo após um breve delay para a página carregar suavemente
     setTimeout(() => {
       createAndShowBanner('native');

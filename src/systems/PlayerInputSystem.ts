@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GamepadManager } from './GamepadManager';
-import { AutoPlayTestAgent } from './AutoPlayTestAgent';
+import { AutoPlayTestAgent, IAutoPlayWorld } from './AutoPlayTestAgent';
 import type { TouchControls } from '../ui/TouchControls';
 
 /** Intenção de movimento do jogador neste quadro. */
@@ -26,7 +26,7 @@ export interface IPlayerInputActions {
 export class PlayerInputSystem {
   private readonly keys: Record<'w' | 'a' | 's' | 'd' | 'up' | 'left' | 'down' | 'right' | 'shift' | 'space', Phaser.Input.Keyboard.Key | undefined>;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly actions: IPlayerInputActions) {
+  constructor(private readonly scene: Phaser.Scene & IAutoPlayWorld, private readonly actions: IPlayerInputActions) {
     const kb = scene.input.keyboard;
     const add = (code: number): Phaser.Input.Keyboard.Key | undefined => kb?.addKey(code);
     const K = Phaser.Input.Keyboard.KeyCodes;
