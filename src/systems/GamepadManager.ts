@@ -40,7 +40,9 @@ export class GamepadManager {
   public padName: string = '';
   public isConnected: boolean = false;
 
-  private constructor() {}
+  private constructor() {
+    // Singleton: use getInstance()
+  }
 
   public static getInstance(): GamepadManager {
     if (!GamepadManager.instance) {
@@ -108,8 +110,8 @@ export class GamepadManager {
     if (pad.down) dpadY += 1;
 
     // Combina analógico e D-Pad (D-Pad tem prioridade máxima se pressionado)
-    let finalDx = dpadX !== 0 ? dpadX : stickX;
-    let finalDy = dpadY !== 0 ? dpadY : stickY;
+    const finalDx = dpadX !== 0 ? dpadX : stickX;
+    const finalDy = dpadY !== 0 ? dpadY : stickY;
 
     // 3. Sprint: Gatilhos (RT/R2, LT/L2) ou Botão B/Círculo (botão 1)
     const isR2 = pad.buttons[7] && pad.buttons[7].value > 0.15;

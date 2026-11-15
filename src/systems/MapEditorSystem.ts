@@ -1158,7 +1158,7 @@ export class MapEditorSystem {
       this.renderAllMapEntities();
       this.updateChecklistStatus();
       this.showToast('Mapa importado com sucesso a partir do JSON!', '#10b981');
-    } catch (e) {
+    } catch {
       alert('Erro ao interpretar JSON! Certifique-se de que colou o conteúdo válido.');
     }
   }

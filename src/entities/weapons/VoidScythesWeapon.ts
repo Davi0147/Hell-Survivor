@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { BaseWeapon } from './BaseWeapon';
 import { BaseCharacter } from '../characters/BaseCharacter';
 import { BaseEnemy } from '../enemies/BaseEnemy';
-import { DamageTextSystem } from '../../systems/DamageTextSystem';
 import { SoundManager } from '../../systems/SoundManager';
 
 export class VoidScythesWeapon extends BaseWeapon {
@@ -133,7 +132,7 @@ export class VoidScythesWeapon extends BaseWeapon {
       // Verificação de colisão com inimigos ativos
       const activeEnemies = enemies.getChildren() as BaseEnemy[];
       for (const enemy of activeEnemies) {
-        if (!enemy.active || enemy.isDead || (enemy as any).isInvulnerable) continue;
+        if (!enemy.active || enemy.isDead || enemy.isInvulnerable) continue;
 
         const dist = Math.hypot(enemy.x - bx, enemy.y - by);
         if (dist <= hitRadius && !this.enemyHitCooldowns.has(enemy)) {

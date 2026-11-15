@@ -501,7 +501,7 @@ export class TestShowroomSystem {
     if (this.floorGraphics) this.floorGraphics.setVisible(visible);
     for (const el of this.showroomElements) {
       if (el && 'setVisible' in el) {
-        (el as any).setVisible(visible);
+        (el as unknown as { setVisible(v: boolean): unknown }).setVisible(visible);
       }
     }
   }

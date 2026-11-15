@@ -504,7 +504,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     } else {
       // No Modo História: Inicia com o diálogo adaptado da fuga/capítulo ou com a fala de ressurreição (estilo Hades)
       this.time.delayedCall(200, () => {
-        let dialogueLines: DialogueLine[] = [];
+        let dialogueLines: DialogueLine[];
 
         if (this.isRevival) {
           // Mecânica de Ressurreição Estilo Hades com Ódio Crescente a cada morte
@@ -642,8 +642,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 4. Atualizar Todas as Armas Ativas
     for (const weapon of this.weapons) {
-      if (typeof (weapon as any).updateWeapon === 'function') {
-        (weapon as any).updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
+      const custom = weapon as BaseWeapon & { updateWeapon?: (d: number, x: number, y: number, g: Phaser.GameObjects.Group) => void };
+      if (typeof custom.updateWeapon === 'function') {
+        custom.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
       } else {
         weapon.update(delta, this.player.x, this.player.y, this.enemiesGroup);
       }
@@ -1018,7 +1019,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
         levelReached: this.player.currentLevel,
         kills: this.killCount,
         hpRemaining: 0,
-        equippedWeapons: this.weapons.map((w: any) => w.name || 'Arma'),
+        equippedWeapons: this.weapons.map((w) => (w as { name?: string }).name || 'Arma'),
         deathCause: 'Dano fatal de monstros'
       });
     }

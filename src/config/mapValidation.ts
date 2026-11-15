@@ -1,4 +1,4 @@
-import { ChapterMapConfig, MapPoint, MapEntityProp } from './mapData';
+import { ChapterMapConfig, MapPoint } from './mapData';
 import { ARENA_CONFIG } from './balance';
 
 export interface MapValidationIssue {

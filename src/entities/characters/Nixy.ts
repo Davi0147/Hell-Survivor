@@ -131,7 +131,9 @@ export class Nixy extends BaseCharacter {
   private camerasShake(durationMs: number): void {
     try {
       this.scene.cameras.main.shake(durationMs, 0.008);
-    } catch {}
+    } catch {
+      // Câmera indisponível durante troca de cena: tremor é só cosmético
+    }
   }
 
   public updateNixy(

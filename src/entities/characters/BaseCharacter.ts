@@ -137,7 +137,7 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Aplicação da velocidade com bônus de upgrade e debuffs (como lentidão do rastro da Múmia)
-    const speedMult = (1 + this.bonusSpeedPercent / 100) * (this as any).speedDebuffMultiplier || (1 + this.bonusSpeedPercent / 100);
+    const speedMult = (1 + this.bonusSpeedPercent / 100) * (this as { speedDebuffMultiplier?: number }).speedDebuffMultiplier! || (1 + this.bonusSpeedPercent / 100);
     const currentSpeed = (this.isSprinting ? this.sprintSpeed : this.baseSpeed) * speedMult;
     body.setVelocity(nx * currentSpeed, ny * currentSpeed);
 

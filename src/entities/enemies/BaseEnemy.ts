@@ -8,6 +8,10 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   public damage: number = 11;
   public isDead: boolean = false;
   public stunTimer: number = 0;
+  /** Chefes reduzem atordoamento e não piscam com o golpe (subclasses de chefe ligam isto). */
+  public isBoss: boolean = false;
+  /** Ignora dano (fases cinematográficas de chefe). */
+  public isInvulnerable: boolean = false;
 
   protected hitFlashTimer: number = 0;
 
@@ -44,7 +48,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
 
   public applyStun(durationMs: number): void {
     if (this.isDead || !this.active) return;
-    const isBoss = (this as any).isBoss === true;
+    const isBoss = this.isBoss === true;
     const effectiveDuration = isBoss ? durationMs * 0.35 : durationMs;
     this.stunTimer = Math.max(this.stunTimer, effectiveDuration);
     if (this.hitFlashTimer <= 0 && !isBoss) {
@@ -64,16 +68,16 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
             this.clearTint();
           }
         }
-      } else if (this.hitFlashTimer <= 0 && !(this as any).isBoss) {
+      } else if (this.hitFlashTimer <= 0 && !this.isBoss) {
         this.setTint(0x9d4edd);
       }
-      return (this as any).isBoss ? 0.65 : 0.15;
+      return this.isBoss ? 0.65 : 0.15;
     }
     return 1.0;
   }
 
   public takeDamage(amount: number): void {
-    if (this.isDead || !this.active || (this as any).isInvulnerable) return;
+    if (this.isDead || !this.active || this.isInvulnerable) return;
 
     this.hp -= amount;
 

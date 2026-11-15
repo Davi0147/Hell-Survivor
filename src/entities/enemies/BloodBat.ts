@@ -77,7 +77,7 @@ export class BloodBat extends BaseEnemy {
       // Determinar direção cardinal
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
-      let dir: 'east' | 'west' | 'north' | 'south' = 'south';
+      let dir: 'east' | 'west' | 'north' | 'south';
 
       if (absX > absY) {
         dir = dx > 0 ? 'east' : 'west';

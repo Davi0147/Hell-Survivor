@@ -111,8 +111,9 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
           if (gameScene.soulsGroup) {
             const souls = gameScene.soulsGroup.getChildren();
             for (const s of souls) {
-              if (s.active && typeof (s as any).isAttracted !== 'undefined') {
-                (s as any).isAttracted = true;
+              const soul = s as Phaser.GameObjects.GameObject & { isAttracted?: boolean };
+              if (soul.active && typeof soul.isAttracted !== 'undefined') {
+                soul.isAttracted = true;
               }
             }
           }

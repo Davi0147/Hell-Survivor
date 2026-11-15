@@ -1,7 +1,5 @@
 import Phaser from 'phaser';
 import { DialogueSystem, DialogueLine } from '../systems/DialogueSystem';
-import { VoidScythesWeapon } from '../entities/weapons/VoidScythesWeapon';
-import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { SoundManager } from '../systems/SoundManager';
 import { UpgradeCard } from './UpgradeScene';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
@@ -28,7 +26,7 @@ export class UIScene
 {
   // Sistema de Diálogos Estilo Persona 5
   private dialogueSystem!: DialogueSystem;
-  private hudElements: any[] = [];
+  private hudElements: Phaser.GameObjects.GameObject[] = [];
   private isHUDVisibleState: boolean = true;
   private announcer!: ScreenAnnouncer;
 
@@ -400,8 +398,9 @@ export class UIScene
   public setHUDVisible(visible: boolean): void {
     this.isHUDVisibleState = visible;
     for (const el of this.hudElements) {
-      if (el && typeof el.setVisible === 'function') {
-        el.setVisible(visible);
+      const visual = el as Phaser.GameObjects.GameObject & { setVisible?: (v: boolean) => unknown };
+      if (visual && typeof visual.setVisible === 'function') {
+        visual.setVisible(visible);
       }
     }
     if (this.touchControls) {
@@ -475,7 +474,9 @@ export class UIScene
         localStorage.setItem(STORAGE_KEYS.ENDLESS_RECORD_SEC, sec.toString());
         return true;
       }
-    } catch {}
+    } catch {
+      // Sem localStorage (modo privado): o recorde só vale nesta sessão
+    }
     return false;
   }
 

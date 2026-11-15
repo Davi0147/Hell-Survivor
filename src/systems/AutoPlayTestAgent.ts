@@ -1,4 +1,3 @@
-import Phaser from 'phaser';
 import { Nixy } from '../entities/characters/Nixy';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SoulGem } from '../entities/items/SoulGem';
@@ -38,7 +37,9 @@ export class AutoPlayTestAgent {
   private chestReactionTimer: number = 0;
   private lastPlayerLevel: number = 0;
 
-  private constructor() {}
+  private constructor() {
+    // Singleton: use getInstance()
+  }
 
   public static getInstance(): AutoPlayTestAgent {
     if (!AutoPlayTestAgent.instance) {
@@ -65,7 +66,7 @@ export class AutoPlayTestAgent {
   /**
    * Pilota a heroína Nixy de forma autônoma a cada frame
    */
-  public updateAgent(gameScene: any, deltaMs: number): { dx: number; dy: number; isSprint: boolean } {
+  public updateAgent(gameScene: any, _deltaMs: number): { dx: number; dy: number; isSprint: boolean } {
     if (!this.isEnabled) return { dx: 0, dy: 0, isSprint: false };
 
     const player: Nixy = gameScene.player;

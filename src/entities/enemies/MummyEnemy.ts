@@ -97,7 +97,7 @@ export class MummyEnemy extends BaseEnemy {
     this.play('mummy-idle-south', true);
   }
 
-  public updateMummy(player: Nixy, deltaMs: number, timeNow: number): void {
+  public updateMummy(player: Nixy, deltaMs: number, _timeNow: number): void {
     if (this.isDead || !this.active) return;
 
     // Efeito de stun / hit flash
@@ -142,7 +142,7 @@ export class MummyEnemy extends BaseEnemy {
       // Direção da animação
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
-      let targetDir: 'east' | 'west' | 'north' | 'south' = 'south';
+      let targetDir: 'east' | 'west' | 'north' | 'south';
 
       if (absX > absY) {
         targetDir = dx > 0 ? 'east' : 'west';
@@ -178,8 +178,9 @@ export class MummyEnemy extends BaseEnemy {
 
     const puddle = new PoisonPuddle(this.scene, this.x, this.y + 14, 18, 6500);
     this.puddles.push(puddle);
-    if ((this.scene as any).registerPoisonPuddle) {
-      (this.scene as any).registerPoisonPuddle(puddle);
+    const host = this.scene as Phaser.Scene & { registerPoisonPuddle?: (p: typeof puddle) => void };
+    if (host.registerPoisonPuddle) {
+      host.registerPoisonPuddle(puddle);
     }
   }
 

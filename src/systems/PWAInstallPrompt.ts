@@ -13,7 +13,7 @@ export function initPWAInstallPrompt(): void {
   // 1. Se já estiver rodando instalado como App (Standalone), não faz nada
   const isStandalone = 
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
     document.referrer.includes('android-app://');
 
   if (isStandalone) {
@@ -25,7 +25,7 @@ export function initPWAInstallPrompt(): void {
     return;
   }
 
-  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) && !(window as any).MSStream;
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) && !('MSStream' in window);
   const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
     (window.matchMedia('(pointer: coarse)').matches && window.innerWidth <= 1024);
 

@@ -340,7 +340,7 @@ export class UltimateSystem {
     x: number,
     y: number,
     enemiesGroup: Phaser.GameObjects.Group,
-    explosionIndex: number
+    _explosionIndex: number
   ): void {
     const aoeRadius = 115;
     const damage = 140;

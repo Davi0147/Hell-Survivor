@@ -32,8 +32,10 @@ export class SoundManager {
     this.initAudioContext();
     this.setupAutoplayUnlock();
     try {
-      (window as any).__hellSurvivorSoundManager = this;
-    } catch {}
+      (window as Window & { __hellSurvivorSoundManager?: SoundManager }).__hellSurvivorSoundManager = this;
+    } catch {
+      // Armazenamento/áudio indisponível: segue sem quebrar o jogo
+    }
   }
 
   private loadSavedVolumes(): void {
@@ -43,7 +45,9 @@ export class SoundManager {
         const val = parseFloat(savedSfx);
         if (!isNaN(val)) this.sfxVolume = Phaser.Math.Clamp(val, 0, 1);
       }
-    } catch {}
+    } catch {
+      // Armazenamento/áudio indisponível: segue sem quebrar o jogo
+    }
   }
 
   public getMusicVolume(): number {
@@ -70,7 +74,9 @@ export class SoundManager {
     this.sfxVolume = Phaser.Math.Clamp(volume, 0, 1);
     try {
       localStorage.setItem(STORAGE_KEYS.SFX_VOLUME, this.sfxVolume.toString());
-    } catch {}
+    } catch {
+      // Armazenamento/áudio indisponível: segue sem quebrar o jogo
+    }
     if (this.sfxGainNode && this.audioCtx) {
       this.sfxGainNode.gain.setValueAtTime(this.sfxVolume, this.audioCtx.currentTime);
     }
@@ -87,15 +93,15 @@ export class SoundManager {
     this.scene = scene;
     MusicDirector.getInstance().setScene(scene);
     // Se Phaser já tiver um AudioContext WebAudio criado, usamos ele
-    if ((scene.sound as any)?.context && !this.audioCtx) {
-      this.audioCtx = (scene.sound as any).context as AudioContext;
+    if (scene.sound instanceof Phaser.Sound.WebAudioSoundManager && !this.audioCtx) {
+      this.audioCtx = scene.sound.context;
       this.setupSfxChain();
     }
   }
 
   private initAudioContext(): void {
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AudioContextClass && !this.audioCtx) {
         this.audioCtx = new AudioContextClass();
         this.setupSfxChain();
@@ -133,13 +139,17 @@ export class SoundManager {
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
       this.audioCtx.resume().then(() => {
         this.isAudioUnlocked = true;
-      }).catch(() => {});
+      }).catch(() => {
+        // Navegador ainda bloqueia o áudio; tenta de novo no próximo toque
+      });
     }
 
-    if (this.scene && this.scene.sound && (this.scene.sound as any).locked) {
+    if (this.scene && this.scene.sound && this.scene.sound.locked) {
       try {
-        (this.scene.sound as any).unlock();
-      } catch {}
+        this.scene.sound.unlock();
+      } catch {
+        // Armazenamento/áudio indisponível: segue sem quebrar o jogo
+      }
     }
   }
 
@@ -226,7 +236,9 @@ export class SoundManager {
       this.initAudioContext();
     }
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume().catch(() => {});
+      this.audioCtx.resume().catch(() => {
+        // Navegador ainda bloqueia o áudio; tenta de novo no próximo toque
+      });
     }
     return this.audioCtx;
   }

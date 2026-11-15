@@ -1295,7 +1295,7 @@ export class Chapter1EndScene extends Phaser.Scene {
    * Sequência de Conclusão do Capítulo 1 ou 2
    */
   private showVictorySequence(): void {
-    const { width, height } = this.scale;
+    const { width } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
 
     this.victoryContainer = this.add.container(0, 0).setDepth(100);

@@ -5,6 +5,8 @@ import { GemType } from '../items/SoulGem';
 export class ZombieDog extends BaseEnemy {
   private currentDir: 'east' | 'west' | 'north' | 'south' = 'south';
   public isElite: boolean = false;
+  /** Titã Cerberus do Modo Infinito: não volta para o pool de cães comuns. */
+  public isSpecialMiniBoss: boolean = false;
   public eliteScale: number = 1.0;
   public customDrop?: GemType;
 
@@ -72,7 +74,7 @@ export class ZombieDog extends BaseEnemy {
       // Determinar direção cardinal predominante (east, west, north, south)
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
-      let dir: 'east' | 'west' | 'north' | 'south' = 'south';
+      let dir: 'east' | 'west' | 'north' | 'south';
 
       if (absX > absY) {
         dir = dx > 0 ? 'east' : 'west';

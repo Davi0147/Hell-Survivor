@@ -153,7 +153,7 @@ export class UpgradeScene extends Phaser.Scene {
     }
     this.cardContainers = [];
 
-    let chosenCards: UpgradeCard[] = [];
+    let chosenCards: UpgradeCard[];
     if (this.isAltar) {
       const availableCards = UpgradeScene.getAltarEvolutionCards(this.player, this.gameScene);
       const shuffled = [...availableCards].sort(() => 0.5 - Math.random());
@@ -406,7 +406,6 @@ export class UpgradeScene extends Phaser.Scene {
     });
 
     const glowColor = card.glowColor ?? card.badgeColor ?? 0xfacc15;
-    const isEvo = card.isEvolution === true;
 
     // 1. Sprite da Moldura da Carta (120x200px escalada por cardScale = 2.2 -> 264x440)
     // Sem formas semitransparentes ou bordas brancas atrás, destacando a arte da moldura

@@ -18,7 +18,7 @@ async function bootstrap() {
   }
 
   const game = new Phaser.Game(GAME_CONFIG);
-  (window as any).__PHASER_GAME__ = game;
+  (window as Window & { __PHASER_GAME__?: Phaser.Game }).__PHASER_GAME__ = game;
   initPWAInstallPrompt();
 
   // Se a página carrega com o contêiner ainda sem tamanho (aba em segundo plano, WebView

@@ -1302,7 +1302,7 @@ export class AzazelBoss extends BaseEnemy {
     if (this.combatPhase === 1 && this.hp - mitigated <= phase2Threshold) {
       this.hp = phase2Threshold;
       this.emit('boss-hp-changed', this.hp, this.maxHp);
-      const player = (this.scene as any).player as Nixy;
+      const player = (this.scene as Phaser.Scene & { player: Nixy }).player;
       if (player) {
         this.triggerPhase2DarknessDomain(player);
       }
@@ -1313,7 +1313,7 @@ export class AzazelBoss extends BaseEnemy {
     if (this.combatPhase === 2 && this.hp - mitigated <= phase3Threshold) {
       this.hp = phase3Threshold;
       this.emit('boss-hp-changed', this.hp, this.maxHp);
-      const player = (this.scene as any).player as Nixy;
+      const player = (this.scene as Phaser.Scene & { player: Nixy }).player;
       if (player) {
         this.triggerPhase3CorruptedDimension(player);
       }

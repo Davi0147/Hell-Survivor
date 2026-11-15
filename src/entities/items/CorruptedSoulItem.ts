@@ -72,7 +72,7 @@ export class CorruptedSoulItem extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  public collect(player: BaseCharacter): void {
+  public collect(_player: BaseCharacter): void {
     if (!this.active) return;
 
     // Registra na economia da partida atual

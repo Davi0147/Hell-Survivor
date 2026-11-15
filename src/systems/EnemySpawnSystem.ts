@@ -75,7 +75,7 @@ export class EnemySpawnSystem {
     damage = Math.round(damage * chMult);
 
     let enemy = this.ctx.enemiesGroup.getChildren().find(
-      (child) => !child.active && child instanceof ZombieDog && !(child as any).isSpecialMiniBoss
+      (child) => !child.active && child instanceof ZombieDog && !child.isSpecialMiniBoss
     ) as ZombieDog | undefined;
 
     if (!enemy) {
@@ -296,7 +296,7 @@ export class EnemySpawnSystem {
     // Fase 1: Somente Cães Zumbis (Até 25% da barra ou 90s)
     // Fase 2: Cães Zumbis + Morcegos de Sangue + Múmias (De 25% a 60% da barra ou 90s-210s)
     // Fase 3: Todos os Inimigos + Skull Slimes (A partir de 60% da barra ou >210s)
-    let phase: 1 | 2 | 3 = 1;
+    let phase: 1 | 2 | 3;
     if (this.ctx.gameMode === 'story') {
       if (purifyRatio >= 0.60 || elapsedSec >= 210) {
         phase = 3;
@@ -415,7 +415,7 @@ export class EnemySpawnSystem {
     const y = this.ctx.player.y + Math.sin(angle) * dist;
 
     const titan = new ZombieDog(this.scene, x, y);
-    (titan as any).isSpecialMiniBoss = true;
+    titan.isSpecialMiniBoss = true;
     titan.setDepth(15);
     this.ctx.enemiesGroup.add(titan);
 

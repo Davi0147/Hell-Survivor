@@ -168,8 +168,10 @@ export class BootScene extends Phaser.Scene {
     const cacheBuster = Date.now();
 
     // Garante carregamento da fonte Pixelzone na memória do navegador
-    if (typeof document !== 'undefined' && (document as any).fonts) {
-      (document as any).fonts.load("24px 'Pixelzone'").catch(() => {});
+    if (typeof document !== 'undefined' && document.fonts) {
+      document.fonts.load("24px 'Pixelzone'").catch(() => {
+        // Fonte opcional: se falhar, o navegador usa a próxima da lista
+      });
     }
 
     // Barra de carregamento
@@ -196,7 +198,7 @@ export class BootScene extends Phaser.Scene {
       loadingText.destroy();
     });
 
-    this.load.on('loaderror', (fileObj: any) => {
+    this.load.on('loaderror', (fileObj: Phaser.Loader.File) => {
       console.error(`[BootScene] ERRO ao carregar arquivo: ${fileObj.key} (${fileObj.src})`);
     });
 

@@ -2,6 +2,15 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.9.18 — Limpeza do Lint e Tipos] — 2026-11-15
+
+### Resumo para o Jogador
+- **Nada muda na jogabilidade.**
+
+### Organização do Projeto
+- **Avisos do lint: 138 → 54.** Saíram imports e variáveis sem uso, valores iniciais que nunca eram lidos e blocos vazios sem explicação (agora comentados com o motivo).
+- **Tipos no lugar de `any`**: `BaseEnemy` declara `isBoss` e `isInvulnerable` (antes lidos "às cegas" por armas e pelo atordoamento), `ZombieDog` declara `isSpecialMiniBoss` (Titã Cerberus), e som, HUD, Azazel, múmia e itens deixaram de usar `any`.
+- **Pendente:** os `any` restantes vêm do contrato solto da `GameScene` usado pelas cartas, Modo de Teste, logger e Editor de Mapas.
 ## [v0.9.17 — Props do Mapa no Sistema de Cenário] — 2026-11-14
 
 ### Resumo para o Jogador

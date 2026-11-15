@@ -824,7 +824,7 @@ export class DevSandboxPanel {
         evoTitle: 'CEIFADORA DO VAZIO',
         instance: weapons.find((wp) => wp instanceof VoidScythesWeapon) as VoidScythesWeapon | undefined,
         onAddOrUpgrade: () => {
-          let wp = weapons.find((item) => item instanceof VoidScythesWeapon) as VoidScythesWeapon | undefined;
+          const wp = weapons.find((item) => item instanceof VoidScythesWeapon) as VoidScythesWeapon | undefined;
           if (!wp) {
             weapons.push(new VoidScythesWeapon(gs, p));
           } else {
@@ -854,7 +854,7 @@ export class DevSandboxPanel {
         evoTitle: 'SUPERNOVA ABISSAL',
         instance: weapons.find((wp) => wp instanceof HellfireAuraWeapon) as HellfireAuraWeapon | undefined,
         onAddOrUpgrade: () => {
-          let wp = weapons.find((item) => item instanceof HellfireAuraWeapon) as HellfireAuraWeapon | undefined;
+          const wp = weapons.find((item) => item instanceof HellfireAuraWeapon) as HellfireAuraWeapon | undefined;
           if (!wp) {
             weapons.push(new HellfireAuraWeapon(gs, p));
           } else {
@@ -885,7 +885,7 @@ export class DevSandboxPanel {
         evoTitle: 'MÁXIMO (NÍV 5)',
         instance: weapons.find((wp) => wp instanceof BloodDaggersWeapon) as BloodDaggersWeapon | undefined,
         onAddOrUpgrade: () => {
-          let wp = weapons.find((item) => item instanceof BloodDaggersWeapon) as BloodDaggersWeapon | undefined;
+          const wp = weapons.find((item) => item instanceof BloodDaggersWeapon) as BloodDaggersWeapon | undefined;
           if (!wp) {
             weapons.push(new BloodDaggersWeapon(gs, p));
           } else {
@@ -915,7 +915,7 @@ export class DevSandboxPanel {
         evoTitle: 'MÁXIMO (NÍV 5)',
         instance: weapons.find((wp) => wp instanceof AbyssalChainsWeapon) as AbyssalChainsWeapon | undefined,
         onAddOrUpgrade: () => {
-          let wp = weapons.find((item) => item instanceof AbyssalChainsWeapon) as AbyssalChainsWeapon | undefined;
+          const wp = weapons.find((item) => item instanceof AbyssalChainsWeapon) as AbyssalChainsWeapon | undefined;
           if (!wp) {
             weapons.push(new AbyssalChainsWeapon(gs, p));
           } else {
@@ -945,7 +945,7 @@ export class DevSandboxPanel {
         evoTitle: 'MÁXIMO (NÍV 5)',
         instance: weapons.find((wp) => wp instanceof InfernalMeteorWeapon) as InfernalMeteorWeapon | undefined,
         onAddOrUpgrade: () => {
-          let wp = weapons.find((item) => item instanceof InfernalMeteorWeapon) as InfernalMeteorWeapon | undefined;
+          const wp = weapons.find((item) => item instanceof InfernalMeteorWeapon) as InfernalMeteorWeapon | undefined;
           if (!wp) {
             weapons.push(new InfernalMeteorWeapon(gs, p));
           } else {

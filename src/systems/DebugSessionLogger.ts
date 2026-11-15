@@ -141,7 +141,9 @@ export class DebugSessionLogger {
     try {
       const recent = this.entries.slice(-150);
       localStorage.setItem(STORAGE_KEYS.DEBUG_SESSION_LOG, JSON.stringify(recent));
-    } catch {}
+    } catch {
+      // Diagnóstico é opcional: falhar aqui nunca pode afetar o jogo
+    }
   }
 
   public clearLogs(): void {
@@ -270,7 +272,9 @@ export class DebugSessionLogger {
         currentBgm = sm.currentBgmKey || 'Nenhuma';
         audioState = sm.audioCtx?.state || 'OK';
       }
-    } catch {}
+    } catch {
+      // Diagnóstico é opcional: falhar aqui nunca pode afetar o jogo
+    }
 
     return {
       fps,

@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
 import { Nixy } from '../characters/Nixy';
-import { DamageTextSystem } from '../../systems/DamageTextSystem';
 import { GemType } from '../items/SoulGem';
 import { SoundManager } from '../../systems/SoundManager';
 
@@ -90,7 +89,7 @@ export class SkullSlime extends BaseEnemy {
 
           const absX = Math.abs(dx);
           const absY = Math.abs(dy);
-          let dir: 'east' | 'west' | 'north' | 'south' = 'south';
+          let dir: 'east' | 'west' | 'north' | 'south';
 
           if (absX > absY) {
             dir = dx > 0 ? 'east' : 'west';

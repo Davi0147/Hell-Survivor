@@ -108,7 +108,7 @@ export class BloodDaggerProjectile extends Phaser.Physics.Arcade.Sprite {
   }
 
   public onHit(enemy: BaseEnemy): void {
-    if (!this.active || this.hitEnemies.has(enemy) || (enemy as any).isInvulnerable) return;
+    if (!this.active || this.hitEnemies.has(enemy) || enemy.isInvulnerable) return;
 
     this.hitEnemies.add(enemy);
     enemy.takeDamage(this.damage);

@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
 import { Nixy } from '../characters/Nixy';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
-import { DamageTextSystem } from '../../systems/DamageTextSystem';
 import { SoundManager } from '../../systems/SoundManager';
 import { BOSS_TELEGRAPH } from '../../config/theme';
 
@@ -497,7 +496,7 @@ export class SuccubusBoss extends BaseEnemy {
   public override takeDamage(amount: number): void {
     if (this.isDead || !this.active || this.isInvulnerable || this.bossState === 'INTRO') return;
 
-    let finalDamage = amount;
+    let finalDamage: number;
 
     // 1. Janela de vulnerabilidade: durante a recuperação do Salto Esmagador (SLAM_RECOVERY), recebe +25% de dano
     if (this.bossState === 'SLAM_RECOVERY') {
@@ -554,7 +553,7 @@ export class SuccubusBoss extends BaseEnemy {
     let deg = (angleRad * 180) / Math.PI;
     if (deg < 0) deg += 360;
 
-    let dir = 'south';
+    let dir: string;
     if (deg >= 337.5 || deg < 22.5) dir = 'east';
     else if (deg >= 22.5 && deg < 67.5) dir = 'south-east';
     else if (deg >= 67.5 && deg < 112.5) dir = 'south';

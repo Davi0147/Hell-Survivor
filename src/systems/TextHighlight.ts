@@ -9,8 +9,8 @@ export function enableCensoredTextHighlight(
   highlightColor: string = '#ffd700'
 ): void {
   const ctx = textObj.context;
-  if (!ctx || (ctx as any).__censorHighlightAttached) return;
-  (ctx as any).__censorHighlightAttached = true;
+  if (!ctx || (ctx as CanvasRenderingContext2D & { __censorHighlightAttached?: boolean }).__censorHighlightAttached) return;
+  (ctx as CanvasRenderingContext2D & { __censorHighlightAttached?: boolean }).__censorHighlightAttached = true;
 
   const origFillText = ctx.fillText;
   ctx.fillText = function (text: string, x: number, y: number, maxWidth?: number) {

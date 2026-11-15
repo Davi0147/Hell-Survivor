@@ -25,7 +25,7 @@ describe('MetaProgressManager (Lógica Pura de Meta-Progressão e Economia)', ()
 
     const mockWindow = {
       localStorage: memoryStorage,
-      addEventListener: () => {}
+      addEventListener: () => undefined
     };
 
     vi.stubGlobal('window', mockWindow);
