@@ -73,12 +73,26 @@ export const COLORS = {
  */
 export const ARENA_FLOOR_TINT = {
   fallback: 0x423232,
-  byTexture: { 'floor-tile-2': 0x684b4b } as Record<string, number>,
+  byTexture: { 'floor-tile-2': 0x684b4b, 'floor-ch1': 0xffffff } as Record<string, number>,
   byChapter: {
     1: 0x423232, // Catacumbas de Rosalin: pedra quente e escura
     2: 0x2f3350, // Santuário caído de Azazel: pedra fria azul-violeta
   } as Record<number, number>,
 } as const;
+
+/**
+ * Escala de cada textura de piso. As antigas (2048 px) são reduzidas a 10%; o piso novo do
+ * Capítulo 1 vem em densidade 2x e usa 0.5 (um pixel da arte = um pixel de tela no zoom 2).
+ */
+export const ARENA_FLOOR_SCALE: Record<string, number> = {
+  'floor-ch1': 0.5,
+};
+export const ARENA_FLOOR_SCALE_DEFAULT = 0.1;
+
+/** Piso com arte própria por capítulo (troca o piso padrão quando a arte existe). */
+export const CHAPTER_FLOOR_TEXTURE: Record<number, string> = {
+  1: 'floor-ch1',
+};
 
 export function getArenaFloorTint(textureKey: string, chapter: number): number {
   return ARENA_FLOOR_TINT.byTexture[textureKey] ?? ARENA_FLOOR_TINT.byChapter[chapter] ?? ARENA_FLOOR_TINT.fallback;

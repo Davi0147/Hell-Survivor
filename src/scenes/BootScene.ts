@@ -1,5 +1,6 @@
 import { ensurePlaceholderItemTextures } from '../systems/PlaceholderItemTextures';
 import { GAME_ICON_KEYS, GAME_ICON_FOLDERS } from '../config/iconKeys';
+import { CH1_DECOR_FILES } from '../config/sceneryCatalog';
 import Phaser from 'phaser';
 import { DIRECTIONS_8 } from '../config/balance';
 import { SoundManager } from '../systems/SoundManager';
@@ -250,6 +251,11 @@ export class BootScene extends Phaser.Scene {
 
     // 6. Carregar textura do chão enviada pelo usuário (Chão1.jpg)
     this.load.image('floor-tile', `assets/textures/chao1.jpg?t=${cacheBuster}`);
+    // Kit de cenário do Capítulo 1 (piso e peças em densidade 2x, desenhadas com escala 0.5)
+    this.load.image('floor-ch1', `assets/textures/floor-ch1.png?t=${cacheBuster}`);
+    for (const [key, file] of Object.entries(CH1_DECOR_FILES)) {
+      this.load.image(key, `${file}?t=${cacheBuster}`);
+    }
 
     // 7. Carregar sprites do Zombie Dog (Idle nos 8 ângulos)
     for (const dir of DIRECTIONS_8) {

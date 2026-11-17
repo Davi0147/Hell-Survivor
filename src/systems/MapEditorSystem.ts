@@ -4,6 +4,7 @@ import { ChapterMapConfig, MapEntityProp, MapStorageManager } from '../config/ma
 import { ARENA_CONFIG } from '../config/balance';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
+import { DECOR_TEXTURE_SCALE } from '../config/sceneryCatalog';
 
 export type EditorCategory = 'structures' | 'props' | 'floor' | 'checklist';
 
@@ -15,6 +16,30 @@ export interface EditorPaletteItem {
   scale?: number;
   icon: string;
 }
+
+/** Peças do kit do Capítulo 1 na paleta do Editor: [chave, nome, ícone]. */
+const CH1_EDITOR_PIECES: [string, string, string][] = [
+  ['ch1-pillar', 'Pilar Quebrado (Cap. 1)', '🏛️'],
+  ['ch1-arch', 'Arco em Ruína (Cap. 1)', '⛩️'],
+  ['ch1-statue', 'Estátua da Succubus (Cap. 1)', '🗿'],
+  ['ch1-sarcophagus', 'Sarcófago (Cap. 1)', '⚰️'],
+  ['ch1-skull-altar', 'Altar de Caveiras (Cap. 1)', '💀'],
+  ['ch1-cage', 'Gaiola (Cap. 1)', '⛓️'],
+  ['ch1-torch', 'Tocha de Ferro (Cap. 1)', '🔥'],
+  ['ch1-candelabra', 'Candelabro (Cap. 1)', '🕯️'],
+  ['ch1-candles', 'Velas no Chão (Cap. 1)', '🕯️'],
+  ['ch1-brazier', 'Braseiro (Cap. 1)', '🔥'],
+  ['ch1-boulder-large', 'Rocha Grande (Cap. 1)', '⛰️'],
+  ['ch1-boulder-medium', 'Rochas Médias (Cap. 1)', '🪨'],
+  ['ch1-rocks-small', 'Pedrinhas (Cap. 1)', '🪨'],
+  ['ch1-rubble', 'Entulho (Cap. 1)', '🧱'],
+  ['ch1-bone-pile', 'Ossos (Cap. 1)', '🦴'],
+  ['ch1-thorn-bush', 'Espinhos com Rosas (Cap. 1)', '🥀'],
+  ['ch1-decal-ritual', 'Círculo Ritual no Chão (Cap. 1)', '⭕'],
+  ['ch1-decal-blood', 'Mancha de Sangue (Cap. 1)', '🩸'],
+  ['ch1-decal-lava', 'Fenda de Lava (Cap. 1)', '🌋'],
+  ['ch1-decal-cracks', 'Chão Rachado (Cap. 1)', '🪨'],
+];
 
 export class MapEditorSystem {
   private scene: GameScene;
@@ -73,6 +98,9 @@ export class MapEditorSystem {
     { id: 'scenery-ossos', name: 'Pilha de Ossos', category: 'props', icon: '💀', texture: 'scenery-ossos', scale: 1.0 },
     { id: 'scenery-cogumelos', name: 'Cogumelos Infernais', category: 'props', icon: '🍄', texture: 'scenery-cogumelos', scale: 1.0 },
     { id: 'scenery-cristal', name: 'Cristais Abissais', category: 'props', icon: '💎', texture: 'scenery-cristal', scale: 0.5 },
+
+    // 2.1. Kit do Capítulo 1 (Catacumbas de Rosalin): arte nova, desenhada com escala 0.5
+    ...CH1_EDITOR_PIECES.map(([id, name, icon]) => ({ id, name, category: 'props' as const, icon, texture: id, scale: DECOR_TEXTURE_SCALE })),
 
     // 3. Ferramentas Utilitárias
     { id: 'select', name: 'Mão / Mover Câmera', category: 'tools', icon: '🖐️' },

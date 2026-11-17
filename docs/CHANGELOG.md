@@ -2,6 +2,27 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.12.0 — Catacumbas de Verdade] — 2026-11-17
+
+### Resumo para o Jogador
+- **Capítulo 1 com cenário novo** (também no Infinito e no Modo de Teste, que usam o mapa do Capítulo 1):
+  - Piso novo de pedra gótica, escuro e com pouco contraste, para monstros e gemas se destacarem.
+  - 16 objetos novos na mesma proporção: pilar quebrado com rosas, arco em ruína, estátua da succubus, sarcófago, altar de caveiras, gaiola, tocha de ferro, candelabro, velas, braseiro, rochas em 3 tamanhos, entulho, ossos e espinhos com rosas.
+  - Conjuntos montados pelo mapa (ex.: estátua sobre círculo ritual com velas; sarcófago com candelabro e mancha de sangue; gaiola com correntes e ossos).
+  - Manchas no chão espalhadas pela arena inteira (sangue, rachaduras, pétalas, cera, queimaduras, musgo, fendas de lava) e entulho miúdo (caveiras, ossos, correntes, espada, vaso, teia, pedra rúnica), para o piso não parecer repetido.
+  - Tochas, candelabros, velas, braseiros e fendas de lava têm luz pulsando.
+  - A Nixy passa **atrás** dos objetos altos (pilar, arco, estátua, gaiola, tocha), e eles ficam meio transparentes enquanto a cobrem.
+- O Capítulo 2 continua com o cenário antigo até chegar o kit dele.
+
+### Organização do Projeto
+- Novo `src/systems/ChapterDecorSystem.ts` (troca das peças antigas, conjuntos, manchas, luzes, profundidade e corte do que está fora da tela) e `src/config/sceneryCatalog.ts` (peças, camadas, trocas e conjuntos).
+- Arte recortada em `public/assets/sprites/scenery/ch1/` e `public/assets/textures/floor-ch1.png` (densidade 2x, desenhada com escala 0.5); escala do piso por textura em `ARENA_FLOOR_SCALE`.
+- Editor de Mapas: 20 peças novas na aba de cenário.
+- Mapas salvos continuam valendo: as peças antigas são trocadas pelas novas no mesmo lugar.
+
+### Não verificado
+- Desempenho em celular com o cenário mais cheio (no PC ficou estável).
+- Os objetos grandes ainda não bloqueiam a passagem (a Nixy e os monstros atravessam).
 ## [v0.11.3 — Caça ao Ladrão] — 2026-11-17
 
 ### Resumo para o Jogador

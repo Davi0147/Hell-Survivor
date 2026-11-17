@@ -36,13 +36,18 @@ import { PickupSpawnSystem, IPickupSpawnContext } from '../systems/PickupSpawnSy
 import { PlayerInputSystem } from '../systems/PlayerInputSystem';
 import { BossFightSystem, IBossFightContext, BossId } from '../systems/BossFightSystem';
 import { RunEndSystem, IRunEndContext } from '../systems/RunEndSystem';
-import { FONTS, getArenaFloorTint } from '../config/theme';
+import { FONTS, getArenaFloorTint, ARENA_FLOOR_SCALE, ARENA_FLOOR_SCALE_DEFAULT, CHAPTER_FLOOR_TEXTURE } from '../config/theme';
+import { ChapterDecorSystem } from '../systems/ChapterDecorSystem';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 
 export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext, IUltimateContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
+  /** Escala da textura do piso atual (cada piso tem a sua). */
+  private floorScale: number = ARENA_FLOOR_SCALE_DEFAULT;
+  /** Kit de arte do cenário do capítulo (peças novas, manchas no chão, luzes). */
+  public chapterDecor?: ChapterDecorSystem;
 
   // Controlador do Modo Sandbox / Testes
   public sandboxController!: SandboxController;
@@ -272,18 +277,19 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.arenaScenerySystem = new ArenaScenerySystem(this);
     this.enemySpawner = new EnemySpawnSystem(this, this);
     }
+    this.chapterDecor = new ChapterDecorSystem(this, this.arenaScenerySystem);
     // Recriado a cada partida para zerar o relógio do Altar de Ascensão
     this.pickupSpawner = new PickupSpawnSystem(this, this);
     this.bossFights = new BossFightSystem(this, this);
     this.runEnd = new RunEndSystem(this, this);
 
     // 1. Chão infinito repetido (TileSprite duplicando a textura do piso ativo em proporção adequada)
-    const floorScale = 0.10;
+    this.floorScale = ARENA_FLOOR_SCALE_DEFAULT;
     this.floorTile = this.add.tileSprite(width / 2, height / 2, width * 2, height * 2, 'floor-tile');
     this.floorTile.setOrigin(0.5);
     this.floorTile.setScrollFactor(0);
     this.floorTile.setDepth(-100);
-    this.floorTile.setTileScale(floorScale, floorScale);
+    this.floorTile.setTileScale(this.floorScale, this.floorScale);
     // Chão escurecido para destacar monstros e heroína; a cor muda por capítulo
     this.floorTile.setTint(getArenaFloorTint('floor-tile', this.currentChapter));
 
@@ -344,8 +350,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // Sincronizar o chão infinito no POST_UPDATE compensando o scroll da câmera
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
       if (this.floorTile && this.cameras.main) {
-        this.floorTile.tilePositionX = Math.round(this.cameras.main.scrollX / floorScale);
-        this.floorTile.tilePositionY = Math.round(this.cameras.main.scrollY / floorScale);
+        this.floorTile.tilePositionX = Math.round(this.cameras.main.scrollX / this.floorScale);
+        this.floorTile.tilePositionY = Math.round(this.cameras.main.scrollY / this.floorScale);
       }
     });
 
@@ -799,6 +805,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.updateBorderMist();
     }
 
+    // 7.1. Cenário: profundidade dos objetos altos e o que fica fora da tela
+    this.chapterDecor?.update(delta, this.player.x, this.player.y);
+
     // 8. Atualização da Área de Teste / Showroom de Sprites (Apenas no Modo de Teste)
     if (this.testShowroomSystem) {
       this.testShowroomSystem.update(delta);
@@ -962,8 +971,13 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
    * Altera a textura do chão infinito (ex: 'floor-tile' = chao1.jpg ou 'floor-tile-2' = chao2.jpg)
    */
   public setArenaFloorTexture(textureKey: string): void {
+    // O piso padrão dá lugar ao piso com arte própria do capítulo, quando existe
+    const chapterFloor = CHAPTER_FLOOR_TEXTURE[this.currentChapter];
+    if (textureKey === 'floor-tile' && chapterFloor && this.textures.exists(chapterFloor)) textureKey = chapterFloor;
     if (!this.floorTile || !this.textures.exists(textureKey)) return;
     this.floorTile.setTexture(textureKey);
+    this.floorScale = ARENA_FLOOR_SCALE[textureKey] ?? ARENA_FLOOR_SCALE_DEFAULT;
+    this.floorTile.setTileScale(this.floorScale, this.floorScale);
     this.floorTile.setTint(getArenaFloorTint(textureKey, this.currentChapter));
   }
 
@@ -978,6 +992,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 1. Limpa props de cenário anteriores
     this.arenaScenerySystem?.clearSceneryPropsOnly();
+    this.chapterDecor?.reset();
 
     // 2. Reposiciona jogador se definido
     if (this.player && map.playerSpawn) {
@@ -997,7 +1012,15 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     }
 
     // 4. Instancia os props definidos no mapa
-    if (map.props && Array.isArray(map.props)) {
+    const decor = this.chapterDecor;
+    if (decor?.isActive) {
+      // Kit de arte do capítulo: troca as peças antigas, monta composições e espalha detalhes
+      decor.placeMapProps(map.props ?? [], (p) => this.arenaScenerySystem.placeMapProps([p]));
+      decor.scatter([
+        { x: map.playerSpawn?.x ?? 0, y: map.playerSpawn?.y ?? 0 },
+        { x: map.bossPortal?.x ?? 1450, y: map.bossPortal?.y ?? -1200 }
+      ]);
+    } else if (map.props && Array.isArray(map.props)) {
       this.arenaScenerySystem.placeMapProps(map.props);
     } else {
       this.spawnSceneryProps();
