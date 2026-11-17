@@ -2,10 +2,15 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.12.2 — Ninguém Fica Preso] — 2026-11-17
+
+### Resumo para o Jogador
+- **Monstros não travam mais entre objetos.** Tocha e candelabro (só um poste fino) deixaram de bloquear; os objetos sólidos de cada conjunto ficam com um vão largo entre si; e um monstro que passa mais de 1 segundo encostado sem conseguir sair atravessa o cenário por um instante e segue.
+- Teste: 30 cães nascendo atrás de um sarcófago e de um grupo de rochas chegaram todos até a heroína em até 6 segundos.
 ## [v0.12.1 — Obstáculos de Verdade] — 2026-11-17
 
 ### Resumo para o Jogador
-- **Objetos grandes do cenário bloqueiam a passagem:** pilar, arco (só as duas pernas; dá para passar pelo vão), estátua, sarcófago, rochas grandes e médias, altar de caveiras, gaiola, tocha, candelabro e braseiro.
+- **Objetos grandes do cenário bloqueiam a passagem:** pilar, arco (só as duas pernas; dá para passar pelo vão), estátua, sarcófago, rochas grandes e médias, altar de caveiras, gaiola e braseiro.
 - Só a **base** do objeto é sólida, como numa vista de cima: dá para passar por trás da parte alta.
 - **Monstros comuns também batem nos objetos** e contornam pelo lado em vez de ficarem presos. Dá para usar pilares e sarcófagos para segurar a horda.
 - **Chefes atravessam o cenário,** para investidas e teleportes não travarem.

@@ -29,7 +29,15 @@ export interface IDecorOwner {
 type DetourEnemy = Phaser.GameObjects.GameObject & { x: number; y: number; body: Phaser.Physics.Arcade.Body };
 
 /** Quanto tempo o monstro anda de lado depois de encostar num obstáculo. */
+/** Vão mínimo entre duas pegadas sólidas vizinhas (um Cão Alfa passa com folga). */
+const PASSAGE_GAP = 60;
 const DETOUR_MS = 520;
+/** Encostado em obstáculos por mais que isto, sem desgrudar, conta como preso. */
+const STUCK_MS = 1000;
+/** Pausa máxima entre dois contatos para ainda contar como o mesmo aperto. */
+const CONTACT_GAP_MS = 250;
+/** Quanto tempo o monstro preso atravessa o cenário para se soltar. */
+const PHASE_MS = 900;
 
 interface TallPiece {
   image: Phaser.GameObjects.Image;
@@ -66,6 +74,11 @@ export class ChapterDecorSystem {
   private cullable: Phaser.GameObjects.Image[] = [];
   private cullTimer = 0;
   private readonly detours = new Map<DetourEnemy, { ms: number; dx: number; dy: number }>();
+  /** Desde quando cada monstro está encostando em obstáculos sem conseguir sair. */
+  private readonly contacts = new Map<DetourEnemy, { start: number; last: number }>();
+  /** Monstros que atravessam o cenário até o instante marcado (saída de emergência). */
+  private readonly phasing = new Map<DetourEnemy, number>();
+  private clock = 0;
   /** Pegadas sólidas dos objetos grandes (a cena liga a colisão com a heroína e os monstros). */
   public readonly blockers: Phaser.Physics.Arcade.StaticGroup;
 
@@ -126,12 +139,18 @@ export class ChapterDecorSystem {
       for (const floorKey of recipe.floor) {
         this.addPiece(floorKey, spot.x + rng.between(-30, 30), spot.y + rng.between(-10, 30));
       }
-      this.addPiece(rng.pick(recipe.center), spot.x, spot.y);
+      const centerKey = rng.pick(recipe.center);
+      this.addPiece(centerKey, spot.x, spot.y);
       const around = rng.between(2, 3);
+      // Peças sólidas em volta ficam longe o bastante para sempre sobrar um vão de passagem
+      const centerHalf = this.blockHalfWidth(centerKey);
       for (let i = 0; i < around; i++) {
+        const key = rng.pick(recipe.around);
+        const solid = this.blockHalfWidth(key);
         const a = rng.realInRange(0, Math.PI * 2);
-        const r = rng.between(70, 120);
-        this.addPiece(rng.pick(recipe.around), spot.x + Math.cos(a) * r, spot.y + Math.sin(a) * r * 0.7);
+        const minR = solid > 0 ? centerHalf + solid + PASSAGE_GAP : 70;
+        const r = rng.between(Math.max(70, minR), Math.max(120, minR + 40));
+        this.addPiece(key, spot.x + Math.cos(a) * r, spot.y + Math.sin(a) * r * (solid > 0 ? 1 : 0.7));
       }
     }
 
@@ -145,6 +164,13 @@ export class ChapterDecorSystem {
       const pt = randomPoint();
       if (isClear(pt.x, pt.y)) this.addPiece(rng.pick(clutter), pt.x, pt.y);
     }
+  }
+
+  /** Meia largura da pegada sólida de uma peça (0 se não bloqueia). */
+  private blockHalfWidth(key: string): number {
+    const boxes = this.pieces.get(key)?.block;
+    if (!boxes) return 0;
+    return Math.max(...boxes.map((b) => Math.abs(b.dx ?? 0) + b.w / 2));
   }
 
   /** Cria uma peça do kit na posição (a base do objeto fica no ponto). */
@@ -185,7 +211,21 @@ export class ChapterDecorSystem {
     const enemy = enemyObj as DetourEnemy;
     const zone = blockerObj as Phaser.GameObjects.Zone;
     const touching = enemy.body?.touching;
-    if (!touching || this.detours.has(enemy)) return;
+    if (!touching) return;
+
+    // Encostado por tempo demais (preso num cantinho entre dois objetos): atravessa por um instante
+    let rec = this.contacts.get(enemy);
+    if (!rec || this.clock - rec.last > CONTACT_GAP_MS) rec = { start: this.clock, last: this.clock };
+    rec.last = this.clock;
+    this.contacts.set(enemy, rec);
+    if (this.clock - rec.start > STUCK_MS) {
+      this.contacts.delete(enemy);
+      this.detours.delete(enemy);
+      this.phasing.set(enemy, this.clock + PHASE_MS);
+      return;
+    }
+
+    if (this.detours.has(enemy)) return;
     if (touching.up || touching.down) {
       this.detours.set(enemy, { ms: DETOUR_MS, dx: enemy.x < zone.x ? -1 : 1, dy: 0 });
     } else if (touching.left || touching.right) {
@@ -193,8 +233,18 @@ export class ChapterDecorSystem {
     }
   }
 
+  /** A colisão com o cenário vale para este monstro agora? */
+  public collidesWith(enemyObj: Phaser.GameObjects.GameObject): boolean {
+    const until = this.phasing.get(enemyObj as DetourEnemy);
+    if (until === undefined) return true;
+    if (until > this.clock) return false;
+    this.phasing.delete(enemyObj as DetourEnemy);
+    return true;
+  }
+
   /** Chamado depois da IA dos monstros: quem está em desvio anda de lado. */
   public applyDetours(delta: number): void {
+    this.clock += delta;
     for (const [enemy, d] of this.detours) {
       d.ms -= delta;
       if (d.ms <= 0 || !enemy.active || !enemy.body) {
@@ -268,6 +318,8 @@ export class ChapterDecorSystem {
   /** Esquece as referências (os objetos em si são destruídos pelo ArenaScenerySystem). */
   public reset(): void {
     this.detours.clear();
+    this.contacts.clear();
+    this.phasing.clear();
     this.tall = [];
     this.cullable = [];
   }

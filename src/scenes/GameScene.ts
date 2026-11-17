@@ -353,7 +353,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
         decor.slideAround(enemyObj as Phaser.GameObjects.GameObject, blockerObj as Phaser.GameObjects.GameObject);
       }, (enemyObj) => {
         const enemy = enemyObj as BaseEnemy;
-        return !enemy.isBoss && !(enemy instanceof AzazelPhantomClone);
+        return !enemy.isBoss && !(enemy instanceof AzazelPhantomClone) && decor.collidesWith(enemy);
       });
     }
 
