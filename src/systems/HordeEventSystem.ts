@@ -71,6 +71,13 @@ export class HordeEventSystem {
     return this.ctx.survivalTimeMs / 60000;
   }
 
+  /** Ladrão de Almas vivo (para o radar e a seta de borda), ou undefined. */
+  public get activeThief(): { x: number; y: number; timeLeftMs: number } | undefined {
+    const t = this.thief;
+    if (!t || !t.active || t.isDead) return undefined;
+    return { x: t.x, y: t.y, timeLeftMs: Math.max(0, this.thiefTimer) };
+  }
+
   public get isBloodMoonActive(): boolean {
     return this.bloodMoonTimer > 0;
   }
@@ -211,7 +218,7 @@ export class HordeEventSystem {
       if (this.thief === thief) this.thief = undefined;
       this.hud?.showWaveAlert('LADRÃO ABATIDO! TESOURO LIBERADO!', 2600);
     });
-    this.hud?.showCenterAnnouncement('LADRÃO DE ALMAS', 'PEGUE-O ANTES QUE FUJA', 2600);
+    this.hud?.showCenterAnnouncement('LADRÃO DE ALMAS', 'SIGA A SETA DOURADA', 2600);
   }
 
   private updateThief(delta: number): void {

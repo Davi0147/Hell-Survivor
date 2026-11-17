@@ -27,6 +27,8 @@ export interface RadarWorld {
   azazelCrystals?: RadarCrystal[];
   altarInstance?: { x: number; y: number; active: boolean; isDestroyed?: boolean } | null;
   bossSummonAltar?: { x: number; y: number; isCompleted: boolean; isActive: boolean; isBossSpawned: boolean } | null;
+  /** Ladrão de Almas vivo (sempre no radar e na seta de borda). */
+  soulThief?: { x: number; y: number; timeLeftMs: number };
   cameras?: { main?: Phaser.Cameras.Scene2D.Camera };
 }
 

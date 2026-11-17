@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { RadarEnemy, RadarPlayer, RadarWorld } from './radarTypes';
+import { FX_COLORS } from '../config/theme';
 
 /**
  * Radar tático circular do canto superior esquerdo da HUD.
@@ -160,6 +161,27 @@ export class TacticalRadar {
         g.fillStyle(0xaa3344, 0.9);
         g.fillCircle(bx, by, 1.5);
       }
+    }
+
+    // 6. Ladrão de Almas: estrela dourada pulsando, sempre visível (presa na borda se longe)
+    const thief = world.soulThief;
+    if (thief) {
+      const { bx, by } = this.toRadar(thief.x - p.x, thief.y - p.y);
+      const pulse = 1 + Math.sin(this.scene.time.now * 0.012) * 0.25;
+      const outer = 6.5 * pulse;
+      const inner = 2.8 * pulse;
+      const points: Phaser.Types.Math.Vector2Like[] = [];
+      for (let i = 0; i < 8; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 4;
+        const r = i % 2 === 0 ? outer : inner;
+        points.push({ x: bx + Math.cos(a) * r, y: by + Math.sin(a) * r });
+      }
+      g.fillStyle(FX_COLORS.thiefBlipOutline, 0.9);
+      g.fillCircle(bx, by, outer * 0.75);
+      g.fillStyle(FX_COLORS.thiefArrowBorder, 1);
+      g.fillPoints(points, true);
+      g.fillStyle(FX_COLORS.thiefBlipCore, 1);
+      g.fillCircle(bx, by, 1.6);
     }
 
     this.drawPlayerPointer(p);

@@ -67,6 +67,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   /** Suprema "Ascensão Infernal" (modo de poder temporário). */
   public ultimate?: UltimateSystem;
 
+  /** Ladrão de Almas vivo, para o radar e a seta de borda. */
+  public get soulThief(): { x: number; y: number; timeLeftMs: number } | undefined {
+    return this.hordeEvents?.activeThief;
+  }
+
   /** Maior sequência de abates da partida (tela de fim de jogo). */
   public get maxCombo(): number {
     return this.combatFeel?.combo.maxCombo ?? 0;

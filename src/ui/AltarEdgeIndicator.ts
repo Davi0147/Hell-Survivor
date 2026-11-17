@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
 import { RadarPlayer, RadarWorld } from './radarTypes';
+import { FX_COLORS } from '../config/theme';
+
+/** Tipo de alvo: muda as cores da seta. */
+type EdgeKind = 'boss' | 'altar' | 'thief';
 
 interface EdgeTarget {
   x: number;
@@ -8,7 +12,7 @@ interface EdgeTarget {
 
 /**
  * Seta na borda da tela apontando para o objetivo fora da câmera, com a distância em metros.
- * Prioridade: cristal de Azazel mais próximo > Altar de Invocação ativo > Altar de Ascensão.
+ * Prioridade: cristal de Azazel mais próximo > Ladrão de Almas > Altar de Invocação ativo > Altar de Ascensão.
  * Some quando o alvo entra na tela.
  */
 export class AltarEdgeIndicator {
@@ -39,7 +43,7 @@ export class AltarEdgeIndicator {
     return this.container;
   }
 
-  private pickTarget(p: RadarPlayer, world: RadarWorld): { target: EdgeTarget; isBossAltar: boolean } | null {
+  private pickTarget(p: RadarPlayer, world: RadarWorld): { target: EdgeTarget; kind: EdgeKind; timeLeftMs?: number } | null {
     if (Array.isArray(world.azazelCrystals)) {
       let nearest: EdgeTarget | null = null;
       let minDist = Infinity;
@@ -52,14 +56,18 @@ export class AltarEdgeIndicator {
           }
         }
       }
-      if (nearest) return { target: nearest, isBossAltar: true };
+      if (nearest) return { target: nearest, kind: 'boss' };
     }
 
+    // O ladrão tem tempo contado: passa na frente dos altares, que esperam
+    const thief = world.soulThief;
+    if (thief) return { target: thief, kind: 'thief', timeLeftMs: thief.timeLeftMs };
+
     const bAltar = world.bossSummonAltar;
-    if (bAltar && bAltar.isActive && !bAltar.isBossSpawned) return { target: bAltar, isBossAltar: true };
+    if (bAltar && bAltar.isActive && !bAltar.isBossSpawned) return { target: bAltar, kind: 'boss' };
 
     const altar = world.altarInstance;
-    if (altar && altar.active && !altar.isDestroyed) return { target: altar, isBossAltar: false };
+    if (altar && altar.active && !altar.isDestroyed) return { target: altar, kind: 'altar' };
 
     return null;
   }
@@ -71,7 +79,9 @@ export class AltarEdgeIndicator {
       this.container.setVisible(false);
       return;
     }
-    const { target, isBossAltar } = picked;
+    const { target, kind, timeLeftMs } = picked;
+    const isBossAltar = kind === 'boss';
+    const isThief = kind === 'thief';
 
     // Alvo visível na câmera (com folga de 30px): esconde a seta
     const margin = 30;
@@ -103,36 +113,41 @@ export class AltarEdgeIndicator {
     const g = this.graphics;
     g.clear();
 
-    const arrowDist = 18;
-    const tipX = cos * arrowDist;
-    const tipY = sin * arrowDist;
-    const perpAngle = angle + Math.PI / 2;
-    const wingX = Math.cos(perpAngle) * 7.5;
-    const wingY = Math.sin(perpAngle) * 7.5;
+    // Plaquinha da distância no centro, seta para fora dela apontando o alvo
+    const badgeW = isThief ? 76 : isBossAltar ? 48 : 44;
+    const badgeH = 20;
+    g.fillStyle(isThief ? FX_COLORS.thiefBadgeFill : isBossAltar ? 0x1a0509 : 0x0e0206, 0.94);
+    g.fillRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
+    g.lineStyle(1.5, isThief ? FX_COLORS.thiefArrowBorder : isBossAltar ? 0xff7700 : 0xffe600, 0.95);
+    g.strokeRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
+
+    // Onde a direção do alvo cruza a borda da plaquinha
+    const edge = Math.min(Math.abs(badgeW / 2 / (cos || 0.0001)), Math.abs(badgeH / 2 / (sin || 0.0001))) + 3;
+    const arrowLen = isThief ? 16 : 13;
+    const baseX = cos * edge;
+    const baseY = sin * edge;
+    const tipX = cos * (edge + arrowLen);
+    const tipY = sin * (edge + arrowLen);
+    const wingX = -sin * 7.5;
+    const wingY = cos * 7.5;
     const tracePath = (): void => {
       g.beginPath();
       g.moveTo(tipX, tipY);
-      g.lineTo(wingX, wingY);
-      g.lineTo(-wingX, -wingY);
+      g.lineTo(baseX + wingX, baseY + wingY);
+      g.lineTo(baseX - wingX, baseY - wingY);
       g.closePath();
     };
-
-    g.fillStyle(isBossAltar ? 0x28040d : 0x18040a, 0.95);
+    g.fillStyle(isThief ? FX_COLORS.thiefArrowBorder : isBossAltar ? 0xff4500 : 0xff002b, 1);
     tracePath();
     g.fill();
-    g.lineStyle(2, isBossAltar ? 0xff4500 : 0xff002b, 1);
+    g.lineStyle(1.5, isThief ? FX_COLORS.thiefArrowFill : 0x000000, 1);
     tracePath();
     g.stroke();
-
-    // Badge da distância
-    const badgeW = isBossAltar ? 48 : 44;
-    const badgeH = 20;
-    g.fillStyle(isBossAltar ? 0x1a0509 : 0x0e0206, 0.94);
-    g.fillRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
-    g.lineStyle(1.5, isBossAltar ? 0xff7700 : 0xffe600, 0.95);
-    g.strokeRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
-
-    this.text.setText(`${Math.max(1, Math.round(dist / 10))}m`);
-    this.text.setColor(isBossAltar ? '#ffaa00' : '#ffe600');
+    const meters = `${Math.max(1, Math.round(dist / 10))}m`;
+    // Ladrão: distância e segundos que faltam para ele fugir
+    this.text.setText(isThief && timeLeftMs !== undefined ? `${meters} | ${Math.ceil(timeLeftMs / 1000)}s` : meters);
+    this.text.setColor(isThief ? FX_COLORS.thiefText : isBossAltar ? '#ffaa00' : '#ffe600');
+    // Pulsa para chamar atenção enquanto ele pode escapar
+    this.container.setScale(isThief ? 1.15 + Math.sin(this.scene.time.now * 0.012) * 0.08 : 1);
   }
 }

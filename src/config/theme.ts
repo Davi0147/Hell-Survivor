@@ -116,6 +116,13 @@ export const FX_COLORS = {
   corpseExplosion: 0xc084fc,
   thiefTint: 0xffd700,
   thiefSparkle: 0xfff3b0,
+  /** Seta de borda e blip do radar do Ladrão de Almas. */
+  thiefArrowFill: 0x2a1c00,
+  thiefArrowBorder: 0xffd700,
+  thiefBadgeFill: 0x1a1200,
+  thiefText: '#ffe680',
+  thiefBlipCore: 0xfff3b0,
+  thiefBlipOutline: 0x000000,
   bloodMoonOverlay: 0x8a0018,
   stormFlash: 0x9d7bff,
   // Suprema "Ascensão Infernal"

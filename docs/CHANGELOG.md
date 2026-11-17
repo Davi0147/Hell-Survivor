@@ -2,6 +2,11 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.11.3 — Caça ao Ladrão] — 2026-11-17
+
+### Resumo para o Jogador
+- **O Ladrão de Almas agora é fácil de achar.** Ele aparece no minimapa como uma estrela dourada pulsando (presa na borda quando está longe) e ganha uma seta dourada na borda da tela com a distância e os segundos que faltam para ele fugir. O anúncio diz "SIGA A SETA DOURADA".
+- **Setas de borda mais legíveis:** a ponta da seta agora sai de fora da plaquinha de distância (antes ficava escondida atrás dela), também para os altares e cristais.
 ## [v0.11.2 — HUD Mais Limpa] — 2026-11-17
 
 ### Resumo para o Jogador
