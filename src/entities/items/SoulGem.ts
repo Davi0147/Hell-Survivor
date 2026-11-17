@@ -25,6 +25,11 @@ export class SoulGem extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /** Altura de repouso (sem o balanço da flutuação), para guardar a posição real da gema. */
+  public get restY(): number {
+    return this.baseY;
+  }
+
   public spawn(x: number, y: number, type: GemType = 'green'): void {
     this.setPosition(x, y);
     this.baseY = y;

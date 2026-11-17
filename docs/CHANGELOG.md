@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.10.1 — Combo que Pega Fogo] — 2026-11-17
+
+### Resumo para o Jogador
+- **Gemas nunca mais somem nem param de cair.** Antes, com 150 gemas no chão, os monstros paravam de soltar gema nova e o XP ia para gemas distantes, obrigando a voltar para catar. Agora toda gema existe sempre: as que ficam longe da tela são guardadas só como posição e reaparecem quando você passa por perto. O Ímã de Almas puxa todas, inclusive as guardadas.
+- **Contador de combo grande e "vivo".** O número ficou bem maior e cresce conforme o combo sobe. A cada degrau muda de cor (amarelo → laranja → vermelho → rosa → branco), passa a tremer e balançar cada vez mais, solta faíscas a cada abate e entra com um carimbo e explosão quando chega num degrau novo. A barra do tempo pisca quando está acabando, e o número fica cinza quando o combo quebra.
+- **Números de dano mais fortes.** Estouram grandes e saem voando em arco para o lado; golpes altos aparecem maiores e dourados.
+- **Crítico de verdade.** Número enorme, torto, com degradê dourado-laranja, que treme, segura na tela e sobe; clarão em estrela no ponto do golpe, mais faíscas e um tranco curto na câmera. Mesmo com a tela cheia de números, o crítico sempre aparece.
+
+### Organização do Projeto
+- **Novo `src/systems/GemReserve.ts`** (lógica pura, 5 testes): depósito das gemas fora da tela. Limites em `PERFORMANCE_LIMITS` (`MAX_STORED_GEMS`, `GEM_PARK_MARGIN`, `GEM_PARK_INTERVAL_MS`, `MAGNET_MAX_STORED_GROUPS`). Desempenho: no máximo 150 gemas com sprite, como antes.
+- **Testes:** 232 passando.
+
+### Não verificado
+- Sensação em partida longa real (testado com comandos no navegador de desenvolvimento).
 ## [v0.10.0 — Frenesi] — 2026-11-16
 
 ### Resumo para o Jogador

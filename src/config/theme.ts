@@ -92,6 +92,16 @@ export const FX_COLORS = {
   critText: '#ffbe0b',
   critStroke: '#7a1f00',
   damageText: '#ffffff',
+  /** Cor do contador por "calor": índice 0 = antes do primeiro degrau, depois um por degrau. */
+  comboHeat: ['#ffe600', '#ffb300', '#ff7b00', '#ff3d2e', '#ff2a9d', '#ffffff'] as string[],
+  comboBroken: '#8b8b9a',
+  comboBarUrgent: 0xffffff,
+  /** Número de dano: branco comum; crítico com degradê do topo para a base. */
+  damageHeavyText: '#ffd9a0',
+  critTintTop: 0xfff3b0,
+  // Laranja, não vermelho: o chão dos capítulos é vermelho e engolia a base do número
+  critTintBottom: 0xff8a00,
+  critFlash: 0xffe600,
   comboText: '#ffe600',
   comboStroke: '#3a0010',
   comboTierText: '#ff758f',

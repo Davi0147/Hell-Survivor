@@ -6,6 +6,7 @@ import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAltarEvolutionCards, UpgradeGameScene } from './UpgradeCatalog';
 import { DebugSessionLogger } from './DebugSessionLogger';
+import { GemReserve } from './GemReserve';
 import { BALANCE, PERFORMANCE_LIMITS, getChapterConfig } from '../config/balance';
 
 /** Contrato mínimo que a cena de jogo expõe para o PickupSpawnSystem. */
@@ -40,6 +41,8 @@ interface ViewBounds {
 export class PickupSpawnSystem {
   private altarSpawnTimer = 0;
   private mapItemSpawnTimer = 0;
+  private gemSyncTimer = 0;
+  private readonly gemReserve = new GemReserve(PERFORMANCE_LIMITS.MAX_STORED_GEMS);
 
   constructor(private readonly scene: UpgradeGameScene, private readonly ctx: IPickupSpawnContext) {}
 
@@ -52,6 +55,12 @@ export class PickupSpawnSystem {
     const inView = (o: { x: number; y: number }): boolean =>
       o.x >= view.left && o.x <= view.right && o.y >= view.top && o.y <= view.bottom;
     const player = this.ctx.player;
+
+    this.gemSyncTimer += delta;
+    if (this.gemSyncTimer >= PERFORMANCE_LIMITS.GEM_PARK_INTERVAL_MS) {
+      this.gemSyncTimer = 0;
+      this.syncGemReserve();
+    }
 
     const gems = this.ctx.gemsGroup.getChildren() as SoulGem[];
     for (let i = 0; i < gems.length; i++) {
@@ -106,9 +115,40 @@ export class PickupSpawnSystem {
   }
 
   public spawnGemAt(x: number, y: number, type: GemType): void {
-    const gemXpValue = GEM_XP[type] ?? GEM_XP.green;
+    this.placeGem(x, y, type, GEM_XP[type] ?? GEM_XP.green);
+  }
 
-    // Acima do limite de gemas, o XP é fundido na gema ativa mais próxima
+  /** Quantas gemas existem ao todo (na tela + guardadas fora dela). */
+  public get storedGemCount(): number {
+    return this.gemReserve.count;
+  }
+
+  public clearStoredGems(): void {
+    this.gemReserve.clear();
+  }
+
+  /**
+   * Ímã de Almas: as gemas guardadas voltam como sprites (agrupadas, com o XP somado)
+   * para serem puxadas junto com as que já estão na tela.
+   */
+  public releaseStoredGems(): void {
+    for (const g of this.gemReserve.takeAllGrouped(PERFORMANCE_LIMITS.MAGNET_MAX_STORED_GROUPS)) {
+      this.createGemSprite(g.x, g.y, g.type as GemType, g.xp);
+    }
+  }
+
+  /**
+   * Toda gema sempre existe: fora da câmera ela vira um registro leve no depósito;
+   * na tela vira sprite. Só quando a própria tela está lotada o XP entra na gema vizinha,
+   * que cresce à vista do jogador.
+   */
+  private placeGem(x: number, y: number, type: GemType, xp: number): void {
+    const park = this.getParkBounds();
+    if (x < park.left || x > park.right || y < park.top || y > park.bottom) {
+      this.gemReserve.store(x, y, type, xp);
+      return;
+    }
+
     const activeGems = (this.ctx.gemsGroup.getChildren() as SoulGem[]).filter((g) => g.active);
     if (activeGems.length >= PERFORMANCE_LIMITS.MAX_ACTIVE_GEMS) {
       let closestGem: SoulGem | undefined;
@@ -121,17 +161,56 @@ export class PickupSpawnSystem {
         }
       }
       if (closestGem) {
-        closestGem.addBonusXp(gemXpValue);
+        closestGem.addBonusXp(xp);
         return;
       }
     }
 
+    this.createGemSprite(x, y, type, xp);
+  }
+
+  private createGemSprite(x: number, y: number, type: GemType, xp: number): SoulGem {
     let gem = this.ctx.gemsGroup.getChildren().find((child) => !child.active) as SoulGem | undefined;
     if (!gem) {
       gem = new SoulGem(this.scene, x, y);
       this.ctx.gemsGroup.add(gem);
     }
     gem.spawn(x, y, type);
+    // Gema que já tinha XP acumulado volta com o valor (e o tamanho) que tinha
+    if (xp > gem.xpValue) gem.addBonusXp(xp - gem.xpValue);
+    return gem;
+  }
+
+  private getParkBounds(): ViewBounds {
+    const wv = this.scene.cameras.main.worldView;
+    const m = PERFORMANCE_LIMITS.GEM_PARK_MARGIN;
+    return { left: wv.x - m, right: wv.right + m, top: wv.y - m, bottom: wv.bottom + m };
+  }
+
+  /**
+   * Sincroniza o depósito com a câmera: gema parada que ficou longe vira dado guardado;
+   * gema guardada que entrou na área da câmera volta a ser sprite.
+   */
+  private syncGemReserve(): void {
+    const park = this.getParkBounds();
+    const gems = this.ctx.gemsGroup.getChildren() as SoulGem[];
+    let active = 0;
+    for (let i = 0; i < gems.length; i++) {
+      const g = gems[i];
+      if (!g.active) continue;
+      // Gema já sendo puxada continua viva até chegar ao jogador
+      if (!g.isAttracted && (g.x < park.left || g.x > park.right || g.y < park.top || g.y > park.bottom)) {
+        this.gemReserve.store(g.x, g.restY, g.gemType, g.xpValue);
+        g.deactivate();
+        continue;
+      }
+      active++;
+    }
+
+    const room = PERFORMANCE_LIMITS.MAX_ACTIVE_GEMS - active;
+    for (const g of this.gemReserve.takeWithin(park, room)) {
+      this.createGemSprite(g.x, g.y, g.type as GemType, g.xp);
+    }
   }
 
   public spawnSoulItem(x: number, y: number, value: number = 1): void {

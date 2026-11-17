@@ -5,6 +5,8 @@ export type MapItemHostScene = IChestRouletteGameScene & {
   gemsGroup?: Phaser.GameObjects.Group;
   soulsGroup?: Phaser.GameObjects.Group;
   spawnSoulItem?(x: number, y: number, value?: number): void;
+  /** Transforma em sprites as gemas guardadas fora da tela (antes de o ímã puxar tudo). */
+  releaseStoredGems?(): void;
 };
 import Phaser from 'phaser';
 import { BaseCharacter } from '../characters/BaseCharacter';
@@ -108,6 +110,8 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
         SoundManager.getInstance().playLevelUp();
         this.scene.cameras.main.flash(220, 0, 220, 255);
         if (gameScene.gemsGroup) {
+          // Primeiro traz de volta as gemas guardadas fora da tela, para o ímã puxar o mapa inteiro
+          gameScene.releaseStoredGems?.();
           const gems = gameScene.gemsGroup.getChildren() as SoulGem[];
           let pulledCount = 0;
           for (const g of gems) {

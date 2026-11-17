@@ -71,7 +71,11 @@ export type Direction8 = typeof DIRECTIONS_8[number];
  */
 export const PERFORMANCE_LIMITS = {
   MAX_ACTIVE_ENEMIES: 120,     // Limite rígido de monstros vivos (reduzido de 300 para manter 60 FPS)
-  MAX_ACTIVE_GEMS: 150,        // Limite máximo de gemas no chão (excedentes fundem em gemas superiores)
+  MAX_ACTIVE_GEMS: 150,        // Limite de gemas com sprite (só as da tela; excedentes na tela fundem na vizinha)
+  MAX_STORED_GEMS: 3000,       // Gemas fora da tela guardadas só como dado (posição + XP), sem custo de desenho
+  GEM_PARK_MARGIN: 240,        // Distância além da câmera a partir da qual a gema parada vira dado guardado
+  GEM_PARK_INTERVAL_MS: 220,   // De quanto em quanto tempo o depósito de gemas é sincronizado com a câmera
+  MAGNET_MAX_STORED_GROUPS: 40, // Ímã: em quantas gemas (XP somado) as guardadas são agrupadas ao voltar
   VIEWPORT_CULLING_MARGIN: 100 // Margem em pixels fora da câmera para desativar renderização (Culling)
 };
 

@@ -38,6 +38,7 @@ export class CombatFeelSystem implements IEnemyCombatFeel {
   private explosionsThisFrame = 0;
   private lastExplosionSfxAt = 0;
   private lastCritSfxAt = 0;
+  private lastCritFlashAt = 0;
   private readonly dashHits = new Set<BaseEnemy>();
 
   private readonly onResume = (): void => this.fireQueuedNova();
@@ -104,8 +105,26 @@ export class CombatFeelSystem implements IEnemyCombatFeel {
 
   public hitSpark(x: number, y: number, isCrit: boolean): void {
     if (!this.sparks) return;
-    this.sparks.setParticleTint(isCrit ? FX_COLORS.deathBurstElite : FX_COLORS.hitSpark);
-    this.sparks.explode(isCrit ? 6 : 2, x, y);
+    this.sparks.setParticleTint(isCrit ? FX_COLORS.critFlash : FX_COLORS.hitSpark);
+    this.sparks.explode(isCrit ? 12 : 2, x, y);
+    if (!isCrit) return;
+
+    // Crítico: clarão em estrela no ponto do golpe e um tranco curto na câmera
+    const now = this.scene.time.now;
+    if (now - this.lastCritFlashAt < 70) return;
+    this.lastCritFlashAt = now;
+    const flash = this.scene.add.star(x, y, 4, 4, 26, FX_COLORS.critFlash, 0.95);
+    flash.setBlendMode(Phaser.BlendModes.ADD).setDepth(149).setScale(0.3).setAngle(Phaser.Math.Between(0, 90));
+    this.scene.tweens.add({
+      targets: flash,
+      scale: 1.5,
+      alpha: 0,
+      angle: flash.angle + 45,
+      duration: 200,
+      ease: 'Quad.easeOut',
+      onComplete: () => flash.destroy(),
+    });
+    this.scene.cameras.main.shake(70, 0.0035);
   }
 
   public onEnemyDied(enemy: BaseEnemy): void {

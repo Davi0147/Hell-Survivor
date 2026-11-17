@@ -834,6 +834,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.pickupSpawner.spawnGemAt(x, y, type);
   }
 
+  /** Ímã de Almas: traz de volta as gemas guardadas fora da tela para serem puxadas. */
+  public releaseStoredGems(): void {
+    this.pickupSpawner.releaseStoredGems();
+  }
+
   public spawnSoulItem(x: number, y: number, value: number = 1): void {
     this.pickupSpawner.spawnSoulItem(x, y, value);
   }
@@ -1288,6 +1293,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public sandboxClearItemsAndGems(): void {
     this.sandboxController.clearItemsAndGems();
+    this.pickupSpawner.clearStoredGems();
   }
 }
 
