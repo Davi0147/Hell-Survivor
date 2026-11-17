@@ -176,6 +176,31 @@ export const WEAPON_SLOT_THEME = {
   ultShadeAlpha: 0.7,
   keyText: '#ffd60a',
   levelText: '#f3d17a',
+  keyCapIdle: 0x2a0d16,
+  keyCapReady: 0x8a0024,
+  keyCapShadow: 0x050103,
+} as const;
+
+/**
+ * Botões de ação com tecla (Re-rolar e Canalizar na tela de cartas): ícone, nome e uma
+ * "tecla" desenhada que muda com o controle em uso.
+ */
+export const ACTION_BUTTON_THEME = {
+  fill: 0x12040a,
+  fillHover: 0x2a0912,
+  fillDisabled: 0x0b0b0e,
+  border: 0xc59b27,
+  borderHover: 0xffe600,
+  borderDisabled: 0x33333c,
+  innerBorder: 0x5a1020,
+  label: '#f3d17a',
+  labelHover: '#ffffff',
+  labelDisabled: '#55555f',
+  count: '#00f5d4',
+  heal: '#4ade80',
+  keyCapFill: 0x2a0d16,
+  keyCapShadow: 0x050103,
+  keyCapText: '#ffd60a',
 } as const;
 
 /** Cor do rótulo de raridade nas cartas novas (as antigas ainda usam literais no catálogo). */

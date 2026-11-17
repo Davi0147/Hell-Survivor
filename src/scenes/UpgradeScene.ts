@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON, CARD_ICON_KEYS } from '../systems/UpgradeCatalog';
-import { COLORS } from '../config/theme';
+import { COLORS, ACTION_BUTTON_THEME } from '../config/theme';
+import { ActionKeyButton } from '../ui/ActionKeyButton';
 import type { UpgradeCard, RichTextSegment, UpgradeGameScene } from '../systems/UpgradeCatalog';
 export type { UpgradeCard, RichTextSegment } from '../systems/UpgradeCatalog';
 import { SoundManager } from '../systems/SoundManager';
@@ -26,9 +27,8 @@ export class UpgradeScene extends Phaser.Scene {
   private cardContainers: Phaser.GameObjects.Container[] = [];
   private currentCardIds: string[] = [];
   private selectedCardIndex: number = 0;
-  private rerollBtnContainer?: Phaser.GameObjects.Container;
-  private rerollText?: Phaser.GameObjects.Text;
-  private rerollBg?: Phaser.GameObjects.Graphics;
+  private rerollButton?: ActionKeyButton;
+  private skipButton?: ActionKeyButton;
   private isClosing: boolean = false;
 
   public getCardContainers(): Phaser.GameObjects.Container[] {
@@ -207,127 +207,53 @@ export class UpgradeScene extends Phaser.Scene {
       return;
     }
 
-    // --- BOTÃO 1: RE-ROLAR BÊNÇÃOS ---
-    const rerollW = 270;
-    const rerollH = 34;
-    const rerollX = width / 2 - 155;
-
-    this.rerollBtnContainer = this.add.container(rerollX, footerY);
-    this.rerollBg = this.add.graphics();
-    this.rerollBtnContainer.add(this.rerollBg);
-
-    this.rerollText = this.add.text(0, 0, '', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#00f5d4',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    this.rerollBtnContainer.add(this.rerollText);
-    if (this.textures.exists('ui-icon-reroll')) {
-      this.rerollBtnContainer.add(this.add.image(-rerollW / 2 - 4, 0, 'ui-icon-reroll').setDisplaySize(34, 34));
-    }
-
-    this.updateRerollButtonVisual(false);
-
-    const rerollHit = new Phaser.Geom.Rectangle(-rerollW / 2, -rerollH / 2, rerollW, rerollH);
-    this.rerollBtnContainer.setInteractive(rerollHit, Phaser.Geom.Rectangle.Contains);
-
-    this.rerollBtnContainer.on('pointerover', () => {
-      if (this.player.rerollsRemaining <= 0 || this.isClosing) return;
-      SoundManager.getInstance().playCardHover();
-      this.updateRerollButtonVisual(true);
+    // Botões minimalistas: ícone, nome e a tecla do controle em uso (atualizada em update)
+    this.rerollButton = new ActionKeyButton(this, {
+      x: width / 2 - 158,
+      y: footerY,
+      width: 296,
+      height: 46,
+      iconKey: 'ui-icon-reroll',
+      label: 'RE-ROLAR',
+      badge: `${this.player.rerollsRemaining}`,
+      badgeColor: ACTION_BUTTON_THEME.count,
+      onHover: () => SoundManager.getInstance().playCardHover(),
+      onClick: () => this.handleReroll()
     });
-
-    this.rerollBtnContainer.on('pointerout', () => {
-      this.updateRerollButtonVisual(false);
+    this.skipButton = new ActionKeyButton(this, {
+      x: width / 2 + 158,
+      y: footerY,
+      width: 296,
+      height: 46,
+      iconKey: 'ui-icon-skip',
+      label: 'CANALIZAR',
+      badge: '+20',
+      badgeColor: ACTION_BUTTON_THEME.heal,
+      onHover: () => SoundManager.getInstance().playCardHover(),
+      onClick: () => this.handleSkipAndHeal()
     });
-
-    this.rerollBtnContainer.on('pointerdown', () => {
-      this.handleReroll();
-    });
-
-    // --- BOTÃO 2: PULAR / CANALIZAR ALMAS (+20 HP) ---
-    const skipW = 270;
-    const skipH = 34;
-    const skipX = width / 2 + 155;
-
-    const skipContainer = this.add.container(skipX, footerY);
-    const skipBg = this.add.graphics();
-
-    const drawSkipBg = (hover: boolean) => {
-      skipBg.clear();
-      skipBg.fillStyle(hover ? 0x3b0918 : 0x16040a, 0.95);
-      skipBg.fillRoundedRect(-skipW / 2, -skipH / 2, skipW, skipH, 6);
-      skipBg.lineStyle(1.5, hover ? 0xff4d6d : 0x9d0208, 1);
-      skipBg.strokeRoundedRect(-skipW / 2, -skipH / 2, skipW, skipH, 6);
-    };
-    drawSkipBg(false);
-    skipContainer.add(skipBg);
-
-    const skipText = this.add.text(0, 0, '[ESPAÇO / (B)] CANALIZAR (+20 HP)', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffb3c1',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    skipContainer.add(skipText);
-    if (this.textures.exists('ui-icon-skip')) {
-      skipContainer.add(this.add.image(skipW / 2 + 4, 0, 'ui-icon-skip').setDisplaySize(34, 34));
-    }
-
-    const skipHit = new Phaser.Geom.Rectangle(-skipW / 2, -skipH / 2, skipW, skipH);
-    skipContainer.setInteractive(skipHit, Phaser.Geom.Rectangle.Contains);
-
-    skipContainer.on('pointerover', () => {
-      if (this.isClosing) return;
-      SoundManager.getInstance().playCardHover();
-      drawSkipBg(true);
-      skipText.setColor('#ffffff');
-    });
-
-    skipContainer.on('pointerout', () => {
-      drawSkipBg(false);
-      skipText.setColor('#ffb3c1');
-    });
-
-    skipContainer.on('pointerdown', () => {
-      this.handleSkipAndHeal();
-    });
+    this.updateRerollButtonVisual();
+    this.updateActionKeys();
   }
 
-  private updateRerollButtonVisual(hover: boolean): void {
-    if (!this.rerollBg || !this.rerollText) return;
-    const rerollW = 270;
-    const rerollH = 34;
-    const hasCharges = this.player.rerollsRemaining > 0;
-
-    this.rerollBg.clear();
-    if (hasCharges) {
-      this.rerollBg.fillStyle(hover ? 0x093145 : 0x051923, 0.95);
-      this.rerollBg.fillRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
-      this.rerollBg.lineStyle(1.5, hover ? 0xffffff : 0x00f5d4, 1);
-      this.rerollBg.strokeRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
-      this.rerollText.setText(`[R / (X)] RE-ROLAR CARTAS (${this.player.rerollsRemaining})`);
-      this.rerollText.setColor(hover ? '#ffffff' : '#00f5d4');
-    } else {
-      this.rerollBg.fillStyle(0x111115, 0.75);
-      this.rerollBg.fillRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
-      this.rerollBg.lineStyle(1, 0x333340, 0.7);
-      this.rerollBg.strokeRoundedRect(-rerollW / 2, -rerollH / 2, rerollW, rerollH, 6);
-      this.rerollText.setText('RE-ROLAGENS ESGOTADAS (0)');
-      this.rerollText.setColor('#555566');
-    }
+  /** Mostra nas teclas o atalho do controle em uso (some no toque). */
+  private updateActionKeys(): void {
+    const ui = this.scene.get('UIScene') as { controlScheme?: 'keyboard' | 'gamepad' | 'touch' } | null;
+    const scheme = ui?.controlScheme ?? 'keyboard';
+    this.rerollButton?.setKey(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'X' : 'R');
+    this.skipButton?.setKey(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'B' : 'ESPAÇO');
   }
 
+  private updateRerollButtonVisual(): void {
+    const charges = this.player.rerollsRemaining;
+    this.rerollButton?.setBadge(`${charges}`);
+    this.rerollButton?.setEnabled(charges > 0);
+  }
   private handleReroll(): void {
     if (this.isClosing || this.player.rerollsRemaining <= 0) return;
     this.player.rerollsRemaining--;
     SoundManager.getInstance().playCasinoLevelUp();
-    this.updateRerollButtonVisual(false);
+    this.updateRerollButtonVisual();
     this.dealCards(true);
   }
 
@@ -758,6 +684,7 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    this.updateActionKeys();
     if (this.isClosing) return;
 
     if (AutoPlayTestAgent.getInstance().isEnabled) {

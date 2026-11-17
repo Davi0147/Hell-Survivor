@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.11.2 — HUD Mais Limpa] — 2026-11-17
+
+### Resumo para o Jogador
+- **A Suprema mora num lugar só.** O frasco da Suprema saiu do painel da direita; agora ela fica no primeiro espaço da barra de armas, maior que os outros, com uma tecla desenhada no canto (E no teclado, Y no controle; no celular some porque o botão já está na tela). Quando fica pronta, a tecla cresce, acende e pulsa. Clicar no ícone também ativa a Suprema.
+- **Barras de vida e estamina mais largas**, ocupando o espaço que era do frasco.
+- **Botões da tela de cartas redesenhados:** só ícone, nome e a tecla do controle em uso (R / X para re-rolar, ESPAÇO / B para canalizar). O número de cargas aparece no canto do ícone; sem cargas, o botão fica apagado.
 ## [v0.11.1 — Ícones de Verdade] — 2026-11-17
 
 ### Resumo para o Jogador

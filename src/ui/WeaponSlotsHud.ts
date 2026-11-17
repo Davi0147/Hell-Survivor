@@ -4,6 +4,9 @@ import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
 import { FONTS, COLORS, WEAPON_SLOT_THEME as T } from '../config/theme';
 
 const SLOT = 46;
+/** O espaço da Suprema é maior para chamar atenção quando ela fica pronta. */
+const ULT = 66;
+const KEYCAP = 26;
 const GAP = 8;
 const MAX_WEAPON_SLOTS = 6;
 
@@ -34,33 +37,45 @@ export class WeaponSlotsHud {
   private readonly ultIcon?: Phaser.GameObjects.Image;
   private readonly ultShade: Phaser.GameObjects.Graphics;
   private readonly ultKey: Phaser.GameObjects.Text;
+  private readonly ultKeyCap: Phaser.GameObjects.Graphics;
   private readonly slots: Slot[] = [];
+  private keyLabelHidden = false;
 
-  constructor(private readonly ui: Phaser.Scene) {
+  constructor(private readonly ui: Phaser.Scene, onUltimateClick?: () => void) {
     const { height } = ui.scale;
-    this.container = ui.add.container(28 + SLOT / 2, height - 96);
+    this.container = ui.add.container(26 + ULT / 2, height - 100);
     this.container.setDepth(58);
 
     this.ultFrame = ui.add.graphics();
     this.ultShade = ui.add.graphics();
     this.container.add(this.ultFrame);
     if (ui.textures.exists('icon-ultimate')) {
-      this.ultIcon = ui.add.image(0, 0, 'icon-ultimate').setDisplaySize(SLOT - 6, SLOT - 6);
+      this.ultIcon = ui.add.image(0, 0, 'icon-ultimate').setDisplaySize(ULT - 8, ULT - 8);
       this.container.add(this.ultIcon);
     }
     this.container.add(this.ultShade);
-    this.ultKey = ui.add.text(SLOT / 2 - 4, SLOT / 2 - 2, 'E', {
+    // Tecla da Suprema em destaque, como uma tecla de teclado no canto do ícone
+    this.ultKeyCap = ui.add.graphics();
+    this.ultKeyCap.setPosition(ULT / 2 - 4, ULT / 2 - 4);
+    this.container.add(this.ultKeyCap);
+    this.ultKey = ui.add.text(ULT / 2 - 4, ULT / 2 - 5, 'E', {
       fontFamily: FONTS.display,
-      fontSize: '12px',
+      fontSize: '18px',
       fontStyle: 'bold',
       color: T.keyText,
       stroke: COLORS.strokeBlack,
       strokeThickness: 3,
-    }).setOrigin(1, 1);
+    }).setOrigin(0.5);
     this.container.add(this.ultKey);
 
+    if (onUltimateClick) {
+      const zone = ui.add.zone(0, 0, ULT, ULT).setInteractive({ useHandCursor: true });
+      zone.on('pointerdown', onUltimateClick);
+      this.container.add(zone);
+    }
+
     for (let i = 0; i < MAX_WEAPON_SLOTS; i++) {
-      const x = (i + 1) * (SLOT + GAP) + 6;
+      const x = ULT / 2 + GAP + SLOT / 2 + i * (SLOT + GAP);
       const frame = ui.add.graphics();
       frame.setPosition(x, 0);
       const icon = ui.add.image(x, 0, '__DEFAULT').setVisible(false);
@@ -76,9 +91,10 @@ export class WeaponSlotsHud {
     return this.container;
   }
 
-  /** Atalho da Suprema conforme o controle em uso. */
+  /** Atalho da Suprema conforme o controle em uso ('' esconde, no toque já existe o botão na tela). */
   public setUltimateKeyLabel(label: string): void {
     if (this.ultKey.text !== label) this.ultKey.setText(label);
+    this.keyLabelHidden = label === '';
   }
 
   public update(player: IWeaponSlotsPlayer, weapons: ReadonlyArray<BaseWeapon>): void {
@@ -124,33 +140,48 @@ export class WeaponSlotsHud {
     const isActive = player.isUltimateActive;
     const pulse = Math.sin(this.ui.time.now * 0.01);
 
-    this.drawFrame(this.ultFrame, isReady || isActive ? T.ultReadyBorder : T.border, false, isReady ? 2 + pulse : 0);
+    this.drawFrame(this.ultFrame, isReady || isActive ? T.ultReadyBorder : T.border, false, isReady ? 3 + pulse * 2 : 0, ULT);
 
     // Sombra cobre a parte ainda não carregada (de cima para baixo)
     this.ultShade.clear();
     if (!isReady && !isActive) {
-      const inner = SLOT - 6;
+      const inner = ULT - 8;
       const shadeH = inner * (1 - ratio);
       this.ultShade.fillStyle(T.ultShade, T.ultShadeAlpha);
       this.ultShade.fillRect(-inner / 2, -inner / 2, inner, shadeH);
     }
-    this.ultIcon?.setScale(((SLOT - 6) / (this.ultIcon.width || 1)) * (isReady ? 1 + pulse * 0.06 : 1));
-    this.ultKey.setVisible(isReady);
+    this.ultIcon?.setScale(((ULT - 8) / (this.ultIcon.width || 1)) * (isReady ? 1 + pulse * 0.07 : 1));
+
+    // A tecla aparece sempre; pronta, ela cresce, acende e pulsa
+    const showKey = !this.keyLabelHidden && !isActive;
+    this.ultKey.setVisible(showKey);
+    this.ultKeyCap.setVisible(showKey);
+    const keyScale = isReady ? 1.25 + pulse * 0.12 : 1;
+    this.ultKey.setScale(keyScale).setAlpha(isReady ? 1 : 0.6);
+    this.ultKeyCap.setScale(keyScale).setAlpha(isReady ? 1 : 0.6);
+    this.ultKeyCap.clear();
+    const k = KEYCAP / 2;
+    this.ultKeyCap.fillStyle(T.keyCapShadow, 1);
+    this.ultKeyCap.fillRoundedRect(-k, -k + 3, KEYCAP, KEYCAP, 4);
+    this.ultKeyCap.fillStyle(isReady ? T.keyCapReady : T.keyCapIdle, 1);
+    this.ultKeyCap.fillRoundedRect(-k, -k, KEYCAP, KEYCAP, 4);
+    this.ultKeyCap.lineStyle(2, isReady ? T.evolvedBorder : T.border, 1);
+    this.ultKeyCap.strokeRoundedRect(-k, -k, KEYCAP, KEYCAP, 4);
   }
 
-  private drawFrame(g: Phaser.GameObjects.Graphics, border: number, isEmpty: boolean, glow: number = 0): void {
-    const h = SLOT / 2;
+  private drawFrame(g: Phaser.GameObjects.Graphics, border: number, isEmpty: boolean, glow: number = 0, size: number = SLOT): void {
+    const h = size / 2;
     g.clear();
     if (glow > 0) {
       g.lineStyle(2, border, 0.45);
-      g.strokeRect(-h - 2 - glow, -h - 2 - glow, SLOT + 4 + glow * 2, SLOT + 4 + glow * 2);
+      g.strokeRect(-h - 2 - glow, -h - 2 - glow, size + 4 + glow * 2, size + 4 + glow * 2);
     }
     g.fillStyle(T.fill, isEmpty ? T.fillAlpha * 0.45 : T.fillAlpha);
-    g.fillRect(-h, -h, SLOT, SLOT);
+    g.fillRect(-h, -h, size, size);
     g.lineStyle(1, T.innerBorder, isEmpty ? 0.4 : 1);
-    g.strokeRect(-h + 3, -h + 3, SLOT - 6, SLOT - 6);
+    g.strokeRect(-h + 3, -h + 3, size - 6, size - 6);
     g.lineStyle(2, border, isEmpty ? 0.35 : 1);
-    g.strokeRect(-h, -h, SLOT, SLOT);
+    g.strokeRect(-h, -h, size, size);
     // Cantos reforçados, estilo moldura barroca
     if (!isEmpty) {
       g.fillStyle(border, 1);

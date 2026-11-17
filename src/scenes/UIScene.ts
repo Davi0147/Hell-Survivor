@@ -84,6 +84,12 @@ export class UIScene
   // Controles e Legenda Dinâmica (Teclado vs Gamepad)
   private controlsText!: Phaser.GameObjects.Text;
   private currentControlScheme: 'keyboard' | 'gamepad' = 'keyboard';
+
+  /** Último método de entrada usado (as telas mostram a tecla ou o botão certo). */
+  public get controlScheme(): 'keyboard' | 'gamepad' | 'touch' {
+    if (this.touchControls?.isActive) return 'touch';
+    return this.currentControlScheme;
+  }
   private wasKeyboardKeyPressed: boolean = false;
   private keyEsc?: Phaser.Input.Keyboard.Key;
 
@@ -131,7 +137,7 @@ export class UIScene
     // 1-2. RETRATO E PAINEL DE STATUS (CANTO INFERIOR DIREITO)
     // ==========================================
     const gsForName = this.scene.get('GameScene') as { player?: { characterId?: string } } | null;
-    this.statusPanel = new StatusPanelHud(this, pixelFont, gsForName?.player?.characterId ?? 'nixy', () => this.tryTriggerUltimate());
+    this.statusPanel = new StatusPanelHud(this, pixelFont, gsForName?.player?.characterId ?? 'nixy');
 
     // Tecla [E] também escutada diretamente na UIScene
     if (this.input.keyboard) {
@@ -268,7 +274,7 @@ export class UIScene
     this.hudElements.push(this.comboHud.getHudElement());
 
     // 8.2. Armas equipadas e espaço da Suprema
-    this.weaponSlots = new WeaponSlotsHud(this);
+    this.weaponSlots = new WeaponSlotsHud(this, () => this.tryTriggerUltimate());
     this.hudElements.push(this.weaponSlots.getHudElement());
 
     // ==========================================
@@ -356,7 +362,7 @@ export class UIScene
     const p = gameScene.player;
 
     // Painel de status: Suprema, vida, estamina, nível e retrato
-    this.statusPanel.update(p, this.currentControlScheme);
+    this.statusPanel.update(p);
     if (this.touchControls) {
       this.touchControls.update(p.isUltimateReady);
     }
@@ -371,7 +377,8 @@ export class UIScene
     if (gameScene.combatFeel) {
       this.comboHud.update(gameScene.combatFeel.combo);
     }
-    this.weaponSlots.setUltimateKeyLabel(this.currentControlScheme === 'gamepad' ? 'Y' : 'E');
+    const scheme = this.controlScheme;
+    this.weaponSlots.setUltimateKeyLabel(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'Y' : 'E');
     this.weaponSlots.update(p, gameScene.weapons);
 
     // Atualizar Barra Superior de Experiência (XP)
