@@ -162,6 +162,22 @@ export const ITEM_COLORS = {
   },
 };
 
+/** Barra de armas equipadas da HUD (canto inferior esquerdo). */
+export const WEAPON_SLOT_THEME = {
+  fill: 0x12040a,
+  fillAlpha: 0.88,
+  border: 0xc59b27,
+  innerBorder: 0x5a1020,
+  evolvedBorder: 0xffe600,
+  pipOn: 0xffd166,
+  pipOff: 0x3b1a24,
+  ultReadyBorder: 0xff0055,
+  ultShade: 0x000000,
+  ultShadeAlpha: 0.7,
+  keyText: '#ffd60a',
+  levelText: '#f3d17a',
+} as const;
+
 /** Cor do rótulo de raridade nas cartas novas (as antigas ainda usam literais no catálogo). */
 export const CARD_RARITY_COLORS = {
   rare: '#facc15',

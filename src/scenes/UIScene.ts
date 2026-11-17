@@ -21,6 +21,7 @@ import { TopCenterHud } from '../ui/TopCenterHud';
 import { TacticalRadar } from '../ui/TacticalRadar';
 import { AltarEdgeIndicator } from '../ui/AltarEdgeIndicator';
 import { ComboHud } from '../ui/ComboHud';
+import { WeaponSlotsHud } from '../ui/WeaponSlotsHud';
 
 export class UIScene
   extends Phaser.Scene
@@ -99,6 +100,9 @@ export class UIScene
   // Contador de combo e aviso de Frenesi
   private comboHud!: ComboHud;
 
+  // Barra de armas equipadas (canto inferior esquerdo)
+  private weaponSlots!: WeaponSlotsHud;
+
 
   constructor() {
     super('UIScene');
@@ -145,7 +149,7 @@ export class UIScene
     const soulsY = 88;
 
     // Linha 1: ABATES (Sprite Kills + Quantidade com contorno preto)
-    this.killsIcon = this.add.image(hudRightX, killsY, 'ui-kills-icon').setScale(1.0).setOrigin(0.5).setDepth(60);
+    this.killsIcon = this.add.image(hudRightX, killsY, this.textures.exists('ui-icon-kills') ? 'ui-icon-kills' : 'ui-kills-icon').setDisplaySize(36, 36).setOrigin(0.5).setDepth(60);
     this.killsText = this.add.text(hudRightX + 26, killsY, '0', {
       fontFamily: pixelFont,
       fontSize: '18px',
@@ -156,7 +160,7 @@ export class UIScene
     }).setOrigin(0, 0.5).setDepth(60);
 
     // Linha 2: ALMAS (Sprite Alma + Quantidade com contorno preto)
-    this.soulsIcon = this.add.image(hudRightX, soulsY, 'item-soul').setScale(1.0).setOrigin(0.5).setDepth(60);
+    this.soulsIcon = this.add.image(hudRightX, soulsY, this.textures.exists('ui-icon-souls') ? 'ui-icon-souls' : 'item-soul').setDisplaySize(34, 34).setOrigin(0.5).setDepth(60);
     this.soulsText = this.add.text(hudRightX + 26, soulsY, '0', {
       fontFamily: pixelFont,
       fontSize: '18px',
@@ -263,6 +267,10 @@ export class UIScene
     this.comboHud = new ComboHud(this);
     this.hudElements.push(this.comboHud.getHudElement());
 
+    // 8.2. Armas equipadas e espaço da Suprema
+    this.weaponSlots = new WeaponSlotsHud(this);
+    this.hudElements.push(this.weaponSlots.getHudElement());
+
     // ==========================================
     // 8. CONSOLE DE TESTE & GRAVADOR DE SESSÃO (SANDBOX / DEV MODE)
     // ==========================================
@@ -363,6 +371,8 @@ export class UIScene
     if (gameScene.combatFeel) {
       this.comboHud.update(gameScene.combatFeel.combo);
     }
+    this.weaponSlots.setUltimateKeyLabel(this.currentControlScheme === 'gamepad' ? 'Y' : 'E');
+    this.weaponSlots.update(p, gameScene.weapons);
 
     // Atualizar Barra Superior de Experiência (XP)
     const { width, height } = this.scale;

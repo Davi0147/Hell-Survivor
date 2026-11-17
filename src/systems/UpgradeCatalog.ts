@@ -54,6 +54,53 @@ export const C_SPEED   = '#38bdf8'; // Azul ciano para Velocidade / Estamina / C
 export const C_UTILITY = '#fbbf24'; // Dourado para Quantidades / Projéteis / Alcance / Perfuração
 export const C_EVO     = '#ffe600'; // Ouro radiante para Evoluções Supremas
 
+/** Ícone de arte de cada carta (pelo `id`). Cartas sem entrada ficam só com texto. */
+export const CARD_ICON_KEYS: Record<string, string> = {
+  soul_bolt_upgrade: 'icon-weapon-soulbolt',
+  void_scythes: 'icon-weapon-scythes',
+  void_scythes_upgrade: 'icon-weapon-scythes',
+  hellfire_aura: 'icon-weapon-hellfire',
+  hellfire_aura_upgrade: 'icon-weapon-hellfire',
+  blood_daggers: 'icon-weapon-daggers',
+  blood_daggers_upgrade: 'icon-weapon-daggers',
+  abyssal_chains: 'icon-weapon-chains',
+  abyssal_chains_upgrade: 'icon-weapon-chains',
+  infernal_meteor: 'icon-weapon-meteor',
+  infernal_meteor_upgrade: 'icon-weapon-meteor',
+  evo_soul_bolt: 'icon-weapon-soulbolt-evo',
+  evo_void_scythes: 'icon-weapon-scythes-evo',
+  evo_hellfire_aura: 'icon-weapon-hellfire-evo',
+  evo_blood_daggers: 'icon-weapon-daggers-evo',
+  evo_abyssal_chains: 'icon-weapon-chains-evo',
+  evo_infernal_meteor: 'icon-weapon-meteor-evo',
+  damage: 'icon-blessing-might',
+  speed: 'icon-blessing-agility',
+  magnet: 'icon-blessing-magnetism',
+  vitality: 'icon-blessing-vitality',
+  hp_regen: 'icon-blessing-vitality',
+  life_steal: 'icon-blessing-vitality',
+};
+
+/** Ícone de arte e nível de uma arma equipada (barra de armas da HUD). */
+export function getWeaponIconInfo(weapon: BaseWeapon): { key: string; level: number; maxLevel: number; isEvolved: boolean } | undefined {
+  const w = weapon as BaseWeapon & { isEvolved?: boolean; getLevel?(): number; getBladeCount?(): number };
+  const isEvolved = w.isEvolved === true;
+  let base: string | undefined;
+  let level = w.getLevel?.() ?? 1;
+  let maxLevel = 5;
+  if (weapon instanceof SoulBoltWeapon) base = 'icon-weapon-soulbolt';
+  else if (weapon instanceof VoidScythesWeapon) {
+    base = 'icon-weapon-scythes';
+    level = w.getBladeCount?.() ?? 1;
+    maxLevel = 6;
+  } else if (weapon instanceof HellfireAuraWeapon) base = 'icon-weapon-hellfire';
+  else if (weapon instanceof BloodDaggersWeapon) base = 'icon-weapon-daggers';
+  else if (weapon instanceof AbyssalChainsWeapon) base = 'icon-weapon-chains';
+  else if (weapon instanceof InfernalMeteorWeapon) base = 'icon-weapon-meteor';
+  if (!base) return undefined;
+  return { key: isEvolved ? `${base}-evo` : base, level, maxLevel, isEvolved };
+}
+
 export function getAvailableUpgrades(player: BaseCharacter, gameScene: UpgradeGameScene): UpgradeCard[] {
   const weapons: BaseWeapon[] = gameScene.weapons || [];
   const dmgMult = 1 + (player.bonusDamagePercent || 0) / 100;

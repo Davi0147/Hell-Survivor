@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
-import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON } from '../systems/UpgradeCatalog';
+import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON, CARD_ICON_KEYS } from '../systems/UpgradeCatalog';
+import { COLORS } from '../config/theme';
 import type { UpgradeCard, RichTextSegment, UpgradeGameScene } from '../systems/UpgradeCatalog';
 export type { UpgradeCard, RichTextSegment } from '../systems/UpgradeCatalog';
 import { SoundManager } from '../systems/SoundManager';
@@ -224,6 +225,9 @@ export class UpgradeScene extends Phaser.Scene {
       strokeThickness: 2
     }).setOrigin(0.5);
     this.rerollBtnContainer.add(this.rerollText);
+    if (this.textures.exists('ui-icon-reroll')) {
+      this.rerollBtnContainer.add(this.add.image(-rerollW / 2 - 4, 0, 'ui-icon-reroll').setDisplaySize(34, 34));
+    }
 
     this.updateRerollButtonVisual(false);
 
@@ -271,6 +275,9 @@ export class UpgradeScene extends Phaser.Scene {
       strokeThickness: 2
     }).setOrigin(0.5);
     skipContainer.add(skipText);
+    if (this.textures.exists('ui-icon-skip')) {
+      skipContainer.add(this.add.image(skipW / 2 + 4, 0, 'ui-icon-skip').setDisplaySize(34, 34));
+    }
 
     const skipHit = new Phaser.Geom.Rectangle(-skipW / 2, -skipH / 2, skipW, skipH);
     skipContainer.setInteractive(skipHit, Phaser.Geom.Rectangle.Contains);
@@ -501,6 +508,27 @@ export class UpgradeScene extends Phaser.Scene {
     ];
 
     this.renderRichDescriptionBox(floatContainer, richLines, 109, SAFE_INNER_WIDTH, 92);
+
+    // Ícone de arte da carta, cravado na faixa de ossos entre as duas janelas
+    const iconKey = CARD_ICON_KEYS[card.id];
+    if (iconKey && this.textures.exists(iconKey)) {
+      const iconGlow = this.add.circle(0, 35, 31, glowColor, 0.35);
+      iconGlow.setBlendMode(Phaser.BlendModes.ADD);
+      const iconBack = this.add.circle(0, 35, 27, COLORS.bgDark, 0.92);
+      iconBack.setStrokeStyle(2, glowColor, 1);
+      const icon = this.add.image(0, 35, iconKey);
+      icon.setDisplaySize(52, 52);
+      floatContainer.add([iconGlow, iconBack, icon]);
+      this.tweens.add({
+        targets: iconGlow,
+        scale: { from: 0.9, to: 1.18 },
+        alpha: { from: 0.25, to: 0.55 },
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
 
     // =========================================================================
     // INTERATIVIDADE: HOVER (FLUTUAÇÃO E ESCALA) & CLICK (CASH + EXPLOSÃO)

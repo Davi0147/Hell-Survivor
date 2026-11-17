@@ -1,0 +1,162 @@
+import Phaser from 'phaser';
+import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
+import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
+import { FONTS, COLORS, WEAPON_SLOT_THEME as T } from '../config/theme';
+
+const SLOT = 46;
+const GAP = 8;
+const MAX_WEAPON_SLOTS = 6;
+
+/** O que a barra lê do personagem para o espaço da Suprema. */
+export interface IWeaponSlotsPlayer {
+  ultimateCharge: number;
+  maxUltimateCharge: number;
+  isUltimateReady: boolean;
+  isUltimateActive: boolean;
+}
+
+interface Slot {
+  frame: Phaser.GameObjects.Graphics;
+  icon: Phaser.GameObjects.Image;
+  pips: Phaser.GameObjects.Graphics;
+  /** Assinatura do que está desenhado (evita redesenhar todo quadro). */
+  drawn: string;
+}
+
+/**
+ * Barra de armas equipadas no canto inferior esquerdo: o primeiro espaço é a Suprema
+ * (escurece enquanto carrega, borda pulsando quando pronta) e os outros mostram cada
+ * arma com seu ícone, nível em pontinhos e moldura dourada quando evoluída.
+ */
+export class WeaponSlotsHud {
+  private readonly container: Phaser.GameObjects.Container;
+  private readonly ultFrame: Phaser.GameObjects.Graphics;
+  private readonly ultIcon?: Phaser.GameObjects.Image;
+  private readonly ultShade: Phaser.GameObjects.Graphics;
+  private readonly ultKey: Phaser.GameObjects.Text;
+  private readonly slots: Slot[] = [];
+
+  constructor(private readonly ui: Phaser.Scene) {
+    const { height } = ui.scale;
+    this.container = ui.add.container(28 + SLOT / 2, height - 96);
+    this.container.setDepth(58);
+
+    this.ultFrame = ui.add.graphics();
+    this.ultShade = ui.add.graphics();
+    this.container.add(this.ultFrame);
+    if (ui.textures.exists('icon-ultimate')) {
+      this.ultIcon = ui.add.image(0, 0, 'icon-ultimate').setDisplaySize(SLOT - 6, SLOT - 6);
+      this.container.add(this.ultIcon);
+    }
+    this.container.add(this.ultShade);
+    this.ultKey = ui.add.text(SLOT / 2 - 4, SLOT / 2 - 2, 'E', {
+      fontFamily: FONTS.display,
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: T.keyText,
+      stroke: COLORS.strokeBlack,
+      strokeThickness: 3,
+    }).setOrigin(1, 1);
+    this.container.add(this.ultKey);
+
+    for (let i = 0; i < MAX_WEAPON_SLOTS; i++) {
+      const x = (i + 1) * (SLOT + GAP) + 6;
+      const frame = ui.add.graphics();
+      frame.setPosition(x, 0);
+      const icon = ui.add.image(x, 0, '__DEFAULT').setVisible(false);
+      const pips = ui.add.graphics();
+      pips.setPosition(x, 0);
+      this.container.add([frame, icon, pips]);
+      this.slots.push({ frame, icon, pips, drawn: '' });
+    }
+  }
+
+  /** Some junto com o resto da HUD. */
+  public getHudElement(): Phaser.GameObjects.Container {
+    return this.container;
+  }
+
+  /** Atalho da Suprema conforme o controle em uso. */
+  public setUltimateKeyLabel(label: string): void {
+    if (this.ultKey.text !== label) this.ultKey.setText(label);
+  }
+
+  public update(player: IWeaponSlotsPlayer, weapons: ReadonlyArray<BaseWeapon>): void {
+    this.updateUltimateSlot(player);
+
+    for (let i = 0; i < this.slots.length; i++) {
+      const slot = this.slots[i];
+      const info = weapons[i] ? getWeaponIconInfo(weapons[i]) : undefined;
+      const signature = info ? `${info.key}|${info.level}|${info.maxLevel}` : 'empty';
+      if (signature === slot.drawn) {
+        if (info?.isEvolved) slot.frame.setAlpha(0.8 + Math.sin(this.ui.time.now * 0.006) * 0.2);
+        continue;
+      }
+      slot.drawn = signature;
+      this.drawFrame(slot.frame, info?.isEvolved ? T.evolvedBorder : T.border, !info);
+      slot.frame.setAlpha(1);
+
+      if (info && this.ui.textures.exists(info.key)) {
+        slot.icon.setTexture(info.key).setDisplaySize(SLOT - 6, SLOT - 6).setVisible(true);
+        // Ícone novo entra com um pulo
+        slot.icon.setScale(slot.icon.scaleX * 1.4);
+        this.ui.tweens.add({ targets: slot.icon, scaleX: slot.icon.scaleX / 1.4, scaleY: slot.icon.scaleY / 1.4, duration: 220, ease: 'Back.easeOut' });
+      } else {
+        slot.icon.setVisible(false);
+      }
+
+      slot.pips.clear();
+      if (info && !info.isEvolved) {
+        const pipW = 5;
+        const total = info.maxLevel * pipW + (info.maxLevel - 1) * 2;
+        const startX = -total / 2;
+        for (let p = 0; p < info.maxLevel; p++) {
+          slot.pips.fillStyle(p < info.level ? T.pipOn : T.pipOff, 1);
+          slot.pips.fillRect(startX + p * (pipW + 2), SLOT / 2 + 4, pipW, 4);
+        }
+      }
+    }
+  }
+
+  private updateUltimateSlot(player: IWeaponSlotsPlayer): void {
+    const ratio = Phaser.Math.Clamp(player.ultimateCharge / player.maxUltimateCharge, 0, 1);
+    const isReady = player.isUltimateReady;
+    const isActive = player.isUltimateActive;
+    const pulse = Math.sin(this.ui.time.now * 0.01);
+
+    this.drawFrame(this.ultFrame, isReady || isActive ? T.ultReadyBorder : T.border, false, isReady ? 2 + pulse : 0);
+
+    // Sombra cobre a parte ainda não carregada (de cima para baixo)
+    this.ultShade.clear();
+    if (!isReady && !isActive) {
+      const inner = SLOT - 6;
+      const shadeH = inner * (1 - ratio);
+      this.ultShade.fillStyle(T.ultShade, T.ultShadeAlpha);
+      this.ultShade.fillRect(-inner / 2, -inner / 2, inner, shadeH);
+    }
+    this.ultIcon?.setScale(((SLOT - 6) / (this.ultIcon.width || 1)) * (isReady ? 1 + pulse * 0.06 : 1));
+    this.ultKey.setVisible(isReady);
+  }
+
+  private drawFrame(g: Phaser.GameObjects.Graphics, border: number, isEmpty: boolean, glow: number = 0): void {
+    const h = SLOT / 2;
+    g.clear();
+    if (glow > 0) {
+      g.lineStyle(2, border, 0.45);
+      g.strokeRect(-h - 2 - glow, -h - 2 - glow, SLOT + 4 + glow * 2, SLOT + 4 + glow * 2);
+    }
+    g.fillStyle(T.fill, isEmpty ? T.fillAlpha * 0.45 : T.fillAlpha);
+    g.fillRect(-h, -h, SLOT, SLOT);
+    g.lineStyle(1, T.innerBorder, isEmpty ? 0.4 : 1);
+    g.strokeRect(-h + 3, -h + 3, SLOT - 6, SLOT - 6);
+    g.lineStyle(2, border, isEmpty ? 0.35 : 1);
+    g.strokeRect(-h, -h, SLOT, SLOT);
+    // Cantos reforçados, estilo moldura barroca
+    if (!isEmpty) {
+      g.fillStyle(border, 1);
+      for (const [cx, cy] of [[-h, -h], [h, -h], [-h, h], [h, h]]) {
+        g.fillRect(cx - 3, cy - 3, 6, 6);
+      }
+    }
+  }
+}

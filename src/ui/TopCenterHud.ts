@@ -24,6 +24,7 @@ export class TopCenterHud {
   private readonly bossName: Phaser.GameObjects.Text;
   private readonly timerText: Phaser.GameObjects.Text;
   private readonly recordText: Phaser.GameObjects.Text;
+  private readonly timerIcon?: Phaser.GameObjects.Image;
 
   constructor(
     private readonly ui: Phaser.Scene,
@@ -78,10 +79,16 @@ export class TopCenterHud {
       strokeThickness: 2
     }).setOrigin(0.5).setDepth(116);
     this.recordText.setVisible(false);
+
+    if (ui.textures.exists('ui-icon-timer')) {
+      this.timerIcon = ui.add.image(width / 2, 22, 'ui-icon-timer').setDisplaySize(20, 20).setDepth(115).setVisible(false);
+    }
   }
 
   public getHudElements(): Phaser.GameObjects.GameObject[] {
-    return [this.purifyBar, this.purifyLabel, this.bossBar, this.bossName, this.timerText, this.recordText];
+    const parts: Phaser.GameObjects.GameObject[] = [this.purifyBar, this.purifyLabel, this.bossBar, this.bossName, this.timerText, this.recordText];
+    if (this.timerIcon) parts.push(this.timerIcon);
+    return parts;
   }
 
   public clear(): void {
@@ -96,6 +103,12 @@ export class TopCenterHud {
     this.bossName.setVisible(!!parts.boss);
     this.timerText.setVisible(!!parts.timer);
     this.recordText.setVisible(!!parts.record);
+    this.timerIcon?.setVisible(!!parts.timer);
+  }
+
+  /** Ampulheta sempre colada à esquerda do cronômetro. */
+  private placeTimerIcon(): void {
+    this.timerIcon?.setPosition(this.timerText.x - this.timerText.width / 2 - 14, this.timerText.y);
   }
 
   public update(gs: ITopCenterHudWorld): void {
@@ -108,12 +121,14 @@ export class TopCenterHud {
         // Durante a luta no Infinito o cronômetro desce para baixo da barra do chefe
         this.timerText.setY(48);
         this.timerText.setText(this.formatTime(Math.floor(gs.survivalTimeMs / 1000)));
+        this.placeTimerIcon();
       }
       this.drawBossBar(Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1));
     } else if (gs.gameMode === 'endless') {
       this.show({ timer: true, record: true });
       this.timerText.setY(22);
       this.timerText.setText(this.formatTime(Math.floor(gs.survivalTimeMs / 1000)));
+      this.placeTimerIcon();
     } else if (gs.gameMode === 'story' && !gs.isBossFightActive) {
       // Sem números visíveis: só a barra
       this.show({ purify: true });

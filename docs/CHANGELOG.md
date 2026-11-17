@@ -2,6 +2,22 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.11.1 — Ícones de Verdade] — 2026-11-17
+
+### Resumo para o Jogador
+- **Barra de armas na HUD** (canto inferior esquerdo): mostra a Suprema (escurece enquanto carrega, borda pulsando quando pronta) e cada arma equipada com seu ícone, o nível em pontinhos e moldura dourada quando evoluída.
+- **Cartas de Level Up com ícone:** armas, evoluções e bênçãos de atributo ganharam o ícone pintado no meio da carta, com brilho pulsando.
+- **Altar de Bênçãos com medalhões:** cada bênção tem seu ícone; fica apagado enquanto está no nível 0.
+- **HUD com ícones novos:** caveira de abates, chama de almas, ampulheta no cronômetro do Infinito e seta de nível.
+- **Botões da tela de cartas** (re-rolar e canalizar) com ícones.
+
+### Arte
+- Recortadas e colocadas no jogo: 13 ícones de armas e Suprema (já vieram recortados), 6 bênçãos e 10 ícones de interface (recortados das folhas `Bençãos.jpg` e `UI Icons.jpg`, fundo removido por código).
+- Ainda sem uso no jogo: engrenagem, sinos de som e cadeado (prontos em `public/assets/sprites/icons/ui/` para os menus).
+- Ainda faltam as folhas de HUD e de itens (`docs/ART_PROMPTS.md` §10 e §11).
+
+### Organização do Projeto
+- Novo `src/ui/WeaponSlotsHud.ts`, `src/config/iconKeys.ts` (lista dos ícones carregados), `CARD_ICON_KEYS` e `getWeaponIconInfo` em `UpgradeCatalog.ts`, cores em `WEAPON_SLOT_THEME`.
 ## [v0.11.0 — Ascensão Infernal] — 2026-11-17
 
 ### Resumo para o Jogador

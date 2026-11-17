@@ -453,8 +453,18 @@ export class MenuScene extends Phaser.Scene {
         cardG.strokeRoundedRect(cardX - cardW / 2, cardY - cardH / 2, cardW, cardH, 8);
         contentContainer.add(cardG);
 
+        // Ícone da bênção (medalhão à esquerda); o texto anda para a direita quando ele existe
+        const iconKey = `icon-blessing-${bId}`;
+        const hasIcon = this.textures.exists(iconKey);
+        const textLeft = cardX - cardW / 2 + (hasIcon ? 86 : 14);
+        if (hasIcon) {
+          const icon = this.add.image(cardX - cardW / 2 + 42, cardY, iconKey).setDisplaySize(72, 72);
+          if (curLevel === 0) icon.setAlpha(0.55);
+          contentContainer.add(icon);
+        }
+
         // Nome da Bênção
-        const nameTxt = this.add.text(cardX - cardW / 2 + 14, cardY - cardH / 2 + 10, config.name, {
+        const nameTxt = this.add.text(textLeft, cardY - cardH / 2 + 10, config.name, {
           fontFamily: pixelFont,
           fontSize: '12px',
           fontStyle: 'bold',
@@ -471,11 +481,11 @@ export class MenuScene extends Phaser.Scene {
         contentContainer.add(bonusTxt);
 
         // Descrição detalhada
-        const descTxt = this.add.text(cardX - cardW / 2 + 14, cardY - cardH / 2 + 28, config.description, {
+        const descTxt = this.add.text(textLeft, cardY - cardH / 2 + 28, config.description, {
           fontFamily: pixelFont,
           fontSize: '9px',
           color: '#c7b39b',
-          wordWrap: { width: 290 }
+          wordWrap: { width: hasIcon ? 218 : 290 }
         });
         contentContainer.add(descTxt);
 
@@ -485,7 +495,7 @@ export class MenuScene extends Phaser.Scene {
           pipsStr += l <= curLevel ? '● ' : '○ ';
         }
         const pipsTxt = this.add.text(
-          cardX - cardW / 2 + 14,
+          textLeft,
           cardY + cardH / 2 - 18,
           `NÍV ${curLevel}/${config.maxLevel}   [ ${pipsStr.trim()} ]`,
           {

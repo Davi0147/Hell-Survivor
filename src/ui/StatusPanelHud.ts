@@ -42,6 +42,7 @@ export class StatusPanelHud {
   private readonly hpBarFill: Phaser.GameObjects.Graphics;
   private readonly staminaBarFill: Phaser.GameObjects.Graphics;
   private readonly levelTag: Phaser.GameObjects.Text;
+  private readonly levelIcon?: Phaser.GameObjects.Image;
   private readonly hpText: Phaser.GameObjects.Text;
   private readonly staminaText: Phaser.GameObjects.Text;
 
@@ -144,6 +145,9 @@ export class StatusPanelHud {
       stroke: '#000000',
       strokeThickness: 3
     }).setDepth(60);
+    if (ui.textures.exists('ui-icon-level')) {
+      this.levelIcon = ui.add.image(this.barsX, this.hpBarY - 11, 'ui-icon-level').setDisplaySize(18, 18).setDepth(60);
+    }
 
     this.hpText = ui.add.text(this.barsX + this.barsW / 2, this.hpBarY + 9, '100 / 100 HP', {
       fontFamily: pixelFont,
@@ -178,6 +182,7 @@ export class StatusPanelHud {
       this.hpBarFill,
       this.staminaBarFill,
       this.levelTag,
+      ...(this.levelIcon ? [this.levelIcon] : []),
       this.hpText,
       this.staminaText
     ];
@@ -206,6 +211,7 @@ export class StatusPanelHud {
     this.staminaText.setText(`${Math.round(p.currentStamina)}% STAMINA`);
 
     this.levelTag.setText(`LVL ${p.currentLevel}`);
+    this.levelIcon?.setX(this.barsX + this.levelTag.width + 12);
 
     if (p.characterId) {
       const charNameKey = `ui-char-name-${p.characterId}`;

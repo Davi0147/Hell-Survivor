@@ -1,4 +1,5 @@
 import { ensurePlaceholderItemTextures } from '../systems/PlaceholderItemTextures';
+import { GAME_ICON_KEYS, GAME_ICON_FOLDERS } from '../config/iconKeys';
 import Phaser from 'phaser';
 import { DIRECTIONS_8 } from '../config/balance';
 import { SoundManager } from '../systems/SoundManager';
@@ -362,6 +363,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image('item-magnet', `assets/sprites/items/magnet.png?t=${cacheBuster}`);
     this.load.image('item-chest', `assets/sprites/items/chest.png?t=${cacheBuster}`);
     this.load.image('item-soul', `assets/sprites/items/Soul.png?t=${cacheBuster}`);
+
+    // Ícones (docs/ART_PROMPTS.md §1 a §3): armas, Suprema, bênçãos e interface
+    for (const key of GAME_ICON_KEYS) {
+      this.load.image(key, `assets/sprites/icons/${GAME_ICON_FOLDERS[key]}/${key}.png?t=${cacheBuster}`);
+    }
     this.load.image('ui-kills-icon', `assets/sprites/items/Kills.png?t=${cacheBuster}`);
     this.load.image('ui-menu-arrow', `assets/sprites/items/Seta.png?t=${cacheBuster}`);
     this.load.image('ult-gauge-frame', `assets/sprites/items/UltGauge1.png?t=${cacheBuster}`);
