@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.12.3 — Tela Cheia no Celular] — 2026-11-17
+
+### Resumo para o Jogador
+- **Sem borda preta no celular.** O jogo agora estica a largura para o formato da tela (de 16:9 até 21:9), mantendo a altura: tudo continua do mesmo tamanho, você só enxerga um pouco mais do mapa nos lados. No PC 16:9 nada muda.
+- **Girou o celular no menu?** O jogo se reajusta sozinho ao novo formato (no meio da partida ele só reescala, para não perder o progresso).
+- **Joystick longe da borda:** a posição de descanso fica mais para dentro e acima da barra de armas; mesmo tocando bem no canto, ele nasce afastado da borda e volta para o lugar ao soltar o dedo. Os botões da direita também ficaram mais para dentro.
+- **No celular some o rodapé de teclas** ("[WASD] Mover..."), que não serve para toque.
 ## [v0.12.2 — Ninguém Fica Preso] — 2026-11-17
 
 ### Resumo para o Jogador

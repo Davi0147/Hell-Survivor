@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from './config/gameConfig';
+import { createGameConfig } from './config/gameConfig';
+import { getGameWidthForScreen } from './config/screenFit';
 import { initPWAInstallPrompt } from './systems/PWAInstallPrompt';
 
 async function bootstrap() {
@@ -13,21 +14,36 @@ async function bootstrap() {
         document.fonts.ready
       ]);
     } catch (e) {
-      console.warn('[main] Pré-carregamento de fontes concluído com fallback:', e);
+      console.warn('[main] PrÃ©-carregamento de fontes concluÃ­do com fallback:', e);
     }
   }
 
-  const game = new Phaser.Game(GAME_CONFIG);
+  // A largura do jogo acompanha o formato da tela (sem borda preta nos lados do celular)
+  const startWidth = getGameWidthForScreen(window.innerWidth, window.innerHeight);
+  const game = new Phaser.Game(createGameConfig(startWidth));
   (window as Window & { __PHASER_GAME__?: Phaser.Game }).__PHASER_GAME__ = game;
   initPWAInstallPrompt();
 
-  // Se a página carrega com o contêiner ainda sem tamanho (aba em segundo plano, WebView
-  // abrindo, painel recolhido), o Phaser calcula um canvas 0x0 e não recalcula sozinho,
-  // deixando a tela preta. Reajusta sempre que o contêiner mudar de tamanho.
+  // Se a pÃ¡gina carrega com o contÃªiner ainda sem tamanho (aba em segundo plano, WebView
+  // abrindo, painel recolhido), o Phaser calcula um canvas 0x0 e nÃ£o recalcula sozinho,
+  // deixando a tela preta. Reajusta sempre que o contÃªiner mudar de tamanho.
   const container = document.getElementById('game-container');
   if (container && typeof ResizeObserver !== 'undefined') {
     new ResizeObserver(() => game.scale.refresh()).observe(container);
   }
+
+  // Girou o celular ou mudou muito o formato da janela: se ainda estÃ¡ no menu (nada a perder),
+  // recarrega para o jogo assumir a largura certa; no meio da partida sÃ³ ajusta a escala.
+  let resizeTimer: number | undefined;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      const wanted = getGameWidthForScreen(window.innerWidth, window.innerHeight);
+      if (Math.abs(wanted - game.scale.gameSize.width) < 60) return;
+      const inMenu = game.scene.isActive('MenuScene') && !game.scene.isActive('GameScene');
+      if (inMenu) window.location.reload();
+    }, 500);
+  });
 }
 
 if (document.readyState === 'loading') {
@@ -36,15 +52,15 @@ if (document.readyState === 'loading') {
   bootstrap();
 }
 
-// Registro de PWA Service Worker com atualização confiável e banner seguro
+// Registro de PWA Service Worker com atualizaÃ§Ã£o confiÃ¡vel e banner seguro
 let userRequestedReload = false;
 
 if ('serviceWorker' in navigator && (import.meta.env.PROD || window.location.protocol === 'https:')) {
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     // Recarrega SOMENTE se o jogador solicitou a recarga ativamente via clique no banner.
-    // Evita recargas inesperadas na primeira visita (quando o SW recém-instalado chama clients.claim())
-    // e na migração silenciosa do cache legado v1.
+    // Evita recargas inesperadas na primeira visita (quando o SW recÃ©m-instalado chama clients.claim())
+    // e na migraÃ§Ã£o silenciosa do cache legado v1.
     if (!userRequestedReload) return;
     if (refreshing) return;
     refreshing = true;
@@ -55,37 +71,37 @@ if ('serviceWorker' in navigator && (import.meta.env.PROD || window.location.pro
     navigator.serviceWorker
       .register('./sw.js', { updateViaCache: 'none' })
       .then((registration) => {
-        // 1. Checa se já há um worker esperando na fila
+        // 1. Checa se jÃ¡ hÃ¡ um worker esperando na fila
         if (registration.waiting) {
           handleWaitingWorker(registration.waiting);
         }
 
-        // 2. Escuta quando um novo worker é detectado
+        // 2. Escuta quando um novo worker Ã© detectado
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (!newWorker) return;
 
           newWorker.addEventListener('statechange', () => {
-            // Se foi instalado e já temos um controller anterior ativo, é uma atualização
+            // Se foi instalado e jÃ¡ temos um controller anterior ativo, Ã© uma atualizaÃ§Ã£o
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               handleWaitingWorker(newWorker);
             }
           });
         });
 
-        // 3. Checa atualizações ao focar a aba (visibilitychange)
+        // 3. Checa atualizaÃ§Ãµes ao focar a aba (visibilitychange)
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {
             registration.update().catch(() => {
-              // Silencia erros de rede transitórios na revalidação em background
+              // Silencia erros de rede transitÃ³rios na revalidaÃ§Ã£o em background
             });
           }
         });
 
-        // 4. Checagem periódica a cada 30 minutos em segundo plano
+        // 4. Checagem periÃ³dica a cada 30 minutos em segundo plano
         window.setInterval(() => {
           registration.update().catch(() => {
-            // Silencia erros de rede transitórios na checagem periódica
+            // Silencia erros de rede transitÃ³rios na checagem periÃ³dica
           });
         }, 30 * 60 * 1000);
       })
@@ -168,7 +184,7 @@ function showUpdateBanner(worker: ServiceWorker): void {
   `;
 
   const title = document.createElement('div');
-  title.innerText = 'NOVA VERSÃO DISPONÍVEL';
+  title.innerText = 'NOVA VERSÃƒO DISPONÃVEL';
   title.style.cssText = `
     font-size: 12px;
     font-weight: bold;
@@ -178,7 +194,7 @@ function showUpdateBanner(worker: ServiceWorker): void {
   `;
 
   const subtitle = document.createElement('div');
-  subtitle.innerText = 'Atualize para receber correções e novidades.';
+  subtitle.innerText = 'Atualize para receber correÃ§Ãµes e novidades.';
   subtitle.style.cssText = `
     font-size: 9px;
     color: #d8c2c8;

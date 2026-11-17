@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { FX_COLORS } from '../config/theme';
 
+/** Distância mínima dos controles até a borda da tela (px de jogo). */
+const TOUCH_EDGE_MARGIN = 96;
+
 export interface TouchInputState {
   hasMovement: boolean;
   dx: number;
@@ -23,6 +26,9 @@ export class TouchControls {
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Image;
   private joystickPointer: Phaser.Input.Pointer | null = null;
+  /** Posição de descanso do joystick (ele volta para cá ao soltar o dedo). */
+  private homeX: number = 130;
+  private homeY: number = 590;
   private baseX: number = 130;
   private baseY: number = 590;
   private knobX: number = 130;
@@ -73,23 +79,27 @@ export class TouchControls {
     const isDesktop = Boolean(scene.sys.game.device.os.desktop);
     this.isActive = !isDesktop;
 
-    // Posicionamento Ergonômico dos Botões
-    this.baseX = Math.round(width * 0.14);
-    this.baseY = Math.round(height * 0.81);
+    // Posicionamento ergonômico: longe das bordas (cantos arredondados e recorte da câmera do celular)
+    // e acima da barra de armas do canto inferior esquerdo
+    this.homeX = Math.max(TOUCH_EDGE_MARGIN + this.BASE_RADIUS, Math.round(width * 0.15));
+    this.homeY = height - 210;
+    this.baseX = this.homeX;
+    this.baseY = this.homeY;
     this.knobX = this.baseX;
     this.knobY = this.baseY;
 
-    this.sprintBtnX = width - 85;
-    this.sprintBtnY = height - 85;
+    const right = width - TOUCH_EDGE_MARGIN;
+    this.sprintBtnX = right - 20;
+    this.sprintBtnY = height - 110;
 
-    this.dashBtnX = width - 62;
-    this.dashBtnY = height - 178;
+    this.dashBtnX = right;
+    this.dashBtnY = height - 210;
 
-    this.ultBtnX = width - 165;
-    this.ultBtnY = height - 130;
+    this.ultBtnX = right - 110;
+    this.ultBtnY = height - 165;
 
-    this.pauseBtnX = width - 42;
-    this.pauseBtnY = 135;
+    this.pauseBtnX = right + 20;
+    this.pauseBtnY = 140;
 
     // 1. Elementos Gráficos do Joystick (Pixel Art)
     this.joystickBase = scene.add.image(this.baseX, this.baseY, 'touch-analog');
@@ -242,8 +252,11 @@ export class TouchControls {
       if (pointer.x < width * 0.45 && pointer.y > 100) {
         if (!this.joystickPointer) {
           this.joystickPointer = pointer;
-          this.baseX = pointer.x;
-          this.baseY = pointer.y;
+          // Nasce onde o dedo tocou, mas nunca colado na borda (senão metade some atrás da moldura do celular)
+          const minX = TOUCH_EDGE_MARGIN * 0.6 + this.BASE_RADIUS;
+          const maxY = this.scene.scale.height - this.BASE_RADIUS - 24;
+          this.baseX = Math.max(minX, pointer.x);
+          this.baseY = Math.min(maxY, pointer.y);
           this.knobX = pointer.x;
           this.knobY = pointer.y;
           this.drawJoystickBase();
@@ -327,6 +340,10 @@ export class TouchControls {
         this.joystickPointer = null;
         this.dx = 0;
         this.dy = 0;
+        // O joystick volta para a posição de descanso, longe da borda
+        this.baseX = this.homeX;
+        this.baseY = this.homeY;
+        this.drawJoystickBase();
         // Retorna manípulo para o centro com amortecimento suave
         this.scene.tweens.add({
           targets: this,

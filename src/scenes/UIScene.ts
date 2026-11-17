@@ -581,6 +581,10 @@ export class UIScene
    */
   private updateControlsHint(): void {
     if (!this.controlsText) return;
+    // No toque a legenda de teclado/controle não ajuda e ocupa o canto do joystick
+    const isTouch = this.touchControls?.isActive || this.touchControls?.forceEnabled;
+    this.controlsText.setAlpha(isTouch ? 0 : 1);
+    if (isTouch) return;
 
     const pad = GamepadManager.getInstance().getActivePad(this);
     let isGamepadInput = false;
