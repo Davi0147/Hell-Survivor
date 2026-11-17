@@ -176,9 +176,6 @@ export const WEAPON_SLOT_THEME = {
   ultShadeAlpha: 0.7,
   keyText: '#ffd60a',
   levelText: '#f3d17a',
-  keyCapIdle: 0x2a0d16,
-  keyCapReady: 0x8a0024,
-  keyCapShadow: 0x050103,
 } as const;
 
 /**

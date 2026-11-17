@@ -54,11 +54,10 @@ export class WeaponSlotsHud {
       this.container.add(this.ultIcon);
     }
     this.container.add(this.ultShade);
-    // Tecla da Suprema em destaque, como uma tecla de teclado no canto do ícone
+    // Tecla da Suprema: centralizada na borda de baixo do ícone, sem invadir os espaços vizinhos
     this.ultKeyCap = ui.add.graphics();
-    this.ultKeyCap.setPosition(ULT / 2 - 4, ULT / 2 - 4);
-    this.container.add(this.ultKeyCap);
-    this.ultKey = ui.add.text(ULT / 2 - 4, ULT / 2 - 5, 'E', {
+    this.ultKeyCap.setPosition(0, ULT / 2);
+    this.ultKey = ui.add.text(0, ULT / 2 - 1, 'E', {
       fontFamily: FONTS.display,
       fontSize: '18px',
       fontStyle: 'bold',
@@ -66,7 +65,6 @@ export class WeaponSlotsHud {
       stroke: COLORS.strokeBlack,
       strokeThickness: 3,
     }).setOrigin(0.5);
-    this.container.add(this.ultKey);
 
     if (onUltimateClick) {
       const zone = ui.add.zone(0, 0, ULT, ULT).setInteractive({ useHandCursor: true });
@@ -84,6 +82,9 @@ export class WeaponSlotsHud {
       this.container.add([frame, icon, pips]);
       this.slots.push({ frame, icon, pips, drawn: '' });
     }
+
+    // Por último, para ficar por cima de tudo
+    this.container.add([this.ultKeyCap, this.ultKey]);
   }
 
   /** Some junto com o resto da HUD. */
@@ -156,17 +157,11 @@ export class WeaponSlotsHud {
     const showKey = !this.keyLabelHidden && !isActive;
     this.ultKey.setVisible(showKey);
     this.ultKeyCap.setVisible(showKey);
-    const keyScale = isReady ? 1.25 + pulse * 0.12 : 1;
-    this.ultKey.setScale(keyScale).setAlpha(isReady ? 1 : 0.6);
-    this.ultKeyCap.setScale(keyScale).setAlpha(isReady ? 1 : 0.6);
-    this.ultKeyCap.clear();
-    const k = KEYCAP / 2;
-    this.ultKeyCap.fillStyle(T.keyCapShadow, 1);
-    this.ultKeyCap.fillRoundedRect(-k, -k + 3, KEYCAP, KEYCAP, 4);
-    this.ultKeyCap.fillStyle(isReady ? T.keyCapReady : T.keyCapIdle, 1);
-    this.ultKeyCap.fillRoundedRect(-k, -k, KEYCAP, KEYCAP, 4);
-    this.ultKeyCap.lineStyle(2, isReady ? T.evolvedBorder : T.border, 1);
-    this.ultKeyCap.strokeRoundedRect(-k, -k, KEYCAP, KEYCAP, 4);
+    const keyScale = isReady ? 1.15 + pulse * 0.08 : 1;
+    this.ultKey.setScale(keyScale).setAlpha(isReady ? 1 : 0.7);
+    this.ultKeyCap.setScale(keyScale).setAlpha(isReady ? 1 : 0.7);
+    // Mesma moldura quadrada dos espaços (e a mesma cor de borda do ícone da Suprema)
+    this.drawFrame(this.ultKeyCap, isReady ? T.ultReadyBorder : T.border, false, 0, KEYCAP);
   }
 
   private drawFrame(g: Phaser.GameObjects.Graphics, border: number, isEmpty: boolean, glow: number = 0, size: number = SLOT): void {
