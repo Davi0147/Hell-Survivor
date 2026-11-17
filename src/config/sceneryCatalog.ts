@@ -19,6 +19,11 @@ export interface DecorPiece {
   light?: { offsetY: number; scale: number };
   /** Transparência fixa (decalques chamativos ficam mais discretos). */
   alpha?: number;
+  /**
+   * Pegada sólida na base (px de mundo): só a base bloqueia, como numa vista de cima.
+   * dx desloca a caixa para o lado (ex.: as duas pernas do arco).
+   */
+  block?: { w: number; h: number; dx?: number }[];
 }
 
 export const DECOR_TEXTURE_SCALE = 0.5;
@@ -26,21 +31,21 @@ export const DECOR_TEXTURE_SCALE = 0.5;
 const CH1 = 'assets/sprites/scenery/ch1';
 
 export const CH1_DECOR: DecorPiece[] = [
-  { key: 'ch1-pillar', layer: 'tall' },
-  { key: 'ch1-arch', layer: 'tall' },
-  { key: 'ch1-statue', layer: 'tall' },
-  { key: 'ch1-sarcophagus', layer: 'tall' },
-  { key: 'ch1-boulder-large', layer: 'tall' },
-  { key: 'ch1-boulder-medium', layer: 'low' },
+  { key: 'ch1-pillar', layer: 'tall', block: [{ w: 30, h: 14, dx: -10 }, { w: 22, h: 12, dx: 18 }] },
+  { key: 'ch1-arch', layer: 'tall', block: [{ w: 16, h: 12, dx: -28 }, { w: 18, h: 12, dx: 26 }] },
+  { key: 'ch1-statue', layer: 'tall', block: [{ w: 40, h: 16 }] },
+  { key: 'ch1-sarcophagus', layer: 'tall', block: [{ w: 76, h: 24 }] },
+  { key: 'ch1-boulder-large', layer: 'tall', block: [{ w: 66, h: 22 }] },
+  { key: 'ch1-boulder-medium', layer: 'low', block: [{ w: 50, h: 18 }] },
   { key: 'ch1-rocks-small', layer: 'low' },
   { key: 'ch1-rubble', layer: 'low' },
-  { key: 'ch1-torch', layer: 'tall', light: { offsetY: 76, scale: 0.55 } },
-  { key: 'ch1-candelabra', layer: 'tall', light: { offsetY: 74, scale: 0.5 } },
+  { key: 'ch1-torch', layer: 'tall', light: { offsetY: 76, scale: 0.55 }, block: [{ w: 12, h: 8 }] },
+  { key: 'ch1-candelabra', layer: 'tall', light: { offsetY: 74, scale: 0.5 }, block: [{ w: 14, h: 8 }] },
   { key: 'ch1-candles', layer: 'low', light: { offsetY: 22, scale: 0.4 } },
-  { key: 'ch1-brazier', layer: 'low', light: { offsetY: 34, scale: 0.5 } },
-  { key: 'ch1-skull-altar', layer: 'tall', light: { offsetY: 60, scale: 0.3 } },
+  { key: 'ch1-brazier', layer: 'low', light: { offsetY: 34, scale: 0.5 }, block: [{ w: 36, h: 12 }] },
+  { key: 'ch1-skull-altar', layer: 'tall', light: { offsetY: 60, scale: 0.3 }, block: [{ w: 52, h: 18 }] },
   { key: 'ch1-bone-pile', layer: 'low' },
-  { key: 'ch1-cage', layer: 'tall' },
+  { key: 'ch1-cage', layer: 'tall', block: [{ w: 48, h: 16 }] },
   { key: 'ch1-thorn-bush', layer: 'low' },
   // Arte mais clara que o piso: fica bem transparente para não parecer um remendo
   { key: 'ch1-decal-cracks', layer: 'decal', alpha: 0.38 },

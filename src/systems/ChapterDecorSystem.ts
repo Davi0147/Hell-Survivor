@@ -16,6 +16,7 @@ export interface IChapterDecorContext {
   readonly tweens: Phaser.Tweens.TweenManager;
   readonly cameras: Phaser.Cameras.Scene2D.CameraManager;
   readonly textures: Phaser.Textures.TextureManager;
+  readonly physics: Phaser.Physics.Arcade.ArcadePhysics;
   readonly currentChapter: number;
 }
 
@@ -23,6 +24,12 @@ export interface IChapterDecorContext {
 export interface IDecorOwner {
   addProp(prop: Phaser.GameObjects.GameObject): void;
 }
+
+/** Monstro como a física enxerga (posição e corpo). */
+type DetourEnemy = Phaser.GameObjects.GameObject & { x: number; y: number; body: Phaser.Physics.Arcade.Body };
+
+/** Quanto tempo o monstro anda de lado depois de encostar num obstáculo. */
+const DETOUR_MS = 520;
 
 interface TallPiece {
   image: Phaser.GameObjects.Image;
@@ -58,9 +65,13 @@ export class ChapterDecorSystem {
   private tall: TallPiece[] = [];
   private cullable: Phaser.GameObjects.Image[] = [];
   private cullTimer = 0;
+  private readonly detours = new Map<DetourEnemy, { ms: number; dx: number; dy: number }>();
+  /** Pegadas sólidas dos objetos grandes (a cena liga a colisão com a heroína e os monstros). */
+  public readonly blockers: Phaser.Physics.Arcade.StaticGroup;
 
   constructor(private readonly ctx: IChapterDecorContext, private readonly owner: IDecorOwner) {
     for (const p of CH1_DECOR) this.pieces.set(p.key, p);
+    this.blockers = ctx.physics.add.staticGroup();
   }
 
   /** O kit vale para este capítulo e a arte carregou? */
@@ -161,7 +172,49 @@ export class ChapterDecorSystem {
       this.tall.push({ image: img, baseY: y, halfW: img.displayWidth / 2, height: img.displayHeight });
     }
     if (piece.light) this.addLight(x, y - piece.light.offsetY, piece.light.scale);
+    if (piece.block) this.addBlockers(piece.block, x, y);
     return img;
+  }
+
+  /**
+   * Monstro que encosta num obstáculo entra em "desvio": por um instante anda de lado
+   * (rumo à ponta mais próxima) até passar do canto, e só então volta a perseguir.
+   * Sem isso ele empurra parado, porque a física só zera o eixo bloqueado.
+   */
+  public slideAround(enemyObj: Phaser.GameObjects.GameObject, blockerObj: Phaser.GameObjects.GameObject): void {
+    const enemy = enemyObj as DetourEnemy;
+    const zone = blockerObj as Phaser.GameObjects.Zone;
+    const touching = enemy.body?.touching;
+    if (!touching || this.detours.has(enemy)) return;
+    if (touching.up || touching.down) {
+      this.detours.set(enemy, { ms: DETOUR_MS, dx: enemy.x < zone.x ? -1 : 1, dy: 0 });
+    } else if (touching.left || touching.right) {
+      this.detours.set(enemy, { ms: DETOUR_MS, dx: 0, dy: enemy.y < zone.y ? -1 : 1 });
+    }
+  }
+
+  /** Chamado depois da IA dos monstros: quem está em desvio anda de lado. */
+  public applyDetours(delta: number): void {
+    for (const [enemy, d] of this.detours) {
+      d.ms -= delta;
+      if (d.ms <= 0 || !enemy.active || !enemy.body) {
+        this.detours.delete(enemy);
+        continue;
+      }
+      const v = enemy.body.velocity;
+      const speed = Math.max(40, Math.hypot(v.x, v.y));
+      if (d.dx !== 0) enemy.body.setVelocity(d.dx * speed, v.y * 0.25);
+      else enemy.body.setVelocity(v.x * 0.25, d.dy * speed);
+    }
+  }
+  /** Caixas sólidas invisíveis na base do objeto (a parte alta continua atravessável por trás). */
+  private addBlockers(boxes: { w: number; h: number; dx?: number }[], x: number, y: number): void {
+    for (const b of boxes) {
+      const zone = this.ctx.add.zone(x + (b.dx ?? 0), y - b.h / 2 + 2, b.w, b.h);
+      this.ctx.physics.add.existing(zone, true);
+      this.blockers.add(zone);
+      this.owner.addProp(zone);
+    }
   }
 
   private addLight(x: number, y: number, scale: number): void {
@@ -214,6 +267,7 @@ export class ChapterDecorSystem {
 
   /** Esquece as referências (os objetos em si são destruídos pelo ArenaScenerySystem). */
   public reset(): void {
+    this.detours.clear();
     this.tall = [];
     this.cullable = [];
   }

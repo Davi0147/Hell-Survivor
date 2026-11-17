@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.12.1 — Obstáculos de Verdade] — 2026-11-17
+
+### Resumo para o Jogador
+- **Objetos grandes do cenário bloqueiam a passagem:** pilar, arco (só as duas pernas; dá para passar pelo vão), estátua, sarcófago, rochas grandes e médias, altar de caveiras, gaiola, tocha, candelabro e braseiro.
+- Só a **base** do objeto é sólida, como numa vista de cima: dá para passar por trás da parte alta.
+- **Monstros comuns também batem nos objetos** e contornam pelo lado em vez de ficarem presos. Dá para usar pilares e sarcófagos para segurar a horda.
+- **Chefes atravessam o cenário,** para investidas e teleportes não travarem.
 ## [v0.12.0 — Catacumbas de Verdade] — 2026-11-17
 
 ### Resumo para o Jogador
@@ -22,7 +29,6 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ### Não verificado
 - Desempenho em celular com o cenário mais cheio (no PC ficou estável).
-- Os objetos grandes ainda não bloqueiam a passagem (a Nixy e os monstros atravessam).
 ## [v0.11.3 — Caça ao Ladrão] — 2026-11-17
 
 ### Resumo para o Jogador

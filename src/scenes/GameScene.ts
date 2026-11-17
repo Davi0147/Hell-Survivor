@@ -344,6 +344,19 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.hordeEvents = new HordeEventSystem(this, this, this.enemySpawner);
     this.ultimate = new UltimateSystem(this, this);
 
+    // 3.36. Objetos grandes do cenário bloqueiam a heroína e os monstros comuns (chefes atravessam,
+    // para investidas e teleportes não travarem num pilar)
+    if (this.chapterDecor) {
+      this.physics.add.collider(this.player, this.chapterDecor.blockers);
+      const decor = this.chapterDecor;
+      this.physics.add.collider(this.enemiesGroup, decor.blockers, (enemyObj, blockerObj) => {
+        decor.slideAround(enemyObj as Phaser.GameObjects.GameObject, blockerObj as Phaser.GameObjects.GameObject);
+      }, (enemyObj) => {
+        const enemy = enemyObj as BaseEnemy;
+        return !enemy.isBoss && !(enemy instanceof AzazelPhantomClone);
+      });
+    }
+
     // 3.4. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
     this.loadCustomMapLayout(activeMap);
 
@@ -754,6 +767,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
         }
       }
     }
+
+    // 6.1. Monstros que encostaram num obstáculo do cenário contornam pelo lado
+    this.chapterDecor?.applyDetours(delta);
 
     // 7. Spawner Escalável Contínuo de Hordas
     // Se o Altar de Invocação despertou (isHordeSpawningPaused) ou a Boss está ativa, não spawna novas levas da horda
