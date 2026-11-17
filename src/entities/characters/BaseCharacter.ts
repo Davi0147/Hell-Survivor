@@ -1,5 +1,16 @@
 import Phaser from 'phaser';
-import { CharacterStats, Direction8 } from '../../config/balance';
+import { CharacterStats, Direction8, CRIT_BALANCE, DASH_BALANCE } from '../../config/balance';
+
+const DIRECTION_VECTORS: Record<Direction8, { x: number; y: number }> = {
+  east: { x: 1, y: 0 },
+  'south-east': { x: Math.SQRT1_2, y: Math.SQRT1_2 },
+  south: { x: 0, y: 1 },
+  'south-west': { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
+  west: { x: -1, y: 0 },
+  'north-west': { x: -Math.SQRT1_2, y: -Math.SQRT1_2 },
+  north: { x: 0, y: -1 },
+  'north-east': { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
+};
 import { SoundManager } from '../../systems/SoundManager';
 
 export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
@@ -32,6 +43,22 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public hpRegenPerSec: number = 0; // Regeneração contínua de HP por segundo (até 0.8/s)
   public lifeStealPerHit: number = 0; // Roubo de vida por acerto (até 0.3 por golpe)
   public rerollsRemaining: number = 2; // Cargas de Re-rolar Bênçãos por partida
+
+  // Ritmo de combate: críticos, combo, esquiva e explosão de cadáver (cartas e Frenesi mexem aqui)
+  public critChance: number = CRIT_BALANCE.baseChance;
+  public critMultiplier: number = CRIT_BALANCE.baseMultiplier;
+  /** Multiplicador de XP ganho (combo e eventos de horda somam aqui a cada quadro). */
+  public xpGainMultiplier: number = 1;
+  public corpseExplosionLevel: number = 0;
+  public dashMasteryLevel: number = 0;
+  public bloodthirstLevel: number = 0;
+
+  // Esquiva (dash): arrancada curta com invulnerabilidade
+  private dashTimer: number = 0;
+  private dashCooldownTimer: number = 0;
+  private dashInvulnTimer: number = 0;
+  private dashDirX: number = 0;
+  private dashDirY: number = 1;
 
   public isSprinting: boolean = false;
   public isMoving: boolean = false;
@@ -92,6 +119,19 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
     // Reduz tempo de reação a dano
     if (this.hurtTimer > 0) {
       this.hurtTimer -= deltaMs;
+    }
+
+    if (this.dashCooldownTimer > 0) this.dashCooldownTimer -= deltaMs;
+    if (this.dashInvulnTimer > 0) this.dashInvulnTimer -= deltaMs;
+
+    // Esquiva em andamento: velocidade travada na direção escolhida, sem gastar nem recarregar fôlego
+    if (this.dashTimer > 0) {
+      this.dashTimer -= deltaMs;
+      this.isMoving = true;
+      this.isSprinting = false;
+      body.setVelocity(this.dashDirX * DASH_BALANCE.speed, this.dashDirY * DASH_BALANCE.speed);
+      this.updateAnimation();
+      return;
     }
 
     this.isMoving = dx !== 0 || dy !== 0;
@@ -163,7 +203,56 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
     return 'north-east';
   }
 
+  public get isDashing(): boolean {
+    return this.dashTimer > 0;
+  }
+
+  /** Durante a esquiva (e um instante depois) nenhum golpe acerta. */
+  public get isDashInvulnerable(): boolean {
+    return this.dashInvulnTimer > 0;
+  }
+
+  public get dashCost(): number {
+    return Math.max(5, DASH_BALANCE.staminaCost - this.dashMasteryLevel * DASH_BALANCE.costReductionPerCard);
+  }
+
+  public get isDashReady(): boolean {
+    return this.dashCooldownTimer <= 0 && this.dashTimer <= 0 && this.currentStamina >= this.dashCost;
+  }
+
+  /** Subclasses bloqueiam a esquiva quando presas ou arremessadas. */
+  protected canDash(): boolean {
+    return true;
+  }
+
+  /**
+   * Tenta a esquiva na direção pedida (ou para onde o personagem olha, se parado).
+   * Devolve `true` se a esquiva saiu.
+   */
+  public tryDash(dx: number, dy: number): boolean {
+    if (this.currentHp <= 0 || !this.isDashReady || !this.canDash()) return false;
+
+    const length = Math.hypot(dx, dy);
+    if (length > 0.05) {
+      this.dashDirX = dx / length;
+      this.dashDirY = dy / length;
+      this.currentDirection = this.calculateDirection(this.dashDirX, this.dashDirY);
+    } else {
+      const facing = DIRECTION_VECTORS[this.currentDirection];
+      this.dashDirX = facing.x;
+      this.dashDirY = facing.y;
+    }
+
+    this.currentStamina = Math.max(0, this.currentStamina - this.dashCost);
+    this.dashTimer = DASH_BALANCE.durationMs;
+    this.dashInvulnTimer = DASH_BALANCE.durationMs + 110;
+    this.dashCooldownTimer = DASH_BALANCE.cooldownMs;
+    this.emit('player-dashed');
+    return true;
+  }
+
   public takeDamage(amount: number, bypassGodMode: boolean = false): void {
+    if (this.isDashInvulnerable && !bypassGodMode) return;
     const gs = this.scene as Phaser.Scene & { sandboxGodMode?: boolean };
     if (gs && gs.sandboxGodMode && !bypassGodMode) {
       return;
@@ -189,7 +278,7 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   }
 
   public gainXp(amount: number): boolean {
-    this.currentXp += amount;
+    this.currentXp += Math.round(amount * this.xpGainMultiplier);
     let leveledUp = false;
 
     while (this.currentXp >= this.xpToNextLevel) {

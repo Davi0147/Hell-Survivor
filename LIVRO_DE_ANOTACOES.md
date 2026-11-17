@@ -130,7 +130,8 @@
 - [ ] **Ciclo de Chefes do Modo Infinito (postergado para pós-publicação por decisão do dono):** Implementação de rotação cíclica progressiva de chefes (ex.: Cérbero aos 3m, Succubus aos 10m, Azazel ou variantes em ondas seguintes) utilizando como especificação e base arquitetural a ficha técnica formalizada em [`docs/FICHA_CICLO_DE_CHEFES.md`](docs/FICHA_CICLO_DE_CHEFES.md).
 - [x] **Bot Autônomo de Testes `[F3]` (`AutoPlayTestAgent`):** Resolvido no Pacote B (escolha de cartas via `UpgradeScene.update`, busca ampliada de XP e telemetria no logger).
 - [ ] **Novos Inimigos da Fase 3:** *Cultista Arcano* (artilheiro à distância) e *Brutamonte das Profundezas* (tanque com resistência a knockback).
-- [ ] **Eventos Dinâmicos de Horda:** Cerco circular e ondas de emboscada em minutos específicos.
+- [x] **Eventos Dinâmicos de Horda (v0.10.0):** Cerco, Emboscada, Ladrão de Almas, Matilha Alfa e Lua de Sangue via `HordeEventSystem.ts`; Tempestade de Azazel no Capítulo 2.
+- [x] **Ritmo de Combate (v0.10.0):** combo de abates com Frenesi, esquiva com invulnerabilidade, golpes críticos e cinco cartas novas (`CombatFeelSystem.ts`).
 - [ ] **Sistema de Conquistas In-Game (Achievements):** Notificações estilo arcade aproveitando os dados de `MetaProgressManager.stats`.
 - [ ] **Capítulo 3:** Novo bioma, chefe inédito e continuação da campanha.
 

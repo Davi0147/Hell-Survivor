@@ -20,6 +20,7 @@ import { StatusPanelHud } from '../ui/StatusPanelHud';
 import { TopCenterHud } from '../ui/TopCenterHud';
 import { TacticalRadar } from '../ui/TacticalRadar';
 import { AltarEdgeIndicator } from '../ui/AltarEdgeIndicator';
+import { ComboHud } from '../ui/ComboHud';
 
 export class UIScene
   extends Phaser.Scene
@@ -94,6 +95,9 @@ export class UIScene
 
   // Seta de borda para o objetivo fora da tela
   private altarEdgeIndicator!: AltarEdgeIndicator;
+
+  // Contador de combo e aviso de Frenesi
+  private comboHud!: ComboHud;
 
 
   constructor() {
@@ -200,7 +204,7 @@ export class UIScene
     // 6. CANTO INFERIOR ESQUERDO: CONTROLES
     // ==========================================
     this.controlsText = this.add.text(20, height - 36,
-      '[WASD] Mover  |  [Shift] Sprint  |  [E] Ultimate  |  [ESC] Pausa', {
+      '[WASD] Mover  |  [Shift] Sprint  |  [Espaço] Esquiva  |  [E] Ultimate  |  [ESC] Pausa', {
       fontFamily: pixelFont,
       fontSize: '10px',
       color: '#e0aaff',
@@ -254,6 +258,10 @@ export class UIScene
     // 8. Seta de borda para o objetivo fora da tela
     this.altarEdgeIndicator = new AltarEdgeIndicator(this, pixelFont);
     this.hudElements.push(this.altarEdgeIndicator.getHudElement());
+
+    // 8.1. Contador de combo (abaixo de abates e almas)
+    this.comboHud = new ComboHud(this);
+    this.hudElements.push(this.comboHud.getHudElement());
 
     // ==========================================
     // 8. CONSOLE DE TESTE & GRAVADOR DE SESSÃO (SANDBOX / DEV MODE)
@@ -351,6 +359,10 @@ export class UIScene
     }
     const runSouls = MetaProgressManager.getInstance().runSoulsCollected;
     this.soulsText.setText(`${runSouls}`);
+
+    if (gameScene.combatFeel) {
+      this.comboHud.update(gameScene.combatFeel.combo);
+    }
 
     // Atualizar Barra Superior de Experiência (XP)
     const { width, height } = this.scale;
@@ -577,12 +589,12 @@ export class UIScene
 
     if (isGamepadInput && this.currentControlScheme !== 'gamepad') {
       this.currentControlScheme = 'gamepad';
-      this.controlsText.setText('[LS] Mover  |  [LT/RT / (B)] Sprint  |  [(Y)/(X)] Ultimate  |  [Start] Pausa');
+      this.controlsText.setText('[LS] Mover  |  [LT/RT / (B)] Sprint  |  [(A)/LB] Esquiva  |  [(Y)/(X)] Ultimate  |  [Start] Pausa');
     } else if (!isGamepadInput && this.currentControlScheme === 'gamepad') {
       if (this.wasKeyboardKeyPressed) {
         this.currentControlScheme = 'keyboard';
         this.wasKeyboardKeyPressed = false;
-        this.controlsText.setText('[WASD] Mover  |  [Shift] Sprint  |  [E] Ultimate  |  [ESC] Pausa');
+        this.controlsText.setText('[WASD] Mover  |  [Shift] Sprint  |  [Espaço] Esquiva  |  [E] Ultimate  |  [ESC] Pausa');
       }
     }
   }

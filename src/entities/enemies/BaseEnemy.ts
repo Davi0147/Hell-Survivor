@@ -1,5 +1,18 @@
 import Phaser from 'phaser';
 import { DamageTextSystem } from '../../systems/DamageTextSystem';
+import { IMPACT_BALANCE } from '../../config/balance';
+
+/** O que um inimigo usa do sistema de impacto da cena (CombatFeelSystem cumpre este contrato). */
+export interface IEnemyCombatFeel {
+  rollCrit(amount: number): { amount: number; isCrit: boolean };
+  hitSpark(x: number, y: number, isCrit: boolean): void;
+  onEnemyDied(enemy: BaseEnemy): void;
+}
+
+type CombatFeelScene = Phaser.Scene & {
+  combatFeel?: IEnemyCombatFeel;
+  player?: { x: number; y: number };
+};
 
 export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   public maxHp: number = 30;
@@ -79,20 +92,47 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   public takeDamage(amount: number): void {
     if (this.isDead || !this.active || this.isInvulnerable) return;
 
+    const world = this.scene as CombatFeelScene;
+    const feel = world.combatFeel;
+    let isCrit = false;
+    if (feel) {
+      const rolled = feel.rollCrit(amount);
+      amount = rolled.amount;
+      isCrit = rolled.isCrit;
+    }
+
     this.hp -= amount;
 
     // Flash branco de impacto
     this.setTintFill(0xffffff);
     this.hitFlashTimer = 80;
 
-    // Partículas de faísca
-    this.emitHitSparks();
+    // Partículas de faísca (emissor compartilhado quando a cena tem o sistema de impacto)
+    if (feel) {
+      feel.hitSpark(this.x, this.y, isCrit);
+    } else {
+      this.emitHitSparks();
+    }
 
     // Texto flutuante de dano
-    DamageTextSystem.showDamage(this.scene, this.x, this.y, amount);
+    DamageTextSystem.showDamage(this.scene, this.x, this.y, amount, isCrit);
 
     if (this.hp <= 0) {
       this.die();
+      return;
+    }
+
+    // Recuo curto para o golpe "pesar" (chefes não recuam)
+    const target = world.player;
+    if (!this.isBoss && target) {
+      const dx = this.x - target.x;
+      const dy = this.y - target.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 1) {
+        const push = IMPACT_BALANCE.hitRecoilPx * (isCrit ? 2 : 1);
+        this.x += (dx / dist) * push;
+        this.y += (dy / dist) * push;
+      }
     }
   }
 
@@ -134,14 +174,17 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
       body.enable = false;
     }
 
-    // Efeito de encolher e sumir
+    (this.scene as CombatFeelScene).combatFeel?.onEnemyDied(this);
+
+    // Morte "esmagada": clarão branco, achata e some
+    this.setTintFill(0xffffff);
     this.scene.tweens.add({
       targets: this,
-      scaleX: 0,
-      scaleY: 0,
+      scaleX: this.scaleX * 1.45,
+      scaleY: this.scaleY * 0.15,
       alpha: 0,
-      duration: 180,
-      ease: 'Power2',
+      duration: 170,
+      ease: 'Quad.easeOut',
       onComplete: () => {
         this.emit('enemy-killed', this.x, this.y, this);
         this.setActive(false);

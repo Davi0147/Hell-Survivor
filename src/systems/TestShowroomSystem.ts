@@ -4,6 +4,7 @@ import { GameScene } from '../scenes/GameScene';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { ARENA_CONFIG } from '../config/balance';
+import { FX_COLORS } from '../config/theme';
 
 export interface ShowroomItemConfig {
   name: string;
@@ -286,6 +287,7 @@ export class TestShowroomSystem {
         items: [
           { name: 'Cão Zumbi', texture: 'zombie-dog-idle-south', scale: 1.0, anim: 'zombie-dog-idle-south' },
           { name: 'Cão Alfa Elite', texture: 'zombie-dog-idle-south', scale: 1.35, tint: 0xff4455, anim: 'zombie-dog-idle-south' },
+          { name: 'Ladrão de Almas', texture: 'zombie-dog-idle-south', scale: 1.15, tint: FX_COLORS.thiefTint, anim: 'zombie-dog-idle-south' },
           { name: 'Morcego Sangue', texture: 'blood-bat-idle-south', scale: 0.75, anim: 'blood-bat-fly-south' },
           { name: 'Múmia Abissal', texture: 'mummy-idle-south', scale: 1.05, anim: 'mummy-idle-south' },
           { name: 'Skull Slime', texture: 'skull-slime-idle-south', scale: 1.0, anim: 'skull-slime-idle-south' },

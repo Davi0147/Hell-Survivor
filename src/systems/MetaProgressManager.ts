@@ -29,6 +29,8 @@ export interface MetaSaveData {
     totalSoulsCollected: number;
     storyDeathCount: number;
     bossDeaths: Record<string, number>;
+    /** Maior sequência de abates já feita numa partida. */
+    bestCombo: number;
   };
 }
 
@@ -237,7 +239,8 @@ export class MetaProgressManager {
     timeSec: number,
     kills: number,
     isBossDefeated: boolean,
-    mode: 'story' | 'endless' | 'sandbox' = 'story'
+    mode: 'story' | 'endless' | 'sandbox' = 'story',
+    maxCombo: number = 0
   ): void {
     // Modo sandbox NÃO altera nenhuma estatística persistente (kills, runs, recordes)
     if (mode === 'sandbox') return;
@@ -250,6 +253,9 @@ export class MetaProgressManager {
     // O recorde highestEndlessTimeSec SÓ pode ser atualizado se o modo for 'endless'
     if (mode === 'endless' && timeSec > this.data.stats.highestEndlessTimeSec) {
       this.data.stats.highestEndlessTimeSec = timeSec;
+    }
+    if (maxCombo > (this.data.stats.bestCombo || 0)) {
+      this.data.stats.bestCombo = Math.floor(maxCombo);
     }
     this.save();
   }
@@ -311,7 +317,8 @@ export class MetaProgressManager {
         bossesDefeated: 0,
         totalSoulsCollected: 0,
         storyDeathCount: 0,
-        bossDeaths: {}
+        bossDeaths: {},
+        bestCombo: 0
       }
     };
 
@@ -369,7 +376,8 @@ export class MetaProgressManager {
               bossesDefeated: sanitizeNum(rawStats.bossesDefeated, 0),
               totalSoulsCollected: sanitizeNum(rawStats.totalSoulsCollected, 0),
               storyDeathCount: sanitizeNum(rawStats.storyDeathCount, 0),
-              bossDeaths: sanitizedBossDeaths
+              bossDeaths: sanitizedBossDeaths,
+              bestCombo: sanitizeNum(rawStats.bestCombo, 0)
             }
           };
 

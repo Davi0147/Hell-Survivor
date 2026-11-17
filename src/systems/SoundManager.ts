@@ -372,6 +372,31 @@ export class SoundManager {
     if (s) combatSfx.playHeartbeat(s);
   }
 
+  public playDash(): void {
+    const s = this.getSfxOutput();
+    if (s) combatSfx.playDash(s);
+  }
+
+  public playCritHit(): void {
+    const s = this.getSfxOutput();
+    if (s) combatSfx.playCritHit(s);
+  }
+
+  public playComboTier(tierIndex: number): void {
+    const s = this.getSfxOutput();
+    if (s) combatSfx.playComboTier(s, tierIndex);
+  }
+
+  public playFrenzyStart(): void {
+    const s = this.getSfxOutput();
+    if (s) combatSfx.playFrenzyStart(s);
+  }
+
+  public playHordeEventAlarm(): void {
+    const s = this.getSfxOutput();
+    if (s) combatSfx.playHordeEventAlarm(s);
+  }
+
   public playPenSnap(): void {
     const s = this.getSfxOutput();
     if (s) cutsceneSfx.playPenSnap(s);

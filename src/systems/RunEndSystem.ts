@@ -23,6 +23,8 @@ export interface IRunEndContext {
   readonly currentChapter: number;
   readonly survivalTimeMs: number;
   readonly killCount: number;
+  /** Maior sequência de abates da partida. */
+  readonly maxCombo?: number;
   readonly weapons: ReadonlyArray<{ name?: string }>;
   readonly sandboxGodMode: boolean;
   isGameOver: boolean;
@@ -124,7 +126,9 @@ export class RunEndSystem {
     const meta = MetaProgressManager.getInstance();
     const timeSec = Math.floor(this.ctx.survivalTimeMs / 1000);
     const soulsEarned = meta.finalizeRunSouls();
-    meta.recordRun(timeSec, this.ctx.killCount, false, this.ctx.gameMode);
+    const maxCombo = this.ctx.maxCombo ?? 0;
+    meta.recordRun(timeSec, this.ctx.killCount, false, this.ctx.gameMode, maxCombo);
+    const bestCombo = meta.getStats().bestCombo;
     if (this.ctx.gameMode === 'story') {
       meta.recordStoryDeath(bossId);
     }
@@ -159,7 +163,7 @@ export class RunEndSystem {
       if (!hud) return;
       hud.setHUDVisible(true);
       hud.showGameOverModal(
-        { kills: this.ctx.killCount, level: player.currentLevel, timeSec, mode: this.ctx.gameMode, soulsEarned },
+        { kills: this.ctx.killCount, level: player.currentLevel, timeSec, mode: this.ctx.gameMode, soulsEarned, maxCombo, bestCombo },
         () => this.restartRun(),
         () => this.returnToMenu()
       );

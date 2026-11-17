@@ -328,6 +328,121 @@ export function getBossMercy(deathsToBoss: number): { hpMultiplier: number; dama
 }
 
 // ============================================================================
+// 8. RITMO DE COMBATE: COMBO, FRENESI, CRÍTICOS, ESQUIVA E IMPACTO
+// ============================================================================
+export interface ComboTier {
+  /** Abates seguidos para chegar neste degrau. */
+  at: number;
+  label: string;
+  /** Bônus de XP enquanto o combo estiver neste degrau (0.1 = +10%). */
+  xpBonus: number;
+}
+
+export const COMBO_BALANCE = {
+  /** Tempo sem abater até o combo zerar. */
+  windowMs: 3200,
+  tiers: [
+    { at: 10, label: 'CRUEL', xpBonus: 0.05 },
+    { at: 25, label: 'BRUTAL', xpBonus: 0.1 },
+    { at: 50, label: 'SELVAGEM', xpBonus: 0.2 },
+    { at: 100, label: 'INFERNAL', xpBonus: 0.3 },
+    { at: 200, label: 'APOCALÍPTICO', xpBonus: 0.5 },
+  ] as ComboTier[],
+  /** A cada tantos abates seguidos o Frenesi dispara. */
+  frenzyEvery: 50,
+  frenzyDurationMs: 6000,
+  frenzyDamageBonusPercent: 40,
+  frenzySpeedBonusPercent: 20,
+} as const;
+
+export const CRIT_BALANCE = {
+  baseChance: 0.05,
+  baseMultiplier: 2,
+  /** Carta Olho do Abismo. */
+  chancePerCard: 0.08,
+  maxChanceCards: 5,
+  /** Carta Golpe Fatal. */
+  multiplierPerCard: 0.5,
+  maxMultiplierCards: 3,
+  /** Golpes de execução (limpeza de arena, cheats) não rolam crítico. */
+  ignoreAbove: 5000,
+} as const;
+
+export const DASH_BALANCE = {
+  staminaCost: 25,
+  durationMs: 170,
+  speed: 640,
+  cooldownMs: 650,
+  /** Carta Passo Sombrio: dano em quem a esquiva atravessa, por nível. */
+  damagePerCard: 22,
+  costReductionPerCard: 5,
+  hitRadius: 38,
+  maxCards: 3,
+} as const;
+
+export const CORPSE_EXPLOSION_BALANCE = {
+  chancePerCard: 0.15,
+  baseDamage: 26,
+  damagePerCard: 10,
+  radius: 72,
+  maxCards: 3,
+  /** Trava de desempenho: explosões em cadeia por quadro. */
+  maxPerFrame: 4,
+} as const;
+
+export const BLOODTHIRST_BALANCE = {
+  comboWindowBonusMs: 900,
+  frenzyDurationBonusMs: 2000,
+  maxCards: 2,
+} as const;
+
+export const IMPACT_BALANCE = {
+  /** Recuo do monstro comum ao levar um golpe (pixels). */
+  hitRecoilPx: 4,
+  /** Onda de choque ao voltar da tela de Level Up. */
+  levelUpNovaRadius: 175,
+  levelUpNovaDamage: 28,
+  levelUpNovaKnockback: 320,
+  /** Quantos números de dano podem existir ao mesmo tempo. */
+  maxDamageTexts: 48,
+} as const;
+
+// ============================================================================
+// 9. EVENTOS DE HORDA E PERIGOS DE CAPÍTULO
+// ============================================================================
+export const HORDE_EVENT_BALANCE = {
+  firstEventMs: 50000,
+  intervalMinMs: 38000,
+  intervalMaxMs: 52000,
+  siege: { baseDogs: 10, dogsPerMinute: 2, maxDogs: 22, radius: 390 },
+  ambush: { batFlocks: 3, batsPerFlock: 6, dogs: 5, distance: 430 },
+  thief: { hp: 260, hpPerMinute: 60, speed: 168, lifetimeMs: 15000, gems: 10, soulsMin: 6, soulsMax: 10, chestChance: 0.35 },
+  elitePack: { count: 3, minMinutes: 1.5 },
+  bloodMoon: { durationMs: 20000, spawnIntervalMultiplier: 0.55, xpBonus: 1, minMinutes: 2 },
+} as const;
+
+/** Tempestade de Azazel: raios telegrafados que caem durante o Capítulo 2 e ferem todo mundo. */
+export const STORM_BALANCE = {
+  chapters: [2] as number[],
+  startsAfterMs: 30000,
+  intervalMinMs: 6000,
+  intervalMaxMs: 9500,
+  strikesMin: 2,
+  strikesMax: 4,
+  telegraphMs: 1150,
+  radius: 68,
+  spread: 250,
+  playerDamage: 12,
+  enemyDamage: 70,
+  enemyDamagePerMinute: 14,
+} as const;
+
+/** Elites (Cães Alfa) fora do Modo Infinito: só em capítulos listados aqui. */
+export const STORY_ELITES: Record<number, { chance: number; minMinutes: number }> = {
+  2: { chance: 0.08, minMinutes: 1 },
+};
+
+// ============================================================================
 // 7. FIM DE JOGO: PACTO DEMONÍACO (ressurreição única por partida)
 // ============================================================================
 export const REVIVAL_BALANCE = {

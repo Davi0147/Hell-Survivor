@@ -371,3 +371,60 @@ export function playHeartbeat(s: SfxOutput): void {
     osc.stop(now + delay + 0.16);
   });
 }
+
+/** Tom curto com rampa de frequência: bloco básico dos efeitos de ritmo de combate. */
+function blip(
+  s: SfxOutput,
+  type: OscillatorType,
+  fromHz: number,
+  toHz: number,
+  durationSec: number,
+  volume: number,
+  delaySec: number = 0
+): void {
+  const { ctx } = s;
+  const start = ctx.currentTime + delaySec;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(fromHz, start);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(20, toHz), start + durationSec);
+  gain.gain.setValueAtTime(volume * s.volume, start);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + durationSec);
+  osc.connect(gain);
+  gain.connect(s.out);
+  osc.start(start);
+  osc.stop(start + durationSec + 0.02);
+}
+
+/** Esquiva: sopro rápido descendo de tom. */
+export function playDash(s: SfxOutput): void {
+  blip(s, 'sawtooth', 900, 180, 0.13, 0.12);
+  blip(s, 'sine', 1400, 500, 0.09, 0.08);
+}
+
+/** Golpe crítico: estalo agudo e curto. */
+export function playCritHit(s: SfxOutput): void {
+  blip(s, 'square', 1900, 900, 0.06, 0.07);
+}
+
+/** Degrau de combo: arpejo que sobe de tom a cada degrau (0 = primeiro). */
+export function playComboTier(s: SfxOutput, tierIndex: number): void {
+  const base = 523.25 * Math.pow(1.122, Math.max(0, tierIndex) * 2);
+  blip(s, 'triangle', base, base * 1.02, 0.1, 0.2);
+  blip(s, 'triangle', base * 1.26, base * 1.28, 0.1, 0.2, 0.07);
+  blip(s, 'triangle', base * 1.5, base * 1.55, 0.18, 0.22, 0.14);
+}
+
+/** Frenesi: rugido grave subindo, com brilho por cima. */
+export function playFrenzyStart(s: SfxOutput): void {
+  blip(s, 'sawtooth', 70, 320, 0.45, 0.3);
+  blip(s, 'square', 440, 1320, 0.35, 0.12, 0.08);
+  blip(s, 'triangle', 1760, 2640, 0.25, 0.1, 0.3);
+}
+
+/** Aviso de evento de horda: duas notas graves de alarme. */
+export function playHordeEventAlarm(s: SfxOutput): void {
+  blip(s, 'sawtooth', 220, 200, 0.22, 0.2);
+  blip(s, 'sawtooth', 165, 150, 0.32, 0.22, 0.24);
+}

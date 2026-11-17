@@ -12,6 +12,19 @@ import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
 import { UpgradeScene } from '../scenes/UpgradeScene';
 import { AutoPlayTestAgent } from './AutoPlayTestAgent';
 import type { ISandboxContext } from './SandboxController';
+import type { HordeEventType } from './HordeEventSystem';
+import { CRIT_BALANCE } from '../config/balance';
+import { COLORS } from '../config/theme';
+
+/** Eventos de horda disparáveis pelo Modo de Teste ('storm' = rajada da Tempestade de Azazel). */
+const SANDBOX_HORDE_EVENTS: { type: HordeEventType | 'storm'; label: string }[] = [
+  { type: 'siege', label: 'CERCO INFERNAL' },
+  { type: 'ambush', label: 'EMBOSCADA' },
+  { type: 'thief', label: 'LADRÃO DE ALMAS' },
+  { type: 'elite_pack', label: 'MATILHA ALFA' },
+  { type: 'blood_moon', label: 'LUA DE SANGUE' },
+  { type: 'storm', label: 'RAIOS DA TEMPESTADE DE AZAZEL' },
+];
 
 type SandboxTab = 'CHEATS' | 'SPAWNER' | 'WEAPONS' | 'UPGRADES' | 'LOGS';
 
@@ -568,15 +581,29 @@ export class DevSandboxPanel {
           gs.sandboxSpawnHorde('matriarch', 1);
           this.showToast('MINI-BOSS MATRIARCA SUCCUBUS INVOCADA!', '#e879f9');
         }
-      }
+      },
+      ...SANDBOX_HORDE_EVENTS.map((ev) => ({
+        label: `EVENTO: ${ev.label}`,
+        color: COLORS.velvetBoss,
+        border: COLORS.goldChest,
+        action: () => {
+          this.togglePanel(false);
+          if (ev.type === 'storm') {
+            gs.hordeEvents?.startStormVolley();
+          } else {
+            gs.hordeEvents?.trigger(ev.type);
+          }
+          DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Evento de horda disparado: ${ev.label}`);
+        }
+      }))
     ];
 
     mobButtons.forEach((b, i) => {
       this.createActionButton(
         x,
-        y + 26 + i * 44,
+        y + 26 + i * 30,
         colW,
-        34,
+        26,
         b.label,
         b.color,
         b.border,
@@ -1160,12 +1187,42 @@ export class DevSandboxPanel {
         val: `${p.lifeStealPerHit.toFixed(1)}`,
         dec: () => { p.lifeStealPerHit = Math.max(0, Number((p.lifeStealPerHit - 0.1).toFixed(1))); },
         inc: () => { p.lifeStealPerHit = Number((p.lifeStealPerHit + 0.1).toFixed(1)); }
+      },
+      {
+        name: 'OLHO DO ABISMO (CRÍTICO)',
+        val: `${Math.round(p.critChance * 100)}%`,
+        dec: () => { p.critChance = Math.max(CRIT_BALANCE.baseChance, Number((p.critChance - CRIT_BALANCE.chancePerCard).toFixed(2))); },
+        inc: () => { p.critChance = Number((p.critChance + CRIT_BALANCE.chancePerCard).toFixed(2)); }
+      },
+      {
+        name: 'GOLPE FATAL (DANO CRÍTICO)',
+        val: `x${p.critMultiplier.toFixed(1)}`,
+        dec: () => { p.critMultiplier = Math.max(CRIT_BALANCE.baseMultiplier, p.critMultiplier - CRIT_BALANCE.multiplierPerCard); },
+        inc: () => { p.critMultiplier += CRIT_BALANCE.multiplierPerCard; }
+      },
+      {
+        name: 'PASSO SOMBRIO (ESQUIVA)',
+        val: `NÍV ${p.dashMasteryLevel}`,
+        dec: () => { p.dashMasteryLevel = Math.max(0, p.dashMasteryLevel - 1); },
+        inc: () => { p.dashMasteryLevel += 1; }
+      },
+      {
+        name: 'ALMA INSTÁVEL (EXPLOSÃO)',
+        val: `NÍV ${p.corpseExplosionLevel}`,
+        dec: () => { p.corpseExplosionLevel = Math.max(0, p.corpseExplosionLevel - 1); },
+        inc: () => { p.corpseExplosionLevel += 1; }
+      },
+      {
+        name: 'SEDE DE SANGUE (COMBO)',
+        val: `NÍV ${p.bloodthirstLevel}`,
+        dec: () => { p.bloodthirstLevel = Math.max(0, p.bloodthirstLevel - 1); },
+        inc: () => { p.bloodthirstLevel += 1; }
       }
     ];
 
     passives.forEach((pas, i) => {
-      const py = y + 26 + i * 36;
-      const lbl = this.uiScene.add.text(x, py + 14, `${pas.name}: `, {
+      const py = y + 26 + i * 24;
+      const lbl = this.uiScene.add.text(x, py + 10, `${pas.name}: `, {
         fontFamily: this.pixelFont,
         fontSize: '8px',
         color: '#cbd5e1'
@@ -1180,13 +1237,13 @@ export class DevSandboxPanel {
       }).setOrigin(1, 0.5);
       this.contentContainer.add(valTxt);
 
-      this.createActionButton(x + colW - 96, py, 42, 28, '-', 0x450a0a, 0xef4444, '#ffffff', () => {
+      this.createActionButton(x + colW - 96, py, 42, 20, '-', 0x450a0a, 0xef4444, '#ffffff', () => {
         pas.dec();
         DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', `Bênção reduzida: ${pas.name}`);
         this.reRenderCurrentTab();
       });
 
-      this.createActionButton(x + colW - 46, py, 42, 28, '+', 0x065f46, 0x10b981, '#ffffff', () => {
+      this.createActionButton(x + colW - 46, py, 42, 20, '+', 0x065f46, 0x10b981, '#ffffff', () => {
         pas.inc();
         DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', `Bênção aumentada: ${pas.name}`);
         this.reRenderCurrentTab();
@@ -1195,9 +1252,9 @@ export class DevSandboxPanel {
 
     this.createActionButton(
       x,
-      y + 356,
+      y + 366,
       colW,
-      34,
+      30,
       'RESETAR TODAS AS BÊNÇÃOS PASSIVAS',
       0x450a0a,
       0xef4444,
@@ -1214,6 +1271,11 @@ export class DevSandboxPanel {
         p.currentHp = 100;
         p.hpRegenPerSec = 0;
         p.lifeStealPerHit = 0;
+        p.critChance = CRIT_BALANCE.baseChance;
+        p.critMultiplier = CRIT_BALANCE.baseMultiplier;
+        p.dashMasteryLevel = 0;
+        p.corpseExplosionLevel = 0;
+        p.bloodthirstLevel = 0;
         DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', 'Todas as bênçãos passivas foram resetadas.');
         this.showToast('BÊNÇÃOS PASSIVAS RESETADAS!', '#f87171');
         this.reRenderCurrentTab();

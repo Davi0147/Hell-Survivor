@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BaseCharacter } from './BaseCharacter';
 import { BALANCE } from '../../config/balance';
 import { MetaProgressManager } from '../../systems/MetaProgressManager';
+import { FX_COLORS } from '../../config/theme';
 import {
   getStatusEffectTint,
   applyAcidRoot as applyAcidRootPure,
@@ -136,6 +137,10 @@ export class Nixy extends BaseCharacter {
     }
   }
 
+  protected override canDash(): boolean {
+    return !this.isRooted && this.knockbackTimer <= 0;
+  }
+
   public updateNixy(
     dx: number,
     dy: number,
@@ -169,7 +174,14 @@ export class Nixy extends BaseCharacter {
     this.updateMovement(dx, dy, isSprintRequested, deltaMs);
 
     // Efeito visual de rastro (ghost trail / sombra fantasma) durante o Full Sprint
-    if (this.isSprinting && this.isMoving) {
+    if (this.isDashing) {
+      // Esquiva: rastro mais denso e frio, para ler a diferença do sprint
+      this.trailTimer += deltaMs;
+      if (this.trailTimer >= this.TRAIL_INTERVAL_MS / 2) {
+        this.trailTimer = 0;
+        this.createSprintGhost(FX_COLORS.dashGhost);
+      }
+    } else if (this.isSprinting && this.isMoving) {
       this.trailTimer += deltaMs;
       if (this.trailTimer >= this.TRAIL_INTERVAL_MS) {
         this.trailTimer = 0;
@@ -228,7 +240,7 @@ export class Nixy extends BaseCharacter {
     }
   }
 
-  private createSprintGhost(): void {
+  private createSprintGhost(tint: number = 0xff2a6d): void {
     let ghost = this.ghostPool.find(g => !g.active);
 
     if (!ghost) {
@@ -251,7 +263,7 @@ export class Nixy extends BaseCharacter {
     ghost.setFlipX(this.flipX);
     ghost.setFlipY(this.flipY);
     ghost.setScale(this.scaleX, this.scaleY);
-    ghost.setTint(0xff2a6d);
+    ghost.setTint(tint);
     ghost.setAlpha(0.85);
     ghost.setBlendMode(Phaser.BlendModes.ADD);
     ghost.setDepth(this.depth - 1);

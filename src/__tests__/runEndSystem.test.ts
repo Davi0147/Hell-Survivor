@@ -11,6 +11,7 @@ const meta = {
   finalizeRunSouls: vi.fn(() => 12),
   recordRun: vi.fn(),
   recordStoryDeath: vi.fn(),
+  getStats: vi.fn(() => ({ bestCombo: 40 })),
 };
 vi.mock('../systems/MetaProgressManager', () => ({ MetaProgressManager: { getInstance: () => meta } }));
 
@@ -122,9 +123,9 @@ describe('RunEndSystem', () => {
 
       expect(ctx.notifyPlayerDeath).toHaveBeenCalledTimes(1);
       expect(scene.physics.pause).toHaveBeenCalled();
-      expect(meta.recordRun).toHaveBeenCalledWith(90, 33, false, 'story');
+      expect(meta.recordRun).toHaveBeenCalledWith(90, 33, false, 'story', 0);
       expect(hud.showGameOverModal).toHaveBeenCalledWith(
-        { kills: 33, level: 5, timeSec: 90, mode: 'story', soulsEarned: 12 },
+        { kills: 33, level: 5, timeSec: 90, mode: 'story', soulsEarned: 12, maxCombo: 0, bestCombo: 40 },
         expect.any(Function),
         expect.any(Function)
       );

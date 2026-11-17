@@ -2,6 +2,32 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.10.0 — Frenesi] — 2026-11-16
+
+### Resumo para o Jogador
+- **Combo de abates.** Matar em sequência faz um contador crescer no canto direito da tela. Cada degrau (10, 25, 50, 100 e 200 abates seguidos) tem nome próprio e dá bônus de XP de +5% até +50%. Ficar 3,2s sem matar zera o combo.
+- **Frenesi.** A cada 50 abates seguidos a heroína entra em Frenesi por 6s: +40% de dano, +20% de velocidade, aura de fogo e tela piscando.
+- **Esquiva (novo botão).** Espaço no teclado, (A) ou LB no controle e um botão azul novo no celular. É uma arrancada curta que gasta 25 de fôlego e deixa a heroína intocável durante o movimento, inclusive contra golpes de chefe. O Sprint agora é só no Shift.
+- **Golpes críticos.** Toda arma tem 5% de chance de causar dano dobrado, com número dourado maior e som próprio.
+- **Cinco cartas novas:** Olho do Abismo (+8% de crítico), Golpe Fatal (críticos mais fortes), Passo Sombrio (a esquiva fere quem atravessa e gasta menos fôlego), Alma Instável (monstros podem explodir ao morrer e encadear explosões) e Sede de Sangue (combo e Frenesi duram mais).
+- **Eventos de horda.** A cada 40 a 50 segundos a partida muda de ritmo: Cerco Infernal (anel de cães fechando), Emboscada (tudo vem de um lado só), Ladrão de Almas (um cão dourado que foge; quem o abate em 15s leva chuva de gemas, almas e às vezes um baú), Matilha Alfa e Lua de Sangue (20s de horda quase em dobro com XP em dobro).
+- **Capítulo 2 com identidade própria.** Tempestade de Azazel: raios avisados no chão caem durante todo o capítulo e ferem a heroína e também os monstros, então dá para atrair a horda para dentro do raio. Cães Alfa Elite, Matilha Alfa e Lua de Sangue só aparecem do Capítulo 2 em diante (e no Infinito).
+- **Combate mais "pesado".** Monstros recuam ao levar golpe, morrem achatados com estouro de faíscas, e subir de nível solta uma onda de choque que empurra e fere quem está perto.
+- **Recorde de combo** salvo e mostrado na tela de fim de jogo.
+- **Proteção contra pular carta sem querer:** como Espaço virou esquiva, a tela de Level Up ignora o Espaço no primeiro instante.
+
+### Organização do Projeto
+- **Novos sistemas:** `CombatFeelSystem.ts` (combo, Frenesi, críticos, faíscas, onda de Level Up, dano da esquiva, explosão de cadáver), `ComboTracker.ts` (lógica pura do combo), `HordeEventSystem.ts` (diretor de eventos e Tempestade de Azazel), `hordeEventRules.ts` (regras puras de quais eventos podem sair) e `ui/ComboHud.ts`.
+- **Balanceamento em `balance.ts`:** `COMBO_BALANCE`, `CRIT_BALANCE`, `DASH_BALANCE`, `CORPSE_EXPLOSION_BALANCE`, `BLOODTHIRST_BALANCE`, `IMPACT_BALANCE`, `HORDE_EVENT_BALANCE`, `STORM_BALANCE` e `STORY_ELITES`.
+- **Cores em `theme.ts`:** `FX_COLORS` e `CARD_RARITY_COLORS`. Catraca de cores 1103 → 1099.
+- **Desempenho:** números de dano reaproveitados (pool de 48 textos) e faíscas num emissor de partículas único, no lugar de criar e destruir objetos a cada golpe.
+- **Ferramentas:** eventos de horda e a rajada da tempestade têm botões na aba 2 do Modo de Teste; as cinco cartas novas entram na aba 4; o Ladrão de Almas está na galeria; combo, Frenesi e eventos são gravados no registro de sessão.
+- **Save:** `stats.bestCombo` novo, com padrão 0 para saves antigos.
+- **Testes:** 227 passando (11 novos em `comboAndHordeEvents.test.ts`).
+
+### Não verificado
+- Esquiva no controle físico e no botão de toque do celular (testada só por código no navegador de desenvolvimento).
+- Sensação de dificuldade do Capítulo 2 numa partida completa até o Azazel.
 ## [v0.9.20 — Contrato da GameScene Tipado] — 2026-11-15
 
 ### Resumo para o Jogador

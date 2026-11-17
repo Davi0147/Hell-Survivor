@@ -5,6 +5,7 @@ export interface GamepadGameplayState {
   dx: number;
   dy: number;
   isSprint: boolean;
+  isDash: boolean;
   isUltimate: boolean;
   isPause: boolean;
 }
@@ -25,6 +26,7 @@ export class GamepadManager {
   // Estados de borda para botões (Just Down)
   private prevUltimateBtn: boolean = false;
   private prevPauseBtn: boolean = false;
+  private prevDashBtn: boolean = false;
   private prevConfirmBtn: boolean = false;
   private prevCancelBtn: boolean = false;
   private prevRerollBtn: boolean = false;
@@ -77,11 +79,13 @@ export class GamepadManager {
     if (!pad) {
       this.prevUltimateBtn = false;
       this.prevPauseBtn = false;
+      this.prevDashBtn = false;
       return {
         isActive: false,
         dx: 0,
         dy: 0,
         isSprint: false,
+        isDash: false,
         isUltimate: false,
         isPause: false
       };
@@ -119,6 +123,11 @@ export class GamepadManager {
     const isB = pad.B || (pad.buttons[1] && pad.buttons[1].pressed);
     const isSprint = Boolean(isR2 || isL2 || isB);
 
+    // 3.1. Esquiva: Botão A/Cruz (0) ou L1/LB (4) (Edge Detection / Just Down)
+    const dashBtnCurrent = Boolean(pad.A || (pad.buttons[0] && pad.buttons[0].pressed) || (pad.buttons[4] && pad.buttons[4].pressed));
+    const isDash = dashBtnCurrent && !this.prevDashBtn;
+    this.prevDashBtn = dashBtnCurrent;
+
     // 4. Suprema: Botão Y/Triângulo (3), X/Quadrado (2), ou R1/RB (5) (Edge Detection / Just Down)
     const ultBtnCurrent = Boolean(
       pad.Y ||
@@ -143,6 +152,7 @@ export class GamepadManager {
       dx: finalDx,
       dy: finalDy,
       isSprint,
+      isDash,
       isUltimate,
       isPause
     };

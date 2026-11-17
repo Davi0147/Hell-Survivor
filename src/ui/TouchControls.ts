@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FX_COLORS } from '../config/theme';
 
 export interface TouchInputState {
   hasMovement: boolean;
@@ -39,6 +40,13 @@ export class TouchControls {
   private sprintBtnY: number = 0;
   private readonly SPRINT_RADIUS: number = 36;
 
+  // Botão de Esquiva (usa o sprite do Sprint tingido até existir arte própria)
+  private dashBtn: Phaser.GameObjects.Image;
+  private dashBtnX: number = 0;
+  private dashBtnY: number = 0;
+  private readonly DASH_RADIUS: number = 28;
+  private dashQueued: boolean = false;
+
   private ultBtn: Phaser.GameObjects.Image;
   private ultBtnX: number = 0;
   private ultBtnY: number = 0;
@@ -74,6 +82,9 @@ export class TouchControls {
     this.sprintBtnX = width - 85;
     this.sprintBtnY = height - 85;
 
+    this.dashBtnX = width - 62;
+    this.dashBtnY = height - 178;
+
     this.ultBtnX = width - 165;
     this.ultBtnY = height - 130;
 
@@ -96,6 +107,13 @@ export class TouchControls {
     this.sprintBtn.setDisplaySize(this.SPRINT_RADIUS * 2, this.SPRINT_RADIUS * 2);
     this.sprintBtn.setAlpha(0.85);
     this.container.add(this.sprintBtn);
+
+    // 2.1. Botão de Esquiva
+    this.dashBtn = scene.add.image(this.dashBtnX, this.dashBtnY, 'touch-sprint');
+    this.dashBtn.setDisplaySize(this.DASH_RADIUS * 2, this.DASH_RADIUS * 2);
+    this.dashBtn.setAlpha(0.85);
+    this.dashBtn.setTint(FX_COLORS.dashButton);
+    this.container.add(this.dashBtn);
 
     // 3. Botão de Suprema (Pixel Art)
     this.ultBtn = scene.add.image(this.ultBtnX, this.ultBtnY, 'touch-ult');
@@ -241,6 +259,14 @@ export class TouchControls {
         this.drawSprintButton(true);
       }
 
+      // Zona Direita: Botão de Esquiva (um toque = uma esquiva)
+      const distDash = Math.hypot(pointer.x - this.dashBtnX, pointer.y - this.dashBtnY);
+      if (distDash <= this.DASH_RADIUS + 12) {
+        this.dashQueued = true;
+        this.dashBtn.setAlpha(1.0);
+        this.scene.time.delayedCall(120, () => this.dashBtn.setAlpha(0.85));
+      }
+
       // Zona Direita: Botão de Suprema
       const distUlt = Math.hypot(pointer.x - this.ultBtnX, pointer.y - this.ultBtnY);
       if (distUlt <= this.ULT_RADIUS + 15) {
@@ -352,6 +378,13 @@ export class TouchControls {
     };
   }
 
+  /** Lê e limpa o pedido de esquiva do botão de toque. */
+  public consumeDash(): boolean {
+    const queued = this.dashQueued;
+    this.dashQueued = false;
+    return queued;
+  }
+
   public setVisible(visible: boolean): void {
     this.isVisibleState = visible;
     this.container.setVisible(visible && (this.isActive || this.forceEnabled));
@@ -359,6 +392,7 @@ export class TouchControls {
       this.dx = 0;
       this.dy = 0;
       this.isSprint = false;
+      this.dashQueued = false;
       this.joystickPointer = null;
       this.sprintPointer = null;
       if (this.ultPulseTween) {

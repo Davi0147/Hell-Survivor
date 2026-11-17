@@ -84,6 +84,42 @@ export function getArenaFloorTint(textureKey: string, chapter: number): number {
   return ARENA_FLOOR_TINT.byTexture[textureKey] ?? ARENA_FLOOR_TINT.byChapter[chapter] ?? ARENA_FLOOR_TINT.fallback;
 }
 
+/** Cores dos efeitos de ritmo de combate: combo, Frenesi, críticos, esquiva e eventos de horda. */
+export const FX_COLORS = {
+  hitSpark: 0xffd166,
+  deathBurst: 0xff5d73,
+  deathBurstElite: 0xffd700,
+  critText: '#ffbe0b',
+  critStroke: '#7a1f00',
+  damageText: '#ffffff',
+  comboText: '#ffe600',
+  comboStroke: '#3a0010',
+  comboTierText: '#ff758f',
+  comboBar: 0xff2a6d,
+  comboBarBg: 0x1a0208,
+  frenzyText: '#ff4500',
+  frenzyAura: 0xff7b00,
+  frenzyFlash: [255, 120, 0] as [number, number, number],
+  dashGhost: 0x38bdf8,
+  dashButton: 0x38bdf8,
+  novaRing: 0xffd700,
+  corpseExplosion: 0xc084fc,
+  thiefTint: 0xffd700,
+  thiefSparkle: 0xfff3b0,
+  bloodMoonOverlay: 0x8a0018,
+  stormFlash: 0x9d7bff,
+  stormAnnounce: '#c4b5fd',
+} as const;
+
+/** Cor do rótulo de raridade nas cartas novas (as antigas ainda usam literais no catálogo). */
+export const CARD_RARITY_COLORS = {
+  rare: '#facc15',
+  epic: '#ff4d6d',
+  cool: '#38bdf8',
+  mystic: '#c084fc',
+  warm: '#fb923c',
+} as const;
+
 export const BOSS_TELEGRAPH = {
   /** Cor carmesim principal de advertência (valor padrão Succubus: 0xff0055) */
   color: 0xff0055,

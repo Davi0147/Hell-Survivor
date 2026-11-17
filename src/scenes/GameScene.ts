@@ -37,8 +37,10 @@ import { PlayerInputSystem } from '../systems/PlayerInputSystem';
 import { BossFightSystem, IBossFightContext, BossId } from '../systems/BossFightSystem';
 import { RunEndSystem, IRunEndContext } from '../systems/RunEndSystem';
 import { FONTS, getArenaFloorTint } from '../config/theme';
+import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
+import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 
-export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext {
+export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
 
@@ -58,6 +60,15 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   // Lutas de chefe (altar, fases, recompensas) e fim de jogo (morte e Pacto Demoníaco)
   public bossFights!: BossFightSystem;
   private runEnd!: RunEndSystem;
+
+  // Ritmo de combate (combo, Frenesi, críticos, impacto) e diretor de eventos de horda
+  public combatFeel?: CombatFeelSystem;
+  public hordeEvents?: HordeEventSystem;
+
+  /** Maior sequência de abates da partida (tela de fim de jogo). */
+  public get maxCombo(): number {
+    return this.combatFeel?.combo.maxCombo ?? 0;
+  }
 
   // Modo de Jogo e Campanha
   public gameMode: 'story' | 'endless' | 'sandbox' = 'story';
@@ -210,6 +221,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.playerInvulnerableTimer = 0;
     this.poisonPuddles = [];
     this.weapons = [];
+    this.combatFeel = undefined;
+    this.hordeEvents = undefined;
     this.clearCombatSpeechBubbles();
     this.arenaScenerySystem?.destroy();
     this.arenaScenerySystem = undefined!;
@@ -311,6 +324,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       classType: MapItem,
       runChildUpdate: false
     });
+
+    // 3.35. Ritmo de combate e diretor de eventos (precisam do jogador e do grupo de inimigos)
+    this.combatFeel = new CombatFeelSystem(this, this);
+    this.hordeEvents = new HordeEventSystem(this, this, this.enemySpawner);
 
     // 3.4. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
     this.loadCustomMapLayout(activeMap);
@@ -429,7 +446,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.enemiesGroup,
       (_playerObj, enemyObj) => {
         const enemy = enemyObj as BaseEnemy;
-        if (enemy.active && !enemy.isDead && this.playerInvulnerableTimer <= 0 && !this.isGameOver) {
+        // Quem não causa dano (Ladrão de Almas) não fere; durante a esquiva nada acerta
+        if (enemy.active && !enemy.isDead && enemy.damage > 0 && this.playerInvulnerableTimer <= 0 && !this.player.isDashInvulnerable && !this.isGameOver) {
           this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
           if (this.sandboxGodMode) {
             DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Hit de contato bloqueado (God Mode): ${enemy.damage} dano`);
@@ -488,6 +506,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.clearCombatSpeechBubbles();
       this.scene.stop('UIScene');
       this.sandboxController?.destroy();
+      this.combatFeel?.destroy();
+      this.hordeEvents?.destroy();
       this.bossFights?.destroy();
       this.combatBubbleSystem?.destroy();
       this.combatBubbleSystem = undefined!;
@@ -565,6 +585,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.player.pendingLevelUps--;
     DebugSessionLogger.getInstance().log('UPGRADE', 'INFO', `Nixy alcançou o Nível ${this.player.currentLevel} (Níveis na Fila: ${this.player.pendingLevelUps})`);
     this.cameras.main.flash(220, 255, 215, 0);
+    this.combatFeel?.queueLevelUpNova();
     this.physics.pause();
     this.scene.pause();
 
@@ -636,6 +657,14 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 1. Controles (teclado, gamepad, toque ou bot [F3]); travas cinematográficas zeram o movimento
     const move = this.playerInput.read(delta, this.isPlayerMovementLocked);
+
+    // 1.1. Esquiva: um toque = uma arrancada com invulnerabilidade
+    if (move.isDash) this.player.tryDash(move.dx, move.dy);
+
+    // 1.2. Combo, Frenesi e bônus de XP do momento (combo + evento de horda)
+    this.combatFeel?.update(delta);
+    this.hordeEvents?.update(delta);
+    this.player.xpGainMultiplier = 1 + (this.combatFeel?.xpBonus ?? 0) + (this.hordeEvents?.xpBonus ?? 0);
 
     // 2. Atualizar lógica e animações da Nixy
     this.player.updateNixy(move.dx, move.dy, move.isSprint, delta);
@@ -716,7 +745,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       // Intervalo de spawn diminui de 1500ms para até 450ms no Modo Infinito
       const minutes = this.survivalTimeMs / 60000;
       const minInterval = this.gameMode === 'endless' ? 450 : 650;
-      const currentInterval = Math.max(minInterval, 1500 - minutes * 350);
+      const currentInterval = Math.max(minInterval, 1500 - minutes * 350) * (this.hordeEvents?.spawnIntervalMultiplier ?? 1);
 
       if (this.spawnTimer >= currentInterval) {
         this.spawnTimer = 0;

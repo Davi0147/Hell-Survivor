@@ -8,6 +8,8 @@ export interface MoveInput {
   dx: number;
   dy: number;
   isSprint: boolean;
+  /** Esquiva pedida neste quadro (um toque = uma esquiva). */
+  isDash: boolean;
 }
 
 /** Ações que o gamepad pode disparar fora do movimento. */
@@ -19,7 +21,7 @@ export interface IPlayerInputActions {
 }
 
 /**
- * PlayerInputSystem — junta teclado (WASD/setas + Shift/Espaço), gamepad,
+ * PlayerInputSystem — junta teclado (WASD/setas + Shift para correr, Espaço para esquivar), gamepad,
  * controles de toque e o bot de testes [F3] em um único vetor de movimento.
  * Ordem de prioridade: bot > toque > gamepad > teclado.
  */
@@ -40,7 +42,7 @@ export class PlayerInputSystem {
   public read(delta: number, isMovementLocked: boolean): MoveInput {
     const input = this.readRaw(delta);
     // Travas cinematográficas (ex.: transição de Azazel) zeram o movimento
-    if (isMovementLocked) return { dx: 0, dy: 0, isSprint: false };
+    if (isMovementLocked) return { dx: 0, dy: 0, isSprint: false, isDash: false };
     return input;
   }
 
@@ -48,7 +50,7 @@ export class PlayerInputSystem {
     const bot = AutoPlayTestAgent.getInstance();
     if (bot.isEnabled) {
       const ai = bot.updateAgent(this.scene, delta);
-      return { dx: ai.dx, dy: ai.dy, isSprint: ai.isSprint };
+      return { dx: ai.dx, dy: ai.dy, isSprint: ai.isSprint, isDash: false };
     }
 
     const k = this.keys;
@@ -58,7 +60,8 @@ export class PlayerInputSystem {
     if (k.d?.isDown || k.right?.isDown) dx += 1;
     if (k.w?.isDown || k.up?.isDown) dy -= 1;
     if (k.s?.isDown || k.down?.isDown) dy += 1;
-    let isSprint = Boolean(k.shift?.isDown || k.space?.isDown);
+    let isSprint = Boolean(k.shift?.isDown);
+    let isDash = Boolean(k.space && Phaser.Input.Keyboard.JustDown(k.space));
 
     const pad = GamepadManager.getInstance().getGameplayInput(this.scene);
     if (pad.isActive) {
@@ -68,6 +71,7 @@ export class PlayerInputSystem {
         dy = pad.dy;
       }
       if (pad.isSprint) isSprint = true;
+      if (pad.isDash) isDash = true;
       if (pad.isUltimate) this.actions.onUltimatePressed();
       if (pad.isPause) this.actions.onPausePressed();
     }
@@ -81,8 +85,9 @@ export class PlayerInputSystem {
         dy = t.dy;
       }
       if (t.isSprint) isSprint = true;
+      if (touch.consumeDash()) isDash = true;
     }
 
-    return { dx, dy, isSprint };
+    return { dx, dy, isSprint, isDash };
   }
 }

@@ -129,7 +129,11 @@ export class UpgradeScene extends Phaser.Scene {
     const onKeyDownR = () => {
       this.handleReroll();
     };
-    const onKeyDownSpace = () => {
+    // Espaço também é a esquiva no combate: quem estava esquivando quando o nível subiu
+    // não pode pular a carta sem querer. Ignora tecla presa e o primeiro instante da tela.
+    const openedAt = this.time.now;
+    const onKeyDownSpace = (event?: KeyboardEvent) => {
+      if (event?.repeat || this.time.now - openedAt < 700) return;
       this.handleSkipAndHeal();
     };
 

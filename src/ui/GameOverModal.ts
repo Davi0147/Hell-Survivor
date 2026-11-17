@@ -10,6 +10,9 @@ export interface GameOverStats {
   timeSec: number;
   mode: 'story' | 'endless' | 'sandbox';
   soulsEarned?: number;
+  /** Maior combo da partida e o recorde salvo (já contando esta partida). */
+  maxCombo?: number;
+  bestCombo?: number;
 }
 
 export interface IGameOverModalHost extends Phaser.Scene {
@@ -54,7 +57,7 @@ export class GameOverModal {
       depth: 3600,
       backdropAlpha: t.backdropAlpha,
       panelWidth: 560,
-      panelHeight: 370,
+      panelHeight: 390,
       panelFill: t.panelFill,
       panelAlpha: t.panelAlpha,
       outerBorderColor: t.outerBorderColor,
@@ -98,12 +101,15 @@ export class GameOverModal {
     const bestText = stats.mode === 'endless' ? `\nRecorde Pessoal: ${this.host.formatTime(bestRecordSec)}` : '';
     const newRecordNotice = isNewRecord ? '\nNOVO RECORDE PESSOAL ALCANÇADO!\n' : '\n';
     const soulsNotice = typeof stats.soulsEarned === 'number' ? `\nAlmas Corrompidas Resgatadas: +${stats.soulsEarned}` : '';
+    const comboNotice = stats.maxCombo
+      ? `\nMaior Combo: x${stats.maxCombo}${stats.bestCombo && stats.bestCombo > stats.maxCombo ? ` (Recorde: x${stats.bestCombo})` : ' (NOVO RECORDE!)'}`
+      : '';
 
     const statsText = this.host.add.text(
       panelX,
-      panelY - 5,
+      panelY + 14,
       `Tempo Sobrevivido: ${formattedTime}${bestText}${newRecordNotice}` +
-        `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: LVL ${stats.level}${soulsNotice}`,
+        `Inimigos Abatidos: ${stats.kills}\nNível Alcançado: LVL ${stats.level}${comboNotice}${soulsNotice}`,
       {
         fontFamily: pixelFont,
         fontSize: '12px',
@@ -120,7 +126,7 @@ export class GameOverModal {
     const btnH = 42;
     const btn1X = panelX - btnW / 2 - 12;
     const btn2X = panelX + btnW / 2 + 12;
-    const btnY = panelY + 125;
+    const btnY = panelY + 140;
 
     const btn1Bg = this.host.add.graphics();
     const renderBtn1 = (h: boolean) => {

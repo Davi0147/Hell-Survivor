@@ -8,7 +8,8 @@ import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import type { GemType } from '../entities/items/SoulGem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { SoundManager } from './SoundManager';
-import { PERFORMANCE_LIMITS, ENEMY_BALANCE, getEnemyScaling, getChapterConfig } from '../config/balance';
+import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, STORY_ELITES, getEnemyScaling, getChapterConfig } from '../config/balance';
+import { FX_COLORS } from '../config/theme';
 
 /** O que o sistema de spawn precisa saber sobre o personagem jogável (qualquer BaseCharacter serve). */
 export interface IEnemySpawnPlayer {
@@ -197,8 +198,8 @@ export class EnemySpawnSystem {
   /**
    * Spawna um bando coordenado de Blood Bats voando em nuvem do perímetro
    */
-  public spawnBloodBatFlock(count: number = 5): void {
-    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+  public spawnBloodBatFlock(count: number = 5, fromAngle?: number): void {
+    const angle = fromAngle ?? Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = Phaser.Math.Between(360, 480);
     const originX = this.ctx.player.x + Math.cos(angle) * dist;
     const originY = this.ctx.player.y + Math.sin(angle) * dist;
@@ -390,19 +391,67 @@ export class EnemySpawnSystem {
       const spawnX = this.ctx.player.x + Math.cos(angle) * dist;
       const spawnY = this.ctx.player.y + Math.sin(angle) * dist;
 
-      const isElite = this.ctx.gameMode === 'endless' && scaling.minutes >= ENEMY_BALANCE.zombieDogElite.minMinutes && Math.random() < ENEMY_BALANCE.zombieDogElite.chance;
-      if (isElite) {
-        const eliteHp = Math.floor(ENEMY_BALANCE.zombieDogElite.hp * scaling.hpMultiplier);
-        const eliteSpeed = Math.floor(ENEMY_BALANCE.zombieDogElite.speed * scaling.speedMultiplier);
-        const eliteDmg = Math.floor(ENEMY_BALANCE.zombieDogElite.damage * scaling.damageMultiplier);
-        this.spawnZombieDogAt(spawnX, spawnY, eliteHp, eliteSpeed, eliteDmg, true, ENEMY_BALANCE.zombieDogElite.scale);
-      } else {
-        const hp = Math.floor(ENEMY_BALANCE.zombieDog.hp * scaling.hpMultiplier);
-        const speed = Math.floor(ENEMY_BALANCE.zombieDog.speed * scaling.speedMultiplier);
-        const dmg = Math.floor(ENEMY_BALANCE.zombieDog.damage * scaling.damageMultiplier);
-        this.spawnZombieDogAt(spawnX, spawnY, hp, speed, dmg);
-      }
+      this.spawnScaledDogAt(spawnX, spawnY, this.rollElite(scaling.minutes));
     }
+  }
+
+  /** Sorteia se o próximo cão nasce Alfa Elite (Infinito, ou capítulos listados em STORY_ELITES). */
+  private rollElite(minutes: number): boolean {
+    if (this.ctx.gameMode === 'endless') {
+      return minutes >= ENEMY_BALANCE.zombieDogElite.minMinutes && Math.random() < ENEMY_BALANCE.zombieDogElite.chance;
+    }
+    const story = this.ctx.gameMode === 'story' ? STORY_ELITES[this.ctx.currentChapter] : undefined;
+    return !!story && minutes >= story.minMinutes && Math.random() < story.chance;
+  }
+
+  /** Cão Zumbi (comum ou Alfa Elite) com os atributos escalonados pelo tempo de partida. */
+  public spawnScaledDogAt(x: number, y: number, isElite: boolean = false): void {
+    const scaling = getEnemyScaling(this.ctx.survivalTimeMs, this.ctx.gameMode === 'endless');
+    const base = isElite ? ENEMY_BALANCE.zombieDogElite : ENEMY_BALANCE.zombieDog;
+    const hp = Math.floor(base.hp * scaling.hpMultiplier);
+    const speed = Math.floor(base.speed * scaling.speedMultiplier);
+    const dmg = Math.floor(base.damage * scaling.damageMultiplier);
+    if (isElite) {
+      this.spawnZombieDogAt(x, y, hp, speed, dmg, true, ENEMY_BALANCE.zombieDogElite.scale);
+    } else {
+      this.spawnZombieDogAt(x, y, hp, speed, dmg);
+    }
+  }
+
+  /**
+   * Ladrão de Almas: cão dourado que foge do jogador. Quem o abate leva uma chuva de gemas e almas.
+   * Instância própria (fora do pool de cães), como o Titã Cerberus.
+   */
+  public spawnSoulThief(): ZombieDog {
+    const cfg = HORDE_EVENT_BALANCE.thief;
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * 260, this.ctx.player.y + Math.sin(angle) * 260);
+
+    const thief = new ZombieDog(this.scene, pos.x, pos.y);
+    thief.isSpecialMiniBoss = true;
+    thief.setDepth(14);
+    this.ctx.enemiesGroup.add(thief);
+
+    const minutes = this.ctx.survivalTimeMs / 60000;
+    thief.spawn(pos.x, pos.y, Math.round(cfg.hp + minutes * cfg.hpPerMinute), cfg.speed, 0, false, 1.15);
+    thief.isFleeing = true;
+    thief.setIdleTint(FX_COLORS.thiefTint);
+
+    thief.on('enemy-killed', (ex: number, ey: number) => {
+      this.ctx.killCount++;
+      SoundManager.getInstance().playEnemyDeath();
+      this.ctx.player.gainUltimateCharge(20);
+      for (let i = 0; i < cfg.gems; i++) {
+        const a = (i / cfg.gems) * Math.PI * 2;
+        const r = Phaser.Math.Between(24, 70);
+        this.ctx.spawnGemAt(ex + Math.cos(a) * r, ey + Math.sin(a) * r, i % 4 === 0 ? 'red' : 'blue');
+      }
+      this.ctx.spawnSoulItem(ex, ey, Phaser.Math.Between(cfg.soulsMin, cfg.soulsMax));
+      if (Math.random() < cfg.chestChance) this.ctx.spawnMapItem(ex, ey - 30, 'chest');
+      this.scene.cameras.main.shake(200, 0.01);
+    });
+
+    return thief;
   }
 
   /**

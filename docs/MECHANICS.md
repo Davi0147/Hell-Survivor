@@ -198,4 +198,17 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Grupos de entidades (`enemiesGroup`, `gemsGroup`, `soulsGroup`, `mapItemsGroup`) devem ser instanciados no início de `create()`, antes de qualquer chamada a métodos de layout (`loadCustomMapLayout`), acompanhados de checagens defensivas (`this.group && this.group.children`).
 3. **Desligamento e Limpeza (`SHUTDOWN`):**
    - Cenas que registram ouvintes em barramentos globais ou instâncias persistentes (`this.events.on`, `input.keyboard.on`, timers contínuos) devem registrar um ouvinte `SHUTDOWN` para desregistrar/limpar esses elementos, impedindo vazamento de listeners e duplicidade de handlers.
+---
 
+## 12. Contrato de Ritmo de Combate (`CombatFeelSystem`, `ComboTracker`, `HordeEventSystem`)
+Todos os números moram em `src/config/balance.ts`.
+
+- **Combo (`COMBO_BALANCE`):** cada inimigo comum abatido soma 1; chefes não contam. A janela (3,2s) renova inteira a cada abate. Degraus dão bônus de XP aplicado em `BaseCharacter.xpGainMultiplier`, que a `GameScene` recalcula todo quadro como `1 + combo + evento de horda`.
+- **Frenesi:** dispara a cada múltiplo de `frenzyEvery`. Soma dano e velocidade em `bonusDamagePercent`/`bonusSpeedPercent` e retira ao acabar (nunca abaixo de zero).
+- **Crítico (`CRIT_BALANCE`):** rolado num único ponto, `BaseEnemy.takeDamage`, usando `critChance`/`critMultiplier` do jogador. Golpes acima de `ignoreAbove` (limpeza de arena) não rolam.
+- **Esquiva (`DASH_BALANCE`):** `BaseCharacter.tryDash`. Durante a esquiva e 110ms depois, `takeDamage` do jogador é ignorado e o contato com monstros não fere. Não sai quando a heroína está presa (raiz) ou sendo arremessada.
+- **Onda de Level Up (`IMPACT_BALANCE`):** pedida ao abrir a tela de cartas, disparada quando a cena volta e não há mais níveis na fila.
+- **Explosão de cadáver (`CORPSE_EXPLOSION_BALANCE`):** no máximo `maxPerFrame` por quadro, para a reação em cadeia não derrubar o desempenho.
+- **Eventos de horda (`HORDE_EVENT_BALANCE`):** primeiro aos 50s, depois a cada 38 a 52s; não acontecem com chefe em campo nem com o Altar de Invocação desperto; nunca o mesmo evento duas vezes seguidas; respeitam `MAX_ACTIVE_ENEMIES`. Regras de elegibilidade em `hordeEventRules.ts`.
+- **Tempestade de Azazel (`STORM_BALANCE`):** só no Modo História dos capítulos listados em `chapters`. Aviso de 1,15s no padrão de telegrafia de chefes; fere jogador e monstros comuns (chefes não).
+- **Ladrão de Almas:** dano de contato zero, foge do jogador e desacelera quando longe; some sem recompensa após `lifetimeMs`.

@@ -7,6 +7,8 @@ import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { BloodDaggersWeapon } from '../entities/weapons/BloodDaggersWeapon';
 import { AbyssalChainsWeapon } from '../entities/weapons/AbyssalChainsWeapon';
 import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
+import { COLORS, FX_COLORS, CARD_RARITY_COLORS } from '../config/theme';
+import { CRIT_BALANCE, DASH_BALANCE, CORPSE_EXPLOSION_BALANCE, BLOODTHIRST_BALANCE } from '../config/balance';
 
 /**
  * Catálogo de cartas de upgrade: o que cada carta de Level Up e cada Evolução de Altar
@@ -284,6 +286,149 @@ export function getAvailableUpgrades(player: BaseCharacter, gameScene: UpgradeGa
       ],
       apply: (p) => {
         p.lifeStealPerHit = nextSteal;
+      }
+    });
+  }
+
+  // =========================================================================
+  // RITMO DE COMBATE: CRÍTICOS, ESQUIVA, EXPLOSÃO DE CADÁVER E COMBO
+  // =========================================================================
+
+  const critChanceLevel = Math.round((player.critChance - CRIT_BALANCE.baseChance) / CRIT_BALANCE.chancePerCard);
+  if (critChanceLevel < CRIT_BALANCE.maxChanceCards) {
+    const nextChance = Math.round((player.critChance + CRIT_BALANCE.chancePerCard) * 100);
+    catalog.push({
+      id: 'crit_chance',
+      title: 'OLHO DO ABISMO',
+      category: `GOLPE CRÍTICO // NÍVEL ${critChanceLevel + 1}/${CRIT_BALANCE.maxChanceCards}`,
+      badgeColor: COLORS.goldCrit,
+      icon: 'CRIT',
+      cardSpriteKey: 'card-gold',
+      rarityLabel: 'RARO',
+      rarityColor: CARD_RARITY_COLORS.rare,
+      cardName: 'OLHO ABISSAL',
+      cardNameColor: C_DAMAGE,
+      levelLabel: `NÍVEL ${critChanceLevel + 1}/${CRIT_BALANCE.maxChanceCards}`,
+      glowColor: COLORS.goldCrit,
+      description: `+${Math.round(CRIT_BALANCE.chancePerCard * 100)}% Chance de Crítico\n\nGolpes críticos causam dano multiplicado em qualquer arma.`,
+      richLines: [
+        [{ text: 'GANHE ', color: C_WHITE }, { text: `+${Math.round(CRIT_BALANCE.chancePerCard * 100)}% CRÍTICO`, color: C_DAMAGE }],
+        [{ text: 'EM TODAS AS ', color: C_WHITE }, { text: 'ARMAS', color: C_WEAPON }],
+        [{ text: 'TOTAL: ', color: C_WHITE }, { text: `${nextChance}% CHANCE`, color: C_UTILITY }]
+      ],
+      apply: (p) => {
+        p.critChance = Number((p.critChance + CRIT_BALANCE.chancePerCard).toFixed(2));
+      }
+    });
+  }
+
+  const critDamageLevel = Math.round((player.critMultiplier - CRIT_BALANCE.baseMultiplier) / CRIT_BALANCE.multiplierPerCard);
+  if (critDamageLevel < CRIT_BALANCE.maxMultiplierCards) {
+    const nextMult = player.critMultiplier + CRIT_BALANCE.multiplierPerCard;
+    catalog.push({
+      id: 'crit_damage',
+      title: 'GOLPE FATAL',
+      category: `GOLPE CRÍTICO // NÍVEL ${critDamageLevel + 1}/${CRIT_BALANCE.maxMultiplierCards}`,
+      badgeColor: COLORS.crimsonHp,
+      icon: 'FATAL',
+      cardSpriteKey: 'card-inferno',
+      rarityLabel: 'ÉPICO',
+      rarityColor: CARD_RARITY_COLORS.epic,
+      cardName: 'GOLPE FATAL',
+      cardNameColor: C_DAMAGE,
+      levelLabel: `NÍVEL ${critDamageLevel + 1}/${CRIT_BALANCE.maxMultiplierCards}`,
+      glowColor: COLORS.crimsonHp,
+      description: `Críticos causam x${nextMult.toFixed(1)} de dano\n\nCada golpe crítico fica ainda mais devastador.`,
+      richLines: [
+        [{ text: 'SEUS ', color: C_WHITE }, { text: 'CRÍTICOS', color: C_DAMAGE }, { text: ' PASSAM', color: C_WHITE }],
+        [{ text: 'A CAUSAR ', color: C_WHITE }, { text: `x${nextMult.toFixed(1)} DANO`, color: C_DAMAGE }],
+        [{ text: 'EM TODAS AS ', color: C_WHITE }, { text: 'ARMAS', color: C_WEAPON }]
+      ],
+      apply: (p) => {
+        p.critMultiplier += CRIT_BALANCE.multiplierPerCard;
+      }
+    });
+  }
+
+  if (player.dashMasteryLevel < DASH_BALANCE.maxCards) {
+    const nextLvl = player.dashMasteryLevel + 1;
+    const dashDmg = Math.round(nextLvl * DASH_BALANCE.damagePerCard * dmgMult);
+    catalog.push({
+      id: 'dash_mastery',
+      title: 'PASSO SOMBRIO',
+      category: `MOBILIDADE // NÍVEL ${nextLvl}/${DASH_BALANCE.maxCards}`,
+      badgeColor: FX_COLORS.dashGhost,
+      icon: 'PASSO',
+      cardSpriteKey: 'card-ice',
+      rarityLabel: 'RARO',
+      rarityColor: CARD_RARITY_COLORS.cool,
+      cardName: 'PASSO SOMBRIO',
+      cardNameColor: C_SPEED,
+      levelLabel: `NÍVEL ${nextLvl}/${DASH_BALANCE.maxCards}`,
+      glowColor: FX_COLORS.dashGhost,
+      description: `Esquiva que Corta\n\nA esquiva fere quem estiver no caminho (${dashDmg} de dano) e gasta menos fôlego.`,
+      richLines: [
+        [{ text: 'SUA ', color: C_WHITE }, { text: 'ESQUIVA', color: C_SPEED }, { text: ' CORTA', color: C_WHITE }],
+        [{ text: 'CAUSANDO ', color: C_WHITE }, { text: `${dashDmg} DE DANO`, color: C_DAMAGE }],
+        [{ text: 'E GASTA ', color: C_WHITE }, { text: `-${DASH_BALANCE.costReductionPerCard} FÔLEGO`, color: C_SPEED }]
+      ],
+      apply: (p) => {
+        p.dashMasteryLevel += 1;
+      }
+    });
+  }
+
+  if (player.corpseExplosionLevel < CORPSE_EXPLOSION_BALANCE.maxCards) {
+    const nextLvl = player.corpseExplosionLevel + 1;
+    const boomDmg = Math.round((CORPSE_EXPLOSION_BALANCE.baseDamage + nextLvl * CORPSE_EXPLOSION_BALANCE.damagePerCard) * dmgMult);
+    catalog.push({
+      id: 'corpse_explosion',
+      title: 'ALMA INSTÁVEL',
+      category: `REAÇÃO EM CADEIA // NÍVEL ${nextLvl}/${CORPSE_EXPLOSION_BALANCE.maxCards}`,
+      badgeColor: FX_COLORS.corpseExplosion,
+      icon: 'BOOM',
+      cardSpriteKey: 'card-mystic',
+      rarityLabel: 'ÉPICO',
+      rarityColor: CARD_RARITY_COLORS.mystic,
+      cardName: 'ALMA INSTÁVEL',
+      cardNameColor: C_WEAPON,
+      levelLabel: `NÍVEL ${nextLvl}/${CORPSE_EXPLOSION_BALANCE.maxCards}`,
+      glowColor: COLORS.corruptedSoulPurple,
+      description: `Monstros Explodem ao Morrer\n\n${Math.round(nextLvl * CORPSE_EXPLOSION_BALANCE.chancePerCard * 100)}% de chance de explodir em área, podendo encadear.`,
+      richLines: [
+        [{ text: 'MONSTROS TÊM ', color: C_WHITE }, { text: `${Math.round(nextLvl * CORPSE_EXPLOSION_BALANCE.chancePerCard * 100)}%`, color: C_UTILITY }],
+        [{ text: 'DE ', color: C_WHITE }, { text: 'EXPLODIR', color: C_WEAPON }, { text: ' AO MORRER', color: C_WHITE }],
+        [{ text: `${boomDmg} DE DANO`, color: C_DAMAGE }, { text: ' EM ÁREA', color: C_WHITE }]
+      ],
+      apply: (p) => {
+        p.corpseExplosionLevel += 1;
+      }
+    });
+  }
+
+  if (player.bloodthirstLevel < BLOODTHIRST_BALANCE.maxCards) {
+    const nextLvl = player.bloodthirstLevel + 1;
+    catalog.push({
+      id: 'bloodthirst',
+      title: 'SEDE DE SANGUE',
+      category: `COMBO // NÍVEL ${nextLvl}/${BLOODTHIRST_BALANCE.maxCards}`,
+      badgeColor: FX_COLORS.frenzyAura,
+      icon: 'SEDE',
+      cardSpriteKey: 'card-fire',
+      rarityLabel: 'INCOMUM',
+      rarityColor: CARD_RARITY_COLORS.warm,
+      cardName: 'SEDE SANGUE',
+      cardNameColor: C_DAMAGE,
+      levelLabel: `NÍVEL ${nextLvl}/${BLOODTHIRST_BALANCE.maxCards}`,
+      glowColor: FX_COLORS.frenzyAura,
+      description: 'Combo e Frenesi Duram Mais\n\nMais tempo para manter a sequência de abates e Frenesi prolongado.',
+      richLines: [
+        [{ text: 'COMBO DURA ', color: C_WHITE }, { text: `+${(BLOODTHIRST_BALANCE.comboWindowBonusMs / 1000).toFixed(1)}s`, color: C_SPEED }],
+        [{ text: 'E O ', color: C_WHITE }, { text: 'FRENESI', color: C_DAMAGE }, { text: ' GANHA', color: C_WHITE }],
+        [{ text: `+${BLOODTHIRST_BALANCE.frenzyDurationBonusMs / 1000}s`, color: C_SPEED }, { text: ' DE DURAÇÃO', color: C_WHITE }]
+      ],
+      apply: (p) => {
+        p.bloodthirstLevel += 1;
       }
     });
   }

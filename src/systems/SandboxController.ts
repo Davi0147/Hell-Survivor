@@ -13,6 +13,8 @@ import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { ENEMY_BALANCE } from '../config/balance';
 
+import type { HordeEventType as HordeEventType2 } from './HordeEventSystem';
+
 export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'titan_cerberus' | 'matriarch';
 
 /**
@@ -41,6 +43,9 @@ export interface ISandboxContext extends Phaser.Scene {
   azazelBoss?: AzazelBoss;
   altarInstance?: EvolutionAltar | null;
   bossSummonAltar?: BossSummonAltar | null;
+
+  /** Diretor de eventos de horda (Cerco, Emboscada, Ladrão, Matilha, Lua de Sangue, Tempestade). */
+  hordeEvents?: { trigger(type: HordeEventType2): void; startStormVolley(): void };
 
   // Modificadores de Trapaça do Sandbox
   sandboxGodMode: boolean;
