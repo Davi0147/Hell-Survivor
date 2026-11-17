@@ -118,8 +118,49 @@ export const FX_COLORS = {
   thiefSparkle: 0xfff3b0,
   bloodMoonOverlay: 0x8a0018,
   stormFlash: 0x9d7bff,
+  // Suprema "Ascensão Infernal"
+  ultAura: 0xff2a3d,
+  ultAuraHot: 0xffb000,
+  ultRune: 0xff0055,
+  ultAfterimage: 0xff6a00,
+  ultRing: 0xffd166,
+  ultFlash: [255, 70, 30] as [number, number, number],
+  ultTitle: '#ffffff',
+  ultTitleStroke: '#4a0e17',
+  ultTitleGlow: '#ff4500',
+  ultSubtitle: '#ffd166',
+  ultTimerText: '#ffb000',
   stormAnnounce: '#c4b5fd',
 } as const;
+
+/**
+ * Itens de mapa: brilho no chão e faíscas de coleta, e as cores da arte provisória
+ * desenhada por código para os itens novos (até chegar a sprite sheet de `docs/ART_PROMPTS.md` §11).
+ */
+export const ITEM_COLORS = {
+  glow: { chalice: 0x10b981, magnet: 0x38bdf8, chest: 0xfbbf24, bomb: 0xff4500, hourglass: 0x00f5d4, fury: 0xff0055, relic: 0xffd700 } as Record<string, number>,
+  spark: { chalice: 0x00ff88, magnet: 0x00d4ff, chest: 0xffd700, bomb: 0xff7b00, hourglass: 0x7df9ff, fury: 0xff2a6d, relic: 0xfff3b0 } as Record<string, number>,
+  bombBlast: 0xff4500,
+  hourglassOverlay: 0x00f5d4,
+  placeholder: {
+    outline: '#12020a',
+    bombBody: '#2b2236',
+    bombShine: '#6d5a85',
+    fuse: '#c59b27',
+    flame: '#ffb000',
+    flameCore: '#fff3b0',
+    glassFrame: '#c59b27',
+    glass: '#bdf7ff',
+    sand: '#00c2b8',
+    flaskGlass: '#e8d9ff',
+    flaskLiquid: '#ff0055',
+    flaskLiquidLight: '#ff7b9c',
+    flaskCork: '#7a4a1d',
+    relicGold: '#ffd700',
+    relicGoldDark: '#a8730a',
+    relicGem: '#ff0055',
+  },
+};
 
 /** Cor do rótulo de raridade nas cartas novas (as antigas ainda usam literais no catálogo). */
 export const CARD_RARITY_COLORS = {

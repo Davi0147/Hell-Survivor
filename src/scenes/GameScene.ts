@@ -16,7 +16,7 @@ import { MapItem, MapItemType } from '../entities/items/MapItem';
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BossSummonAltar } from '../entities/items/BossSummonAltar';
 import type { AzazelCrystal } from '../entities/items/AzazelCrystal';
-import { UltimateSystem } from '../systems/UltimateSystem';
+import { UltimateSystem, IUltimateContext } from '../systems/UltimateSystem';
 import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
@@ -40,7 +40,7 @@ import { FONTS, getArenaFloorTint } from '../config/theme';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 
-export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext {
+export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext, IUltimateContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
 
@@ -64,6 +64,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   // Ritmo de combate (combo, Frenesi, críticos, impacto) e diretor de eventos de horda
   public combatFeel?: CombatFeelSystem;
   public hordeEvents?: HordeEventSystem;
+  /** Suprema "Ascensão Infernal" (modo de poder temporário). */
+  public ultimate?: UltimateSystem;
 
   /** Maior sequência de abates da partida (tela de fim de jogo). */
   public get maxCombo(): number {
@@ -223,6 +225,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.weapons = [];
     this.combatFeel = undefined;
     this.hordeEvents = undefined;
+    this.ultimate = undefined;
     this.clearCombatSpeechBubbles();
     this.arenaScenerySystem?.destroy();
     this.arenaScenerySystem = undefined!;
@@ -328,6 +331,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 3.35. Ritmo de combate e diretor de eventos (precisam do jogador e do grupo de inimigos)
     this.combatFeel = new CombatFeelSystem(this, this);
     this.hordeEvents = new HordeEventSystem(this, this, this.enemySpawner);
+    this.ultimate = new UltimateSystem(this, this);
 
     // 3.4. Instancia os Elementos de Cenário, Altar e Itens respeitando o layout do mapa ativo
     this.loadCustomMapLayout(activeMap);
@@ -508,6 +512,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.sandboxController?.destroy();
       this.combatFeel?.destroy();
       this.hordeEvents?.destroy();
+      this.ultimate?.destroy();
       this.bossFights?.destroy();
       this.combatBubbleSystem?.destroy();
       this.combatBubbleSystem = undefined!;
@@ -664,6 +669,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 1.2. Combo, Frenesi e bônus de XP do momento (combo + evento de horda)
     this.combatFeel?.update(delta);
     this.hordeEvents?.update(delta);
+    this.ultimate?.update(delta);
     this.player.xpGainMultiplier = 1 + (this.combatFeel?.xpBonus ?? 0) + (this.hordeEvents?.xpBonus ?? 0);
 
     // 2. Atualizar lógica e animações da Nixy
@@ -674,13 +680,14 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.playerInvulnerableTimer -= delta;
     }
 
-    // 4. Atualizar Todas as Armas Ativas
+    // 4. Atualizar Todas as Armas Ativas (a Suprema acelera o relógio delas)
+    const weaponDelta = delta * this.player.weaponHasteMultiplier;
     for (const weapon of this.weapons) {
       const custom = weapon as BaseWeapon & { updateWeapon?: (d: number, x: number, y: number, g: Phaser.GameObjects.Group) => void };
       if (typeof custom.updateWeapon === 'function') {
-        custom.updateWeapon(delta, this.player.x, this.player.y, this.enemiesGroup);
+        custom.updateWeapon(weaponDelta, this.player.x, this.player.y, this.enemiesGroup);
       } else {
-        weapon.update(delta, this.player.x, this.player.y, this.enemiesGroup);
+        weapon.update(weaponDelta, this.player.x, this.player.y, this.enemiesGroup);
       }
     }
 
@@ -1156,6 +1163,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   }
 
   public notifyPlayerDeath(): void {
+    this.ultimate?.finish(false);
     this.bossFights.onPlayerDeath();
   }
 
@@ -1171,7 +1179,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     if (!this.player.isUltimateReady || this.player.isUltimateActive) return;
     SoundManager.getInstance().playUltimateCast();
     GamepadManager.getInstance().vibrate(this, 350, 0.7, 1.0);
-    UltimateSystem.execute(this, this.player, this.enemiesGroup);
+    this.ultimate?.activate();
   }
 
   // ==========================================

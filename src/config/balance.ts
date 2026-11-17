@@ -49,6 +49,14 @@ export const BALANCE = {
   MAP_ITEMS: {
     spawnIntervalMs: 40000,
     maxActive: 4,
+    /** Peso do sorteio de cada item (maior = mais comum). */
+    weights: { chalice: 26, magnet: 20, chest: 18, bomb: 12, hourglass: 9, fury: 7, relic: 8 },
+    /** Bomba Infernal: explosão gigante em volta do jogador. */
+    bomb: { radius: 380, damage: 320, bossDamage: 160, damagePerMinute: 40 },
+    /** Ampulheta Partida: paralisa toda a horda visível. */
+    hourglass: { stunMs: 4500, radius: 700 },
+    /** Relíquia Dourada: anel de gemas e almas. */
+    relic: { gems: 14, soulsMin: 6, soulsMax: 12 },
   },
 };
 
@@ -409,6 +417,24 @@ export const IMPACT_BALANCE = {
   levelUpNovaKnockback: 320,
   /** Quantos números de dano podem existir ao mesmo tempo. */
   maxDamageTexts: 48,
+} as const;
+
+/**
+ * Suprema "Ascensão Infernal": em vez de congelar a horda, a heroína entra num modo
+ * de poder por alguns segundos. As armas correm mais rápido (cadência, giro das foices,
+ * pulsos da aura), ela fica mais veloz e causa mais dano.
+ */
+export const ULTIMATE_BALANCE = {
+  durationMs: 8000,
+  /** Relógio das armas acelerado: 1.9 = atiram ~90% mais vezes por segundo. */
+  weaponHasteMultiplier: 1.9,
+  damageBonusPercent: 50,
+  speedBonusPercent: 35,
+  /** Intocável enquanto a animação de ativação cobre a tela. */
+  castInvulnerableMs: 1300,
+  openingBlast: { radius: 230, damage: 90, pushPx: 70 },
+  pulse: { intervalMs: 1000, radius: 135, damage: 34 },
+  finale: { radius: 270, damage: 130, pushPx: 90 },
 } as const;
 
 // ============================================================================

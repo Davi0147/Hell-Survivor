@@ -257,6 +257,10 @@ export class TestShowroomSystem {
           { name: 'Cálice Cura', texture: 'item-chalice', scale: 1.0 },
           { name: 'Ímã de Almas', texture: 'item-magnet', scale: 1.0 },
           { name: 'Baú do Abismo', texture: 'item-chest', scale: 1.0 },
+          { name: 'Bomba Infernal', texture: 'item-bomb', scale: 1.0 },
+          { name: 'Ampulheta Partida', texture: 'item-hourglass', scale: 1.0 },
+          { name: 'Frasco de Fúria', texture: 'item-fury', scale: 1.0 },
+          { name: 'Relíquia Dourada', texture: 'item-relic', scale: 1.0 },
           { name: 'Alma Corrompida', texture: 'item-soul', scale: 1.0 }
         ]
       },

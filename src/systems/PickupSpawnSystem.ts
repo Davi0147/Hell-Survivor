@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { CorruptedSoulItem } from '../entities/items/CorruptedSoulItem';
-import { MapItem, MapItemType } from '../entities/items/MapItem';
+import { MapItem, MapItemType, pickWeightedMapItem } from '../entities/items/MapItem';
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAltarEvolutionCards, UpgradeGameScene } from './UpgradeCatalog';
@@ -225,8 +225,7 @@ export class PickupSpawnSystem {
 
   public spawnMapItem(x: number, y: number, type?: MapItemType): MapItem {
     const clamped = this.ctx.clampToArena(x, y, 160);
-    const types: MapItemType[] = ['chalice', 'magnet', 'chest'];
-    const item = new MapItem(this.scene, clamped.x, clamped.y, type ?? Phaser.Math.RND.pick(types));
+    const item = new MapItem(this.scene, clamped.x, clamped.y, type ?? pickWeightedMapItem(Math.random()));
     this.ctx.mapItemsGroup.add(item);
     return item;
   }

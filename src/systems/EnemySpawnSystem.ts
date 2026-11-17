@@ -257,7 +257,7 @@ export class EnemySpawnSystem {
    * Spawna horda intensa na Dimensão Corrompida de Azazel (Fase 3) enquanto o jogador captura os 3 Cristais
    */
   public spawnAzazelDimensionHordeWave(): void {
-    if (this.ctx.player.isUltimateActive || !this.ctx.isAzazelPhase3HordeActive) return;
+    if (!this.ctx.isAzazelPhase3HordeActive) return;
     if (this.ctx.enemiesGroup.countActive() >= PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES) return;
 
     const dogCount = Phaser.Math.Between(3, 5);
@@ -282,7 +282,7 @@ export class EnemySpawnSystem {
 
   public spawnEnemyRandomPerimeter(): void {
     // Não spawna se a Boss estiver em campo ou durante a Ultimate
-    if (this.ctx.player.isUltimateActive || this.ctx.isBossFightActive) return;
+    if (this.ctx.isBossFightActive) return;
 
     // Limite de Inimigos Vivos para manter 60 FPS
     if (this.ctx.enemiesGroup.countActive() >= PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES) return;

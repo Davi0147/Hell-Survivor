@@ -170,6 +170,8 @@ Formato: 64x64 por quadro, 8 direções, animações `walk` (6 quadros), `attack
 | `portrait-<nome>-<emocao>.png` | `bust portrait of <descrição do personagem>, <emotion: neutral / angry / smirking / hurt / shocked>, facing 3/4, detailed pixel art, 200x200, dark vignette background removed` |
 | `cutin-nixy-ultimate.png` | `dramatic anime-style cut-in of a purple-haired demon heroine with horns, eyes glowing magenta, hand reaching toward the viewer, crimson speed lines, wide 640x200 banner` |
 
+Prompts completos para refazer as folhas da Nixy (fiel à arte da HUD): `docs/NIXY_SPRITE_PROMPTS.md`.
+
 Para um **personagem jogável novo**, peça o conjunto completo no mesmo padrão da Nixy: `idle` (8 direções), `run` (8 direções, 6 quadros), `hurt` (8 direções, 3 quadros) e `death` (12 quadros), em 64x64 ou 80x80.
 
 ## 9. Cenário
@@ -219,3 +221,178 @@ Regras para todos: chão em 512x512, emendável nos quatro lados, **escuro e com
 | `dimension-prop-shard.png` | `floating jagged obsidian shard with magenta inner glow` |
 
 **Capítulo 3** ainda não tem tema definido. Quando você escolher o bioma e o chefe, eu escrevo a lista dele no mesmo formato.
+
+---
+
+## 10. Folha da HUD nova (kit profissional, 16 peças)
+
+A HUD atual mistura peças desenhadas por código (barras, radar, contador de combo) com poucas imagens. Esta folha troca **tudo** por arte de verdade, no mesmo estilo gótico-barroco do painel da Nixy. Gere **uma imagem só** com as 16 peças numa grade; eu recorto cada célula pelo fundo magenta, reduzo para o tamanho do jogo e encaixo.
+
+**Como pedir (cole o bloco de estilo do topo e depois este prompt inteiro):**
+
+```text
+UI KIT SPRITE SHEET for a dark gothic pixel art action game HUD.
+Canvas 2048x2048 pixels, solid flat magenta background (#FF00FF) everywhere that is not art,
+divided into an invisible 4x4 grid of 512x512 cells. Exactly ONE element per cell, centered
+in its cell, never touching or crossing into another cell, at least 24 px of pure magenta
+margin around every element. No drop shadows on the background, no glow bleeding onto the
+magenta, no text, no letters, no numbers anywhere.
+
+Visual language for every piece: 16-bit pixel art, hand-placed pixels, hard 1-pixel dark
+outline (#12020a), antique gold baroque filigree (#c59b27 to #f3d17a) over black-cherry
+volcanic stone (#1a0208 to #3b0a14), small crimson rubies (#ff0055) as accents, tiny bone
+and horn details, subtle ember-orange rim light from below. Readable at small size: big
+simple silhouettes, strong value contrast, interiors of frames left EMPTY and dark so the
+game can draw numbers and liquid inside them. Pieces 1-9 and 13-16 must share the exact
+same gold, stone and ruby palette so they look like one set.
+
+Row 1:
+ Cell 1 - STATUS PANEL FRAME: a wide horizontal plaque, aspect 2.15:1, carved volcanic
+   stone slab with a thick gold baroque border, two small horned gargoyle heads on the
+   upper corners, molten lava cracks glowing along the bottom edge. On the left third a
+   round socket (empty dark hole) for a potion orb; on the right two thirds two long
+   empty horizontal grooves stacked vertically (top groove taller than bottom one) for
+   health and stamina bars. Upper center has an empty flat banner area for the hero name.
+ Cell 2 - HEALTH BAR FRAME: long thin horizontal bar frame, aspect 12:1, gold rim with a
+   tiny ruby at each end and a small heart-shaped gold cap on the left end, interior
+   completely empty and near-black.
+ Cell 3 - HEALTH BAR FILL: the liquid that goes inside cell 2, same aspect 12:1 but 6%
+   smaller, glossy crimson blood liquid (#d90429 base, #ff4d6d top highlight band, darker
+   #6a0010 bottom band), flat ends, no frame.
+ Cell 4 - STAMINA BAR FRAME: like cell 2 but thinner (aspect 16:1), gold rim, small
+   winged-boot gold cap on the left end, empty interior.
+
+Row 2:
+ Cell 5 - STAMINA BAR FILL: liquid for cell 4, warm amber-gold energy (#e0a96d base,
+   #ffe3a8 highlight band), flat ends, no frame.
+ Cell 6 - EXPERIENCE BAR FRAME: very long, very thin frame meant to span the top of the
+   screen, aspect 24:1, minimal gold line with small skull rivets every 1/8 of its length,
+   empty interior.
+ Cell 7 - EXPERIENCE BAR FILL: liquid for cell 6, glowing cyan-teal soul energy (#00f5d4
+   base, #bfffff highlight), tiny brighter specks, flat ends.
+ Cell 8 - ULTIMATE ORB FRAME: a round glass orb (perfect circle) held by a gold claw cage
+   with four talons, a small inverted pentagram crest on top, the glass interior empty,
+   dark and slightly reflective with one curved white highlight on the upper left.
+
+Row 3:
+ Cell 9 - ULTIMATE ORB LIQUID: a perfect disc that fits inside cell 8 glass, swirling
+   violet-to-crimson demonic energy (#7b2cbf to #ff0055) with a bright gold swirl in the
+   center, flat circular silhouette, no frame.
+ Cell 10 - RADAR FRAME: a circular minimap ring, outer diameter fills the cell, thick gold
+   ring with 8 small engraved tick marks (bigger tick at the top for north), four small
+   bat-wing ornaments at north/east/south/west, interior completely empty and transparent
+   black (#0b0205), ring thickness about 9% of the diameter.
+ Cell 11 - KILLS ICON: a small horned demon skull, front view, crimson eyes, cracked bone,
+   fills 70% of the cell, very bold silhouette.
+ Cell 12 - SOULS ICON: a corrupted soul flame, blue-violet (#6d28d9 to #38bdf8) wisp with
+   a tiny screaming face, fills 70% of the cell.
+
+Row 4:
+ Cell 13 - LEVEL BADGE: a small heraldic shield, gold rim, dark ruby center left EMPTY for
+   a number, tiny bat wings on the sides.
+ Cell 14 - COMBO EMBLEM: a backing plate for a big combo counter: jagged burst/explosion
+   shape made of crimson and orange flames around an empty dark center, wide aspect 1.6:1,
+   two crossed daggers behind it.
+ Cell 15 - BOSS HEALTH BAR FRAME: ornate wide bar, aspect 9:1, black iron with gold trims,
+   a large horned skull medallion in the exact center top edge, chains hanging at both
+   ends, empty interior.
+ Cell 16 - ALERT BANNER: a horizontal torn parchment ribbon / scroll, aspect 6:1, blood-red
+   cloth with gold edges and two curled ends, center completely empty for text.
+```
+
+**Nomes que eu vou dar a cada peça depois de recortar** (só para você saber; não precisa fazer nada):
+
+| Célula | Arquivo final | Tamanho no jogo |
+|---|---|---|
+| 1 | `hud-status-panel.png` | 448x210 |
+| 2 / 3 | `hud-hp-frame.png` / `hud-hp-fill.png` | 240x20 |
+| 4 / 5 | `hud-stamina-frame.png` / `hud-stamina-fill.png` | 240x15 |
+| 6 / 7 | `hud-xp-frame.png` / `hud-xp-fill.png` | 1280x14 (eu estico o meio) |
+| 8 / 9 | `hud-ult-orb-frame.png` / `hud-ult-orb-liquid.png` | 80x80 |
+| 10 | `hud-radar-frame.png` | 120x120 |
+| 11 / 12 | `hud-icon-kills.png` / `hud-icon-souls.png` | 32x32 |
+| 13 | `hud-level-badge.png` | 40x40 |
+| 14 | `hud-combo-emblem.png` | 200x125 |
+| 15 | `hud-boss-bar-frame.png` | 520x58 |
+| 16 | `hud-alert-banner.png` | 480x80 |
+
+**Se o gerador errar a grade** (peças grudadas, tamanhos desiguais): gere em 4 imagens menores, uma por linha, pedindo `canvas 2048x512, 1x4 grid of 512x512 cells` e colando só a linha correspondente. Não precisa ficar perfeito: o importante é o **fundo magenta liso** e **uma peça por célula, sem encostar**.
+
+Salve como `art-source/novos/hud-kit.png` (ou `hud-kit-linha1.png` … `linha4.png`).
+
+---
+
+## 11. Folha de itens (antigos refeitos + 4 novos, 16 peças)
+
+Os itens novos já estão no jogo com **arte provisória desenhada por código** (bomba, ampulheta, frasco, relíquia). Esta folha substitui essas artes e refaz os itens antigos para ficarem no mesmo nível.
+
+```text
+GAME ITEM SPRITE SHEET, 16-bit pixel art, top-down 3/4 view collectible pickups for a dark
+gothic hell survival game. Canvas 2048x2048 pixels, solid flat magenta background (#FF00FF),
+invisible 4x4 grid of 512x512 cells, exactly ONE item per cell, centered, item fills about
+70% of its cell, at least 40 px of pure magenta margin, nothing crosses into another cell.
+No text, no numbers, no ground shadow, no glow spilling onto the magenta.
+
+Shared style: hand-placed pixels, hard 1-pixel near-black outline (#12020a), strong
+silhouette readable at 32x32, 3 to 4 shading tones per material, a single bright specular
+pixel cluster on the upper-left, subtle colored rim light matching each item's aura color.
+All items must look like they belong to the same set (same outline weight, same light
+direction from the upper left, same level of detail).
+
+Row 1 (classic items, redesigned):
+ Cell 1 - BLOOD CHALICE (heals): ornate gold goblet with ruby studs, overflowing with
+   glowing dark-red wine, a few drops running down the outside, faint green healing sparkle.
+ Cell 2 - SOUL MAGNET: a horseshoe magnet forged from black iron and gold, tips glowing
+   cyan (#38bdf8), three tiny soul gems floating toward it on curved trails.
+ Cell 3 - ABYSS CHEST (closed): small heavy treasure chest of black wood and gold bands,
+   a demon-face lock with ruby eyes, golden light leaking through the lid seam.
+ Cell 4 - INFERNAL BOMB (new): round black iron bomb with riveted gold bands and a carved
+   skull on the front, short braided fuse with a bright orange-white spark at the tip,
+   molten orange cracks starting to glow on the shell.
+
+Row 2 (new items):
+ Cell 5 - SHATTERED HOURGLASS (freezes enemies): gothic hourglass with a gold frame and
+   bone pillars, the upper glass bulb cracked, glowing turquoise (#00f5d4) sand frozen in
+   mid-air as floating grains, faint clock-rune ring behind it.
+ Cell 6 - FURY FLASK (fills the ultimate): round-bottom alchemy flask with a cork and gold
+   wire, filled with swirling crimson-to-magenta (#ff0055) liquid, a tiny horned demon
+   silhouette visible inside the liquid, small bubbles rising.
+ Cell 7 - GOLDEN RELIC (treasure burst): an ancient gold medallion / idol coin with a
+   four-pointed star engraving and a ruby in the center, a few small coins and gems
+   spilling from behind it.
+ Cell 8 - CORRUPTED SOUL (meta currency): a floating blue-violet soul flame with a tiny
+   sorrowful face and a curling wisp tail.
+
+Row 3 (experience gems, same cut, growing size and value):
+ Cell 9  - GREEN SOUL GEM: small elongated hexagonal crystal, emerald green (#06d6a0).
+ Cell 10 - BLUE SOUL GEM: same cut, slightly bigger, sapphire blue (#118ab2).
+ Cell 11 - RED SOUL GEM: same cut, bigger, ruby red (#ef233c), tiny inner flame.
+ Cell 12 - ORANGE SOUL GEM: same cut, same size as red, amber orange (#ff7b00).
+
+Row 4:
+ Cell 13 - PURPLE SOUL GEM: same cut, larger, amethyst (#b5179e) with a swirling core.
+ Cell 14 - GOLD SOUL GEM: same cut, largest, radiant gold (#ffd700) with a white-hot core
+   and four small sparkle points around it.
+ Cell 15 - ABYSS CHEST (open): the same chest as cell 3 seen with the lid thrown open,
+   a column of golden light and floating soul gems bursting out.
+ Cell 16 - ASCENSION RUNE (ground decal for the new ultimate): a perfectly flat top-down
+   circular magic seal seen from directly above, inverted pentagram inside two concentric
+   rings of demonic runes, glowing crimson (#ff0055) lines with gold (#ffd166) highlights,
+   empty dark center, NOT in 3/4 view, perfectly round.
+```
+
+| Célula | Arquivo final | Tamanho no jogo |
+|---|---|---|
+| 1 | `chalice.png` | 40x40 |
+| 2 | `magnet.png` | 40x40 |
+| 3 | `chest.png` | 40x40 |
+| 4 | `bomb.png` | 40x40 |
+| 5 | `hourglass.png` | 40x40 |
+| 6 | `fury.png` | 40x40 |
+| 7 | `relic.png` | 40x40 |
+| 8 | `Soul.png` | 40x40 |
+| 9 a 14 | `gem-green.png` … `gem-gold.png` | 40x40 |
+| 15 | `chest-open.png` | 64x64 (roleta do baú) |
+| 16 | `ult-rune.png` | 128x128 (runa sob os pés na Suprema) |
+
+Salve como `art-source/novos/items-kit.png`. Quando os dois arquivos estiverem lá, me avise: eu recorto, troco a arte provisória e as barras desenhadas por código, e mostro o antes e depois.

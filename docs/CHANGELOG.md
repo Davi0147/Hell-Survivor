@@ -2,6 +2,37 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.11.0 — Ascensão Infernal] — 2026-11-17
+
+### Resumo para o Jogador
+- **Suprema nova: Ascensão Infernal.** Ela não congela mais a horda nem solta detonações. Agora a Nixy entra num modo de poder por 8 segundos:
+  - as armas trabalham ~90% mais rápido (mais tiros, foices girando mais rápido, aura pulsando mais vezes, meteoros e correntes com mais frequência);
+  - +50% de dano e +35% de velocidade;
+  - explosão ao ativar (empurra e fere quem está perto), um pulso de fogo por segundo e uma explosão final ao acabar;
+  - aura de chamas, runa girando sob os pés, rastro fantasma laranja, bordas da tela escurecidas e um contador regressivo sobre a cabeça. O frasco da HUD esvazia junto com o tempo.
+  - A horda continua vindo durante a Suprema (antes parava), então é hora de colher abates e combo.
+  - Fica intocável durante a animação de ativação.
+- **Quatro itens novos no mapa:**
+  - **Bomba Infernal:** explosão gigante em volta da Nixy (dano alto nos monstros, menor nos chefes).
+  - **Ampulheta Partida:** paralisa toda a horda ao redor por 4,5 segundos.
+  - **Frasco de Fúria:** enche a Suprema na hora.
+  - **Relíquia Dourada:** espalha um anel de gemas e um punhado de almas.
+  - Os itens agora saem por sorteio com peso: cálice, ímã e baú continuam os mais comuns.
+- **Arte provisória:** os itens novos usam desenhos feitos por código até chegar a arte final.
+
+### Arte pedida
+- `docs/ART_PROMPTS.md` §10: prompt da folha de HUD nova (16 peças: painel, barras de vida, estamina e XP, frasco da Suprema, radar, ícones, emblema de combo, barra de chefe e faixa de alerta).
+- `docs/ART_PROMPTS.md` §11: prompt da folha de itens (cálice, ímã e baú refeitos, os 4 itens novos, almas, as 6 gemas, baú aberto e a runa da Suprema).
+
+### Organização do Projeto
+- `UltimateSystem.ts` reescrito como instância por partida (`IUltimateContext`); números em `ULTIMATE_BALANCE`.
+- `BaseCharacter.weaponHasteMultiplier` acelera o relógio de todas as armas; `grantIntangibility` reaproveita a proteção da esquiva.
+- `src/systems/mapItemRules.ts` (sorteio puro dos itens), `src/systems/PlaceholderItemTextures.ts` (arte provisória), pesos e efeitos em `BALANCE.MAP_ITEMS`, cores em `ITEM_COLORS`.
+- Modo de Teste: botões dos 4 itens novos (aba 4); galeria com os 4 itens.
+- Catraca de cores 1099 → 1081. Testes: 237 passando.
+
+### Não verificado
+- Sensação da Suprema nova em luta de chefe (testada contra horda comum no navegador).
 ## [v0.10.1 — Combo que Pega Fogo] — 2026-11-17
 
 ### Resumo para o Jogador

@@ -14,6 +14,8 @@ import {
 
 export class Nixy extends BaseCharacter {
   private trailTimer: number = 0;
+  /** Cor do rastro fantasma contínuo (Suprema ativa); `undefined` = desligado. */
+  public afterimageTint?: number;
   private readonly TRAIL_INTERVAL_MS = 40;
 
   // Estado de Prisão Ácida (Skull Slime Root)
@@ -180,6 +182,13 @@ export class Nixy extends BaseCharacter {
       if (this.trailTimer >= this.TRAIL_INTERVAL_MS / 2) {
         this.trailTimer = 0;
         this.createSprintGhost(FX_COLORS.dashGhost);
+      }
+    } else if (this.afterimageTint !== undefined && this.isMoving) {
+      // Rastro contínuo de poder (Suprema), mesmo sem correr
+      this.trailTimer += deltaMs;
+      if (this.trailTimer >= this.TRAIL_INTERVAL_MS) {
+        this.trailTimer = 0;
+        this.createSprintGhost(this.afterimageTint);
       }
     } else if (this.isSprinting && this.isMoving) {
       this.trailTimer += deltaMs;

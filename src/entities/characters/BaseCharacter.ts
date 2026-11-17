@@ -52,6 +52,8 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public corpseExplosionLevel: number = 0;
   public dashMasteryLevel: number = 0;
   public bloodthirstLevel: number = 0;
+  /** Relógio das armas (1 = normal). A Suprema acelera tudo: cadência, giro e pulsos. */
+  public weaponHasteMultiplier: number = 1;
 
   // Esquiva (dash): arrancada curta com invulnerabilidade
   private dashTimer: number = 0;
@@ -210,6 +212,11 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   /** Durante a esquiva (e um instante depois) nenhum golpe acerta. */
   public get isDashInvulnerable(): boolean {
     return this.dashInvulnTimer > 0;
+  }
+
+  /** Deixa a heroína intocável por `ms` (nunca encurta uma proteção maior). */
+  public grantIntangibility(ms: number): void {
+    this.dashInvulnTimer = Math.max(this.dashInvulnTimer, ms);
   }
 
   public get dashCost(): number {

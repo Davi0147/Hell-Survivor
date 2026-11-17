@@ -1,443 +1,350 @@
-import type { UIScene } from '../scenes/UIScene';
 import Phaser from 'phaser';
-import { BaseEnemy } from '../entities/enemies/BaseEnemy';
-import { Nixy } from '../entities/characters/Nixy';
-import { DamageTextSystem } from './DamageTextSystem';
+import type { BaseEnemy } from '../entities/enemies/BaseEnemy';
+import type { BaseCharacter } from '../entities/characters/BaseCharacter';
+import { SoundManager } from './SoundManager';
+import { DebugSessionLogger } from './DebugSessionLogger';
+import { ULTIMATE_BALANCE } from '../config/balance';
+import { FONTS, FX_COLORS, COLORS } from '../config/theme';
 
-/** O que a Suprema usa da cena além do Phaser: as poças de veneno que ela purifica. */
-type UltimateHostScene = Phaser.Scene & {
-  poisonPuddles?: Array<Phaser.GameObjects.Sprite>;
-  clearAllPoisonPuddles?(): void;
-};
+/** O que a Suprema usa da HUD (a UIScene cumpre este contrato). */
+interface IUltimateHud {
+  setHUDVisible(visible: boolean): void;
+}
 
+/** O que a Suprema precisa do personagem: qualquer BaseCharacter com rastro opcional. */
+type UltimatePlayer = BaseCharacter & { afterimageTint?: number };
+
+/** Contrato mínimo que a cena de jogo expõe para a Suprema. */
+export interface IUltimateContext {
+  readonly player: UltimatePlayer;
+  readonly enemiesGroup: Phaser.GameObjects.Group;
+  readonly isGameOver: boolean;
+  clearAllPoisonPuddles(): void;
+}
+
+/**
+ * UltimateSystem — Suprema "Ascensão Infernal".
+ * 1. Cut-in cinematográfico (arte da Nixy) com a heroína intocável.
+ * 2. Explosão de abertura que empurra e fere a horda ao redor.
+ * 3. Modo de poder: armas aceleradas, +dano, +velocidade, aura de chamas, runa girando
+ *    sob os pés, rastro fantasma e um pulso de fogo por segundo.
+ * 4. Desfecho com uma explosão final.
+ * Os números moram em `ULTIMATE_BALANCE` (src/config/balance.ts).
+ */
 export class UltimateSystem {
-  /**
-   * Executa a Habilidade Suprema "Eternal Despair" da Nixy:
-   * 1. Cut-In cinematográfico anime estilo Persona 5
-   * 2. Time-stop de 5 segundos congelando os monstros
-   * 3. 8 Detonações Carmesins sequenciais nos maiores aglomerados
-   * 4. Desfecho, unfreeze e retomada fluida
-   */
-  public static execute(scene: Phaser.Scene, player: Nixy, enemiesGroup: Phaser.GameObjects.Group): void {
-    if (player.isUltimateActive) return;
+  private remainingMs = 0;
+  private pulseTimer = 0;
 
+  private aura?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private embers?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private rune?: Phaser.GameObjects.Image;
+  private vignette?: Phaser.FX.Vignette;
+  private timerText?: Phaser.GameObjects.Text;
+
+  constructor(private readonly scene: Phaser.Scene, private readonly ctx: IUltimateContext) {}
+
+  public get isActive(): boolean {
+    return this.remainingMs > 0;
+  }
+
+  /** Fração (0 a 1) do poder que ainda resta. */
+  public get remainingRatio(): number {
+    return this.isActive ? this.remainingMs / ULTIMATE_BALANCE.durationMs : 0;
+  }
+
+  public activate(): void {
+    const player = this.ctx.player;
+    if (player.isUltimateActive || this.isActive) return;
+
+    const cfg = ULTIMATE_BALANCE;
     player.isUltimateActive = true;
-    player.ultimateCharge = 0;
+    player.ultimateCharge = player.maxUltimateCharge;
+    player.grantIntangibility(cfg.castInvulnerableMs);
 
-    const { width, height } = scene.scale;
-    const cameras = scene.cameras.main;
+    player.bonusDamagePercent += cfg.damageBonusPercent;
+    player.bonusSpeedPercent += cfg.speedBonusPercent;
+    player.weaponHasteMultiplier *= cfg.weaponHasteMultiplier;
+    player.afterimageTint = FX_COLORS.ultAfterimage;
 
-    // Oculta a HUD da UIScene durante a exibição da animação cinematográfica da Suprema
-    const uiScene = scene.scene.get('UIScene') as UIScene | undefined;
-    if (uiScene) {
-      uiScene.setHUDVisible(false);
+    this.remainingMs = cfg.durationMs;
+    this.pulseTimer = cfg.pulse.intervalMs;
+
+    this.ctx.clearAllPoisonPuddles();
+    this.playCutIn();
+    this.startVisuals();
+    this.blast(cfg.openingBlast.radius, cfg.openingBlast.damage, cfg.openingBlast.pushPx);
+
+    DebugSessionLogger.getInstance().log('COMBAT', 'INFO', 'Suprema ativada: Ascensão Infernal');
+  }
+
+  public update(delta: number): void {
+    if (!this.isActive) return;
+    const player = this.ctx.player;
+
+    this.remainingMs -= delta;
+    // O frasco da HUD esvazia junto com o poder
+    player.ultimateCharge = player.maxUltimateCharge * Math.max(0, this.remainingRatio);
+
+    if (this.rune) {
+      this.rune.setPosition(player.x, player.y + 14);
+      this.rune.rotation += delta * 0.003;
+      this.rune.setScale(1.25 + Math.sin(this.scene.time.now * 0.01) * 0.08);
+    }
+    if (this.timerText) {
+      this.timerText.setPosition(player.x, player.y - 46);
+      this.timerText.setText((Math.max(0, this.remainingMs) / 1000).toFixed(1));
+      // Últimos 2 segundos: o número pisca para avisar que vai acabar
+      this.timerText.setAlpha(this.remainingMs < 2000 && Math.floor(this.remainingMs / 120) % 2 === 0 ? 0.35 : 1);
     }
 
-    // Purifica o campo de batalha dissipando quaisquer poças de veneno/gosma ativas
-    (scene as UltimateHostScene).clearAllPoisonPuddles?.();
+    this.pulseTimer -= delta;
+    if (this.pulseTimer <= 0) {
+      this.pulseTimer = ULTIMATE_BALANCE.pulse.intervalMs;
+      this.blast(ULTIMATE_BALANCE.pulse.radius, ULTIMATE_BALANCE.pulse.damage, 0, true);
+    }
 
-    // =========================================================================
-    // ETAPA 1: ANIME CUT-IN CINEMATOGRÁFICO (PERSONA 5 COMIC NOIR)
-    // =========================================================================
-    // Container fixo na câmera para o Cut-In (ScrollFactor = 0, Depth 400)
-    const cutInContainer = scene.add.container(0, 0);
-    cutInContainer.setScrollFactor(0);
-    cutInContainer.setDepth(400);
+    if (this.remainingMs <= 0) this.finish(true);
+  }
 
-    // 1. Escurecimento global de fundo
-    const darkBackdrop = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
-    cutInContainer.add(darkBackdrop);
+  /** Encerra o modo de poder (com explosão final, ou em silêncio se a partida acabou). */
+  public finish(withFinale: boolean): void {
+    if (!this.isActive && !this.ctx.player.isUltimateActive) return;
+    const cfg = ULTIMATE_BALANCE;
+    const player = this.ctx.player;
 
-    // 2. Banner de Cut-In Oficial da Nixy (300x70px escalado em 3.15x para largura de ~945px)
-    // Centralizado perfeitamente no meio da tela (y = 50% da altura)
-    const bannerY = Math.round(height * 0.5);
-    const bannerScale = 3.15;
-    const cutInSprite = scene.add.sprite(width / 2, bannerY, 'nixy-ult-cutin-1');
-    cutInSprite.setScale(bannerScale);
-    cutInContainer.add(cutInSprite);
+    if (withFinale && !this.ctx.isGameOver) {
+      this.blast(cfg.finale.radius, cfg.finale.damage, cfg.finale.pushPx);
+      const [r, g, b] = FX_COLORS.ultFlash;
+      this.scene.cameras.main.flash(220, r, g, b);
+    }
 
-    // 3. Tipografia de Impacto: "ETERNAL DESPAIR" (FONTE: 50px, rebaixada e animada da esquerda ao centro e saída rápida à direita)
-    const pixelFont = "'Pixelzone', 'Silkscreen', 'Press Start 2P', monospace";
+    this.remainingMs = 0;
+    player.isUltimateActive = false;
+    player.ultimateCharge = 0;
+    player.bonusDamagePercent = Math.max(0, player.bonusDamagePercent - cfg.damageBonusPercent);
+    player.bonusSpeedPercent = Math.max(0, player.bonusSpeedPercent - cfg.speedBonusPercent);
+    player.weaponHasteMultiplier = Math.max(1, player.weaponHasteMultiplier / cfg.weaponHasteMultiplier);
+    player.afterimageTint = undefined;
+    this.stopVisuals();
+  }
 
-    // Container dedicado aos textos para controlar movimento independente do fundo
-    const textGroup = scene.add.container(-width * 0.75, 0);
-    cutInContainer.add(textGroup);
+  public destroy(): void {
+    this.stopVisuals();
+    this.remainingMs = 0;
+  }
 
-    const titleText = scene.add.text(0, bannerY + 140, 'ETERNAL DESPAIR', {
-      fontFamily: pixelFont,
-      fontSize: '50px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#4a0e17',
-      strokeThickness: 8,
-      align: 'center',
-      shadow: {
-        offsetX: 0,
-        offsetY: 4,
-        color: '#ff0055',
-        blur: 16,
-        stroke: true,
-        fill: true
-      }
-    }).setOrigin(0.5);
-    titleText.setResolution(2);
+  // ---------------------------------------------------------------------------
+  // Golpes de área (abertura, pulsos e desfecho)
+  // ---------------------------------------------------------------------------
 
-    const subText = scene.add.text(0, bannerY + 185, 'SUPREME PURIFICATION', {
-      fontFamily: pixelFont,
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: '#ffd166',
-      stroke: '#000000',
-      strokeThickness: 5,
-      align: 'center',
-      shadow: {
-        offsetX: 0,
-        offsetY: 2,
-        color: '#000000',
-        blur: 8,
-        stroke: true,
-        fill: true
-      }
-    }).setOrigin(0.5);
-    subText.setResolution(2);
+  private blast(radius: number, damage: number, pushPx: number, isPulse: boolean = false): void {
+    const player = this.ctx.player;
+    const x = player.x;
+    const y = player.y;
 
-    textGroup.add(titleText);
-    textGroup.add(subText);
-
-    // 4. Sequência Animada dos 3 Frames:
-    // Frame 1 (0ms): Olhos fechados, concentração profunda
-    // O texto vem rápido da esquerda e desacelera suavemente no centro
-    scene.tweens.add({
-      targets: textGroup,
-      x: width / 2,
-      duration: 260,
-      ease: 'Cubic.easeOut'
+    const ring = this.scene.add.circle(x, y, radius, isPulse ? FX_COLORS.ultAura : FX_COLORS.ultRing, isPulse ? 0.12 : 0.28);
+    ring.setStrokeStyle(isPulse ? 2 : 4, isPulse ? FX_COLORS.ultAuraHot : FX_COLORS.ultRing, 0.95);
+    ring.setBlendMode(Phaser.BlendModes.ADD).setDepth(18).setScale(0.1);
+    this.scene.tweens.add({
+      targets: ring,
+      scale: 1,
+      alpha: 0,
+      duration: isPulse ? 360 : 520,
+      ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy(),
     });
 
-    // Transição para o Frame 2 (160ms): Os olhos da Nixy se abrem
+    if (!isPulse) {
+      this.scene.cameras.main.shake(220, 0.012);
+      SoundManager.getInstance().playMeteorImpact();
+      this.embers?.explode(36, x, y);
+      if (this.scene.textures.exists('explosion-1') && this.scene.anims.exists('anim-explosion')) {
+        const boom = this.scene.add.sprite(x, y, 'explosion-1');
+        boom.setDepth(25).setScale((radius * 1.6) / 200).setBlendMode(Phaser.BlendModes.ADD);
+        boom.play('anim-explosion');
+        boom.once('animationcomplete', () => boom.destroy());
+      }
+    } else {
+      SoundManager.getInstance().playHellfireBurst();
+    }
+
+    const dmg = damage * (1 + player.bonusDamagePercent / 100);
+    for (const enemy of this.ctx.enemiesGroup.getChildren() as BaseEnemy[]) {
+      if (!enemy.active || enemy.isDead) continue;
+      const dx = enemy.x - x;
+      const dy = enemy.y - y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > radius) continue;
+      enemy.takeDamage(dmg);
+      if (pushPx > 0 && !enemy.isBoss && !enemy.isDead && dist > 1) {
+        const push = pushPx * (1 - dist / radius) + 12;
+        enemy.x += (dx / dist) * push;
+        enemy.y += (dy / dist) * push;
+        enemy.applyStun(400);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Efeitos contínuos do modo de poder
+  // ---------------------------------------------------------------------------
+
+  private startVisuals(): void {
+    const player = this.ctx.player;
+    const hasSpark = this.scene.textures.exists('particle-spark');
+
+    if (hasSpark) {
+      // Chamas subindo do corpo
+      this.aura = this.scene.add.particles(0, 0, 'particle-spark', {
+        speed: { min: 30, max: 90 },
+        angle: { min: 245, max: 295 },
+        scale: { start: 2.2, end: 0 },
+        alpha: { start: 0.95, end: 0 },
+        lifespan: { min: 320, max: 560 },
+        frequency: 22,
+        tint: [FX_COLORS.ultAura, FX_COLORS.ultAuraHot],
+        emitZone: { type: 'random', source: new Phaser.Geom.Circle(0, 0, 16), quantity: 1 } as Phaser.Types.GameObjects.Particles.EmitZoneData,
+        blendMode: Phaser.BlendModes.ADD,
+      });
+      this.aura.setDepth(player.depth - 1);
+      this.aura.startFollow(player, 0, 6);
+
+      // Faíscas das explosões (usadas por abertura e desfecho)
+      this.embers = this.scene.add.particles(0, 0, 'particle-spark', {
+        speed: { min: 120, max: 340 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 2, end: 0 },
+        alpha: { start: 1, end: 0 },
+        lifespan: { min: 260, max: 520 },
+        tint: [FX_COLORS.ultAuraHot, FX_COLORS.ultRing],
+        blendMode: Phaser.BlendModes.ADD,
+        emitting: false,
+      });
+      this.embers.setDepth(150);
+    }
+
+    // Runa de invocação girando sob os pés
+    const runeKey = this.scene.textures.exists('respawn-star-6') ? 'respawn-star-6' : undefined;
+    if (runeKey) {
+      this.rune = this.scene.add.image(player.x, player.y + 14, runeKey);
+      this.rune.setBlendMode(Phaser.BlendModes.ADD).setDepth(player.depth - 2).setTint(FX_COLORS.ultRune).setAlpha(0.85);
+    }
+
+    // Contador do tempo restante sobre a cabeça
+    this.timerText = this.scene.add.text(player.x, player.y - 46, '', {
+      fontFamily: FONTS.display,
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: FX_COLORS.ultTimerText,
+      stroke: COLORS.strokeBlack,
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(205);
+
+    // Bordas da tela escurecem (só funciona no WebGL; no Canvas segue sem)
+    try {
+      this.vignette = this.scene.cameras.main.postFX?.addVignette(0.5, 0.5, 0.82, 0.38);
+    } catch {
+      this.vignette = undefined;
+    }
+  }
+
+  private stopVisuals(): void {
+    this.aura?.destroy();
+    this.aura = undefined;
+    const embers = this.embers;
+    this.embers = undefined;
+    // Deixa as últimas faíscas terminarem antes de destruir o emissor
+    if (embers) this.scene.time.delayedCall(600, () => embers.destroy());
+    this.rune?.destroy();
+    this.rune = undefined;
+    this.timerText?.destroy();
+    this.timerText = undefined;
+    if (this.vignette) {
+      try {
+        this.scene.cameras.main.postFX?.remove(this.vignette);
+      } catch {
+        // Câmera já destruída na troca de cena
+      }
+      this.vignette = undefined;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cut-in cinematográfico (arte em 3 quadros da Nixy)
+  // ---------------------------------------------------------------------------
+
+  private playCutIn(): void {
+    const scene = this.scene;
+    const { width, height } = scene.scale;
+    const cameras = scene.cameras.main;
+    const hud = scene.scene.get('UIScene') as unknown as IUltimateHud | undefined;
+    hud?.setHUDVisible(false);
+    SoundManager.getInstance().playFrenzyStart();
+
+    const cutIn = scene.add.container(0, 0);
+    cutIn.setScrollFactor(0).setDepth(400);
+
+    const backdrop = scene.add.rectangle(width / 2, height / 2, width, height, COLORS.black, 0.8);
+    cutIn.add(backdrop);
+
+    const bannerY = Math.round(height * 0.5);
+    const hasBanner = scene.textures.exists('nixy-ult-cutin-1');
+    const banner = hasBanner ? scene.add.sprite(width / 2, bannerY, 'nixy-ult-cutin-1').setScale(3.15) : undefined;
+    if (banner) cutIn.add(banner);
+
+    const textGroup = scene.add.container(-width * 0.75, 0);
+    cutIn.add(textGroup);
+
+    const title = scene.add.text(0, bannerY + 140, 'ASCENSÃO INFERNAL', {
+      fontFamily: FONTS.display,
+      fontSize: '48px',
+      fontStyle: 'bold',
+      color: FX_COLORS.ultTitle,
+      stroke: FX_COLORS.ultTitleStroke,
+      strokeThickness: 8,
+      align: 'center',
+      shadow: { offsetX: 0, offsetY: 4, color: FX_COLORS.ultTitleGlow, blur: 16, stroke: true, fill: true },
+    }).setOrigin(0.5).setResolution(2);
+
+    const sub = scene.add.text(0, bannerY + 184, 'ARMAS ACELERADAS  •  +DANO  •  +VELOCIDADE', {
+      fontFamily: FONTS.display,
+      fontSize: '16px',
+      fontStyle: 'bold',
+      color: FX_COLORS.ultSubtitle,
+      stroke: COLORS.strokeBlack,
+      strokeThickness: 5,
+      align: 'center',
+    }).setOrigin(0.5).setResolution(2);
+    textGroup.add([title, sub]);
+
+    scene.tweens.add({ targets: textGroup, x: width / 2, duration: 240, ease: 'Cubic.easeOut' });
+
     scene.time.delayedCall(160, () => {
-      if (!cutInSprite.scene) return;
-      cutInSprite.setTexture('nixy-ult-cutin-2');
+      if (!cutIn.scene) return;
+      banner?.setTexture('nixy-ult-cutin-2');
       cameras.shake(100, 0.006);
 
-      // Transição para o Frame 3 (360ms): Poder supremo liberado!
       scene.time.delayedCall(200, () => {
-        if (!cutInSprite.scene) return;
-        cutInSprite.setTexture('nixy-ult-cutin-3');
+        if (!cutIn.scene) return;
+        banner?.setTexture('nixy-ult-cutin-3');
         cameras.shake(250, 0.018);
         cameras.flash(140, 255, 255, 255);
+        scene.tweens.add({ targets: [title, sub], scaleX: 1.15, scaleY: 1.15, duration: 100, yoyo: true });
 
-        // Pulso da tipografia acompanhando o pico de energia
-        scene.tweens.add({
-          targets: [titleText, subText],
-          scaleX: 1.15,
-          scaleY: 1.15,
-          duration: 100,
-          yoyo: true,
-          ease: 'Quad.easeInOut'
-        });
-
-        // Hit-stop de 420ms no ápice do Frame 3 e depois saída rápida pela direita
-        scene.time.delayedCall(420, () => {
-          // O nome sai rapidamente pela direita
+        scene.time.delayedCall(380, () => {
+          scene.tweens.add({ targets: textGroup, x: width + 600, duration: 160, ease: 'Quad.easeIn' });
           scene.tweens.add({
-            targets: textGroup,
-            x: width + 600,
-            duration: 160,
-            ease: 'Quad.easeIn'
-          });
-
-          // O banner e o fundo esvanecem em corte cinematográfico
-          scene.tweens.add({
-            targets: cutInContainer,
+            targets: cutIn,
             alpha: 0,
             duration: 160,
             ease: 'Quad.easeIn',
             onComplete: () => {
-              cutInContainer.destroy();
-              // Restaura a visualização da HUD limpa após a saída da animação
-              if (uiScene && typeof uiScene.setHUDVisible === 'function') {
-                uiScene.setHUDVisible(true);
-              }
-            }
+              cutIn.destroy();
+              hud?.setHUDVisible(true);
+            },
           });
         });
       });
     });
-
-    // =========================================================================
-    // ETAPA 2: TIME-STOP DE 5 SEGUNDOS (MONSTROS CONGELADOS NO TEMPO)
-    // =========================================================================
-    // Congela imediatamente a física e animações dos inimigos
-    const frozenEnemies = enemiesGroup.getChildren() as BaseEnemy[];
-    for (const e of frozenEnemies) {
-      if (e.active && !e.isDead) {
-        if (e.body) {
-          (e.body as Phaser.Physics.Arcade.Body).enable = false;
-        }
-        if (e.anims) {
-          e.anims.pause();
-        }
-        e.setTint(0x665577); // Desaturação arroxeada do tempo parado
-      }
-    }
-
-    // Vinheta etérea escura na arena do mundo
-    const realmOverlay = scene.add.rectangle(0, 0, width * 4, height * 4, 0x0c0008, 0.52);
-    realmOverlay.setScrollFactor(0);
-    realmOverlay.setDepth(15);
-
-    // Aura instável carmesim pulsando ao redor da Nixy durante o Time-Stop
-    const auraEmitter = scene.time.addEvent({
-      delay: 70,
-      loop: true,
-      callback: () => {
-        if (!player.active || !player.isUltimateActive) return;
-        const aura = scene.add.circle(player.x, player.y, Phaser.Math.Between(26, 42), 0xff0055, 0.35);
-        aura.setDepth(player.depth - 1);
-        aura.setBlendMode(Phaser.BlendModes.ADD);
-
-        scene.tweens.add({
-          targets: aura,
-          scale: 1.8,
-          alpha: 0,
-          duration: 320,
-          onComplete: () => aura.destroy()
-        });
-      }
-    });
-
-    // =========================================================================
-    // ETAPA 3: 8 DETONAÇÕES CARMESINS SEQUENCIAIS (CLUSTER-TARGETING)
-    // =========================================================================
-    const detonationTimes = [650, 1150, 1650, 2150, 2650, 3150, 3650, 4150];
-
-    detonationTimes.forEach((delayMs, index) => {
-      scene.time.delayedCall(delayMs, () => {
-        if (!player.active) return;
-
-        // 1. Algoritmo de Cluster-Targeting: Encontra o maior grupo de monstros
-        const targetPos = this.findBestClusterCenter(player, enemiesGroup);
-
-        // 2. Telegrafia mágica no chão 120ms antes da explosão
-        this.spawnTelegraphRune(scene, targetPos.x, targetPos.y);
-
-        // 3. Detonação devastadora
-        scene.time.delayedCall(120, () => {
-          this.executeDetonation(scene, targetPos.x, targetPos.y, enemiesGroup, index + 1);
-        });
-      });
-    });
-
-    // =========================================================================
-    // ETAPA 4: DESFECHO AOS 5 SEGUNDOS (UNFREEZE E RETOMADA)
-    // =========================================================================
-    scene.time.delayedCall(5000, () => {
-      auraEmitter.remove();
-      realmOverlay.destroy();
-      cameras.flash(180, 255, 255, 255);
-
-      // Descongela todos os monstros sobreviventes
-      const currentEnemies = enemiesGroup.getChildren() as BaseEnemy[];
-      for (const e of currentEnemies) {
-        if (e.active && !e.isDead) {
-          if (e.body) {
-            (e.body as Phaser.Physics.Arcade.Body).enable = true;
-          }
-          if (e.anims) {
-            e.anims.resume();
-          }
-          e.clearTint();
-        }
-      }
-
-      player.isUltimateActive = false;
-    });
-  }
-
-  /**
-   * Encontra a posição do maior aglomerado de monstros vivos próximos à heroína
-   */
-  private static findBestClusterCenter(
-    player: Nixy,
-    enemiesGroup: Phaser.GameObjects.Group
-  ): { x: number; y: number } {
-    const enemies = enemiesGroup.getChildren().filter(
-      (child) => child.active && !(child as BaseEnemy).isDead
-    ) as BaseEnemy[];
-
-    if (enemies.length === 0) {
-      // Se não houver inimigos, detona em ponto aleatório ao redor do jogador
-      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const dist = Phaser.Math.Between(60, 140);
-      return {
-        x: player.x + Math.cos(angle) * dist,
-        y: player.y + Math.sin(angle) * dist
-      };
-    }
-
-    let bestEnemy = enemies[0];
-    let maxNeighbors = -1;
-    const clusterRadius = 150;
-
-    // Avalia a densidade de cada monstro
-    for (let i = 0; i < enemies.length; i++) {
-      const e1 = enemies[i];
-      let neighborCount = 0;
-
-      for (let j = 0; j < enemies.length; j++) {
-        if (i === j) continue;
-        const e2 = enemies[j];
-        const d = Math.hypot(e1.x - e2.x, e1.y - e2.y);
-        if (d <= clusterRadius) {
-          neighborCount++;
-        }
-      }
-
-      // Prioriza alvos com mais vizinhos e que estejam a menos de 500px da Nixy
-      const distToPlayer = Math.hypot(e1.x - player.x, e1.y - player.y);
-      const score = neighborCount * 20 - distToPlayer * 0.05;
-
-      if (score > maxNeighbors) {
-        maxNeighbors = score;
-        bestEnemy = e1;
-      }
-    }
-
-    return { x: bestEnemy.x, y: bestEnemy.y };
-  }
-
-  /**
-   * Telegrafia com runas no chão alertando o ponto de impacto iminente
-   */
-  private static spawnTelegraphRune(scene: Phaser.Scene, x: number, y: number): void {
-    const rune = scene.add.graphics();
-    rune.setDepth(18);
-
-    const radius = 95;
-    rune.lineStyle(2, 0xff0055, 0.85);
-    rune.strokeCircle(x, y, radius);
-    rune.lineStyle(1, 0xffd60a, 0.7);
-    rune.strokeCircle(x, y, radius * 0.6);
-
-    // Cruz interna
-    rune.lineBetween(x - radius, y, x + radius, y);
-    rune.lineBetween(x, y - radius, x, y + radius);
-
-    scene.tweens.add({
-      targets: rune,
-      scaleX: 0.85,
-      scaleY: 0.85,
-      alpha: 1,
-      duration: 120,
-      ease: 'Quad.easeIn',
-      onComplete: () => {
-        rune.destroy();
-      }
-    });
-  }
-
-  /**
-   * Executa a explosão de impacto: ondas de choque, partículas, screen shake e dano massivo em área
-   */
-  private static executeDetonation(
-    scene: Phaser.Scene,
-    x: number,
-    y: number,
-    enemiesGroup: Phaser.GameObjects.Group,
-    _explosionIndex: number
-  ): void {
-    const aoeRadius = 115;
-    const damage = 140;
-
-    // 1. Tremor de câmera contundente sincronizado
-    scene.cameras.main.shake(140, 0.012);
-
-    // 2. Iluminação de fundo carmesim no chão (luz ambiente da detonação da Suprema)
-    const ultIllum = scene.add.circle(x, y, aoeRadius * 0.95, 0xff0055, 0.62);
-    ultIllum.setDepth(17);
-    ultIllum.setBlendMode(Phaser.BlendModes.ADD);
-
-    scene.tweens.add({
-      targets: ultIllum,
-      scale: 1.5,
-      alpha: 0,
-      duration: 380,
-      ease: 'Quad.easeOut',
-      onComplete: () => ultIllum.destroy()
-    });
-
-    // 3. Sprite de Explosão Oficial Animado (Explosion 1 a 5)
-    const explosionScale = (aoeRadius * 2.3) / 200;
-    const explosionSprite = scene.add.sprite(x, y, 'explosion-1');
-    explosionSprite.setDepth(25);
-    explosionSprite.setScale(explosionScale);
-    explosionSprite.play('anim-explosion');
-
-    explosionSprite.once('animationcomplete', () => {
-      explosionSprite.destroy();
-    });
-
-    // 4. Estouro central em formato de faíscas infernais carmesins
-    for (let i = 0; i < 14; i++) {
-      const spark = scene.add.circle(x, y, Phaser.Math.Between(2, 5), 0xff2a6d, 1);
-      spark.setDepth(27);
-      spark.setBlendMode(Phaser.BlendModes.ADD);
-
-      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const speed = Phaser.Math.Between(50, 160);
-
-      scene.tweens.add({
-        targets: spark,
-        x: x + Math.cos(angle) * speed,
-        y: y + Math.sin(angle) * speed,
-        alpha: 0,
-        scale: 0.2,
-        duration: Phaser.Math.Between(220, 360),
-        ease: 'Quad.easeOut',
-        onComplete: () => spark.destroy()
-      });
-    }
-
-    // 4. Aplicação do Dano Massivo em Área (AoE)
-    const enemies = enemiesGroup.getChildren() as BaseEnemy[];
-    let hitCount = 0;
-
-    for (let i = 0; i < enemies.length; i++) {
-      const e = enemies[i];
-      if (!e.active || e.isDead) continue;
-
-      const dist = Math.hypot(e.x - x, e.y - y);
-      if (dist <= aoeRadius) {
-        e.takeDamage(damage);
-        hitCount++;
-      }
-    }
-
-    // Dissipa poças de veneno/gosma atingidas pela detonação da Suprema
-    const gameScene = scene as UltimateHostScene;
-    if (gameScene.poisonPuddles) {
-      for (let i = gameScene.poisonPuddles.length - 1; i >= 0; i--) {
-        const p = gameScene.poisonPuddles[i];
-        if (p && p.active) {
-          const d = Math.hypot(p.x - x, p.y - y);
-          if (d <= aoeRadius + 30) {
-            scene.tweens.add({
-              targets: p,
-              alpha: 0,
-              scale: 0.1,
-              duration: 220,
-              onComplete: () => p.destroy()
-            });
-            gameScene.poisonPuddles.splice(i, 1);
-          }
-        }
-      }
-    }
-
-    // 5. Feedback com texto de dano crítico gigante
-    if (hitCount > 0) {
-      DamageTextSystem.showDamage(scene, x, y - 20, damage * hitCount);
-    }
   }
 }

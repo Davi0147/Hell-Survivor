@@ -1,3 +1,4 @@
+import { ensurePlaceholderItemTextures } from '../systems/PlaceholderItemTextures';
 import Phaser from 'phaser';
 import { DIRECTIONS_8 } from '../config/balance';
 import { SoundManager } from '../systems/SoundManager';
@@ -682,6 +683,7 @@ export class BootScene extends Phaser.Scene {
     this.createSoulBoltTexture();
     this.createEnemyImpTexture();
     this.createParticleTextures();
+    ensurePlaceholderItemTextures(this);
     this.createGemTextures();
     this.createScytheTexture();
     this.createDarkOrbTexture();

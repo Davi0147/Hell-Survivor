@@ -13,8 +13,17 @@ import { UpgradeScene } from '../scenes/UpgradeScene';
 import { AutoPlayTestAgent } from './AutoPlayTestAgent';
 import type { ISandboxContext } from './SandboxController';
 import type { HordeEventType } from './HordeEventSystem';
+import type { MapItemType } from '../entities/items/MapItem';
 import { CRIT_BALANCE } from '../config/balance';
 import { COLORS } from '../config/theme';
+
+/** Itens de mapa novos (v0.11.0) com botão no Modo de Teste. */
+const SANDBOX_NEW_ITEMS: { type: MapItemType; label: string }[] = [
+  { type: 'bomb', label: 'BOMBA INFERNAL' },
+  { type: 'hourglass', label: 'AMPULHETA PARTIDA' },
+  { type: 'fury', label: 'FRASCO DE FÚRIA' },
+  { type: 'relic', label: 'RELÍQUIA DOURADA' },
+];
 
 /** Eventos de horda disparáveis pelo Modo de Teste ('storm' = rajada da Tempestade de Azazel). */
 const SANDBOX_HORDE_EVENTS: { type: HordeEventType | 'storm'; label: string }[] = [
@@ -1317,6 +1326,16 @@ export class DevSandboxPanel {
           this.showToast('BAÚ DO ABISMO SPAWNADO AO LADO DA NIXY!', '#fbbf24');
         }
       },
+      ...SANDBOX_NEW_ITEMS.map((it, i) => ({
+        label: `SPAWNAR ${it.label}`,
+        color: COLORS.velvetNixy,
+        border: COLORS.goldFrame,
+        action: () => {
+          gs.spawnMapItem(p.x + 60 + i * 30, p.y - 60, it.type);
+          DebugSessionLogger.getInstance().log('ITEM', 'INFO', `${it.label} spawnado ao lado da Nixy.`);
+          this.showToast(`${it.label} SPAWNADO!`, COLORS.goldTextAccent);
+        }
+      })),
       {
         label: 'SPAWNAR ALTAR DE ASCENSÃO (AO LADO DA NIXY)',
         color: 0x4a044e,
@@ -1409,9 +1428,9 @@ export class DevSandboxPanel {
     itemActions.forEach((act, idx) => {
       this.createActionButton(
         col2X,
-        y + 26 + idx * 42,
+        y + 26 + idx * 29,
         colW,
-        36,
+        25,
         act.label,
         act.color,
         act.border,
