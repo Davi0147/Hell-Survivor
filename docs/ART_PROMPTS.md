@@ -396,3 +396,153 @@ Row 4:
 | 16 | `ult-rune.png` | 128x128 (runa sob os pés na Suprema) |
 
 Salve como `art-source/novos/items-kit.png`. Quando os dois arquivos estiverem lá, me avise: eu recorto, troco a arte provisória e as barras desenhadas por código, e mostro o antes e depois.
+
+---
+
+## 12. Kit de cenário completo (Capítulo 1 — Catacumbas de Rosalin)
+
+**Por que o cenário atual está feio:** são só 5 objetos (rocha, tocha, pilha de ossos, cristal e cogumelos), todos desenhados em 80x80 mas cada um num nível de zoom diferente. A pilha de ossos fica da altura da heroína, a tocha fica minúscula e a rocha enorme; as cores são tão vivas quanto as dos monstros, e não há nada no chão para quebrar a repetição da textura.
+
+**A regra que resolve:** tudo desenhado **na mesma densidade de pixels** e com **altura definida em relação à heroína** (que mede ~56 px de altura no jogo). Por isso cada peça abaixo diz o tamanho em "alturas de personagem".
+
+São **3 imagens**: a folha A (objetos grandes), a folha B (detalhes do chão e entulho pequeno) e o piso. Gere sempre com o mesmo gerador e, se ele permitir, com a mesma *seed*, para as três terem a mesma cara.
+
+### Bloco comum (cole no começo das folhas A e B)
+
+```text
+TOP-DOWN 3/4 VIEW ENVIRONMENT SPRITE SHEET for a dark gothic pixel art survival game, art
+style of a premium 16-bit era action RPG. Canvas 2048x2048 px, solid flat magenta background
+(#FF00FF) everywhere outside the art. Invisible 4x4 grid of 512x512 cells, exactly ONE asset
+per cell, centered horizontally, standing on an invisible ground line at 85% of the cell
+height, never touching or crossing another cell, at least 32 px of pure magenta margin.
+No text, no letters, no UI, no characters, no creatures, no frames around the cells.
+
+CRITICAL SCALE RULE: every asset uses the SAME pixel density, as if one art pixel equals
+4 screen pixels everywhere (chunky, uniform pixel grid, no mixed resolutions, no tiny
+detailed pixels next to big blocky pixels). Sizes are given relative to ONE HUMAN-SIZED
+CHARACTER HEIGHT (call it 1 CH). Respect the stated size of each asset exactly; smaller
+assets must look small in the cell, do not stretch them to fill.
+
+CAMERA: top-down 3/4 view, about 45 degrees, the same angle for every asset: we see the top
+surface AND the front face of objects. Light comes from the upper-left, so the right and
+bottom faces are darker. Every grounded asset has a small, solid, dark purple-black contact
+shadow (#14060c) directly under its base, slightly offset to the lower-right, fully inside
+its cell.
+
+PALETTE AND VALUE HIERARCHY (very important for gameplay readability): environment must be
+MUTED and DARKER than characters. Use desaturated cold stone grays with a violet tint
+(#2a2230, #3d3344, #5a4d63), aged bone ivory only as highlights (#cfc3a8, never pure white),
+dried blood dark red (#5a0f1c), tarnished gold (#8a6a2a), and small warm accents only on
+light sources (candle flame #ffb347, ember #ff5a1f). No neon, no saturated pinks or bright
+reds except on flames and glowing runes. Hard 1-pixel dark outline (#0e0610) on every
+asset, 3 to 4 shading steps per material, crisp clusters, no anti-aliasing, no blur, no
+gradients, no dithering noise.
+
+THEME: the catacombs of a decadent succubus empress: crimson rose vines, black thorns,
+velvet, melted red candles, gothic arches, skulls arranged with care, ritual circles.
+```
+
+### Folha A — objetos grandes e fontes de luz
+
+Cole o bloco comum e depois isto:
+
+```text
+Row 1 - large blockers (things the player walks around):
+ Cell 1 - BROKEN GOTHIC PILLAR: a cracked carved stone column snapped at mid-height, the
+   fallen top piece lying beside the base, thorned rose vines with a few small dark-red
+   roses climbing it. Height 2.2 CH, base about 0.9 CH wide.
+ Cell 2 - GOTHIC ARCH RUIN: a free-standing half-collapsed pointed stone arch (two uneven
+   legs, the left taller), small skull keystone at the top. Height 2.5 CH, width 1.8 CH.
+ Cell 3 - SUCCUBUS STATUE: a cracked statue of a winged woman with long hair and small
+   horns on a square plinth, one wing broken off, a crown of thorns, muted gray stone with
+   tarnished gold trims. Height 2.4 CH.
+ Cell 4 - SARCOPHAGUS: a heavy stone sarcophagus seen from 3/4, the lid slid half open
+   revealing darkness, carved rose pattern on the lid, a red velvet cloth hanging out.
+   Length 1.6 CH, height 0.7 CH.
+
+Row 2 - rocks and rubble, the SAME rock material in four sizes (so they can be mixed):
+ Cell 5 - BOULDER LARGE: one big angular violet-gray rock with a flat top, a thin crack and
+   a little moss of dark red lichen. Height 1.1 CH, width 1.4 CH.
+ Cell 6 - BOULDER MEDIUM: two medium rocks leaning together. Height 0.7 CH.
+ Cell 7 - ROCKS SMALL: a cluster of 4 small stones. Height 0.3 CH, width 0.8 CH.
+ Cell 8 - RUBBLE PILE: broken brick and carved stone fragments with one skull among them.
+   Height 0.4 CH, width 1.2 CH.
+
+Row 3 - light sources (they will get a glow added in the game, so keep the flame compact):
+ Cell 9 - STANDING IRON TORCH: a tall wrought-iron torch stand with a spiked bowl holding a
+   compact orange flame. Height 1.5 CH (taller than the character).
+ Cell 10 - CANDELABRA: a tall gothic iron candelabra with five melted red candles, wax
+   dripping down to the floor, small flames. Height 1.4 CH.
+ Cell 11 - CANDLE CLUSTER: a group of seven melted red candles of different heights on the
+   floor, wax pooled together, tiny flames. Height 0.4 CH, width 0.8 CH.
+ Cell 12 - RITUAL BRAZIER: a low black-iron bowl on three clawed legs with embers and a
+   small crimson flame. Height 0.8 CH.
+
+Row 4 - set dressing with personality:
+ Cell 13 - SKULL ALTAR: a small stone table covered by a torn red cloth, three skulls and
+   two candles on it neatly arranged. Height 0.9 CH, width 1.1 CH.
+ Cell 14 - BONE PILE (SMALL, PROPORTIONATE): a modest heap of a few bones and two skulls,
+   KNEE HIGH ONLY. Height 0.35 CH, width 0.7 CH.
+ Cell 15 - IRON CAGE: an empty rusty hanging-style cage standing on the floor, door open,
+   a few bones inside. Height 1.3 CH.
+ Cell 16 - THORN BUSH: a dense cluster of black thorny branches with three small dark-red
+   roses and a few fallen petals. Height 0.6 CH, width 1.0 CH.
+```
+
+### Folha B — detalhes de chão (quebram a repetição) e entulho pequeno
+
+Cole o bloco comum, **trocando a frase da câmera** por esta: `CAMERA FOR DECALS: perfectly flat top-down decals painted ON the floor, no height, no front face, no contact shadow.` Depois cole:
+
+```text
+Row 1 - large floor decals (flat, semi-irregular silhouettes, darker than the floor):
+ Cell 1 - CRACKED FLOOR PATCH: a broken flagstone area with dark deep cracks spreading out,
+   2.0 CH wide.
+ Cell 2 - OLD BLOOD POOL: a dried dark-red blood stain with splatter drops, 1.4 CH wide.
+ Cell 3 - FADED RITUAL CIRCLE: an old chalk-and-blood summoning circle on the floor, partly
+   erased, rose-shaped pentagram, very low contrast, 2.4 CH wide.
+ Cell 4 - LAVA CRACK: a jagged crack in the floor with a thin glowing ember-orange line
+   inside, the only bright decal, 1.8 CH long.
+
+Row 2 - medium floor decals:
+ Cell 5 - SCATTERED ROSE PETALS: a loose trail of dark-red petals, 1.0 CH wide.
+ Cell 6 - WAX DRIPS: hardened red candle wax splashes, 0.8 CH wide.
+ Cell 7 - SCORCH MARK: a burned black star-shaped mark, 1.2 CH wide.
+ Cell 8 - MOSS AND LICHEN: dark purple moss growing between floor stones, 1.0 CH wide.
+
+Row 3 - small clutter (with height and contact shadow, use the normal camera rule):
+ Cell 9 - SINGLE SKULL lying on its side. 0.2 CH.
+ Cell 10 - SCATTERED BONES: three loose bones. 0.15 CH tall, 0.6 CH wide.
+ Cell 11 - BROKEN CHAIN with a shackle lying on the floor. 0.7 CH long.
+ Cell 12 - FALLEN SWORD rusted, lying diagonally. 0.9 CH long.
+
+Row 4 - small clutter:
+ Cell 13 - BROKEN POTTERY: a cracked clay urn and shards. 0.4 CH.
+ Cell 14 - SPIDER WEB stretched in a corner shape (to place at the base of walls). 0.8 CH.
+ Cell 15 - GRASS OF THORNS: three small black thorn sprouts. 0.25 CH.
+ Cell 16 - GLOWING RUNE STONE: a small flat stone with a faint red rune. 0.3 CH.
+```
+
+### Piso (imagem separada, sem magenta)
+
+```text
+Seamless tileable top-down floor texture for a dark gothic pixel art game, catacomb floor
+made of irregular dark violet-gray flagstones (#1c1620 to #2e2634) with thin black mortar
+lines, a few subtle cracks, very faint crimson veins, NO big landmarks, NO skulls, NO
+bright spots, extremely low contrast so characters and enemies pop on top of it, uniform
+chunky pixel grid matching 4 screen pixels per art pixel, 512x512, tiles perfectly on all
+four sides with no visible seams.
+```
+
+### Capítulo 2 (Santuário Caído de Azazel)
+
+Use os mesmos textos trocando o **THEME** por: `a fallen celestial cathedral: shattered pale marble, black feathers, broken golden halos, cold violet fire, angel statues missing their heads, thin violet lightning cracks`, e as cores de destaque por `#4b3f6b, #8f86b5, tarnished gold #8a6a2a, cold flame #9d7bff`. Troque as peças por equivalentes do tema (estátua de anjo sem cabeça, asa de pedra caída, auréola quebrada, braseiro de fogo violeta, penas pretas, rachaduras com raio violeta).
+
+### Onde salvar e o que eu faço depois
+
+Salve em `art-source/novos/cenario/ch1-props.png`, `ch1-decals.png` e `floor-ch1.png` (e `ch2-...` para o Capítulo 2). Ao receber, eu:
+
+1. Recorto pelo magenta e reduzo tudo **com o mesmo fator**, para manter a proporção entre as peças.
+2. Separo as peças em três camadas: decalques colados no chão, entulho que o jogador atravessa, e objetos grandes que bloqueiam a passagem (com colisão).
+3. Ordeno a profundidade pela base de cada objeto, para a heroína passar atrás de pilares e estátuas em vez de por cima.
+4. Monto composições em vez de espalhar objetos soltos: pilar + rosas + pétalas no chão; altar + velas + mancha de sangue; tocha com luz quente pulsando.
+5. Espalho decalques aleatórios pelo mapa inteiro para o piso não parecer repetido, e coloco tudo no Editor de Mapas.
