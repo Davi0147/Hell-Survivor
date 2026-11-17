@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.12.4 — iPhone de Verdade] — 2026-11-17
+
+### Resumo para o Jogador
+- **HUD quebrando no iPhone:** no Safari do iPhone, tudo que é desenhado por código (barras de vida e estamina, minimapa, molduras da barra de armas, menu de pausa) sumia enquanto imagens e textos continuavam. Causa provável: o jogo pedia ~200 MB de memória de vídeo e o Safari descartava o WebGL. Correções:
+  - **Metade da memória:** cenas da história, fundo do menu e pisos antigos estavam muito maiores do que aparecem na tela; agora ~100 MB no total (originais guardados em `art-source/originais-alta-resolucao/`).
+  - **Rede de segurança:** se o aparelho perder o WebGL mesmo assim, ele passa a usar o modo compatível (Canvas) e recarrega, em vez de ficar com a tela quebrada. Dá para forçar pelo link: `?render=canvas` (ou voltar com `?render=webgl`).
+- **Tela certa no iPhone:** o jogo usa só a área realmente visível (não fica mais atrás das barras do Safari) e respeita o notch e os cantos arredondados; arrastar o dedo não rola mais a página.
+- **Controles de toque:**
+  - Botão da Suprema ao lado do analógico (em cima e à direita), maior; tocar nele não puxa o analógico.
+  - Botão de pausa maior.
+  - Corrida e esquiva subiram para cima do retrato da Nixy (não ficam mais na frente dela).
+  - Minimapa 45% maior no celular.
 ## [v0.12.3 — Tela Cheia no Celular] — 2026-11-17
 
 ### Resumo para o Jogador

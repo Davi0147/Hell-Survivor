@@ -8,9 +8,9 @@ import { FX_COLORS } from '../config/theme';
  * altares e o ponteiro da heroína) a cada quadro.
  */
 export class TacticalRadar {
-  private readonly centerX = 74;
-  private readonly centerY = 84;
-  private readonly radius = 54;
+  private readonly centerX: number;
+  private readonly centerY: number;
+  private readonly radius: number;
   private readonly worldRange = 750;
 
   private readonly frameGraphics: Phaser.GameObjects.Graphics;
@@ -18,7 +18,12 @@ export class TacticalRadar {
   private readonly tagText: Phaser.GameObjects.Text;
   private readonly northText: Phaser.GameObjects.Text;
 
-  constructor(private readonly scene: Phaser.Scene, pixelFont: string) {
+  /** @param sizeScale 1 no PC; maior no celular, onde a tela é pequena. */
+  constructor(private readonly scene: Phaser.Scene, pixelFont: string, sizeScale: number = 1) {
+    this.radius = Math.round(54 * sizeScale);
+    this.centerX = 20 + this.radius;
+    this.centerY = 30 + this.radius;
+    const labelSize = `${Math.round(8 * Math.min(1.3, sizeScale))}px`;
     this.frameGraphics = scene.add.graphics();
     this.frameGraphics.setDepth(100);
     this.drawFrame();
@@ -28,7 +33,7 @@ export class TacticalRadar {
 
     this.tagText = scene.add.text(this.centerX, this.centerY + this.radius + 10, 'RADAR // 750m', {
       fontFamily: pixelFont,
-      fontSize: '8px',
+      fontSize: labelSize,
       fontStyle: 'bold',
       color: '#c59b27',
       stroke: '#0e0308',
@@ -37,7 +42,7 @@ export class TacticalRadar {
 
     this.northText = scene.add.text(this.centerX, this.centerY - this.radius - 7, 'N', {
       fontFamily: pixelFont,
-      fontSize: '8px',
+      fontSize: labelSize,
       fontStyle: 'bold',
       color: '#f3d17a',
       stroke: '#0e0308',

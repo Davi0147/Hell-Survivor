@@ -20,6 +20,11 @@ export const STORAGE_KEYS = {
   DEV_UNLOCKED: 'hell_survivor_dev_unlocked',
   /** Flag de rejeição de instalação do PWA na sessão ativa (sessionStorage) */
   PWA_DISMISSED: 'hell_survivor_pwa_dismissed',
+  /**
+   * Aparelho que já perdeu a memória de vídeo do WebGL (comum no Safari do iPhone): o jogo passa
+   * a usar o desenho por Canvas nele (localStorage, valor 'canvas').
+   */
+  RENDER_MODE: 'hell_survivor_render_mode',
 
   /**
    * Retorna a chave de armazenamento para mapas customizados do capítulo.

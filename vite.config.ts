@@ -65,7 +65,11 @@ export default defineConfig({
   base: './',
   server: {
     port: 3000,
-    open: false
+    open: false,
+    // Arte bruta (Git LFS) não entra no jogo: vigiar esses arquivos grandes derrubava o servidor (EBUSY)
+    watch: {
+      ignored: ['**/art-source/**', '**/dist/**']
+    }
   },
   build: {
     target: 'esnext',

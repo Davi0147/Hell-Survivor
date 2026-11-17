@@ -3,6 +3,8 @@ import { FX_COLORS } from '../config/theme';
 
 /** Distância mínima dos controles até a borda da tela (px de jogo). */
 const TOUCH_EDGE_MARGIN = 96;
+/** Botão de pausa grande o bastante para o dedo. */
+const PAUSE_SIZE = 58;
 
 export interface TouchInputState {
   hasMovement: boolean;
@@ -56,7 +58,7 @@ export class TouchControls {
   private ultBtn: Phaser.GameObjects.Image;
   private ultBtnX: number = 0;
   private ultBtnY: number = 0;
-  private readonly ULT_RADIUS: number = 32;
+  private readonly ULT_RADIUS: number = 38;
   private isUltReadyState: boolean = false;
   private ultPulseTween: Phaser.Tweens.Tween | null = null;
 
@@ -88,18 +90,20 @@ export class TouchControls {
     this.knobX = this.baseX;
     this.knobY = this.baseY;
 
+    // Corrida e esquiva ficam acima do retrato da Nixy (o retrato ocupa o canto inferior direito)
     const right = width - TOUCH_EDGE_MARGIN;
-    this.sprintBtnX = right - 20;
-    this.sprintBtnY = height - 110;
+    this.sprintBtnX = right - 70;
+    this.sprintBtnY = 330;
 
-    this.dashBtnX = right;
-    this.dashBtnY = height - 210;
+    this.dashBtnX = right + 10;
+    this.dashBtnY = 262;
 
-    this.ultBtnX = right - 110;
-    this.ultBtnY = height - 165;
+    // Suprema colada ao analógico (em cima e à direita dele): o polegar esquerdo alcança sem esticar
+    this.ultBtnX = this.homeX + 118;
+    this.ultBtnY = this.homeY - 86;
 
-    this.pauseBtnX = right + 20;
-    this.pauseBtnY = 140;
+    this.pauseBtnX = right + 18;
+    this.pauseBtnY = 150;
 
     // 1. Elementos Gráficos do Joystick (Pixel Art)
     this.joystickBase = scene.add.image(this.baseX, this.baseY, 'touch-analog');
@@ -134,7 +138,7 @@ export class TouchControls {
 
     // 4. Botão de Pausa Rápida para Mobile (Pixel Art)
     this.pauseBtn = scene.add.image(this.pauseBtnX, this.pauseBtnY, 'touch-pause');
-    this.pauseBtn.setDisplaySize(36, 36);
+    this.pauseBtn.setDisplaySize(PAUSE_SIZE, PAUSE_SIZE);
     this.pauseBtn.setAlpha(0.85);
     this.container.add(this.pauseBtn);
 
@@ -217,11 +221,11 @@ export class TouchControls {
 
   private drawPauseButton(isPressed: boolean = false): void {
     if (isPressed) {
-      this.pauseBtn.setDisplaySize(32, 32);
+      this.pauseBtn.setDisplaySize(PAUSE_SIZE * 0.9, PAUSE_SIZE * 0.9);
       this.pauseBtn.setAlpha(1.0);
       this.pauseBtn.setTint(0xffa8ba);
     } else {
-      this.pauseBtn.setDisplaySize(36, 36);
+      this.pauseBtn.setDisplaySize(PAUSE_SIZE, PAUSE_SIZE);
       this.pauseBtn.setAlpha(0.85);
       this.pauseBtn.clearTint();
     }
@@ -248,8 +252,9 @@ export class TouchControls {
       if (!this.isActive && !this.forceEnabled) return;
       if (!isRealTouch && !this.forceEnabled) return;
 
-      // Zona Esquerda: Joystick (Floating / Dinâmico)
-      if (pointer.x < width * 0.45 && pointer.y > 100) {
+      // Zona Esquerda: Joystick (Floating / Dinâmico). O toque na Suprema (que fica ali perto) não puxa o analógico.
+      const onUltButton = Math.hypot(pointer.x - this.ultBtnX, pointer.y - this.ultBtnY) <= this.ULT_RADIUS + 15;
+      if (!onUltButton && pointer.x < width * 0.45 && pointer.y > 100) {
         if (!this.joystickPointer) {
           this.joystickPointer = pointer;
           // Nasce onde o dedo tocou, mas nunca colado na borda (senão metade some atrás da moldura do celular)
@@ -294,7 +299,7 @@ export class TouchControls {
 
       // Zona Topo: Botão de Pausa
       const distPause = Math.hypot(pointer.x - this.pauseBtnX, pointer.y - this.pauseBtnY);
-      if (distPause <= 24) {
+      if (distPause <= PAUSE_SIZE / 2 + 14) {
         this.drawPauseButton(true);
         const gs = this.scene.scene.get('GameScene');
         const ui = this.scene as { togglePause?: (scene: unknown) => void };

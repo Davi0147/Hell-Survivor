@@ -87,7 +87,8 @@ export const ARENA_FLOOR_TINT = {
 export const ARENA_FLOOR_SCALE: Record<string, number> = {
   'floor-ch1': 0.5,
 };
-export const ARENA_FLOOR_SCALE_DEFAULT = 0.1;
+/** Pisos antigos (chao1/chao2) reduzidos de 2048 para 512 px: 0.4 mantém o mesmo tamanho na tela. */
+export const ARENA_FLOOR_SCALE_DEFAULT = 0.4;
 
 /** Piso com arte própria por capítulo (troca o piso padrão quando a arte existe). */
 export const CHAPTER_FLOOR_TEXTURE: Record<number, string> = {

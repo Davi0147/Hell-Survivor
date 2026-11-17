@@ -131,7 +131,9 @@ export class UIScene
     // ==========================================
     // 0. RADAR TÁTICO / MINIMAPA CIRCULAR (CANTO SUPERIOR ESQUERDO)
     // ==========================================
-    this.radar = new TacticalRadar(this, pixelFont);
+    // No celular a tela é pequena: minimapa maior
+    const isTouchDevice = !this.sys.game.device.os.desktop;
+    this.radar = new TacticalRadar(this, pixelFont, isTouchDevice ? 1.45 : 1);
 
     // ==========================================
     // 1-2. RETRATO E PAINEL DE STATUS (CANTO INFERIOR DIREITO)

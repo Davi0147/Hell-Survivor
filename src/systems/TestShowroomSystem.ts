@@ -238,7 +238,7 @@ export class TestShowroomSystem {
           { name: 'Altar 3', texture: 'altar-3', scale: 0.55 },
           { name: 'Altar Invoc. Inativo', texture: 'altar-invoc-inactive', scale: 0.55 },
           { name: 'Altar Invoc. Ativo', texture: 'altar-invoc-active-1', scale: 0.55 },
-          { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.08 }
+          { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.32 }
         ]
       },
 

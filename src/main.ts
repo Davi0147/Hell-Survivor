@@ -1,7 +1,54 @@
 import Phaser from 'phaser';
 import { createGameConfig } from './config/gameConfig';
 import { getGameWidthForScreen } from './config/screenFit';
+import { STORAGE_KEYS } from './config/storageKeys';
 import { initPWAInstallPrompt } from './systems/PWAInstallPrompt';
+
+/**
+ * Área onde o jogo cabe de verdade: o contêiner (já sem notch e cantos) ou, se ele ainda não
+ * tem tamanho, a parte visível da janela (no iPhone a janela inteira inclui o que fica atrás das barras).
+ */
+function getVisibleArea(): [number, number] {
+  const container = document.getElementById('game-container');
+  if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+    const style = window.getComputedStyle(container);
+    const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    return [container.clientWidth - padX, container.clientHeight - padY];
+  }
+  const vv = window.visualViewport;
+  return vv ? [vv.width, vv.height] : [window.innerWidth, window.innerHeight];
+}
+
+function readRenderMode(): string | null {
+  try {
+    // Escolha manual pelo link: ?render=canvas (modo compatível) ou ?render=webgl (volta ao normal)
+    const forced = new URLSearchParams(window.location.search).get('render');
+    if (forced === 'canvas') localStorage.setItem(STORAGE_KEYS.RENDER_MODE, 'canvas');
+    if (forced === 'webgl') localStorage.removeItem(STORAGE_KEYS.RENDER_MODE);
+    return localStorage.getItem(STORAGE_KEYS.RENDER_MODE);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * O Safari do iPhone às vezes descarta a memória de vídeo do jogo (falta de memória, app em
+ * segundo plano). O WebGL volta pela metade: imagens aparecem, mas tudo que é desenhado por código
+ * (barras, minimapa, molduras, menus) some. Nesse caso o aparelho passa a usar Canvas e o jogo recarrega.
+ */
+function watchWebglContextLoss(game: Phaser.Game): void {
+  const canvas = game.canvas;
+  if (!canvas || game.config.renderType === Phaser.CANVAS) return;
+  canvas.addEventListener('webglcontextlost', () => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.RENDER_MODE, 'canvas');
+    } catch {
+      // Sem armazenamento: recarrega mesmo assim e tenta o WebGL de novo
+    }
+  });
+  canvas.addEventListener('webglcontextrestored', () => window.location.reload());
+}
 
 async function bootstrap() {
   if (document.fonts) {
@@ -19,8 +66,10 @@ async function bootstrap() {
   }
 
   // A largura do jogo acompanha o formato da tela (sem borda preta nos lados do celular)
-  const startWidth = getGameWidthForScreen(window.innerWidth, window.innerHeight);
-  const game = new Phaser.Game(createGameConfig(startWidth));
+  const startWidth = getGameWidthForScreen(...getVisibleArea());
+  const useCanvas = readRenderMode() === 'canvas';
+  const game = new Phaser.Game(createGameConfig(startWidth, useCanvas));
+  watchWebglContextLoss(game);
   (window as Window & { __PHASER_GAME__?: Phaser.Game }).__PHASER_GAME__ = game;
   initPWAInstallPrompt();
 
@@ -31,6 +80,8 @@ async function bootstrap() {
   if (container && typeof ResizeObserver !== 'undefined') {
     new ResizeObserver(() => game.scale.refresh()).observe(container);
   }
+  // iPhone: as barras do Safari aparecem e somem sem mudar o tamanho do contêiner
+  window.visualViewport?.addEventListener('resize', () => game.scale.refresh());
 
   // Girou o celular ou mudou muito o formato da janela: se ainda estÃ¡ no menu (nada a perder),
   // recarrega para o jogo assumir a largura certa; no meio da partida sÃ³ ajusta a escala.
@@ -38,7 +89,7 @@ async function bootstrap() {
   window.addEventListener('resize', () => {
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
-      const wanted = getGameWidthForScreen(window.innerWidth, window.innerHeight);
+      const wanted = getGameWidthForScreen(...getVisibleArea());
       if (Math.abs(wanted - game.scale.gameSize.width) < 60) return;
       const inMenu = game.scene.isActive('MenuScene') && !game.scene.isActive('GameScene');
       if (inMenu) window.location.reload();
