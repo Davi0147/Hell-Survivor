@@ -2,7 +2,7 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Não publicado] — 2026-11-20
+## [v0.14.1 — Azazel com Nome Próprio] — 2026-11-20
 
 ### Resumo para o Jogador
 - **Barra de vida do Azazel com o nome certo:** a barra do topo só sabia ler a Rosalin e escolhia o nome pelo capítulo; no Modo Infinito o Azazel aparecia como "ROSALIN". Agora ela mostra o chefe que está na luta, com o nome e a vida dele.
