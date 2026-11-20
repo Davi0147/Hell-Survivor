@@ -3,6 +3,7 @@ import { SoundManager } from '../systems/SoundManager';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { GamepadManager } from '../systems/GamepadManager';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
+import { CHAPTER2_END_FALLBACK } from '../config/theme';
 
 interface DialogueStep {
   bgKey: string;
@@ -104,10 +105,11 @@ export class Chapter1EndScene extends Phaser.Scene {
     SoundManager.getInstance().playSpookyMusic(2500);
 
     // 1. Camadas de Fundo (A e B) para transições sem bordas pretas
-    this.bgImageA = this.add.image(width / 2, height / 2, 'endchap1-1').setDepth(0);
+    const firstBg = this.chapter === 2 ? this.chapter2Bg(1) : 'endchap1-1';
+    this.bgImageA = this.add.image(width / 2, height / 2, firstBg).setDepth(0);
     this.fitBackground(this.bgImageA);
 
-    this.bgImageB = this.add.image(width / 2, height / 2, 'endchap1-1').setDepth(1).setAlpha(0);
+    this.bgImageB = this.add.image(width / 2, height / 2, firstBg).setDepth(1).setAlpha(0);
     this.fitBackground(this.bgImageB);
 
     // 2. Bustos dos Personagens ao lado do balão (Padrão Visual Novel igual à Intro)
@@ -452,47 +454,79 @@ export class Chapter1EndScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Fundo da cena final do Capítulo 2: usa a arte própria (`endchap2-N`) quando ela existir;
+   * senão, um céu violeta gerado aqui. As imagens do Capítulo 1 mostram a Rosalin e não servem.
+   */
+  private chapter2Bg(n: number): string {
+    const key = `endchap2-${n}`;
+    if (this.textures.exists(key)) return key;
+    const fallback = 'endchap2-fallback';
+    if (!this.textures.exists(fallback)) {
+      const w = 1376;
+      const h = 768;
+      const canvas = this.textures.createCanvas(fallback, w, h);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        const c = CHAPTER2_END_FALLBACK;
+        const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+        sky.addColorStop(0, c.skyTop);
+        sky.addColorStop(0.7, c.skyMid);
+        sky.addColorStop(1, c.horizon);
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, w, h * 0.62);
+        const ground = ctx.createLinearGradient(0, h * 0.62, 0, h);
+        ground.addColorStop(0, c.skyTop);
+        ground.addColorStop(1, c.ground);
+        ctx.fillStyle = ground;
+        ctx.fillRect(0, h * 0.62, w, h * 0.38);
+        canvas.refresh();
+      }
+    }
+    return fallback;
+  }
+
   private setupStorySteps(): void {
     if (this.chapter === 2) {
       this.steps = [
         {
-          bgKey: 'endchap1-3',
+          bgKey: this.chapter2Bg(1),
           speaker: 'narrator',
           speakerName: '',
           text: '*(Os cristais despedaçados ecoam pelo vazio enquanto o domínio de sombras de Azazel se desfaz em cinzas. O senhor da mente cai de joelhos diante de Nixy.)*'
         },
         {
-          bgKey: 'endchap1-3',
+          bgKey: this.chapter2Bg(1),
           speaker: 'azazel',
           speakerName: 'AZAZEL',
           text: 'Impossível... Minha escuridão... Meus espelhos de sangue... Como uma simples alma condenada pôde rasgar o meu mundo?!'
         },
         {
-          bgKey: 'endchap1-3',
+          bgKey: this.chapter2Bg(1),
           speaker: 'nixy',
           speakerName: 'NIXY',
           text: 'Simples, seu mágico de circo: quem trabalha mil anos no escuro daquele escritório não tem medo de luz apagada!'
         },
         {
-          bgKey: 'endchap1-3',
+          bgKey: this.chapter2Bg(1),
           speaker: 'azazel',
           speakerName: 'AZAZEL',
           text: 'Você não faz ideia do que está despertando nos círculos superiores, Nixy... A minha queda é apenas o começo do seu tormento!'
         },
         {
-          bgKey: 'endchap1-3',
+          bgKey: this.chapter2Bg(1),
           speaker: 'nixy',
           speakerName: 'NIXY',
           text: 'Ótimo. Manda lembranças pros seus chefes quando chegar no fundo do abismo!'
         },
         {
-          bgKey: 'endchap1-4',
+          bgKey: this.chapter2Bg(2),
           speaker: 'narrator',
           speakerName: '',
           text: '*(Com um golpe implacável, Nixy dissipa a essência sombria de Azazel e absorve o poder do Segundo Círculo.)*'
         },
         {
-          bgKey: 'endchap1-5',
+          bgKey: this.chapter2Bg(3),
           speaker: 'nixy',
           speakerName: 'NIXY',
           text: 'Dois já foram. E a minha lista de demissões ainda tá longe de acabar.',

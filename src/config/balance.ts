@@ -341,7 +341,8 @@ export const SUCCUBUS_BOSS_BALANCE = {
 // 5. CHEFE DO CAPÍTULO 2: AZAZEL, O ANJO CAÍDO
 // ============================================================================
 export const AZAZEL_BOSS_BALANCE = {
-  maxHp: 16000,
+  /** 24000 (antes 16000): o dono achou que ele caía rápido demais. */
+  maxHp: 24000,
   speed: 138,
   scale: 1.65,
   /** Fração do dano que atravessa a armadura dele. */
@@ -352,17 +353,18 @@ export const AZAZEL_BOSS_BALANCE = {
    * quadro em que passava pela heroína (5 a 6 vezes) e matava de uma vez.
    */
   playerHitCooldownMs: 500,
-  baseContactDamage: 8,
-  cloneContactDamage: 8,
+  // Todos os danos abaixo: +20% (pedido do dono em 2026-11-20)
+  baseContactDamage: 10,
+  cloneContactDamage: 10,
   // Chuva de projéteis: pouco dano por orbe porque são muitos na tela
-  directedBurstOrbDamage: 9,
-  teleportOrbDamage: 8,
-  spiralOrbDamage: 8,
-  darkCloneOrbDamage: 8,
+  directedBurstOrbDamage: 11,
+  teleportOrbDamage: 10,
+  spiralOrbDamage: 10,
+  darkCloneOrbDamage: 10,
   // Golpes telegrafados: doem mais porque dá para desviar (cada um acerta uma vez só)
-  rapidDashDamage: 20,
-  lightningBoltDamage: 18,
-  darkFiveDashesDamage: 14,
+  rapidDashDamage: 24,
+  lightningBoltDamage: 22,
+  darkFiveDashesDamage: 17,
   /** Leque de Penas: cone marcado no chão, depois uma rajada de penas dentro dele. */
   featherFan: {
     cooldownMs: 9000,
@@ -374,7 +376,7 @@ export const AZAZEL_BOSS_BALANCE = {
     coneLength: 460,
     feathers: 9,
     speed: 400,
-    damage: 10,
+    damage: 12,
   },
   /**
    * Auréola Partida: anel que nasce nele e se expande pela arena. A saída é atravessar
@@ -389,7 +391,7 @@ export const AZAZEL_BOSS_BALANCE = {
     endRadius: 600,
     expandMs: 1400,
     thickness: 36,
-    damage: 16,
+    damage: 19,
     /** Fase final: duas ondas seguidas, com este intervalo. */
     finalPhaseWaves: 2,
     waveGapMs: 650,

@@ -549,6 +549,58 @@ Salve em `art-source/novos/cenario/ch1-props.png`, `ch1-decals.png` e `floor-ch1
 
 ---
 
+## 17. Cena final do Capítulo 2 (Azazel derrotado, 3 imagens)
+
+O fim do Capítulo 2 usava as imagens do fim do Capítulo 1, que mostram a Rosalin. Agora usa um céu violeta provisório até estas 3 imagens existirem. Gere **uma imagem por vez** e **anexe `public/assets/scenes/chapter1/EndChap1_4.jpg` no ChatGPT como referência de estilo** (mesmo traço, mesma Nixy, mesmo enquadramento).
+
+Bloco comum (cole no começo de cada um dos 3 prompts):
+
+```text
+Use the attached image as the exact STYLE and CHARACTER reference: same pixel art look,
+same rendering, same lighting, same Nixy design (purple hair with antenna curl, white
+striped horns, pointed ears, white mask with jagged teeth and X eyes, dark purple
+high-collar cloak, white gloves). Same composition idea: Nixy close-up in the LEFT third,
+the defeated boss in the RIGHT half in the background. Widescreen 1376x768, full scene,
+no text, no letters, no UI, no watermark, no borders.
+The boss is AZAZEL, a FALLEN ANGEL of the abyss: tall gaunt figure in a long tattered
+black robe, pale bone-white skull-like face, long dark violet horns curving back, huge
+torn BLACK FEATHERED wings, a broken tarnished-gold halo, crimson and violet energy.
+Setting: AZAZEL'S CORRUPTED DIMENSION: a dark violet sky with swirling black clouds,
+shattered crystal shards on cracked obsidian ground, floating black feathers, faint
+violet light. Palette: deep violet, black, crimson accents, tarnished gold. NOT the red
+sky of the reference: this place is violet and black.
+```
+
+Imagem 1 (`EndChap2_1.jpg`), cole o bloco comum e depois:
+
+```text
+SCENE: Azazel has just been defeated. He kneels on the cracked obsidian ground on the
+right, one hand on the floor, his black wings torn and drooping, his broken halo split
+in two pieces lying beside him, violet crystal shards scattered around him. Nixy in the
+left foreground looks at him coldly, calm and confident.
+```
+
+Imagem 2 (`EndChap2_2.jpg`), cole o bloco comum e depois:
+
+```text
+SCENE: the final blow. Azazel on the right is dissolving into a storm of black feathers
+and violet ash rising into the sky, his body half faded. Nixy in the left foreground has
+one gloved hand raised toward him, absorbing a stream of violet soul energy into her palm.
+```
+
+Imagem 3 (`EndChap2_3.jpg`), cole o bloco comum e depois:
+
+```text
+SCENE: after the battle. On the right only remains are left: the broken golden halo on
+the ground, a pile of black feathers and fading violet embers. Nixy in the left
+foreground with eyes closed and a satisfied smirk behind the mask, cloak moving in the
+wind, black feathers drifting around her.
+```
+
+Salve como `art-source/novos/EndChap2_1.jpg`, `EndChap2_2.jpg` e `EndChap2_3.jpg` e me avise. Eu coloco em `public/assets/scenes/chapter2/` e ligo na cena (a troca é automática: o jogo usa a arte assim que ela existir).
+
+---
+
 ## 16. Azazel: projéteis e efeitos das habilidades (8 peças)
 
 Troca as orbes feias e os efeitos desenhados por código das habilidades do Azazel. Uma imagem, grade 4x2; eu recorto pelo magenta e ligo cada peça ao golpe dela.

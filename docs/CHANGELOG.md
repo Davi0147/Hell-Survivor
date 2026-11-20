@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — 2026-11-20
+
+### Resumo para o Jogador
+- **Barra de vida do Azazel com o nome certo:** a barra do topo só sabia ler a Rosalin e escolhia o nome pelo capítulo; no Modo Infinito o Azazel aparecia como "ROSALIN". Agora ela mostra o chefe que está na luta, com o nome e a vida dele.
+- **Fim do Capítulo 2 sem a Rosalin:** a cena final reaproveitava as imagens do fim do Capítulo 1 (com a Rosalin caída). Agora usa um céu violeta provisório, com o retrato do Azazel, até a arte própria ficar pronta.
+- **Azazel mais forte:** vida de 16000 para 24000 e todos os golpes com +20% de dano (o mais forte agora tira 24).
+
 ## [v0.14.0 — Azazel Refinado] — 2026-11-20
 
 ### Resumo para o Jogador

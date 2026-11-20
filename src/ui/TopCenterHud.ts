@@ -1,12 +1,20 @@
 import Phaser from 'phaser';
 
+/** Chefe com barra de vida no topo. */
+interface IBossBarSource {
+  active: boolean;
+  hp: number;
+  maxHp: number;
+  combatPhase?: number;
+}
+
 /** O que o topo central lê da GameScene a cada quadro. */
 export interface ITopCenterHudWorld {
   gameMode: 'story' | 'endless' | 'sandbox';
   currentChapter: number;
   isBossFightActive: boolean;
-  bossInstance?: { active: boolean; hp: number; maxHp: number; combatPhase?: number } | null;
-  azazelBoss?: unknown;
+  bossInstance?: IBossBarSource | null;
+  azazelBoss?: IBossBarSource | null;
   azazelCrystalsCaptured?: number;
   survivalTimeMs: number;
   chapterPurifiedSouls: number;
@@ -112,7 +120,9 @@ export class TopCenterHud {
   }
 
   public update(gs: ITopCenterHudWorld): void {
-    const boss = gs.bossInstance;
+    // Azazel tem prioridade quando está em campo; antes a barra só lia a Rosalin
+    const azazel = gs.azazelBoss && gs.azazelBoss.active ? gs.azazelBoss : undefined;
+    const boss = azazel ?? gs.bossInstance;
     if (gs.isBossFightActive && boss && boss.active) {
       const isEndless = gs.gameMode === 'endless';
       this.show({ boss: true, timer: isEndless });
@@ -139,8 +149,9 @@ export class TopCenterHud {
     }
   }
 
-  private bossLabel(gs: ITopCenterHudWorld, boss: NonNullable<ITopCenterHudWorld['bossInstance']>): string {
-    const isAzazel = gs.currentChapter === 2 || boss === gs.azazelBoss;
+  /** O nome vem de quem está na luta, não do capítulo (no Infinito o capítulo é sempre 1). */
+  private bossLabel(gs: ITopCenterHudWorld, boss: IBossBarSource): string {
+    const isAzazel = boss === gs.azazelBoss;
     if (!isAzazel) return 'ROSALIN [CHEFE DO CAPÍTULO 1]';
     if (boss.combatPhase === 3) return `AZAZEL [CRISTAIS PURIFICADOS: ${gs.azazelCrystalsCaptured || 0}/3]`;
     return 'AZAZEL [CHEFE DO CAPÍTULO 2]';

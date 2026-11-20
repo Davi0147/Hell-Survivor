@@ -200,6 +200,17 @@ export const WEAPON_SLOT_THEME = {
   levelText: '#f3d17a',
 } as const;
 
+/**
+ * Fundo provisório do fim do Capítulo 2 enquanto não existe arte própria (as imagens do
+ * fim do Capítulo 1 mostram a Rosalin): céu violeta do abismo sobre chão escuro.
+ */
+export const CHAPTER2_END_FALLBACK = {
+  skyTop: '#140321',
+  skyMid: '#3c096c',
+  horizon: '#7b2cbf',
+  ground: '#07010c',
+} as const;
+
 /** Controles de toque (celular): contorno dos botões e transparência do analógico. */
 export const TOUCH_THEME = {
   ring: 0xffffff,
