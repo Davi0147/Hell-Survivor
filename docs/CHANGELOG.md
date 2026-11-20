@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.13.2 — HUD Não Some Mais] — 2026-11-20
+
+### Resumo para o Jogador
+- **HUD sumindo depois de morrer:** depois do Fim da Jornada e "Tentar novamente", pausar e continuar fazia sumirem os botões de toque (e o radar e a barra de armas paravam de atualizar). O jogo achava que a HUD ainda estava escondida da tela de derrota. Corrigido.
+- **Contador de combo no celular** subiu e foi para a esquerda, saindo de trás dos botões de corrida e esquiva.
+
 ## [v0.13.1 — Celular Confortável] — 2026-11-20
 
 ### Resumo para o Jogador

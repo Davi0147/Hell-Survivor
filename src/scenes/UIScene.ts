@@ -116,6 +116,19 @@ export class UIScene
     super('UIScene');
   }
 
+  /**
+   * A cena é reaproveitada ao "Tentar novamente" (o Phaser não roda o construtor de novo):
+   * estado da partida anterior precisa voltar ao início aqui. Sem isso a HUD ficava marcada
+   * como escondida depois do Fim da Jornada, e ao sair da pausa os botões de toque sumiam.
+   */
+  init(): void {
+    this.isHUDVisibleState = true;
+    this.hudElements = [];
+    this.wasKeyboardKeyPressed = false;
+    this.sandboxPanel = undefined;
+    this.idlePressureHud = undefined;
+  }
+
   create(): void {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
@@ -393,6 +406,7 @@ export class UIScene
     // Toque: barra de armas no meio de baixo, e o analógico não nasce em cima dela
     const isTouch = scheme === 'touch';
     this.weaponSlots.setTouchLayout(isTouch, this.statusPanel.leftEdge);
+    this.comboHud.setTouchLayout(isTouch);
     this.touchControls?.setBlockedRect(isTouch ? this.weaponSlots.getBounds() : null);
     this.weaponSlots.update(p, gameScene.weapons);
 
