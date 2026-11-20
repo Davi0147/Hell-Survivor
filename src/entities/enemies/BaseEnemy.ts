@@ -29,6 +29,8 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   public blocksPierce: boolean = false;
   /** Pesado: não recua com os golpes (Colossus). */
   public isHeavy: boolean = false;
+  /** Sólido: a heroína não atravessa (colisão física, não só sobreposição) (Colossus). */
+  public isSolid: boolean = false;
 
   protected hitFlashTimer: number = 0;
 

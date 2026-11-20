@@ -6,6 +6,7 @@ import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy, PoisonPuddle } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
+import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
@@ -493,39 +494,18 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.physics.add.overlap(
       this.player,
       this.enemiesGroup,
+      (_playerObj, enemyObj) => this.handleEnemyContact(enemyObj as BaseEnemy)
+    );
+
+    // 7.1. Inimigos sólidos (Colossus): a heroína não atravessa, nem na esquiva. A separação da
+    // física acontece antes do teste de sobreposição, então o contato também é tratado aqui.
+    this.physics.add.collider(
+      this.player,
+      this.enemiesGroup,
+      (_playerObj, enemyObj) => this.handleEnemyContact(enemyObj as BaseEnemy),
       (_playerObj, enemyObj) => {
         const enemy = enemyObj as BaseEnemy;
-        // Quem não causa dano (Ladrão de Almas) não fere; durante a esquiva nada acerta
-        if (enemy.active && !enemy.isDead && enemy.damage > 0 && this.playerInvulnerableTimer <= 0 && !this.player.isDashInvulnerable && !this.isGameOver) {
-          this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
-          if (this.sandboxGodMode) {
-            DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Hit de contato bloqueado (God Mode): ${enemy.damage} dano`);
-            if (enemy instanceof MummyEnemy || enemy instanceof GhoulEnemy) {
-              enemy.onPlayerCollide(this.player);
-            }
-            return;
-          }
-          SoundManager.getInstance().playPlayerHurt();
-          this.player.takeDamage(Math.round(enemy.damage * this.enemyStrengthMultiplier));
-          if (enemy instanceof MummyEnemy || enemy instanceof GhoulEnemy) {
-            enemy.onPlayerCollide(this.player);
-          }
-          DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Nixy recebeu ${enemy.damage} de dano de contato`, {
-            hpRestante: Math.ceil(this.player.currentHp)
-          });
-          this.cameras.main.shake(120, 0.005);
-          GamepadManager.getInstance().vibrate(this, 180, 0.4, 0.6);
-          this.player.setTint(0xff3333);
-          this.time.delayedCall(150, () => {
-            if (!this.isGameOver) {
-              if (this.player.isRooted) {
-                this.player.setTint(0x55ff77);
-              } else {
-                this.player.clearTint();
-              }
-            }
-          });
-        }
+        return enemy.isSolid && enemy.active && !enemy.isDead;
       }
     );
 
@@ -959,6 +939,37 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public spawnColossusFormation(angle?: number, dist?: number): void {
     this.enemySpawner.spawnColossusFormation(angle, dist);
+  }
+
+  /** Contato de um monstro com a heroína: dano, empurrão do monstro e retorno visual. */
+  private handleEnemyContact(enemy: BaseEnemy): void {
+    // Quem não causa dano (Transportador) não fere; durante a esquiva nada acerta
+    if (!enemy.active || enemy.isDead || enemy.damage <= 0 || this.playerInvulnerableTimer > 0 || this.player.isDashInvulnerable || this.isGameOver) return;
+    this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
+    const pushesPlayer = enemy instanceof MummyEnemy || enemy instanceof GhoulEnemy || enemy instanceof ColossusEnemy;
+    if (this.sandboxGodMode) {
+      DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Hit de contato bloqueado (God Mode): ${enemy.damage} dano`);
+      if (pushesPlayer) enemy.onPlayerCollide(this.player);
+      return;
+    }
+    SoundManager.getInstance().playPlayerHurt();
+    this.player.takeDamage(Math.round(enemy.damage * this.enemyStrengthMultiplier));
+    if (pushesPlayer) enemy.onPlayerCollide(this.player);
+    DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Nixy recebeu ${enemy.damage} de dano de contato`, {
+      hpRestante: Math.ceil(this.player.currentHp)
+    });
+    this.cameras.main.shake(120, 0.005);
+    GamepadManager.getInstance().vibrate(this, 180, 0.4, 0.6);
+    this.player.setTint(0xff3333);
+    this.time.delayedCall(150, () => {
+      if (!this.isGameOver) {
+        if (this.player.isRooted) {
+          this.player.setTint(0x55ff77);
+        } else {
+          this.player.clearTint();
+        }
+      }
+    });
   }
 
   /**

@@ -326,6 +326,8 @@ export const ENEMY_BALANCE = {
     lateMinutes: 7,
     escortDogs: 4,
     escortGapPx: 60,
+    // Sólido: a heroína não atravessa; no golpe de contato é jogada para trás (px/s e duração)
+    knockback: { force: 380, durationMs: 240 },
   },
   // Minichefe do Infinito (3:00). Substituiu o Titã Cerberus (1400 HP, 95 vel, 20 dano, escala 1.85).
   // O bote é telegrafado e respeita a regra de ouro (golpe <= ~45% da vida base da heroína).

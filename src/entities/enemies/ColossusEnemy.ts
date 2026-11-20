@@ -23,7 +23,21 @@ export class ColossusEnemy extends BaseEnemy {
     super(scene, x, y, 'colossus-idle-south');
     this.blocksPierce = true;
     this.isHeavy = true;
+    this.isSolid = true;
+    // Parede que anda: a heroína bate e é afastada, ele não é empurrado por ela
+    const body = this.body as Phaser.Physics.Arcade.Body | null;
+    if (body) {
+      body.setImmovable(true);
+      body.pushable = false;
+    }
     this.fitBody();
+  }
+
+  /** Golpe de contato: joga a heroína para trás, para longe dele. */
+  public onPlayerCollide(player: { x: number; y: number; applyKnockback(vx: number, vy: number, durationMs?: number): void }): void {
+    const kb = ENEMY_BALANCE.colossus.knockback;
+    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+    player.applyKnockback(Math.cos(angle) * kb.force, Math.sin(angle) * kb.force, kb.durationMs);
   }
 
   public override spawn(x: number, y: number, hp: number, speed: number, damage: number): void {
