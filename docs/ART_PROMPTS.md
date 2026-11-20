@@ -622,6 +622,8 @@ roses all over: keep it simple. Do not merge pieces.
 
 Salve como `art-source/novos/pausa-moldura.png` e me avise.
 
+**Já gerado e no jogo** (`art-source/novos/pausa-moldura.jpg`). Para trocar: `python scripts/cut-pause-frame.py <imagem> public/assets/sprites/items`. A moldura é alargada repetindo trechos lisos da borda (colunas e linhas em `SEAM_COLS`/`SEAM_ROWS` no script); numa arte nova essas posições mudam.
+
 ---
 
 ## 14. Ícones das 8 cartas que ainda não têm ícone

@@ -5,7 +5,7 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 ## [Não publicado] — 2026-11-20
 
 ### Resumo para o Jogador
-- **Menu de pausa novo:** agora mostra o resumo da partida: modo e capítulo, tempo, abates, nível, almas, todos os bônus ganhos com cartas (com o ícone de cada carta) e as armas equipadas com o nível. Visual violeta igual ao painel da Nixy, e o texto dos botões não fica mais preto ao passar o mouse.
+- **Menu de pausa novo:** agora mostra o resumo da partida: modo e capítulo, tempo, abates, nível, almas, todos os bônus ganhos com cartas (com o ícone de cada carta) e as armas equipadas com o nível. Moldura de arte nova (cristais e chifres nos cantos, crânio com asas no topo), placa do título e botões desenhados, no mesmo violeta do painel da Nixy. O texto dos botões não fica mais preto ao passar o mouse.
 - **Todas as cartas com ícone:** Alma Extra, Perfuração, Vigor, Olho Abissal, Golpe Fatal, Passo Sombrio, Alma Instável e Sede de Sangue ganharam ícone próprio no meio da carta (antes ficavam vazias).
 - **Painel da Nixy novo:** moldura violeta de obsidiana e cristal, no lugar da pedra com lava. As barras de vida e estamina ficam por trás da moldura, que cobre as pontas delas, então tudo parece uma peça só. O logo NIXY fica por cima da moldura, o nível fica acima da barra de vida, e o painel foi um pouco para a esquerda para a mão do retrato não esconder o fim das barras.
 - **Monstros não somem mais atrás dos altares:** o Altar de Invocação e o Altar de Evolução são plataformas no chão; agora qualquer monstro que passa por cima deles aparece na frente, em vez de ficar escondido atrás.

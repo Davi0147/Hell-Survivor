@@ -148,7 +148,8 @@ function createFakeHost() {
         setInteractive: vi.fn().mockReturnThis()
       })),
       image: vi.fn(() => ({
-        setDisplaySize: vi.fn().mockReturnThis()
+        setDisplaySize: vi.fn().mockReturnThis(),
+        setOrigin: vi.fn().mockReturnThis()
       })),
       graphics: vi.fn(() => ({
         clear: vi.fn().mockReturnThis(),
@@ -165,6 +166,7 @@ function createFakeHost() {
           text: initialText,
           width: 100,
           setOrigin: vi.fn().mockReturnThis(),
+          setScale: vi.fn().mockReturnThis(),
           setVisible: vi.fn().mockReturnThis(),
           setText: vi.fn((val: string) => {
             t.text = val;

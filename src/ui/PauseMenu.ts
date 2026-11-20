@@ -51,22 +51,38 @@ const LAYOUT = {
   panelW: 820,
   panelH: 600,
   contentW: 756,
-  titleY: 44,
-  modeY: 86,
-  statsY: 132,
+  titleY: 46,
+  titlePlaqueW: 280,
+  titlePlaqueH: 80,
+  modeY: 96,
+  statsY: 140,
   statsCellH: 58,
-  bonusHeaderY: 186,
-  bonusGridY: 214,
+  bonusHeaderY: 192,
+  bonusGridY: 216,
   bonusCols: 5,
   bonusChipH: 36,
   bonusGap: 4,
   bonusMaxRows: 3,
-  weaponsHeaderY: 344,
-  weaponsY: 382,
+  weaponsHeaderY: 350,
+  weaponsY: 386,
   volumeHeaderY: 428,
-  bgmY: 462,
-  sfxY: 498,
-  buttonsY: 556,
+  bgmY: 460,
+  sfxY: 494,
+  buttonsY: 552,
+  buttonW: 220,
+  buttonH: 63,
+  /** Centro da abertura na arte da moldura (impresso por scripts/cut-pause-frame.py). */
+  frameOriginX: 0.5,
+  frameOriginY: 0.4935,
+} as const;
+
+/** Arte do menu (docs/ART_PROMPTS.md §15). Sem ela, o menu desenha tudo por código. */
+const ART = {
+  frame: 'ui-pause-frame',
+  title: 'ui-pause-title',
+  resume: 'ui-pause-btn-resume',
+  restart: 'ui-pause-btn-restart',
+  menu: 'ui-pause-btn-menu',
 } as const;
 
 /**
@@ -133,6 +149,8 @@ export class PauseMenu {
     this.pauseSelectedActionIdx = 0;
     this.prevPadCancelOrStart = true;
 
+    // Com a moldura de arte, o painel só pinta o fundo (a borda vem da imagem)
+    const hasFrameArt = this.hasTexture(ART.frame);
     const frame = createModalFrame(this.host, {
       depth: 3500,
       backdropAlpha: t.backdropAlpha,
@@ -141,17 +159,20 @@ export class PauseMenu {
       panelFill: t.panelFill,
       panelAlpha: t.panelAlpha,
       outerBorderColor: t.outerBorderColor,
-      outerBorderWidth: t.outerBorderWidth,
+      outerBorderWidth: hasFrameArt ? 0 : t.outerBorderWidth,
       outerRadius: t.outerRadius,
       innerBorderColor: t.innerBorderColor,
       innerBorderWidth: t.innerBorderWidth,
-      innerBorderAlpha: t.innerBorderAlpha,
+      innerBorderAlpha: hasFrameArt ? 0 : t.innerBorderAlpha,
       innerRadius: t.innerRadius
     });
 
     this.container = frame.container;
     const cx = frame.panelX;
     const top = frame.panelY - frame.panelH / 2;
+    if (hasFrameArt) {
+      this.add(this.host.add.image(cx, frame.panelY, ART.frame).setOrigin(LAYOUT.frameOriginX, LAYOUT.frameOriginY));
+    }
 
     this.buildHeader(cx, top, gameScene);
     this.buildStatsRow(cx, top, gameScene);
@@ -291,12 +312,18 @@ export class PauseMenu {
 
   private buildHeader(cx: number, top: number, gameScene: IPauseGameScene): void {
     const t = MODAL_THEME.pause;
-    const plaque = this.host.add.graphics();
-    plaque.fillStyle(t.titlePlaqueFill, 1);
-    plaque.fillRoundedRect(cx - 190, top + LAYOUT.titleY - 26, 380, 52, 10);
-    plaque.lineStyle(2, t.innerBorderColor, 0.9);
-    plaque.strokeRoundedRect(cx - 190, top + LAYOUT.titleY - 26, 380, 52, 10);
-    this.add(plaque);
+    const pw = LAYOUT.titlePlaqueW;
+    const ph = LAYOUT.titlePlaqueH;
+    if (this.hasTexture(ART.title)) {
+      this.add(this.host.add.image(cx, top + LAYOUT.titleY, ART.title).setDisplaySize(pw, ph));
+    } else {
+      const plaque = this.host.add.graphics();
+      plaque.fillStyle(t.titlePlaqueFill, 1);
+      plaque.fillRoundedRect(cx - pw / 2, top + LAYOUT.titleY - ph / 2, pw, ph, 10);
+      plaque.lineStyle(2, t.innerBorderColor, 0.9);
+      plaque.strokeRoundedRect(cx - pw / 2, top + LAYOUT.titleY - ph / 2, pw, ph, 10);
+      this.add(plaque);
+    }
 
     this.add(this.text(cx, top + LAYOUT.titleY, 'JOGO PAUSADO', 24, t.titleColor, 0.5, FONTS.body, 5, t.titleStroke));
     const mode = describeRunMode(gameScene.gameMode, gameScene.currentChapter ?? 1);
@@ -383,16 +410,16 @@ export class PauseMenu {
   private buildActionButtons(cx: number, top: number, gameScene: IPauseGameScene): void {
     const t = MODAL_THEME.pause;
     const y = top + LAYOUT.buttonsY;
-    const bW = 210;
-    const bH = 44;
+    const bW = LAYOUT.buttonW;
+    const bH = LAYOUT.buttonH;
     const gap = 18;
     const startX = cx - (3 * bW + 2 * gap) / 2 + bW / 2;
 
-    this.createActionBtn(startX, y, bW, bH, 'CONTINUAR', t.btnResumeBg, t.btnResumeBorder, () => {
+    this.createActionBtn(startX, y, bW, bH, 'CONTINUAR', t.btnResumeBg, t.btnResumeBorder, ART.resume, () => {
       this.resumeGame(gameScene);
     });
 
-    this.createActionBtn(startX + (bW + gap), y, bW, bH, 'REINICIAR', t.btnRestartBg, t.btnRestartBorder, () => {
+    this.createActionBtn(startX + (bW + gap), y, bW, bH, 'REINICIAR', t.btnRestartBg, t.btnRestartBorder, ART.restart, () => {
       MetaProgressManager.getInstance().finalizeRunSouls();
       this.isPaused = false;
       this.cleanupCursor();
@@ -404,7 +431,7 @@ export class PauseMenu {
       gameScene.scene.restart({ mode: gameScene.gameMode });
     });
 
-    this.createActionBtn(startX + 2 * (bW + gap), y, bW, bH, 'MENU', t.btnMenuBg, t.btnMenuBorder, () => {
+    this.createActionBtn(startX + 2 * (bW + gap), y, bW, bH, 'MENU', t.btnMenuBg, t.btnMenuBorder, ART.menu, () => {
       MetaProgressManager.getInstance().finalizeRunSouls();
       SoundManager.getInstance().stopMusic();
       this.isPaused = false;
@@ -439,8 +466,12 @@ export class PauseMenu {
     }).setOrigin(originX, 0.5);
   }
 
+  private hasTexture(key: string): boolean {
+    return Boolean(this.host.textures?.exists(key));
+  }
+
   private addIcon(x: number, y: number, key: string, size: number): void {
-    if (!this.host.textures?.exists(key)) return;
+    if (!this.hasTexture(key)) return;
     this.add(this.host.add.image(x, y, key).setDisplaySize(size, size));
   }
 
@@ -582,7 +613,10 @@ export class PauseMenu {
     this.pauseZones.push(zone);
   }
 
-  /** Botão de ação: o texto fica sempre branco; selecionado ganha fundo mais vivo e borda clara. */
+  /**
+   * Botão de ação: o texto fica sempre branco. Selecionado ganha um brilho da cor do botão
+   * atrás e cresce um pouco (com arte) ou borda clara (desenhado por código).
+   */
   private createActionBtn(
     x: number,
     y: number,
@@ -591,6 +625,7 @@ export class PauseMenu {
     label: string,
     bgCol: number,
     borderCol: number,
+    artKey: string,
     onClick: () => void
   ): void {
     if (!this.container) return;
@@ -598,13 +633,20 @@ export class PauseMenu {
     const btnIndex = this.pauseActionBtnRenders.length;
 
     const bg = this.host.add.graphics();
-    const txt = this.text(x, y, label, 13, COLORS.textWhite, 0.5, FONTS.body, 4);
+    const plate = this.hasTexture(artKey) ? this.host.add.image(x, y, artKey).setDisplaySize(w, h) : undefined;
+    const txt = this.text(x, y - 1, label, 13, COLORS.textWhite, 0.5, FONTS.body, 4);
 
     const render = (hover: boolean) => {
       bg.clear();
       if (hover) {
-        bg.fillStyle(borderCol, 0.35);
-        bg.fillRoundedRect(x - w / 2 - 4, y - h / 2 - 4, w + 8, h + 8, 10);
+        bg.fillStyle(borderCol, 0.4);
+        bg.fillRoundedRect(x - w / 2 - 6, y - h / 2 + 2, w + 12, h - 4, 14);
+      }
+      if (plate) {
+        const s = hover ? 1.06 : 1;
+        plate.setDisplaySize(w * s, h * s);
+        txt.setScale(s);
+        return;
       }
       bg.fillStyle(bgCol, 1);
       bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 8);
@@ -613,6 +655,7 @@ export class PauseMenu {
     };
     render(false);
     this.add(bg);
+    if (plate) this.add(plate);
     this.add(txt);
 
     this.pauseActionBtnRenders.push(render);

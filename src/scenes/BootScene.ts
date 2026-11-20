@@ -142,6 +142,9 @@ export class BootScene extends Phaser.Scene {
     if (this.textures.exists('ui-char-name-nixy')) this.textures.remove('ui-char-name-nixy');
     if (this.textures.exists('ui-hp-fill')) this.textures.remove('ui-hp-fill');
     if (this.textures.exists('ui-stamina-fill')) this.textures.remove('ui-stamina-fill');
+    for (const k of ['ui-pause-frame', 'ui-pause-title', 'ui-pause-btn-resume', 'ui-pause-btn-restart', 'ui-pause-btn-menu']) {
+      if (this.textures.exists(k)) this.textures.remove(k);
+    }
     this.sound.removeByKey('bgm-azazel-intro');
     this.sound.removeByKey('bgm-azazel-mid');
     this.sound.removeByKey('bgm-azazel-fight');
@@ -385,6 +388,12 @@ export class BootScene extends Phaser.Scene {
     this.load.image('ui-char-name-nixy', `assets/sprites/items/HudNixyName.png?t=${cacheBuster}`);
     this.load.image('ui-hp-fill', `assets/sprites/items/HudHpFill.png?t=${cacheBuster}`);
     this.load.image('ui-stamina-fill', `assets/sprites/items/HudStaminaFill.png?t=${cacheBuster}`);
+    // Menu de pausa (docs/ART_PROMPTS.md §15; recortado por scripts/cut-pause-frame.py)
+    this.load.image('ui-pause-frame', `assets/sprites/items/PauseFrame.png?t=${cacheBuster}`);
+    this.load.image('ui-pause-title', `assets/sprites/items/PauseTitlePlaque.png?t=${cacheBuster}`);
+    this.load.image('ui-pause-btn-resume', `assets/sprites/items/PauseBtnResume.png?t=${cacheBuster}`);
+    this.load.image('ui-pause-btn-restart', `assets/sprites/items/PauseBtnRestart.png?t=${cacheBuster}`);
+    this.load.image('ui-pause-btn-menu', `assets/sprites/items/PauseBtnMenu.png?t=${cacheBuster}`);
     this.load.image('void-scythe', `assets/sprites/items/scythe.png?t=${cacheBuster}`);
     this.load.image('blood-dagger', `assets/sprites/items/Adaga.png?t=${cacheBuster}`);
     this.load.image('infernal-meteor', `assets/sprites/items/Meteoro.png?t=${cacheBuster}`);
