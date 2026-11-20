@@ -2,7 +2,7 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Não publicado] — 2026-11-20
+## [v0.13.0 — Abismo Agitado] — 2026-11-20
 
 ### Resumo para o Jogador
 - **Modo Infinito mais difícil no fim da partida** (antes, com a build pronta, dava para ficar parado sem morrer):
