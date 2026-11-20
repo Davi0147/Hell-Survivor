@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from '../enemies/BaseEnemy';
+import { remainingPierce } from './pierceRules';
 
 export class BloodDaggerProjectile extends Phaser.Physics.Arcade.Sprite {
   public damage: number = 15;
@@ -113,7 +114,7 @@ export class BloodDaggerProjectile extends Phaser.Physics.Arcade.Sprite {
     this.hitEnemies.add(enemy);
     enemy.takeDamage(this.damage);
 
-    this.pierce--;
+    this.pierce = remainingPierce(this.pierce, enemy);
     if (this.pierce <= 0) {
       this.deactivate();
     }

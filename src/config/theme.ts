@@ -129,6 +129,10 @@ export const FX_COLORS = {
   dashButton: 0x38bdf8,
   novaRing: 0xffd700,
   corpseExplosion: 0xc084fc,
+  /** Colossus: botão do Modo de Teste (aço) e cor do aviso. */
+  colossusButtonFill: 0x1e293b,
+  colossusButtonBorder: 0x94a3b8,
+  colossusToast: '#cbd5e1',
   /** Ghoul Devorador: pisca nesta cor enquanto prepara o bote. */
   ghoulLungeTelegraph: 0xff3d2e,
   thiefSparkle: 0xfff3b0,

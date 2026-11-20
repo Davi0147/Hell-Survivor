@@ -7,10 +7,11 @@ import { MummyEnemy } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { TransporterEnemy } from '../entities/enemies/TransporterEnemy';
+import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
 import type { GemType } from '../entities/items/SoulGem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { SoundManager } from './SoundManager';
-import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, STORY_ELITES, getEnemyScaling, getChapterConfig } from '../config/balance';
+import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, STORY_ELITES, getEnemyScaling, getChapterConfig, getColossusMaxAlive } from '../config/balance';
 
 /** O que o sistema de spawn precisa saber sobre o personagem jogável (qualquer BaseCharacter serve). */
 export interface IEnemySpawnPlayer {
@@ -384,6 +385,15 @@ export class EnemySpawnSystem {
       }
     }
 
+    // 3.1. COLOSSUS (Infinito): tanque que chega na frente de uma escolta de cães
+    const maxColossi = getColossusMaxAlive(this.ctx.gameMode, scaling.minutes);
+    if (maxColossi > 0 && Math.random() < ENEMY_BALANCE.colossus.chance) {
+      const activeColossi = (this.ctx.enemiesGroup.getChildren() as BaseEnemy[]).filter(
+        (e) => e.active && e instanceof ColossusEnemy
+      ).length;
+      if (activeColossi < maxColossi) this.spawnColossusFormation();
+    }
+
     // 4. ZOMBIE DOGS: Presentes em todas as fases com escalonamento de atributos
     let dogCount: number;
     if (phase === 1) {
@@ -428,6 +438,61 @@ export class EnemySpawnSystem {
       this.spawnZombieDogAt(x, y, hp, speed, dmg, true, ENEMY_BALANCE.zombieDogElite.scale);
     } else {
       this.spawnZombieDogAt(x, y, hp, speed, dmg);
+    }
+  }
+
+  /** Colossus (tanque-escudo) com os atributos escalonados pelo tempo de partida. Reaproveita instâncias mortas. */
+  public spawnColossusAt(x: number, y: number): ColossusEnemy {
+    const pos = this.ctx.clampToArena(x, y);
+    const scaling = getEnemyScaling(this.ctx.survivalTimeMs, this.ctx.gameMode === 'endless');
+    const chMult = this.getChapterEnemyStatMultiplier();
+    const cfg = ENEMY_BALANCE.colossus;
+
+    let colossus = this.ctx.enemiesGroup.getChildren().find(
+      (child) => !child.active && child instanceof ColossusEnemy
+    ) as ColossusEnemy | undefined;
+
+    if (!colossus) {
+      colossus = new ColossusEnemy(this.scene, pos.x, pos.y);
+      colossus.setDepth(7);
+      this.ctx.enemiesGroup.add(colossus);
+      colossus.on('enemy-killed', (ex: number, ey: number) => {
+        this.ctx.killCount++;
+        SoundManager.getInstance().playEnemyDeath();
+        this.ctx.player.gainUltimateCharge(8);
+        this.ctx.addPurificationPoints(10);
+        this.ctx.spawnGemAt(ex, ey, 'red');
+        this.ctx.spawnSoulItem(ex, ey, Phaser.Math.Between(2, 4));
+        this.scene.cameras.main.shake(140, 0.006);
+      });
+    }
+
+    colossus.spawn(
+      pos.x,
+      pos.y,
+      Math.round(cfg.hp * scaling.hpMultiplier * chMult),
+      Math.floor(cfg.speed * scaling.speedMultiplier),
+      Math.round(cfg.damage * scaling.damageMultiplier * chMult)
+    );
+    return colossus;
+  }
+
+  /**
+   * Formação do Colossus: ele na frente e uma fila de cães logo atrás, na mesma linha até a heroína.
+   * Assim os projéteis que perfuram batem nele e não chegam na escolta.
+   */
+  public spawnColossusFormation(angle: number = Phaser.Math.FloatBetween(0, Math.PI * 2), dist: number = 420): void {
+    const cfg = ENEMY_BALANCE.colossus;
+    const p = this.ctx.player;
+    this.spawnColossusAt(p.x + Math.cos(angle) * dist, p.y + Math.sin(angle) * dist);
+
+    const dogs = Math.min(cfg.escortDogs, Math.max(0, PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES - this.ctx.enemiesGroup.countActive()));
+    const minutes = this.ctx.survivalTimeMs / 60000;
+    for (let i = 0; i < dogs; i++) {
+      // Pares lado a lado, cada par um passo mais para trás
+      const back = dist + cfg.escortGapPx * (1 + Math.floor(i / 2));
+      const side = (i % 2 === 0 ? -1 : 1) * 0.06;
+      this.spawnScaledDogAt(p.x + Math.cos(angle + side) * back, p.y + Math.sin(angle + side) * back, this.rollElite(minutes));
     }
   }
 

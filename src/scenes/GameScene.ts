@@ -957,6 +957,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.enemySpawner.spawnMatriarchSuccubus();
   }
 
+  public spawnColossusFormation(angle?: number, dist?: number): void {
+    this.enemySpawner.spawnColossusFormation(angle, dist);
+  }
+
   /**
    * Limita qualquer coordenada x, y dentro dos limites da Arena Gigante
    */

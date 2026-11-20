@@ -15,7 +15,7 @@ import { ENEMY_BALANCE } from '../config/balance';
 
 import type { HordeEventType as HordeEventType2 } from './HordeEventSystem';
 
-export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'ghoul' | 'matriarch';
+export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'colossus' | 'ghoul' | 'matriarch';
 
 /**
  * Interface estrita de ponte entre o SandboxController, DevSandboxPanel e a GameScene.
@@ -69,6 +69,7 @@ export interface ISandboxContext extends Phaser.Scene {
   // Spawners de monstros e chefes
   spawnGhoulDevourer(): void;
   spawnMatriarchSuccubus(): void;
+  spawnColossusFormation(angle?: number, dist?: number): void;
   spawnBloodBatFlock(count: number): void;
   spawnZombieDogAt(sx: number, sy: number, hp?: number, speed?: number, dmg?: number, isElite?: boolean, scale?: number): void;
   spawnSkullSlimeAt(sx: number, sy: number): void;
@@ -124,6 +125,13 @@ export class SandboxController {
     }
     if (type === 'bat') {
       this.context.spawnBloodBatFlock(count);
+      return;
+    }
+    if (type === 'colossus') {
+      // Formações espalhadas em volta, mais perto que no jogo para dar para ver o escudo
+      for (let i = 0; i < count; i++) {
+        this.context.spawnColossusFormation((Math.PI * 2 * i) / Math.max(1, count), 300);
+      }
       return;
     }
 

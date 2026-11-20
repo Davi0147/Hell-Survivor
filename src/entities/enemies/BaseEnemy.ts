@@ -25,6 +25,10 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
   public isBoss: boolean = false;
   /** Ignora dano (fases cinematográficas de chefe). */
   public isInvulnerable: boolean = false;
+  /** Escudo: projéteis que perfuram param neste inimigo em vez de atravessar (Colossus). */
+  public blocksPierce: boolean = false;
+  /** Pesado: não recua com os golpes (Colossus). */
+  public isHeavy: boolean = false;
 
   protected hitFlashTimer: number = 0;
 
@@ -128,7 +132,7 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
 
     // Recuo curto para o golpe "pesar" (chefes não recuam)
     const target = world.player;
-    if (!this.isBoss && target) {
+    if (!this.isBoss && !this.isHeavy && target) {
       const dx = this.x - target.x;
       const dy = this.y - target.y;
       const dist = Math.hypot(dx, dy);

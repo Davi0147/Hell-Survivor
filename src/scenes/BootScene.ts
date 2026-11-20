@@ -90,6 +90,11 @@ export class BootScene extends Phaser.Scene {
       for (let i = 0; i < 8; i++) {
         if (this.textures.exists(`transporter-run-${dir}-${i}`)) this.textures.remove(`transporter-run-${dir}-${i}`);
       }
+
+      if (this.anims.exists(`colossus-walk-${dir}`)) this.anims.remove(`colossus-walk-${dir}`);
+      for (let i = 0; i < 8; i++) {
+        if (this.textures.exists(`colossus-walk-${dir}-${i}`)) this.textures.remove(`colossus-walk-${dir}-${i}`);
+      }
     }
 
     for (const dir of DIRECTIONS_8) {
@@ -99,6 +104,8 @@ export class BootScene extends Phaser.Scene {
       if (this.textures.exists(`ghoul-idle-${dir}`)) this.textures.remove(`ghoul-idle-${dir}`);
       if (this.anims.exists(`transporter-idle-${dir}`)) this.anims.remove(`transporter-idle-${dir}`);
       if (this.textures.exists(`transporter-idle-${dir}`)) this.textures.remove(`transporter-idle-${dir}`);
+      if (this.anims.exists(`colossus-idle-${dir}`)) this.anims.remove(`colossus-idle-${dir}`);
+      if (this.textures.exists(`colossus-idle-${dir}`)) this.textures.remove(`colossus-idle-${dir}`);
     }
 
     if (this.textures.exists('floor-tile')) this.textures.remove('floor-tile');
@@ -409,6 +416,22 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
+    // 14.4. Carregar sprites do Colossus (Idle nos 8 ângulos e caminhada em 4 eixos x 8 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(
+        `colossus-idle-${dir}`,
+        `assets/sprites/enemies/Colossus/Idle/rotations/${dir}.png?t=${cacheBuster}`
+      );
+    }
+    for (const dir of MUMMY_DIRS) {
+      for (let i = 0; i < 8; i++) {
+        this.load.image(
+          `colossus-walk-${dir}-${i}`,
+          `assets/sprites/enemies/Colossus/Idle/animations/Walking/${dir}/frame_00${i}.png?t=${cacheBuster}`
+        );
+      }
+    }
+
     // 15. Carregar sprites oficiais das Gemas de Alma criadas pelo usuário (40x40px)
     this.load.image('gem-green', `assets/sprites/items/gem-green.png?t=${cacheBuster}`);
     this.load.image('gem-blue', `assets/sprites/items/gem-blue.png?t=${cacheBuster}`);
@@ -715,6 +738,18 @@ export class BootScene extends Phaser.Scene {
     }
     for (const dir of DIRECTIONS_8) {
       this.anims.create({ key: `transporter-idle-${dir}`, frames: [{ key: `transporter-idle-${dir}` }], frameRate: 1, repeat: -1 });
+    }
+
+    // Registrar animações do Colossus (passo pesado: 8 frames em ritmo lento)
+    for (const dir of MUMMY_CARDINALS) {
+      const colossusFrames = [];
+      for (let i = 0; i < 8; i++) {
+        colossusFrames.push({ key: `colossus-walk-${dir}-${i}` });
+      }
+      this.anims.create({ key: `colossus-walk-${dir}`, frames: colossusFrames, frameRate: 8, repeat: -1 });
+    }
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({ key: `colossus-idle-${dir}`, frames: [{ key: `colossus-idle-${dir}` }], frameRate: 1, repeat: -1 });
     }
 
     // Registrar animações do Boss Azazel (Idle 8 direções, Rise Hand 8 direções e Running 8 frames mapeados para 8 direções)

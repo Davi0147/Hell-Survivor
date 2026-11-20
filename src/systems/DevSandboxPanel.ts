@@ -15,7 +15,7 @@ import type { ISandboxContext } from './SandboxController';
 import type { HordeEventType } from './HordeEventSystem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { CRIT_BALANCE } from '../config/balance';
-import { COLORS } from '../config/theme';
+import { COLORS, FX_COLORS } from '../config/theme';
 
 /** Itens de mapa novos (v0.11.0) com botão no Modo de Teste. */
 const SANDBOX_NEW_ITEMS: { type: MapItemType; label: string }[] = [
@@ -571,6 +571,15 @@ export class DevSandboxPanel {
         action: () => {
           gs.sandboxSpawnHorde('mummy', 10);
           this.showToast('+10 MÚMIAS DO ABISMO INVOCADAS!', '#10b981');
+        }
+      },
+      {
+        label: 'SPAWNAR COLOSSUS + ESCOLTA (BLOQUEIA PERFURAÇÃO)',
+        color: FX_COLORS.colossusButtonFill,
+        border: FX_COLORS.colossusButtonBorder,
+        action: () => {
+          gs.sandboxSpawnHorde('colossus', 1);
+          this.showToast('COLOSSUS INVOCADO COM ESCOLTA!', FX_COLORS.colossusToast);
         }
       },
       {

@@ -145,6 +145,13 @@ export const SPAWN_PACING = {
   lateMinMs: 300,
 } as const;
 
+/** Quantos Colossus podem estar vivos ao mesmo tempo (0 = ainda não aparece neste modo/tempo). */
+export function getColossusMaxAlive(gameMode: 'story' | 'endless' | 'sandbox', minutes: number): number {
+  const c = ENEMY_BALANCE.colossus;
+  if (gameMode !== 'endless' || minutes < c.minMinutes) return 0;
+  return minutes >= c.lateMinutes ? c.maxAliveLate : c.maxAlive;
+}
+
 export function getSpawnIntervalMs(minutes: number, isEndless: boolean): number {
   const p = SPAWN_PACING;
   let floor: number = isEndless ? p.minEndlessMs : p.minStoryMs;
@@ -303,6 +310,23 @@ export const ENEMY_BALANCE = {
   // Horda da Dimensão Abissal (Fase 3 do Azazel)
   azazelDimensionDog: { hp: 48, speed: 92, damage: 11 },
   azazelDimensionMummy: { hp: 150, speed: 62, damage: 16 },
+  // Colossus: tanque lento que puxa uma escolta de cães atrás dele. Projéteis que perfuram
+  // param nele (não atravessam). Muita vida, dano de contato comum (perto do Cão Zumbi).
+  // Só no Infinito por enquanto: a partir de `minMinutes`, com `chance` por leva e até
+  // `maxAlive` vivos (`maxAliveLate` depois de `lateMinutes`).
+  colossus: {
+    hp: 520,
+    speed: 50,
+    damage: 10,
+    scale: 2.0,
+    minMinutes: 2.5,
+    chance: 0.14,
+    maxAlive: 1,
+    maxAliveLate: 2,
+    lateMinutes: 7,
+    escortDogs: 4,
+    escortGapPx: 60,
+  },
   // Minichefe do Infinito (3:00). Substituiu o Titã Cerberus (1400 HP, 95 vel, 20 dano, escala 1.85).
   // O bote é telegrafado e respeita a regra de ouro (golpe <= ~45% da vida base da heroína).
   ghoulDevourer: {

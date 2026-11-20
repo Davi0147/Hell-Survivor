@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado — Colossus] — 2026-11-20
+
+### Resumo para o Jogador
+- **Inimigo novo no Modo Infinito: Colossus.** Um demônio de armadura, grande e lento, que chega na frente de uma fila de 4 cães. Ele é o escudo da horda: **flechas e adagas que perfuram param nele** e não atingem quem está atrás. Tem muita vida (520 no começo, cresce com o tempo como os outros), mas bate como um monstro comum (10) e não recua quando leva golpe.
+- Aparece a partir de 2:30 no Infinito, um de cada vez (até dois depois dos 7 minutos). Ao morrer deixa uma gema vermelha e 2 a 4 almas.
+- No Modo de Teste: botão "SPAWNAR COLOSSUS + ESCOLTA" na aba 2, e ele está na galeria.
+
+### Técnico
+- Nova entidade `ColossusEnemy`; atributos e regras de aparição em `ENEMY_BALANCE.colossus` e `getColossusMaxAlive` (`balance.ts`).
+- `BaseEnemy.blocksPierce` (projéteis param) e `BaseEnemy.isHeavy` (sem recuo). Regra pura em `entities/weapons/pierceRules.ts`, usada pela Adaga de Sangue e pelo Disparo de Alma. Testes em `colossus.test.ts`.
+- Sprites em `public/assets/sprites/enemies/Colossus/` (fonte em `art-source/Sprites/Enemies/Colossus/`).
+
 ## [Não publicado — Transportador] — 2026-11-20
 
 ### Resumo para o Jogador
