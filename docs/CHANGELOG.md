@@ -2,9 +2,11 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Não publicado — Cronograma de Inimigos e Círculos do Infinito] — 2026-11-20
+## [v0.16.0 — Arqueira, Lyn e Círculos do Infinito] — 2026-11-20
 
-### Resumo para o Jogador
+### Cronograma de Inimigos e Círculos do Infinito
+
+#### Resumo para o Jogador
 - **Cada inimigo novo é apresentado:** na primeira vez que ele aparece, um aviso no centro da tela ("NOVO: ARQUEIRAS DEMÔNIAS — ATIRAM DE LONGE E FOGEM") e um grupinho só dele. Depois ele entra na mistura.
 - **Capítulo 1 ensina o básico:** começa só com cães; morcegos aos 20% da barra, múmias aos 40%, **Ghoul Devorador no meio da fase (55%)** e slimes aos 70%. Sem Alfas, Arqueiras ou Colossus.
 - **Capítulo 2 junta os novos:** Arqueiras desde 15%, Alfas a partir de 30%, Colossus aos 50%, **Lyn no meio da fase** e formações: **Matilha** (Alfas juntos) e **Muralha** (Colossus na frente, Arqueiras atrás, protegidas da perfuração).
@@ -17,33 +19,33 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 - **Corrigido:** no Infinito, se você não fosse ao Altar de Invocação aos 5:00, as hordas paravam para sempre. O altar não é mais usado no Infinito.
 - **Modo de Teste:** botão "INFINITO: AVANÇAR 30 S NO CRONOGRAMA" (aba 2), para pular partes do Círculo dentro de uma partida do Infinito.
 
-### Técnico
+#### Técnico
 - Novo `EncounterDirector` (execução) + `encounterRules.ts` (regras puras); tabelas `STORY_SCHEDULE`, `ENDLESS_SCHEDULE`, `FORMATION_BALANCE` em `balance.ts`. Sai `STORY_ELITES`, `miniBoss3mSpawned`/`boss10mSpawned` e os `minMinutes` de Arqueira, Colossus e Alfa.
 - `EnemySpawnSystem` pergunta `isEnemyUnlocked(kind)` antes de cada tipo; `spawnScaledMummyAt` novo; `spawnGhoulDevourer`/`spawnLyn` aceitam multiplicador de vida; `spawnEndlessTimedBoss` aceita escala do Círculo.
 - `HordeEventSystem` respeita `isEncounterQuiet`. Formação recusada por arena lotada tenta de novo em `retryWhenFullMs`.
 - Testes: `encounterRules.test.ts` e `encounterDirector.test.ts` (simula Círculos inteiros quadro a quadro).
 
-## [Não publicado — Lyn] — 2026-11-20
+### Lyn
 
-### Resumo para o Jogador
+#### Resumo para o Jogador
 - **A Matriarca Súcubo agora é a Lyn:** antes ela era a própria Rosalin pintada de rosa. Agora é uma súcubo jovem de cabelo preto e asas pretas, com arte e animação de voo próprias. Os golpes e a recompensa continuam iguais (2 gemas roxas, 15 a 20 almas e um baú).
 - No Modo de Teste o botão virou "INVOCAR MINI-BOSS: LYN (SÚCUBO)", e ela está na galeria no lugar da "Succubus Menor".
 
-### Técnico
+#### Técnico
 - `SuccubusBoss.useLynSprites()`: troca o conjunto de sprites (`lyn-*`, voo em 4 eixos) e a colisão; a Rosalin segue com `succubus-*` em 8 direções.
 - `spawnMatriarchSuccubus` → `spawnLyn`; `ENEMY_BALANCE.matriarchSuccubus` → `ENEMY_BALANCE.lyn`; tipo do Modo de Teste `matriarch` → `lyn`. A tinta rosa saiu (catraca de cores: 1034 → 1033).
 - Sprites em `public/assets/sprites/enemies/Lyn/{Idle,Fly}` (fonte em `art-source/Sprites/Enemies/Lyn/`).
 
-## [Não publicado — Arqueira Demônia] — 2026-11-20
+### Arqueira Demônia
 
-### Resumo para o Jogador
+#### Resumo para o Jogador
 - **Inimigo novo no Modo Infinito: Arqueira Demônia.** Rápida, corre até ficar a uma distância segura da Nixy, para, puxa o arco e solta uma flecha na direção dela. Atira a cada 1,5 segundo.
 - **Ela foge:** se a Nixy avança, a arqueira recua até a distância segura e volta a atirar. Recuando ela é um pouco mais lenta que a Nixy andando, então dá para alcançar (correndo, bem mais fácil).
 - **Justa no celular:** ela só atira se estiver **visível na tela**, longe das barras do HUD. Como a tela é baixa, se não houver espaço em cima ou embaixo da Nixy, ela se posiciona mais para o lado (corrigido: a de cima ficava subindo e descendo sem atirar). A puxada do arco é o aviso; a flecha voa devagar o bastante para dar para desviar, e a esquiva atravessa a flecha.
 - Frágil (45 de vida), flecha de 8 de dano (cresce com o tempo). Aparece a partir de 1:30 no Infinito, até 2 ao mesmo tempo (4 depois dos 6 minutos).
 - **Modo de Teste:** botão "SPAWNAR +3 ARQUEIRAS DEMÔNIAS" na aba 2, e ela e a flecha estão na galeria. Os botões de "EVENTO" foram para a coluna da direita, dois por linha, para caber tudo.
 
-### Técnico
+#### Técnico
 - Entidade `ArcherEnemy` com regras puras em `archerRules.ts` (`archerStandoffPoint`, `isInsideView`, `shouldHold`, `shouldAbortDraw`); números e `getArcherMaxAlive` em `balance.ts` (`ENEMY_BALANCE.archer`). Testes em `archer.test.ts`.
 - `EnemyArrowSystem`: pool de flechas inimigas (imagens movidas à mão, sem corpo físico), criado pela `GameScene` e exposto ao spawner por `IEnemySpawnContext.enemyArrows`. Textura `enemy-arrow` desenhada por código (sem arte ainda; cores em `FX_COLORS.archerArrow*`).
 - Sprites em `public/assets/sprites/enemies/Archer/{Idle,Run,Shoot}` (fonte em `art-source/Sprites/Enemies/Archer/`).
