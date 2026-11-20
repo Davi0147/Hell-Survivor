@@ -55,6 +55,8 @@ export class StatusPanelHud {
   private readonly trackGraphics: Phaser.GameObjects.Graphics;
   private readonly hpFill: Phaser.GameObjects.Image;
   private readonly staminaFill: Phaser.GameObjects.Image;
+  private readonly levelPlaque: Phaser.GameObjects.Graphics;
+  private lastLevelText = '';
   private readonly levelTag: Phaser.GameObjects.Text;
   private readonly levelIcon?: Phaser.GameObjects.Image;
   private readonly hpText: Phaser.GameObjects.Text;
@@ -109,6 +111,7 @@ export class StatusPanelHud {
 
     const levelX = panelX + FRAME_ART.levelSpot.x;
     const levelY = panelY + FRAME_ART.levelSpot.y;
+    this.levelPlaque = ui.add.graphics().setDepth(37);
     this.levelTag = ui.add.text(levelX, levelY, 'LVL 1', textStyle(13, STATUS_PANEL_THEME.levelText))
       .setOrigin(0, 0.5).setDepth(60);
     if (ui.textures.exists('ui-icon-level')) {
@@ -127,6 +130,7 @@ export class StatusPanelHud {
       this.statusHudImage,
       this.charNameImage,
       this.trackGraphics,
+      this.levelPlaque,
       this.hpFill,
       this.staminaFill,
       this.levelTag,
@@ -154,8 +158,13 @@ export class StatusPanelHud {
     else this.staminaFill.clearTint();
     this.staminaText.setText(`${Math.round(p.currentStamina)}% STAMINA`);
 
-    this.levelTag.setText(`LVL ${p.currentLevel}`);
-    this.levelIcon?.setX(this.levelTag.x + this.levelTag.width + 12);
+    const levelText = `LVL ${p.currentLevel}`;
+    if (levelText !== this.lastLevelText) {
+      this.lastLevelText = levelText;
+      this.levelTag.setText(levelText);
+      this.levelIcon?.setX(this.levelTag.x + this.levelTag.width + 12);
+      this.drawLevelPlaque();
+    }
 
     if (p.characterId) {
       const charNameKey = `ui-char-name-${p.characterId}`;
@@ -172,6 +181,21 @@ export class StatusPanelHud {
     const bleed = FRAME_ART.fillBleed;
     const visible = ratio <= 0 ? 0 : Math.round(bleed + rect.w * ratio);
     fill.setCrop(0, 0, visible, fill.height);
+  }
+
+  /** Placa escura sob o nível, crescendo com o texto para "LVL 100" não vazar da arte. */
+  private drawLevelPlaque(): void {
+    const t = this.levelTag;
+    const right = this.levelIcon ? this.levelIcon.x + 11 : t.x + t.width + 2;
+    const x = t.x - 6;
+    const y = t.y - 10;
+    const w = right - x + 4;
+    const g = this.levelPlaque;
+    g.clear();
+    g.fillStyle(STATUS_PANEL_THEME.levelPlaque, 1);
+    g.fillRoundedRect(x, y, w, 20, 4);
+    g.lineStyle(1, STATUS_PANEL_THEME.levelPlaqueBorder, 1);
+    g.strokeRoundedRect(x, y, w, 20, 4);
   }
 
   /** Retrato troca para a arte de dano e treme enquanto a heroína está ferida. */

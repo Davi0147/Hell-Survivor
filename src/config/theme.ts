@@ -209,6 +209,9 @@ export const STATUS_PANEL_THEME = {
   staminaSprintTint: 0x9ffff0,
   staminaLowTint: 0xff5c9a,
   levelText: '#f3d17a',
+  /** Placa do nível, desenhada do tamanho do texto (a da arte só cabe "LVL 9"). */
+  levelPlaque: 0x140818,
+  levelPlaqueBorder: 0x6a1fa0,
   valueText: '#ffffff',
   textStroke: '#12020a',
 } as const;
