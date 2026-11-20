@@ -79,6 +79,14 @@ export const CARD_ICON_KEYS: Record<string, string> = {
   vitality: 'icon-blessing-vitality',
   hp_regen: 'icon-blessing-vitality',
   life_steal: 'icon-blessing-vitality',
+  multishot: 'icon-card-multishot',
+  pierce: 'icon-card-pierce',
+  stamina: 'icon-card-stamina',
+  crit_chance: 'icon-card-crit-chance',
+  crit_damage: 'icon-card-crit-damage',
+  dash_mastery: 'icon-card-dash',
+  corpse_explosion: 'icon-card-corpse-explosion',
+  bloodthirst: 'icon-card-bloodthirst',
 };
 
 /** Ícone de arte e nível de uma arma equipada (barra de armas da HUD). */

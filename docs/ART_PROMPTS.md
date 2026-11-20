@@ -549,6 +549,94 @@ Salve em `art-source/novos/cenario/ch1-props.png`, `ch1-decals.png` e `floor-ch1
 
 ---
 
+## 14. Ícones das 8 cartas que ainda não têm ícone
+
+Cartas de upgrade só mostram o ícone redondo do meio se tiverem arte própria ligada em `CARD_ICON_KEYS` (`src/systems/UpgradeCatalog.ts`). Estas 8 não tinham. Uma imagem só, grade 4x2; eu recorto pelo magenta e ligo cada ícone à sua carta.
+
+| Célula | Carta | Arquivo final |
+|---|---|---|
+| 1 | Alma Extra (`multishot`) | `icon-card-multishot.png` |
+| 2 | Perfuração Mística (`pierce`) | `icon-card-pierce.png` |
+| 3 | Pulmões do Demônio (`stamina`) | `icon-card-stamina.png` |
+| 4 | Olho do Abismo (`crit_chance`) | `icon-card-crit-chance.png` |
+| 5 | Golpe Fatal (`crit_damage`) | `icon-card-crit-damage.png` |
+| 6 | Passo Sombrio (`dash_mastery`) | `icon-card-dash.png` |
+| 7 | Alma Instável (`corpse_explosion`) | `icon-card-corpse-explosion.png` |
+| 8 | Sede de Sangue (`bloodthirst`) | `icon-card-bloodthirst.png` |
+
+Prompt único — copiar e colar inteiro:
+
+```text
+Create ONE image: a sprite sheet of 8 game icons for upgrade cards of a dark gothic
+hell-themed 2D pixel art action roguelite.
+
+=== GLOBAL STYLE (applies to every icon) ===
+16-bit pixel art, hand-placed pixels, crisp hard edges, NO anti-aliasing, NO blur, NO soft
+airbrush gradients, NO photorealism, NO 3D render look. Dark gothic baroque demonic fantasy,
+hell and catacombs theme. Strong 2-pixel near-black purple outline (#12020a) around every
+icon. Palette: near-black purple shadows (#0b0208, #1a0a1f), crimson red (#ff0055, #d90429),
+ember orange (#ff7a1a), deep violet (#6a1fa0, #9b5de5), neon magenta glow (#d61cff),
+antique gold (#c59b27, #f3d17a), bone white (#efe6d8), soul cyan (#00f5d4) only where
+stated. High contrast, dramatic rim light, one clear bright focal point per icon.
+Icons must read instantly at very small size (52x52 px in game): ONE big simple central
+object, bold chunky silhouette, few details, no tiny clutter.
+Each icon will be shown inside a small dark CIRCLE in the game, so every icon must have a
+compact roughly round or square silhouette that fits inside a circle, centered, filling
+about 75% of its cell. Do NOT draw any circle, ring, frame, badge, card or background
+behind the icons.
+No text, no letters, no numbers, no watermark, no signature anywhere.
+
+=== CANVAS AND BACKGROUND ===
+Canvas 2048x1024 pixels, landscape. The ENTIRE background is solid flat pure magenta
+#FF00FF, one single color, no texture, no vignette, no shadow on it, no glow bleeding onto
+it, no transparency checkerboard. Invisible grid of 4 columns x 2 rows of 512x512 cells.
+Exactly ONE icon per cell, centered in its cell, never touching or crossing into another
+cell, at least 48 px of pure #FF00FF margin around every icon. All 8 icons share the same
+pixel size, outline thickness, lighting direction (light from upper left) and palette so
+they look like one set.
+
+=== ROW 1 (left to right) ===
+Cell 1 - EXTRA SOUL (more projectiles): three glowing violet-magenta soul orbs flying
+  forward together in a fan shape, each with a short comet tail, the middle one biggest,
+  small white-pink highlights.
+Cell 2 - PIERCING (shots go through enemies): a long crimson-and-gold spectral arrow /
+  bolt piercing straight through two small horned demon skulls lined up one behind the
+  other, the arrow tip glowing white, a few bone chips flying.
+Cell 3 - DEMON LUNGS (more stamina): a pair of dark red demonic lungs made of cracked
+  stone and veins, with small curved horns on top, glowing ember-orange breath / heat
+  wisps rising from them, a golden energy glow inside.
+Cell 4 - EYE OF THE ABYSS (critical chance): a single huge demonic eye, vertical slit
+  pupil, crimson-magenta iris, inside a dark violet stone socket with spiky lashes / thorns
+  around it, a small golden 4-point sparkle on the pupil.
+
+=== ROW 2 (left to right) ===
+Cell 5 - FATAL STRIKE (critical damage): a heavy curved demon blade / cleaver striking
+  diagonally, a big jagged crimson-and-gold impact burst star at the point of impact,
+  blood droplets, the blade edge glowing white-hot.
+Cell 6 - SHADOW STEP (dash that cuts enemies): a dark violet hooded shadow silhouette
+  dashing to the right with 3 fading magenta afterimages behind it, a thin bright crimson
+  slash line cutting across the afterimages.
+Cell 7 - UNSTABLE SOUL (enemies explode on death): a cracked bone-white skull bursting
+  apart from the inside, violet-magenta soul energy and ember-orange fire exploding out of
+  its cracks and eye sockets, small skull fragments flying outward.
+Cell 8 - BLOODTHIRST (combo lasts longer): an ornate gold chalice / goblet overflowing with
+  thick glowing crimson blood dripping down its sides, two small curved fangs on the rim,
+  a faint hourglass shape engraved on the cup.
+
+=== DO NOT ===
+Do not add circles, rings, frames or backgrounds behind icons. Do not merge or overlap
+icons. Do not add any text or numbers. Do not make the icons thin, long or tiny: they must
+be chunky and fill the cell.
+```
+
+**Se o gerador errar a grade** (ícones grudados ou de tamanhos diferentes): gere em 2 imagens, uma por linha, pedindo `canvas 2048x512, 4 columns x 1 row of 512x512 cells` e colando só as células daquela linha.
+
+Salve como `art-source/novos/icones-cartas.png` (ou `icones-cartas-linha1.png` e `linha2.png`) e me avise.
+
+**Já gerado e no jogo** (`art-source/novos/icones-cartas.jpg`). Para trocar, gere de novo na mesma ordem e rode `python scripts/cut-card-icons.py <imagem> public/assets/sprites/icons/blessings 96`.
+
+---
+
 ## 13. Painel de status novo (moldura violeta com janelas para as barras)
 
 Substitui o painel de pedra com lava do canto inferior direito. A moldura tem **duas janelas vazadas**: o jogo desenha vida e estamina **atrás** da moldura, e a borda da moldura cobre as pontas das barras, então tudo parece uma peça só. O nível continua escrito por código, em cima, à esquerda da barra de vida. O nome do personagem vem numa peça separada (para funcionar com outros personagens).
