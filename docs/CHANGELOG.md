@@ -2,39 +2,41 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Não publicado — Colossus] — 2026-11-20
+## [v0.15.0 — Colossus, Transportador e Ghoul] — 2026-11-20
 
-### Resumo para o Jogador
+### Colossus
+
+#### Resumo para o Jogador
 - **Inimigo novo no Modo Infinito: Colossus.** Um demônio de armadura, grande e lento, que chega na frente de uma fila de 4 cães. Ele é o escudo da horda: **flechas e adagas que perfuram param nele** e não atingem quem está atrás. Tem muita vida (520 no começo, cresce com o tempo como os outros), mas bate como um monstro comum (10) e não recua quando leva golpe.
 - **Ele é sólido:** a Nixy não atravessa o Colossus (nem com a esquiva) e, quando ele encosta e bate, ela é jogada para trás.
 - Aparece a partir de 2:30 no Infinito, um de cada vez (até dois depois dos 7 minutos). Ao morrer deixa uma gema vermelha e 2 a 4 almas.
 - No Modo de Teste: botão "SPAWNAR COLOSSUS + ESCOLTA" na aba 2, e ele está na galeria.
 
-### Técnico
+#### Técnico
 - Nova entidade `ColossusEnemy`; atributos e regras de aparição em `ENEMY_BALANCE.colossus` e `getColossusMaxAlive` (`balance.ts`).
 - `BaseEnemy.blocksPierce` (projéteis param), `BaseEnemy.isHeavy` (sem recuo) e `BaseEnemy.isSolid` (collider com a heroína; corpo imóvel). O contato de monstro com a heroína virou `GameScene.handleEnemyContact`, chamado pela sobreposição e pelo collider dos sólidos. Empurrão em `ENEMY_BALANCE.colossus.knockback`. Regra pura em `entities/weapons/pierceRules.ts`, usada pela Adaga de Sangue e pelo Disparo de Alma. Testes em `colossus.test.ts`.
 - Sprites em `public/assets/sprites/enemies/Colossus/` (fonte em `art-source/Sprites/Enemies/Colossus/`).
 
-## [Não publicado — Transportador] — 2026-11-20
+### Transportador
 
-### Resumo para o Jogador
+#### Resumo para o Jogador
 - **O Ladrão de Almas virou o Transportador:** no lugar do cão dourado, agora foge um diabrete magro com um saco de gemas nas costas, com arte e animação de corrida próprias. Funciona como antes: siga a seta dourada e abata ele em até 15 segundos para o saco se abrir (chuva de gemas, almas e às vezes um baú). Se o tempo acabar, ele escapa.
 - No Modo de Teste o botão virou "EVENTO: TRANSPORTADOR", e ele está na galeria de inimigos.
 
-### Técnico
+#### Técnico
 - Nova entidade `TransporterEnemy` (`src/entities/enemies/TransporterEnemy.ts`); a lógica de fuga saiu do `ZombieDog` (`isFleeing`, `isSpecialMiniBoss` removidos) e foi para a entidade nova. Escala e ritmo de fuga em `HORDE_EVENT_BALANCE.thief` (`scale`, `fleeRelaxDistance`, `relaxedPace`). O id interno do evento continua `thief`.
 - `FX_COLORS.thiefTint` removida (o cão dourado não existe mais).
 - Sprites em `public/assets/sprites/enemies/Transporter/` (fonte em `art-source/Sprites/Enemies/Transporter/`).
 
-## [Não publicado — Ghoul Devorador] — 2026-11-20
+### Ghoul Devorador
 
-### Resumo para o Jogador
+#### Resumo para o Jogador
 - **Minichefe novo no Modo Infinito (3:00):** o Titã Cerberus (que era só o cão zumbi maior) saiu. No lugar dele chega o **Ghoul Devorador**, um monstro de arte própria, bem maior e mais forte: 2100 de vida (era 1400), 24 de dano no contato (era 20), anda um pouco mais rápido e é maior na tela.
 - **Bote telegrafado:** de tempos em tempos ele para, pisca em vermelho por meio segundo e salta em linha reta na direção da Nixy (34 de dano se acertar). Todo golpe dele empurra a Nixy para trás, e o bote empurra bem mais longe. Dá para escapar com a esquiva ou saindo da linha.
 - Ele resiste a atordoamento e empurrões, como os chefes. Recompensa igual à do antigo Titã (gema roxa, 10 a 15 almas e Cálice ou Ímã).
 - No Modo de Teste o botão virou "INVOCAR MINI-BOSS: GHOUL DEVORADOR", e ele está na galeria de inimigos.
 
-### Técnico
+#### Técnico
 - Nova entidade `GhoulEnemy` (`src/entities/enemies/GhoulEnemy.ts`); atributos em `ENEMY_BALANCE.ghoulDevourer` (substitui `titanCerberus`); cor do aviso em `FX_COLORS.ghoulLungeTelegraph`.
 - `spawnTitanCerberus` → `spawnGhoulDevourer`; tipo de horda do Modo de Teste `titan_cerberus` → `ghoul`.
 - Sprites em `public/assets/sprites/enemies/Ghoul/` (fonte em `art-source/Sprites/Enemies/Ghoul/`).
