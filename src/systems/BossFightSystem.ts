@@ -30,6 +30,12 @@ export type BossId = 'rosalin' | 'azazel';
 const AZAZEL_DIMENSION_MAP_ID = 202;
 const DEFAULT_CAMERA_ZOOM = 2.0;
 const AZAZEL_FIGHT_ZOOM = 1.35;
+/**
+ * Espera do fim do loop da intro do Azazel: a câmera desliza bem devagar até ele e se
+ * aproxima (o jogador vê que algo vai acontecer, não acha que travou). Quando o loop
+ * acaba, ela volta rápido para a heroína e abre para o zoom da luta.
+ */
+const AZAZEL_APPROACH = { zoom: 2.5, durationMs: 5000, pullBackMs: 450 } as const;
 
 /** O que o sistema usa da HUD (a UIScene cumpre este contrato). */
 export interface IBossFightHud {
@@ -494,11 +500,12 @@ export class BossFightSystem {
       this.ctx.clearCombatSpeechBubbles();
       this.ctx.isPlayerMovementLocked = true;
       this.facePlayerNorth();
+      this.approachCameraToAzazel();
 
       SoundManager.getInstance().finishAzazelIntroAndTransition(
         () => {
-          // Câmera abre para caber raios e investidas na tela
-          this.ctx.setCameraZoom(AZAZEL_FIGHT_ZOOM, 1200);
+          // Fim do loop: câmera volta rápido para a heroína e abre para caber raios e investidas
+          this.pullCameraBackFromAzazel();
           const boss = this.ctx.azazelBoss;
           if (boss && boss.active) boss.playMidPrepareScream(this.ctx.player);
         },
@@ -513,6 +520,40 @@ export class BossFightSystem {
         }
       );
     });
+  }
+
+  /**
+   * A câmera continua seguindo a heroína (parada), mas o deslocamento do acompanhamento
+   * desliza até centralizar o Azazel, enquanto o zoom aproxima devagar.
+   */
+  private approachCameraToAzazel(): void {
+    const boss = this.ctx.azazelBoss;
+    if (!boss || !boss.active) return;
+    const cam = this.scene.cameras.main;
+    const player = this.ctx.player;
+    this.scene.tweens.killTweensOf(cam.followOffset);
+    this.scene.tweens.add({
+      targets: cam.followOffset,
+      x: player.x - boss.x,
+      y: player.y - boss.y,
+      duration: AZAZEL_APPROACH.durationMs,
+      ease: 'Sine.easeInOut',
+    });
+    this.ctx.setCameraZoom(AZAZEL_APPROACH.zoom, AZAZEL_APPROACH.durationMs);
+  }
+
+  private pullCameraBackFromAzazel(): void {
+    const cam = this.scene.cameras.main;
+    this.scene.tweens.killTweensOf(cam.followOffset);
+    this.scene.tweens.killTweensOf(cam);
+    this.scene.tweens.add({
+      targets: cam.followOffset,
+      x: 0,
+      y: 0,
+      duration: AZAZEL_APPROACH.pullBackMs,
+      ease: 'Cubic.easeOut',
+    });
+    this.ctx.setCameraZoom(AZAZEL_FIGHT_ZOOM, AZAZEL_APPROACH.pullBackMs);
   }
 
   public spawnAzazel(isCinematicIntro = false): void {

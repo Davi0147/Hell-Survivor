@@ -549,6 +549,90 @@ Salve em `art-source/novos/cenario/ch1-props.png`, `ch1-decals.png` e `floor-ch1
 
 ---
 
+## 16. Azazel: projéteis e efeitos das habilidades (8 peças)
+
+Troca as orbes feias e os efeitos desenhados por código das habilidades do Azazel. Uma imagem, grade 4x2; eu recorto pelo magenta e ligo cada peça ao golpe dela.
+
+| Célula | Peça | Onde aparece | Arquivo final |
+|---|---|---|---|
+| 1 | Orbe sombria | Disparo direcionado, teleporte, clones da escuridão | `azazel-orb.png` |
+| 2 | Pena negra | Leque de Penas (novo) | `azazel-feather.png` |
+| 3 | Raio vertical | Tempestade de Raios | `azazel-lightning-bolt.png` |
+| 4 | Marca do impacto do raio | Chão onde o raio caiu | `azazel-lightning-scorch.png` |
+| 5 | Auréola partida | Onda da Auréola Partida (nova) | `azazel-halo-ring.png` |
+| 6 | Explosão de penas e fumaça | Teleporte e reaparições | `azazel-teleport-burst.png` |
+| 7 | Sigilo de aviso no chão | Marcação antes do raio | `azazel-warning-sigil.png` |
+| 8 | Orbe da espiral | Barragem em Espiral | `azazel-spiral-orb.png` |
+
+Prompt único — copiar e colar inteiro:
+
+```text
+Create ONE image: a pixel art sprite sheet of 8 attack effects for a FALLEN ANGEL boss
+(Azazel) in a dark gothic hell-themed 2D top-down action roguelite.
+
+=== GLOBAL STYLE (applies to every piece) ===
+16-bit pixel art, hand-placed pixels, crisp hard edges, NO anti-aliasing, NO blur, NO soft
+airbrush gradients, NO photorealism, NO 3D render look. Theme: a fallen angel of the
+abyss: black feathers, broken holy light turned corrupt, crimson and violet energy,
+tarnished gold. Palette ONLY: near-black purple (#0b0208, #1a0a1f), deep violet (#4b1673,
+#7b2cbf), neon magenta-violet glow (#c77dff, #e0aaff), crimson (#ff0044, #8a0f2a),
+hot pink-white core highlights (#ffd6ff), tarnished gold (#8a6a2a, #c59b27), bone white
+(#efe6d8). Strong 1-2 pixel near-black outline (#12020a) on solid shapes. Bright glowing
+core, darker rim, high contrast so each piece reads at small size on a dark floor.
+No text, no letters, no numbers, no watermark, no signature anywhere.
+
+=== CANVAS AND BACKGROUND ===
+Canvas 2048x1024 pixels, landscape. The ENTIRE background is solid flat pure magenta
+#FF00FF, one single color, no texture, no vignette, no shadow on it, no glow bleeding onto
+it, no transparency checkerboard. Invisible grid of 4 columns x 2 rows of 512x512 cells.
+Exactly ONE piece per cell, centered in its cell, never touching or crossing into another
+cell, at least 40 px of pure #FF00FF margin around every piece. Do not use magenta inside
+the art itself (use violet #7b2cbf or pink-white #ffd6ff instead).
+
+=== ROW 1 (left to right) ===
+Cell 1 - DARK SOUL ORB (projectile, flies to the RIGHT): a round orb of swirling violet and
+  crimson soul energy with a bright pink-white core, a tiny screaming skull face faintly
+  visible inside, and a short wispy smoke tail trailing to the LEFT. Compact, fills about
+  45% of the cell.
+Cell 2 - BLACK FEATHER (projectile, points to the RIGHT): one long sharp black angel
+  feather lying horizontal, quill on the LEFT and razor tip on the RIGHT, glowing crimson
+  edge along the vane, two tiny violet sparks behind it. Fills about 70% of the cell width,
+  thin height.
+Cell 3 - LIGHTNING BOLT (vertical): a jagged corrupted lightning bolt falling straight down
+  from the TOP edge of the art to the BOTTOM, crimson outer glow, violet body, pink-white
+  core line, small branching forks. Tall and narrow: fills about 85% of the cell height.
+Cell 4 - LIGHTNING SCORCH (top-down ground mark): a round blackened crater seen from above,
+  cracked stone, glowing crimson-violet cracks radiating out, a few small embers. Flat on
+  the ground, fills about 70% of the cell.
+
+=== ROW 2 (left to right) ===
+Cell 5 - BROKEN HALO RING (top-down): a big perfect CIRCLE ring seen from above, made of
+  tarnished gold with violet corrupted energy, cracked into 5 segments with small gaps
+  between them, tiny floating shards near each gap, faint crimson glow. The ring is THIN
+  (about 6% of its diameter) and the CENTER IS EMPTY flat magenta #FF00FF. Fills about 90%
+  of the cell.
+Cell 6 - TELEPORT BURST: a round explosion of black feathers and violet smoke puffs
+  bursting outward from the center, a pink-white flash in the middle. Fills about 75% of
+  the cell.
+Cell 7 - WARNING SIGIL (top-down ground marker): a circular demonic sigil drawn on the
+  floor, thin crimson glowing lines: outer circle, inner circle, an inverted broken-halo
+  symbol and small runes around the edge, everything thin and clean. The CENTER and the
+  spaces between lines are EMPTY flat magenta #FF00FF. Fills about 85% of the cell.
+Cell 8 - SPIRAL ORB (projectile, flies to the RIGHT): smaller than cell 1, a crimson-gold
+  orb with a hot white core and a short curved spiral tail trailing to the LEFT. Fills about
+  35% of the cell.
+
+=== DO NOT ===
+Do not add circles, frames or backgrounds behind the pieces. Do not merge or overlap
+pieces. Do not draw the Azazel character itself. Do not add text or numbers.
+```
+
+**Se o gerador errar a grade:** gere em 2 imagens, uma por linha, pedindo `canvas 2048x512, 4 columns x 1 row of 512x512 cells`.
+
+Salve como `art-source/novos/azazel-efeitos.png` e me avise.
+
+---
+
 ## 15. Menu de pausa (moldura, placa do título e 3 botões)
 
 O conteúdo do menu (tempo, abates, nível, almas, bônus, armas, volume) já é desenhado pelo jogo. Esta folha dá a **borda** em volta do painel, a **placa do título** e os **3 botões**, no mesmo estilo violeta do painel de status. Tudo vazio por dentro: o jogo escreve os textos.

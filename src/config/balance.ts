@@ -346,17 +346,54 @@ export const AZAZEL_BOSS_BALANCE = {
   scale: 1.65,
   /** Fração do dano que atravessa a armadura dele. */
   damageTaken: 0.85,
-  baseContactDamage: 13,
-  cloneContactDamage: 10,
+  /**
+   * Imunidade depois de levar qualquer golpe dele (ms), a mesma do contato com monstros:
+   * golpes não se somam no mesmo instante. Antes, o dash da escuridão acertava a cada
+   * quadro em que passava pela heroína (5 a 6 vezes) e matava de uma vez.
+   */
+  playerHitCooldownMs: 500,
+  baseContactDamage: 8,
+  cloneContactDamage: 8,
   // Chuva de projéteis: pouco dano por orbe porque são muitos na tela
   directedBurstOrbDamage: 9,
   teleportOrbDamage: 8,
   spiralOrbDamage: 8,
   darkCloneOrbDamage: 8,
-  // Golpes telegrafados: doem mais porque dá para desviar
-  rapidDashDamage: 18,
+  // Golpes telegrafados: doem mais porque dá para desviar (cada um acerta uma vez só)
+  rapidDashDamage: 20,
   lightningBoltDamage: 18,
-  darkFiveDashesDamage: 12,
+  darkFiveDashesDamage: 14,
+  /** Leque de Penas: cone marcado no chão, depois uma rajada de penas dentro dele. */
+  featherFan: {
+    cooldownMs: 9000,
+    firstCooldownMs: 5500,
+    telegraphMs: 850,
+    /** Nos últimos ms da marcação o cone para de seguir a heroína (dá para sair). */
+    lockMs: 350,
+    coneHalfAngle: 0.5,
+    coneLength: 460,
+    feathers: 9,
+    speed: 400,
+    damage: 10,
+  },
+  /**
+   * Auréola Partida: anel que nasce nele e se expande pela arena. A saída é atravessar
+   * o anel com a esquiva (ou estar longe). Só abaixo de `hpFraction` da vida.
+   */
+  haloWave: {
+    hpFraction: 0.75,
+    cooldownMs: 13000,
+    firstCooldownMs: 3000,
+    telegraphMs: 1000,
+    startRadius: 60,
+    endRadius: 600,
+    expandMs: 1400,
+    thickness: 36,
+    damage: 16,
+    /** Fase final: duas ondas seguidas, com este intervalo. */
+    finalPhaseWaves: 2,
+    waveGapMs: 650,
+  },
   /** Fase da escuridão: tempo de mira de cada investida (ms). */
   darkDashAimMs: 420,
   /** Fase dos cristais: quantos cristais, e de quanto em quanto tempo nasce uma leva. */

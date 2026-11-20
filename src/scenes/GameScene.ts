@@ -1235,6 +1235,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.bossFights.onPlayerDeath();
   }
 
+  /** A heroína está na imunidade curta depois de levar um golpe (contato ou chefe). */
+  public get isPlayerInvulnerable(): boolean {
+    return this.playerInvulnerableTimer > 0;
+  }
+
   /** Deixa o jogador intocável por contato durante `ms` (nunca encurta uma imunidade maior). */
   public grantInvulnerability(ms: number): void {
     this.playerInvulnerableTimer = Math.max(this.playerInvulnerableTimer, ms);

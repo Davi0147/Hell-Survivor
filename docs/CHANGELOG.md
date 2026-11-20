@@ -2,6 +2,15 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — Azazel Refinado — 2026-11-20
+
+### Resumo para o Jogador
+- **Azazel não mata mais de uma vez:** o dash da escuridão acertava a cada quadro em que passava pela Nixy (5 ou 6 vezes seguidas) e matava de uma vez. Agora cada golpe dele acerta uma vez só, e depois de um acerto a Nixy fica meio segundo imune (a mesma imunidade do contato com monstros): golpes não se somam no mesmo instante. Nenhum golpe passa de 20 de dano. O contato com o corpo dele caiu de 13 para 8.
+- **Duas habilidades novas:**
+  - **Leque de Penas:** ele marca um cone no chão na direção da Nixy e solta uma rajada de 9 penas. O cone para de mirar um pouco antes do disparo: dá para sair.
+  - **Auréola Partida:** abaixo de 75% da vida, ele ergue a mão e um anel se expande pela arena. Atravesse com a esquiva ou fique longe. Na fase final ele solta duas ondas seguidas.
+- **Entrada com câmera:** enquanto ele espera a música terminar o loop, a câmera desliza devagar até ele e se aproxima (para ninguém achar que o jogo travou). Quando a música vira, a câmera volta rápido para a Nixy.
+
 ## [v0.13.2 — HUD Não Some Mais] — 2026-11-20
 
 ### Resumo para o Jogador

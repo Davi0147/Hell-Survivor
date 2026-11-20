@@ -15,6 +15,8 @@ type AzazelState =
   | 'DASHING'
   | 'LIGHTNING_STORM'
   | 'SPIRAL_BARRAGE'
+  | 'FEATHER_FAN'
+  | 'HALO_WAVE'
   | 'TRANSITIONING'
   | 'DARK_FIVE_DASHES'
   | 'DARK_EIGHT_CLONES'
@@ -27,6 +29,23 @@ interface LightningMarker {
   maxTimer: number;
   struck: boolean;
 }
+
+/** Onda da Auréola Partida: anel que cresce a partir de onde ele estava. */
+interface HaloWave {
+  x: number;
+  y: number;
+  elapsedMs: number;
+  hasHit: boolean;
+}
+
+/** O que o Azazel precisa da cena para dividir a imunidade curta da heroína com o contato. */
+interface IPlayerHitScene {
+  isPlayerInvulnerable?: boolean;
+  grantInvulnerability?: (ms: number) => void;
+}
+
+const FEATHER_TEXTURE = 'azazel-feather';
+const ORB_TEXTURE = 'azazel-orb';
 
 /**
  * Clone Espectral de Azazel usado na Fase 2 (8 Azazels ao redor do jogador).
@@ -142,6 +161,19 @@ export class AzazelBoss extends BaseEnemy {
   private dashCooldown: number = 5200;
   private lightningCooldown: number = 7800;
   private spiralCooldown: number = 11500;
+  private featherCooldown: number = AZAZEL_BOSS_BALANCE.featherFan.firstCooldownMs;
+  private haloCooldown: number = AZAZEL_BOSS_BALANCE.haloWave.firstCooldownMs;
+
+  // Leque de Penas (cone no chão -> rajada de penas)
+  private featherAngle: number = 0;
+
+  // Auréola Partida (anéis que se expandem)
+  private haloWaves: HaloWave[] = [];
+  private haloWavesToSpawn: number = 0;
+  private haloGraphics!: Phaser.GameObjects.Graphics;
+
+  // Dash da escuridão: cada passada acerta uma vez só
+  private darkDashHasHit: boolean = false;
 
   // Investida Rápida (Rapid Dash)
   private dashTargetVector: { x: number; y: number } = { x: 1, y: 0 };
@@ -192,6 +224,9 @@ export class AzazelBoss extends BaseEnemy {
     this.telegraphGraphics = scene.add.graphics();
     this.telegraphGraphics.setDepth(21);
 
+    this.haloGraphics = scene.add.graphics();
+    this.haloGraphics.setDepth(21);
+
     this.projectilesGroup = scene.add.group({
       classType: DarkOrbProjectile,
       maxSize: 90,
@@ -238,6 +273,10 @@ export class AzazelBoss extends BaseEnemy {
     this.dashCooldown = 4800;
     this.lightningCooldown = 6800;
     this.spiralCooldown = 10200;
+    this.featherCooldown = AZAZEL_BOSS_BALANCE.featherFan.firstCooldownMs;
+    this.haloCooldown = AZAZEL_BOSS_BALANCE.haloWave.firstCooldownMs;
+    this.haloWaves = [];
+    this.haloWavesToSpawn = 0;
 
     this.play('azazel-idle-south', true);
 
@@ -254,6 +293,10 @@ export class AzazelBoss extends BaseEnemy {
     if (!this.telegraphGraphics || !this.telegraphGraphics.scene) {
       this.telegraphGraphics = this.scene.add.graphics();
       this.telegraphGraphics.setDepth(21);
+    }
+    if (!this.haloGraphics || !this.haloGraphics.scene) {
+      this.haloGraphics = this.scene.add.graphics();
+      this.haloGraphics.setDepth(21);
     }
 
     if (!isCinematicIntro) {
@@ -377,14 +420,19 @@ export class AzazelBoss extends BaseEnemy {
       const p = projs[i];
       if (p.active) {
         p.updateProjectile(deltaMs);
-        if (Math.hypot(p.x - player.x, p.y - player.y) <= 22) {
-          p.onHitPlayer(player);
+        if (p.active && Math.hypot(p.x - player.x, p.y - player.y) <= 22) {
+          // A orbe some ao encostar; só machuca se a heroína não estiver na imunidade curta
+          if (this.hitPlayer(player, p.damage)) this.scene.cameras.main.shake(100, 0.008);
+          p.deactivate();
         }
       }
     }
 
     // Atualiza marcadores de raio no chão (1 segundo de aviso antes da queda)
     this.updateLightningMarkers(player, deltaMs);
+
+    // Ondas da Auréola Partida continuam crescendo mesmo depois que ele volta a andar
+    this.updateHaloWaves(player, deltaMs);
 
     // Desenha e aplica limite da Arena Delimitada (Fase 1 e Fase 4)
     this.updateArenaBarrier(player);
@@ -425,9 +473,19 @@ export class AzazelBoss extends BaseEnemy {
       this.dashCooldown -= deltaMs * speedFactor;
       this.lightningCooldown -= deltaMs * speedFactor;
       this.spiralCooldown -= deltaMs * speedFactor;
+      this.featherCooldown -= deltaMs * speedFactor;
+      if (this.isHaloUnlocked()) this.haloCooldown -= deltaMs * speedFactor;
 
+      if (this.isHaloUnlocked() && this.haloCooldown <= 0 && this.haloWaves.length === 0) {
+        this.startHaloWave(player);
+        return;
+      }
       if (this.spiralCooldown <= 0) {
         this.startSpiralBarrage(player);
+        return;
+      }
+      if (this.featherCooldown <= 0) {
+        this.startFeatherFan(player);
         return;
       }
       if (this.lightningCooldown <= 0) {
@@ -456,7 +514,165 @@ export class AzazelBoss extends BaseEnemy {
       this.updateLightningStormState(player, deltaMs);
     } else if (this.bossState === 'SPIRAL_BARRAGE') {
       this.updateSpiralBarrage(player, deltaMs);
+    } else if (this.bossState === 'FEATHER_FAN') {
+      this.updateFeatherFan(player, deltaMs);
+    } else if (this.bossState === 'HALO_WAVE') {
+      this.updateHaloChannel(player, deltaMs);
     }
+  }
+
+  // =========================================================================
+  // DANO NA HEROÍNA: TODO GOLPE DELE PASSA POR AQUI
+  // =========================================================================
+  /**
+   * Aplica um golpe já com o multiplicador. Respeita a esquiva e a imunidade curta da
+   * heroína (a mesma do contato com monstros), e abre essa imunidade ao acertar: dois
+   * golpes nunca somam no mesmo instante. Devolve se acertou.
+   */
+  private hitPlayer(player: BaseCharacter, damage: number): boolean {
+    if (player.isDashInvulnerable) return false;
+    const scene = this.scene as Phaser.Scene & IPlayerHitScene;
+    if (scene.isPlayerInvulnerable) return false;
+    player.takeDamage(damage);
+    scene.grantInvulnerability?.(AZAZEL_BOSS_BALANCE.playerHitCooldownMs);
+    return true;
+  }
+
+  // =========================================================================
+  // GOLPE NOVO: LEQUE DE PENAS (CONE NO CHÃO -> RAJADA DE PENAS NEGRAS)
+  // =========================================================================
+  private startFeatherFan(player: BaseCharacter): void {
+    const cfg = AZAZEL_BOSS_BALANCE.featherFan;
+    this.bossState = 'FEATHER_FAN';
+    this.stateTimer = cfg.telegraphMs;
+    this.featherCooldown = cfg.cooldownMs;
+    this.featherAngle = Math.atan2(player.y - this.y, player.x - this.x);
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) body.setVelocity(0, 0);
+    this.updateHandAnimation(this.featherAngle);
+    SoundManager.getInstance().playAzazelTeleport();
+  }
+
+  private updateFeatherFan(player: BaseCharacter, deltaMs: number): void {
+    const cfg = AZAZEL_BOSS_BALANCE.featherFan;
+    this.stateTimer -= deltaMs;
+
+    // Segue a heroína até faltar `lockMs`; depois trava para dar tempo de sair do cone
+    if (this.stateTimer > cfg.lockMs) {
+      this.featherAngle = Math.atan2(player.y - this.y, player.x - this.x);
+      this.updateHandAnimation(this.featherAngle);
+    }
+
+    const progress = Phaser.Math.Clamp(1 - this.stateTimer / cfg.telegraphMs, 0, 1);
+    const g = this.telegraphGraphics;
+    g.clear();
+    const a0 = this.featherAngle - cfg.coneHalfAngle;
+    const a1 = this.featherAngle + cfg.coneHalfAngle;
+    g.fillStyle(BOSS_TELEGRAPH.circleFillColor, BOSS_TELEGRAPH.circleFillAlpha(progress));
+    g.beginPath();
+    g.slice(this.x, this.y, cfg.coneLength * (0.35 + 0.65 * progress), a0, a1, false);
+    g.fillPath();
+    g.lineStyle(BOSS_TELEGRAPH.circleBorderThickness(progress), BOSS_TELEGRAPH.circleBorderColor, 0.85);
+    g.beginPath();
+    g.slice(this.x, this.y, cfg.coneLength, a0, a1, false);
+    g.strokePath();
+
+    if (this.stateTimer <= 0) {
+      g.clear();
+      for (let i = 0; i < cfg.feathers; i++) {
+        const t = i / Math.max(1, cfg.feathers - 1);
+        const angle = a0 + (a1 - a0) * t;
+        this.spawnAzazelProjectile(this.x, this.y, angle, cfg.speed, cfg.damage, FEATHER_TEXTURE);
+      }
+      this.scene.cameras.main.shake(140, 0.01);
+      this.bossState = 'CHASE';
+    }
+  }
+
+  // =========================================================================
+  // GOLPE NOVO: AURÉOLA PARTIDA (ANEL QUE SE EXPANDE; ATRAVESSE COM A ESQUIVA)
+  // =========================================================================
+  /** Abaixo de uma fração da vida (e sempre na fase final). */
+  private isHaloUnlocked(): boolean {
+    if (this.combatPhase === 4) return true;
+    return this.combatPhase === 1 && this.hp / this.maxHp <= AZAZEL_BOSS_BALANCE.haloWave.hpFraction;
+  }
+
+  private startHaloWave(player: BaseCharacter): void {
+    const cfg = AZAZEL_BOSS_BALANCE.haloWave;
+    this.bossState = 'HALO_WAVE';
+    this.stateTimer = cfg.telegraphMs;
+    this.haloCooldown = cfg.cooldownMs;
+    this.haloWavesToSpawn = this.combatPhase === 4 ? cfg.finalPhaseWaves : 1;
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) body.setVelocity(0, 0);
+    this.updateHandAnimation(Math.atan2(player.y - this.y, player.x - this.x));
+    SoundManager.getInstance().playDialogueVoice('azazel');
+  }
+
+  /** Ele fica parado com a mão erguida enquanto a auréola carrega e solta as ondas. */
+  private updateHaloChannel(player: BaseCharacter, deltaMs: number): void {
+    const cfg = AZAZEL_BOSS_BALANCE.haloWave;
+    this.stateTimer -= deltaMs;
+    this.updateHandAnimation(Math.atan2(player.y - this.y, player.x - this.x));
+
+    if (this.stateTimer <= 0 && this.haloWavesToSpawn > 0) {
+      this.haloWavesToSpawn--;
+      this.haloWaves.push({ x: this.x, y: this.y, elapsedMs: 0, hasHit: false });
+      SoundManager.getInstance().playAzazelLightningStrike();
+      this.scene.cameras.main.shake(180, 0.012);
+      this.stateTimer = this.haloWavesToSpawn > 0 ? cfg.waveGapMs : 0;
+    }
+    if (this.stateTimer <= 0 && this.haloWavesToSpawn === 0) {
+      this.bossState = 'CHASE';
+    }
+  }
+
+  private updateHaloWaves(player: BaseCharacter, deltaMs: number): void {
+    const cfg = AZAZEL_BOSS_BALANCE.haloWave;
+    const g = this.haloGraphics;
+    if (!g || !g.scene) return;
+    g.clear();
+
+    // Carregando: anel pulsando em volta dele
+    if (this.bossState === 'HALO_WAVE' && this.haloWavesToSpawn > 0) {
+      const charge = Phaser.Math.Clamp(1 - this.stateTimer / cfg.telegraphMs, 0, 1);
+      g.lineStyle(3 + charge * 5, BOSS_TELEGRAPH.circleBorderColor, 0.5 + charge * 0.5);
+      g.strokeCircle(this.x, this.y, cfg.startRadius + Math.sin(this.scene.time.now * 0.02) * 4);
+      g.lineStyle(BOSS_TELEGRAPH.innerThickness, BOSS_TELEGRAPH.innerColor, charge);
+      g.strokeCircle(this.x, this.y, cfg.startRadius * (0.5 + charge * 0.5));
+    }
+
+    for (let i = this.haloWaves.length - 1; i >= 0; i--) {
+      const w = this.haloWaves[i];
+      w.elapsedMs += deltaMs;
+      const t = w.elapsedMs / cfg.expandMs;
+      if (t >= 1) {
+        this.haloWaves.splice(i, 1);
+        continue;
+      }
+      const radius = cfg.startRadius + (cfg.endRadius - cfg.startRadius) * t;
+      g.lineStyle(cfg.thickness, BOSS_TELEGRAPH.circleFillColor, 0.35 * (1 - t) + 0.25);
+      g.strokeCircle(w.x, w.y, radius);
+      g.lineStyle(4, BOSS_TELEGRAPH.innerColor, 1 - t * 0.5);
+      g.strokeCircle(w.x, w.y, radius);
+
+      if (!w.hasHit) {
+        const dist = Math.hypot(player.x - w.x, player.y - w.y);
+        if (Math.abs(dist - radius) <= cfg.thickness / 2 + 10 && this.hitPlayer(player, this.scaleAttack(cfg.damage))) {
+          w.hasHit = true;
+          this.scene.cameras.main.shake(160, 0.014);
+        }
+      }
+    }
+  }
+
+  private clearHaloWaves(): void {
+    this.haloWaves = [];
+    this.haloWavesToSpawn = 0;
+    if (this.haloGraphics && this.haloGraphics.scene) this.haloGraphics.clear();
   }
 
   // =========================================================================
@@ -582,6 +798,11 @@ export class AzazelBoss extends BaseEnemy {
   }
 
   public spawnAzazelOrb(x: number, y: number, angle: number, speed: number, dmg: number): void {
+    this.spawnAzazelProjectile(x, y, angle, speed, dmg, ORB_TEXTURE);
+  }
+
+  /** Projétil do Azazel (orbe ou pena), do mesmo grupo: tudo some nas trocas de fase. */
+  private spawnAzazelProjectile(x: number, y: number, angle: number, speed: number, dmg: number, textureKey: string): void {
     let proj = this.projectilesGroup.getChildren().find(
       (child) => !child.active
     ) as DarkOrbProjectile | undefined;
@@ -592,7 +813,9 @@ export class AzazelBoss extends BaseEnemy {
     }
 
     SoundManager.getInstance().playAzazelOrbShoot();
-    proj.fire(x, y, angle, speed, this.scaleAttack(dmg), 'azazel-orb');
+    // Sem arte própria ainda (ex.: pena), usa a orbe
+    const key = this.scene.textures.exists(textureKey) ? textureKey : ORB_TEXTURE;
+    proj.fire(x, y, angle, speed, this.scaleAttack(dmg), key);
   }
 
   // =========================================================================
@@ -720,8 +943,7 @@ export class AzazelBoss extends BaseEnemy {
       });
     }
 
-    if (Math.hypot(this.x - player.x, this.y - player.y) <= 44) {
-      player.takeDamage(this.scaleAttack(AZAZEL_BOSS_BALANCE.rapidDashDamage));
+    if (Math.hypot(this.x - player.x, this.y - player.y) <= 44 && this.hitPlayer(player, this.scaleAttack(AZAZEL_BOSS_BALANCE.rapidDashDamage))) {
       this.scene.cameras.main.shake(170, 0.016);
       this.endDash();
       return;
@@ -852,7 +1074,7 @@ export class AzazelBoss extends BaseEnemy {
 
     // Dano se o jogador estiver no raio de impacto
     if (Math.hypot(player.x - x, player.y - y) <= radius) {
-      player.takeDamage(this.scaleAttack(AZAZEL_BOSS_BALANCE.lightningBoltDamage));
+      this.hitPlayer(player, this.scaleAttack(AZAZEL_BOSS_BALANCE.lightningBoltDamage));
     }
   }
 
@@ -910,6 +1132,7 @@ export class AzazelBoss extends BaseEnemy {
     this.arenaGraphics.clear();
     this.telegraphGraphics.clear();
     this.lightningMarkers = [];
+    this.clearHaloWaves();
     this.deactivateAllProjectiles();
 
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -1037,6 +1260,7 @@ export class AzazelBoss extends BaseEnemy {
       if (this.stateTimer <= 0) {
         this.telegraphGraphics.clear();
         this.darkDashSubState = 'DASH';
+        this.darkDashHasHit = false;
         this.stateTimer = 250; // Avanço relâmpago (0.25s)
         SoundManager.getInstance().playBossDash();
 
@@ -1059,8 +1283,10 @@ export class AzazelBoss extends BaseEnemy {
         onComplete: () => ghost.destroy()
       });
 
-      if (Math.hypot(this.x - player.x, this.y - player.y) <= 42) {
-        player.takeDamage(this.scaleAttack(AZAZEL_BOSS_BALANCE.darkFiveDashesDamage));
+      // Uma passada = no máximo um acerto (antes acertava a cada quadro em cima dela)
+      if (!this.darkDashHasHit && Math.hypot(this.x - player.x, this.y - player.y) <= 42 &&
+        this.hitPlayer(player, this.scaleAttack(AZAZEL_BOSS_BALANCE.darkFiveDashesDamage))) {
+        this.darkDashHasHit = true;
         this.scene.cameras.main.shake(140, 0.014);
       }
 
@@ -1197,6 +1423,7 @@ export class AzazelBoss extends BaseEnemy {
     this.isInvulnerable = true;
     this.telegraphGraphics.clear();
     this.lightningMarkers = [];
+    this.clearHaloWaves();
     this.deactivatePhantomClones();
     this.deactivateAllProjectiles();
 
@@ -1266,6 +1493,9 @@ export class AzazelBoss extends BaseEnemy {
     this.dashCooldown = 3800;
     this.lightningCooldown = 5500;
     this.spiralCooldown = 8500;
+    this.featherCooldown = AZAZEL_BOSS_BALANCE.featherFan.firstCooldownMs;
+    this.haloCooldown = AZAZEL_BOSS_BALANCE.haloWave.firstCooldownMs;
+    this.clearHaloWaves();
 
     SoundManager.getInstance().playAzazelTeleport();
     this.playMidPrepareScream(player);
@@ -1348,6 +1578,10 @@ export class AzazelBoss extends BaseEnemy {
     }
     if (this.telegraphGraphics && this.telegraphGraphics.scene) {
       this.telegraphGraphics.destroy();
+    }
+    this.clearHaloWaves();
+    if (this.haloGraphics && this.haloGraphics.scene) {
+      this.haloGraphics.destroy();
     }
 
     const body = this.body as Phaser.Physics.Arcade.Body;
