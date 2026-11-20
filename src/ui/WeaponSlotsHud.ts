@@ -9,6 +9,9 @@ const ULT = 66;
 const KEYCAP = 26;
 const GAP = 8;
 const MAX_WEAPON_SLOTS = 6;
+/** Toque: distância da barra até a borda de baixo e até o painel da Nixy. */
+const TOUCH_BOTTOM_MARGIN = 18;
+const TOUCH_PANEL_GAP = 20;
 
 /** O que a barra lê do personagem para o espaço da Suprema. */
 export interface IWeaponSlotsPlayer {
@@ -40,6 +43,7 @@ export class WeaponSlotsHud {
   private readonly ultKeyCap: Phaser.GameObjects.Graphics;
   private readonly slots: Slot[] = [];
   private keyLabelHidden = false;
+  private touchLayout = false;
 
   constructor(private readonly ui: Phaser.Scene, onUltimateClick?: () => void) {
     const { height } = ui.scale;
@@ -85,6 +89,30 @@ export class WeaponSlotsHud {
 
     // Por último, para ficar por cima de tudo
     this.container.add([this.ultKeyCap, this.ultKey]);
+  }
+
+  /**
+   * Toque: a barra vai para o meio de baixo, liberando o canto esquerdo para o analógico.
+   * `rightLimit` é onde começa o painel da Nixy: a barra recua para não encostar nele.
+   */
+  public setTouchLayout(isTouch: boolean, rightLimit: number): void {
+    if (this.touchLayout === isTouch) return;
+    this.touchLayout = isTouch;
+    const { width, height } = this.ui.scale;
+    if (!isTouch) {
+      this.container.setPosition(26 + ULT / 2, height - 100);
+      return;
+    }
+    const total = ULT + MAX_WEAPON_SLOTS * (SLOT + GAP);
+    const left = Math.min(width / 2 - total / 2, rightLimit - TOUCH_PANEL_GAP - total);
+    this.container.setPosition(left + ULT / 2, height - ULT / 2 - TOUCH_BOTTOM_MARGIN);
+  }
+
+  /** Retângulo ocupado pela barra (px de jogo), para o analógico não nascer em cima dela. */
+  public getBounds(): { left: number; top: number; right: number; bottom: number } {
+    const total = ULT + MAX_WEAPON_SLOTS * (SLOT + GAP);
+    const left = this.container.x - ULT / 2;
+    return { left, top: this.container.y - ULT / 2 - KEYCAP / 2, right: left + total, bottom: this.container.y + ULT / 2 + KEYCAP / 2 };
   }
 
   /** Some junto com o resto da HUD. */

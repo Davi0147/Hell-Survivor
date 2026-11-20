@@ -2,6 +2,15 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [v0.13.1 — Celular Confortável] — 2026-11-20
+
+### Resumo para o Jogador
+- **Sem faixa preta embaixo no iPhone (provável):** o jogo espera o celular terminar de ajustar a tela antes de medir, e se a área visível mudar enquanto você está no menu ele se reajusta sozinho.
+- **Barra de armas no meio de baixo** no celular, liberando o canto esquerdo para o analógico.
+- **Analógico nasce onde você tocar** em qualquer ponto da metade esquerda da tela (fora do radar, da Suprema e da barra de armas). Parado, ele fica apagado; com o dedo, acende.
+- **Botões maiores** (corrida, esquiva, Suprema e pausa) e com **contorno branco** para enxergar em cima de qualquer chão.
+- **Etiqueta da versão menor** e mais discreta no canto da tela.
+
 ## [v0.13.0 — Abismo Agitado] — 2026-11-20
 
 ### Resumo para o Jogador

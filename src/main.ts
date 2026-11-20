@@ -65,6 +65,10 @@ async function bootstrap() {
     }
   }
 
+  // iPhone: as áreas seguras (notch, barra de início) e a altura visível só assentam alguns
+  // quadros depois de abrir. Medir cedo demais escolhe um formato errado e sobra faixa preta.
+  await waitForLayoutToSettle();
+
   // A largura do jogo acompanha o formato da tela (sem borda preta nos lados do celular)
   const startWidth = getGameWidthForScreen(...getVisibleArea());
   const useCanvas = readRenderMode() === 'canvas';
@@ -76,25 +80,50 @@ async function bootstrap() {
   // Se a pÃ¡gina carrega com o contÃªiner ainda sem tamanho (aba em segundo plano, WebView
   // abrindo, painel recolhido), o Phaser calcula um canvas 0x0 e nÃ£o recalcula sozinho,
   // deixando a tela preta. Reajusta sempre que o contÃªiner mudar de tamanho.
+  // Girou o celular, as barras do Safari sumiram ou a área segura mudou: se o formato da tela
+  // ficou diferente do jogo e ainda estamos no menu (nada a perder), recarrega para o jogo
+  // assumir a largura certa; no meio da partida só ajusta a escala.
+  let refitTimer: number | undefined;
+  const scheduleRefit = (): void => {
+    game.scale.refresh();
+    window.clearTimeout(refitTimer);
+    refitTimer = window.setTimeout(() => refitIfInMenu(game), 450);
+  };
   const container = document.getElementById('game-container');
   if (container && typeof ResizeObserver !== 'undefined') {
-    new ResizeObserver(() => game.scale.refresh()).observe(container);
+    new ResizeObserver(scheduleRefit).observe(container);
   }
-  // iPhone: as barras do Safari aparecem e somem sem mudar o tamanho do contêiner
-  window.visualViewport?.addEventListener('resize', () => game.scale.refresh());
+  window.visualViewport?.addEventListener('resize', scheduleRefit);
+  window.addEventListener('resize', scheduleRefit);
+}
 
-  // Girou o celular ou mudou muito o formato da janela: se ainda estÃ¡ no menu (nada a perder),
-  // recarrega para o jogo assumir a largura certa; no meio da partida sÃ³ ajusta a escala.
-  let resizeTimer: number | undefined;
-  window.addEventListener('resize', () => {
-    window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => {
-      const wanted = getGameWidthForScreen(...getVisibleArea());
-      if (Math.abs(wanted - game.scale.gameSize.width) < 60) return;
-      const inMenu = game.scene.isActive('MenuScene') && !game.scene.isActive('GameScene');
-      if (inMenu) window.location.reload();
-    }, 500);
+/** Espera dois quadros e um instante: tempo para o navegador aplicar áreas seguras e altura visível. */
+function waitForLayoutToSettle(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => window.setTimeout(resolve, 120)));
+    // Aba em segundo plano não desenha quadros: não espera mais que isto
+    window.setTimeout(resolve, 400);
   });
+}
+
+/** Diferença mínima (px de jogo) que justifica recarregar; e no máximo 2 recargas por sessão. */
+const REFIT_MIN_DIFF = 40;
+const REFIT_MAX_RELOADS = 2;
+
+function refitIfInMenu(game: Phaser.Game): void {
+  const wanted = getGameWidthForScreen(...getVisibleArea());
+  if (Math.abs(wanted - game.scale.gameSize.width) < REFIT_MIN_DIFF) return;
+  const inMenu = game.scene.isActive('MenuScene') && !game.scene.isActive('GameScene');
+  if (!inMenu) return;
+  try {
+    const reloads = Number(sessionStorage.getItem(STORAGE_KEYS.SCREEN_REFIT_RELOADS) ?? '0');
+    // Teto evita ficar recarregando sem parar se o aparelho oscilar entre dois tamanhos
+    if (reloads >= REFIT_MAX_RELOADS) return;
+    sessionStorage.setItem(STORAGE_KEYS.SCREEN_REFIT_RELOADS, String(reloads + 1));
+  } catch {
+    return;
+  }
+  window.location.reload();
 }
 
 if (document.readyState === 'loading') {

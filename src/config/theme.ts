@@ -200,6 +200,15 @@ export const WEAPON_SLOT_THEME = {
   levelText: '#f3d17a',
 } as const;
 
+/** Controles de toque (celular): contorno dos botões e transparência do analógico. */
+export const TOUCH_THEME = {
+  ring: 0xffffff,
+  ringAlpha: 0.85,
+  ringWidth: 3,
+  joystickIdleAlpha: 0.4,
+  joystickActiveAlpha: 0.85,
+} as const;
+
 /** Aviso da Pressão do Abismo (Infinito): ficou parado, os monstros se fortalecem. */
 export const IDLE_PRESSURE_THEME = {
   warnText: '#ffb703',

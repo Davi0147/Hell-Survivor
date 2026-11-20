@@ -1,10 +1,18 @@
 import Phaser from 'phaser';
-import { FX_COLORS } from '../config/theme';
+import { FX_COLORS, TOUCH_THEME } from '../config/theme';
 
 /** Distância mínima dos controles até a borda da tela (px de jogo). */
 const TOUCH_EDGE_MARGIN = 96;
 /** Botão de pausa grande o bastante para o dedo. */
-const PAUSE_SIZE = 58;
+const PAUSE_SIZE = 66;
+/**
+ * Área do analógico: o dedo pode cair em qualquer ponto dela e o analógico nasce ali.
+ * Fração da largura da tela a partir da esquerda e faixa de cima que fica de fora (radar).
+ */
+const JOYSTICK_ZONE_WIDTH = 0.5;
+const JOYSTICK_ZONE_TOP = 170;
+
+interface IRect { left: number; top: number; right: number; bottom: number }
 
 export interface TouchInputState {
   hasMovement: boolean;
@@ -46,19 +54,19 @@ export class TouchControls {
   private sprintPointer: Phaser.Input.Pointer | null = null;
   private sprintBtnX: number = 0;
   private sprintBtnY: number = 0;
-  private readonly SPRINT_RADIUS: number = 36;
+  private readonly SPRINT_RADIUS: number = 46;
 
   // Botão de Esquiva (usa o sprite do Sprint tingido até existir arte própria)
   private dashBtn: Phaser.GameObjects.Image;
   private dashBtnX: number = 0;
   private dashBtnY: number = 0;
-  private readonly DASH_RADIUS: number = 28;
+  private readonly DASH_RADIUS: number = 40;
   private dashQueued: boolean = false;
 
   private ultBtn: Phaser.GameObjects.Image;
   private ultBtnX: number = 0;
   private ultBtnY: number = 0;
-  private readonly ULT_RADIUS: number = 38;
+  private readonly ULT_RADIUS: number = 48;
   private isUltReadyState: boolean = false;
   private ultPulseTween: Phaser.Tweens.Tween | null = null;
 
@@ -66,6 +74,11 @@ export class TouchControls {
   private pauseBtn: Phaser.GameObjects.Image;
   private pauseBtnX: number = 0;
   private pauseBtnY: number = 0;
+
+  // Contorno branco dos botões (para enxergar em cima de qualquer chão)
+  private rings: Phaser.GameObjects.Graphics;
+  /** Onde o analógico não pode nascer (a barra de armas, no meio de baixo). */
+  private blockedRect: IRect | null = null;
 
   // Visibilidade e Ciclo
   private isVisibleState: boolean = true;
@@ -81,10 +94,10 @@ export class TouchControls {
     const isDesktop = Boolean(scene.sys.game.device.os.desktop);
     this.isActive = !isDesktop;
 
-    // Posicionamento ergonômico: longe das bordas (cantos arredondados e recorte da câmera do celular)
-    // e acima da barra de armas do canto inferior esquerdo
+    // Posicionamento ergonômico: longe das bordas (cantos arredondados e recorte da câmera do celular).
+    // A barra de armas foi para o meio de baixo, então o analógico descansa mais baixo.
     this.homeX = Math.max(TOUCH_EDGE_MARGIN + this.BASE_RADIUS, Math.round(width * 0.15));
-    this.homeY = height - 210;
+    this.homeY = height - 170;
     this.baseX = this.homeX;
     this.baseY = this.homeY;
     this.knobX = this.baseX;
@@ -99,16 +112,20 @@ export class TouchControls {
     this.dashBtnY = 262;
 
     // Suprema colada ao analógico (em cima e à direita dele): o polegar esquerdo alcança sem esticar
-    this.ultBtnX = this.homeX + 118;
-    this.ultBtnY = this.homeY - 86;
+    this.ultBtnX = this.homeX + 128;
+    this.ultBtnY = this.homeY - 100;
 
     this.pauseBtnX = right + 18;
     this.pauseBtnY = 150;
 
+    // Contornos ficam atrás das artes dos botões
+    this.rings = scene.add.graphics();
+    this.container.add(this.rings);
+
     // 1. Elementos Gráficos do Joystick (Pixel Art)
     this.joystickBase = scene.add.image(this.baseX, this.baseY, 'touch-analog');
     this.joystickBase.setDisplaySize(this.BASE_RADIUS * 2, this.BASE_RADIUS * 2);
-    this.joystickBase.setAlpha(0.7);
+    this.joystickBase.setAlpha(TOUCH_THEME.joystickIdleAlpha);
     this.container.add(this.joystickBase);
 
     this.joystickKnob = scene.add.image(this.knobX, this.knobY, 'touch-stick');
@@ -143,6 +160,7 @@ export class TouchControls {
     this.container.add(this.pauseBtn);
 
     // Desenha estado visual estático inicial
+    this.drawRings();
     this.drawJoystickBase();
     this.drawJoystickKnob();
     this.drawSprintButton(false);
@@ -156,8 +174,38 @@ export class TouchControls {
     this.container.setVisible(this.isActive || this.forceEnabled);
   }
 
+  /** Contorno branco em volta de cada botão de ação. */
+  private drawRings(): void {
+    const g = this.rings;
+    g.clear();
+    g.lineStyle(TOUCH_THEME.ringWidth, TOUCH_THEME.ring, TOUCH_THEME.ringAlpha);
+    g.strokeCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS);
+    g.strokeCircle(this.dashBtnX, this.dashBtnY, this.DASH_RADIUS);
+    g.strokeCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS);
+    g.strokeCircle(this.pauseBtnX, this.pauseBtnY, PAUSE_SIZE / 2);
+  }
+
+  /** O analógico fica apagado parado e acende enquanto o dedo está nele. */
   private drawJoystickBase(): void {
     this.joystickBase.setPosition(this.baseX, this.baseY);
+    const alpha = this.joystickPointer ? TOUCH_THEME.joystickActiveAlpha : TOUCH_THEME.joystickIdleAlpha;
+    this.joystickBase.setAlpha(alpha);
+    this.joystickKnob?.setAlpha(Math.min(1, alpha + 0.2));
+  }
+
+  /** O dedo caiu na área do analógico (metade esquerda, fora do radar, da Suprema e da barra de armas)? */
+  private isInJoystickZone(x: number, y: number): boolean {
+    const { width } = this.scene.scale;
+    if (x >= width * JOYSTICK_ZONE_WIDTH || y < JOYSTICK_ZONE_TOP) return false;
+    if (Math.hypot(x - this.ultBtnX, y - this.ultBtnY) <= this.ULT_RADIUS + 15) return false;
+    const b = this.blockedRect;
+    if (b && x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) return false;
+    return true;
+  }
+
+  /** A barra de armas mudou de lugar: o analógico não nasce em cima dela. */
+  public setBlockedRect(rect: IRect | null): void {
+    this.blockedRect = rect;
   }
 
   private drawJoystickKnob(): void {
@@ -233,7 +281,6 @@ export class TouchControls {
 
   private setupListeners(): void {
     const input = this.scene.input;
-    const { width } = this.scene.scale;
 
     // Detecta primeiro toque na tela para habilitar apenas se for touch real
     input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -252,21 +299,18 @@ export class TouchControls {
       if (!this.isActive && !this.forceEnabled) return;
       if (!isRealTouch && !this.forceEnabled) return;
 
-      // Zona Esquerda: Joystick (Floating / Dinâmico). O toque na Suprema (que fica ali perto) não puxa o analógico.
-      const onUltButton = Math.hypot(pointer.x - this.ultBtnX, pointer.y - this.ultBtnY) <= this.ULT_RADIUS + 15;
-      if (!onUltButton && pointer.x < width * 0.45 && pointer.y > 100) {
-        if (!this.joystickPointer) {
-          this.joystickPointer = pointer;
-          // Nasce onde o dedo tocou, mas nunca colado na borda (senão metade some atrás da moldura do celular)
-          const minX = TOUCH_EDGE_MARGIN * 0.6 + this.BASE_RADIUS;
-          const maxY = this.scene.scale.height - this.BASE_RADIUS - 24;
-          this.baseX = Math.max(minX, pointer.x);
-          this.baseY = Math.min(maxY, pointer.y);
-          this.knobX = pointer.x;
-          this.knobY = pointer.y;
-          this.drawJoystickBase();
-          this.drawJoystickKnob();
-        }
+      // Zona Esquerda: o analógico nasce onde o dedo tocou (dentro da área dele)
+      if (this.isInJoystickZone(pointer.x, pointer.y) && !this.joystickPointer) {
+        this.joystickPointer = pointer;
+        // Nunca colado na borda (senão metade some atrás da moldura do celular)
+        const minX = TOUCH_EDGE_MARGIN * 0.6 + this.BASE_RADIUS;
+        const maxY = this.scene.scale.height - this.BASE_RADIUS - 24;
+        this.baseX = Math.max(minX, pointer.x);
+        this.baseY = Math.min(maxY, pointer.y);
+        this.knobX = this.baseX;
+        this.knobY = this.baseY;
+        this.drawJoystickBase();
+        this.drawJoystickKnob();
       }
 
       // Zona Direita: Botão de Sprint

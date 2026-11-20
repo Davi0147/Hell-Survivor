@@ -25,6 +25,11 @@ export const STORAGE_KEYS = {
    * a usar o desenho por Canvas nele (localStorage, valor 'canvas').
    */
   RENDER_MODE: 'hell_survivor_render_mode',
+  /**
+   * Quantas vezes a página recarregou nesta sessão para o jogo assumir o formato da tela
+   * (sessionStorage): teto contra recarregar sem parar.
+   */
+  SCREEN_REFIT_RELOADS: 'hell_survivor_screen_refit_reloads',
 
   /**
    * Retorna a chave de armazenamento para mapas customizados do capítulo.

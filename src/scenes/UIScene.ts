@@ -390,6 +390,10 @@ export class UIScene
     }
     const scheme = this.controlScheme;
     this.weaponSlots.setUltimateKeyLabel(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'Y' : 'E');
+    // Toque: barra de armas no meio de baixo, e o analógico não nasce em cima dela
+    const isTouch = scheme === 'touch';
+    this.weaponSlots.setTouchLayout(isTouch, this.statusPanel.leftEdge);
+    this.touchControls?.setBlockedRect(isTouch ? this.weaponSlots.getBounds() : null);
     this.weaponSlots.update(p, gameScene.weapons);
 
     // Atualizar Barra Superior de Experiência (XP)

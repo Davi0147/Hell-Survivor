@@ -46,6 +46,8 @@ export class StatusPanelHud {
   private readonly portraitSize = 340;
   private readonly portraitBaseX: number;
   private readonly portraitBaseY: number;
+  /** Borda esquerda do painel (px de jogo): outras peças da HUD não devem passar daqui. */
+  public readonly leftEdge: number;
   private readonly hpRect: IRect;
   private readonly stRect: IRect;
 
@@ -80,6 +82,7 @@ export class StatusPanelHud {
     // Recuado para a mão do retrato não esconder o fim das barras
     const panelX = width - this.portraitSize - FRAME_ART.width + 150;
     const panelY = height - 10 - FRAME_ART.height;
+    this.leftEdge = panelX;
 
     const win = (r: IRect): IRect => ({ x: panelX + r.x, y: panelY + r.y, w: r.w, h: r.h });
     this.hpRect = win(FRAME_ART.hpWindow);
