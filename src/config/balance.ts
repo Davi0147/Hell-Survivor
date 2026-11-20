@@ -336,20 +336,23 @@ export const ENEMY_BALANCE = {
     // Sólido: a heroína não atravessa; no golpe de contato é jogada para trás (px/s e duração)
     knockback: { force: 380, durationMs: 240 },
   },
-  // Arqueira Demônia: rápida, corre até uma distância segura e atira uma flecha a cada `fireCooldownMs`.
-  // Se a heroína chega perto (< `minRange`), recua (mais devagar que a heroína andando, para dar
-  // para alcançar) e volta a atirar quando estiver na faixa [minRange, maxRange].
+  // Arqueira Demônia: rápida, corre até um ponto de tiro a `range` px da heroína e DENTRO da tela
+  // (com `screenMarginPx` de folga; se não cabe em cima/embaixo, o ponto vai para o lado), para e
+  // atira uma flecha a cada `fireCooldownMs`. Se a heroína avança, o ponto se afasta e ela recua
+  // (mais devagar que a heroína andando, para dar para alcançar).
   // `drawMs` = duração da animação de puxar o arco (a flecha sai no fim).
   archer: {
     hp: 45,
     speed: 145,
     damage: 6,
     scale: 1.35,
-    // Faixa curta de propósito: a tela é mais larga que alta (celular deitado). Além disso ela só
-    // atira se estiver dentro da tela com `screenMarginPx` de folga; fora disso, chega mais perto.
+    range: 200,
+    /** Distância até o ponto de tiro para ela parar e mirar. */
+    holdPx: 36,
+    /** Abaixo de 75% disto, ela larga a puxada do arco. */
     minRange: 160,
-    maxRange: 235,
-    screenMarginPx: 40,
+    // Px do mundo (câmera com zoom 2 mostra 640x360). Folga para não ficar atrás das barras do HUD.
+    screenMarginPx: 56,
     retreatSpeedMult: 0.8,
     fireCooldownMs: 1500,
     drawMs: 750,

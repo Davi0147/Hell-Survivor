@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
 import { ENEMY_BALANCE } from '../../config/balance';
-import { decideArcherMove, shouldAbortDraw } from './archerRules';
+import { archerStandoffPoint, isInsideView, shouldAbortDraw, shouldHold, type ViewRect } from './archerRules';
 
 type Cardinal = 'east' | 'west' | 'north' | 'south';
 type ArcherState = 'move' | 'draw';
@@ -23,6 +23,7 @@ const BODY_DROP = 4;
 export class ArcherEnemy extends BaseEnemy {
   private currentDir: Cardinal = 'south';
   private archerState: ArcherState = 'move';
+  private isHolding = false;
   private drawTimer = 0;
   private fireCooldown = 0;
   private arrowDamage = 0;
@@ -42,6 +43,7 @@ export class ArcherEnemy extends BaseEnemy {
   public override spawn(x: number, y: number, hp: number, speed: number, damage: number): void {
     super.spawn(x, y, hp, speed, damage);
     this.archerState = 'move';
+    this.isHolding = false;
     this.drawTimer = 0;
     // Primeiro tiro sai um pouco depois de chegar, não no instante em que nasce
     this.fireCooldown = ENEMY_BALANCE.archer.fireCooldownMs * 0.5;
@@ -63,11 +65,11 @@ export class ArcherEnemy extends BaseEnemy {
     this.fitBody();
   }
 
-  /** Dentro da área que a câmera mostra, com folga para não ficar colada na borda (atrás do HUD). */
-  private isOnScreen(margin: number): boolean {
+  /** Área que a câmera mostra, com folga para não ficar colada na borda (atrás do HUD). */
+  private visibleRect(margin: number): ViewRect | undefined {
     const v = this.scene.cameras.main.worldView;
-    if (v.width <= 0) return true;
-    return this.x > v.x + margin && this.x < v.right - margin && this.y > v.y + margin && this.y < v.bottom - margin;
+    if (v.width <= margin * 2 || v.height <= margin * 2) return undefined;
+    return { left: v.x + margin, right: v.right - margin, top: v.y + margin, bottom: v.bottom - margin };
   }
 
   private static cardinalOf(dx: number, dy: number): Cardinal {
@@ -105,22 +107,25 @@ export class ArcherEnemy extends BaseEnemy {
       }
     }
 
-    const move = decideArcherMove(dist, cfg.minRange, cfg.maxRange, this.isOnScreen(cfg.screenMarginPx));
-    if (move === 'approach') {
-      this.setVelocity((dx / dist) * this.speed * stunMult, (dy / dist) * this.speed * stunMult);
-      this.currentDir = ArcherEnemy.cardinalOf(dx, dy);
-      this.playAnim(`archer-run-${this.currentDir}`);
-      return;
-    }
-    if (move === 'retreat') {
-      const s = this.speed * cfg.retreatSpeedMult * stunMult;
-      this.setVelocity((-dx / dist) * s, (-dy / dist) * s);
-      this.currentDir = ArcherEnemy.cardinalOf(-dx, -dy);
+    // Ponto de tiro: à distância segura, do lado em que ela está, sempre dentro da tela
+    const view = this.visibleRect(cfg.screenMarginPx);
+    const point = archerStandoffPoint(targetX, targetY, this.x, this.y, cfg.range, view);
+    const mx = point.x - this.x;
+    const my = point.y - this.y;
+    const toPoint = Math.hypot(mx, my) || 1;
+    // Só para de verdade dentro da área segura (chegando de fora, a folga a deixaria colada na borda)
+    this.isHolding = isInsideView(this.x, this.y, view) && shouldHold(toPoint, cfg.holdPx, this.isHolding);
+    if (!this.isHolding) {
+      // Afastando-se da heroína (ela avançou) corre mais devagar, para dar para alcançar
+      const retreating = dist < cfg.range;
+      const s = this.speed * (retreating ? cfg.retreatSpeedMult : 1) * stunMult;
+      this.setVelocity((mx / toPoint) * s, (my / toPoint) * s);
+      this.currentDir = ArcherEnemy.cardinalOf(mx, my);
       this.playAnim(`archer-run-${this.currentDir}`);
       return;
     }
 
-    // Na faixa segura: para, vira para a heroína e atira quando o arco estiver pronto
+    // No ponto de tiro: para, vira para a heroína e atira quando o arco estiver pronto
     this.setVelocity(0, 0);
     this.currentDir = ArcherEnemy.cardinalOf(dx, dy);
     if (this.fireCooldown <= 0 && this.stunTimer <= 0) {
