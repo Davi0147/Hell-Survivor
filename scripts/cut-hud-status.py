@@ -124,7 +124,7 @@ if start is not None:
     segs.append((start, W))
 print('bottom segments', segs)
 logo, hp, st = segs[0], segs[1], segs[2]
-save(crop(logo[0], split_y, logo[1], H), 'HudNixyName.png', width=int(FRAME_W * 0.42))
+save(crop(logo[0], split_y, logo[1], H), 'HudNixyName.png', width=int(FRAME_W * 0.283))
 # Preenchimentos 4 px maiores que a janela em cada lado: a borda deles some sob a moldura
 save(crop(hp[0], split_y, hp[1], H), 'HudHpFill.png', width=260, height=40)
 save(crop(st[0], split_y, st[1], H), 'HudStaminaFill.png', width=250, height=27)

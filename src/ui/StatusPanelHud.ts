@@ -30,9 +30,9 @@ const FRAME_ART = {
   hpWindow: { x: 151, y: 86, w: 252, h: 31 },
   staminaWindow: { x: 156, y: 137, w: 241, h: 19 },
   /** Placa lisa acima da janela de vida, à esquerda, para o nível. */
-  levelSpot: { x: 163, y: 61 },
-  /** Centro do logo do nome: sobe além da borda de cima para não cobrir o nível. */
-  nameCenter: { x: 277, y: 8 },
+  levelSpot: { x: 163, y: 63 },
+  /** Centro da faixa escura do topo (x 148–319, y 16–42), onde o logo do nome se apoia. */
+  nameCenter: { x: 233, y: 26 },
   /** As texturas de preenchimento sobram 4 px de cada lado e a borda delas some sob a moldura. */
   fillBleed: 4,
 } as const;
