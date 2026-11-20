@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado — Arqueira Demônia] — 2026-11-20
+
+### Resumo para o Jogador
+- **Inimigo novo no Modo Infinito: Arqueira Demônia.** Rápida, corre até ficar a uma distância segura da Nixy, para, puxa o arco e solta uma flecha na direção dela. Atira a cada 1,5 segundo.
+- **Ela foge:** se a Nixy avança, a arqueira recua até a distância segura e volta a atirar. Recuando ela é um pouco mais lenta que a Nixy andando, então dá para alcançar (correndo, bem mais fácil).
+- **Justa no celular:** ela só atira se estiver **visível na tela**. Se estiver fora, chega mais perto primeiro. A puxada do arco é o aviso; a flecha voa devagar o bastante para dar para desviar, e a esquiva atravessa a flecha.
+- Frágil (45 de vida), flecha de 8 de dano (cresce com o tempo). Aparece a partir de 1:30 no Infinito, até 2 ao mesmo tempo (4 depois dos 6 minutos).
+- **Modo de Teste:** botão "SPAWNAR +3 ARQUEIRAS DEMÔNIAS" na aba 2, e ela e a flecha estão na galeria. Os botões de "EVENTO" foram para a coluna da direita, dois por linha, para caber tudo.
+
+### Técnico
+- Entidade `ArcherEnemy` com regras puras em `archerRules.ts` (`decideArcherMove`, `shouldAbortDraw`); números e `getArcherMaxAlive` em `balance.ts` (`ENEMY_BALANCE.archer`). Testes em `archer.test.ts`.
+- `EnemyArrowSystem`: pool de flechas inimigas (imagens movidas à mão, sem corpo físico), criado pela `GameScene` e exposto ao spawner por `IEnemySpawnContext.enemyArrows`. Textura `enemy-arrow` desenhada por código (sem arte ainda; cores em `FX_COLORS.archerArrow*`).
+- Sprites em `public/assets/sprites/enemies/Archer/{Idle,Run,Shoot}` (fonte em `art-source/Sprites/Enemies/Archer/`).
+
 ## [v0.15.0 — Colossus, Transportador e Ghoul] — 2026-11-20
 
 ### Colossus

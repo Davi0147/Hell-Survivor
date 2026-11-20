@@ -152,6 +152,13 @@ export function getColossusMaxAlive(gameMode: 'story' | 'endless' | 'sandbox', m
   return minutes >= c.lateMinutes ? c.maxAliveLate : c.maxAlive;
 }
 
+/** Quantas Arqueiras podem estar vivas ao mesmo tempo (0 = ainda não aparece neste modo/tempo). */
+export function getArcherMaxAlive(gameMode: 'story' | 'endless' | 'sandbox', minutes: number): number {
+  const a = ENEMY_BALANCE.archer;
+  if (gameMode !== 'endless' || minutes < a.minMinutes) return 0;
+  return minutes >= a.lateMinutes ? a.maxAliveLate : a.maxAlive;
+}
+
 export function getSpawnIntervalMs(minutes: number, isEndless: boolean): number {
   const p = SPAWN_PACING;
   let floor: number = isEndless ? p.minEndlessMs : p.minStoryMs;
@@ -328,6 +335,30 @@ export const ENEMY_BALANCE = {
     escortGapPx: 60,
     // Sólido: a heroína não atravessa; no golpe de contato é jogada para trás (px/s e duração)
     knockback: { force: 380, durationMs: 240 },
+  },
+  // Arqueira Demônia: rápida, corre até uma distância segura e atira uma flecha a cada `fireCooldownMs`.
+  // Se a heroína chega perto (< `minRange`), recua (mais devagar que a heroína andando, para dar
+  // para alcançar) e volta a atirar quando estiver na faixa [minRange, maxRange].
+  // `drawMs` = duração da animação de puxar o arco (a flecha sai no fim).
+  archer: {
+    hp: 45,
+    speed: 145,
+    damage: 6,
+    scale: 1.35,
+    // Faixa curta de propósito: a tela é mais larga que alta (celular deitado). Além disso ela só
+    // atira se estiver dentro da tela com `screenMarginPx` de folga; fora disso, chega mais perto.
+    minRange: 160,
+    maxRange: 235,
+    screenMarginPx: 40,
+    retreatSpeedMult: 0.8,
+    fireCooldownMs: 1500,
+    drawMs: 750,
+    arrow: { damage: 8, speed: 330, lifespanMs: 1600, hitRadius: 16 },
+    minMinutes: 1.5,
+    chance: 0.2,
+    maxAlive: 2,
+    maxAliveLate: 4,
+    lateMinutes: 6,
   },
   // Minichefe do Infinito (3:00). Substituiu o Titã Cerberus (1400 HP, 95 vel, 20 dano, escala 1.85).
   // O bote é telegrafado e respeita a regra de ouro (golpe <= ~45% da vida base da heroína).

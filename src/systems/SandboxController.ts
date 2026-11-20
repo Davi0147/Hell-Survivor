@@ -15,7 +15,7 @@ import { ENEMY_BALANCE } from '../config/balance';
 
 import type { HordeEventType as HordeEventType2 } from './HordeEventSystem';
 
-export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'colossus' | 'ghoul' | 'matriarch';
+export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'archer' | 'colossus' | 'ghoul' | 'matriarch';
 
 /**
  * Interface estrita de ponte entre o SandboxController, DevSandboxPanel e a GameScene.
@@ -70,6 +70,7 @@ export interface ISandboxContext extends Phaser.Scene {
   spawnGhoulDevourer(): void;
   spawnMatriarchSuccubus(): void;
   spawnColossusFormation(angle?: number, dist?: number): void;
+  spawnArcherAt(sx: number, sy: number): void;
   spawnBloodBatFlock(count: number): void;
   spawnZombieDogAt(sx: number, sy: number, hp?: number, speed?: number, dmg?: number, isElite?: boolean, scale?: number): void;
   spawnSkullSlimeAt(sx: number, sy: number): void;
@@ -148,6 +149,8 @@ export class SandboxController {
         this.context.spawnZombieDogAt(sx, sy, ENEMY_BALANCE.zombieDogEliteSandbox.hp, ENEMY_BALANCE.zombieDogEliteSandbox.speed, ENEMY_BALANCE.zombieDogEliteSandbox.damage, true, ENEMY_BALANCE.zombieDogEliteSandbox.scale);
       } else if (type === 'slime') {
         this.context.spawnSkullSlimeAt(sx, sy);
+      } else if (type === 'archer') {
+        this.context.spawnArcherAt(sx, sy);
       } else if (type === 'mummy') {
         this.context.spawnMummyAt(sx, sy, ENEMY_BALANCE.mummy.hp, ENEMY_BALANCE.mummy.speed, ENEMY_BALANCE.mummy.damage);
       }

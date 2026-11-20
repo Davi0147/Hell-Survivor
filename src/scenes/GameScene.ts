@@ -7,6 +7,7 @@ import { MummyEnemy, PoisonPuddle } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
+import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
@@ -74,6 +75,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   // Ritmo de combate (combo, Frenesi, críticos, impacto) e diretor de eventos de horda
   public combatFeel?: CombatFeelSystem;
   public hordeEvents?: HordeEventSystem;
+  /** Flechas dos monstros (Arqueira Demônia). */
+  public enemyArrows?: EnemyArrowSystem;
   /** Suprema "Ascensão Infernal" (modo de poder temporário). */
   public ultimate?: UltimateSystem;
 
@@ -257,6 +260,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.weapons = [];
     this.combatFeel = undefined;
     this.hordeEvents = undefined;
+    this.enemyArrows = undefined;
     this.ultimate = undefined;
     this.clearCombatSpeechBubbles();
     this.arenaScenerySystem?.destroy();
@@ -364,6 +368,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 3.35. Ritmo de combate e diretor de eventos (precisam do jogador e do grupo de inimigos)
     this.combatFeel = new CombatFeelSystem(this, this);
     this.hordeEvents = new HordeEventSystem(this, this, this.enemySpawner);
+    this.enemyArrows = new EnemyArrowSystem(this, () => this.player);
     this.ultimate = new UltimateSystem(this, this);
 
     // 3.36. Objetos grandes do cenário bloqueiam a heroína e os monstros comuns (chefes atravessam,
@@ -537,6 +542,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.sandboxController?.destroy();
       this.combatFeel?.destroy();
       this.hordeEvents?.destroy();
+      this.enemyArrows?.destroy();
       this.ultimate?.destroy();
       this.bossFights?.destroy();
       this.combatBubbleSystem?.destroy();
@@ -699,6 +705,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 1.2. Combo, Frenesi e bônus de XP do momento (combo + evento de horda)
     this.combatFeel?.update(delta);
     this.hordeEvents?.update(delta);
+    this.enemyArrows?.update(delta);
     this.ultimate?.update(delta);
     this.player.xpGainMultiplier = 1 + (this.combatFeel?.xpBonus ?? 0) + (this.hordeEvents?.xpBonus ?? 0);
 
@@ -939,6 +946,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public spawnColossusFormation(angle?: number, dist?: number): void {
     this.enemySpawner.spawnColossusFormation(angle, dist);
+  }
+
+  public spawnArcherAt(x: number, y: number): void {
+    this.enemySpawner.spawnArcherAt(x, y);
   }
 
   /** Contato de um monstro com a heroína: dano, empurrão do monstro e retorno visual. */

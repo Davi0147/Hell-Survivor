@@ -2,8 +2,9 @@ import { ensurePlaceholderItemTextures } from '../systems/PlaceholderItemTexture
 import { GAME_ICON_KEYS, GAME_ICON_FOLDERS } from '../config/iconKeys';
 import { CH1_DECOR_FILES } from '../config/sceneryCatalog';
 import Phaser from 'phaser';
-import { DIRECTIONS_8 } from '../config/balance';
+import { DIRECTIONS_8, ENEMY_BALANCE } from '../config/balance';
 import { SoundManager } from '../systems/SoundManager';
+import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -95,6 +96,13 @@ export class BootScene extends Phaser.Scene {
       for (let i = 0; i < 8; i++) {
         if (this.textures.exists(`colossus-walk-${dir}-${i}`)) this.textures.remove(`colossus-walk-${dir}-${i}`);
       }
+
+      for (const kind of ['run', 'shoot'] as const) {
+        if (this.anims.exists(`archer-${kind}-${dir}`)) this.anims.remove(`archer-${kind}-${dir}`);
+        for (let i = 0; i < 9; i++) {
+          if (this.textures.exists(`archer-${kind}-${dir}-${i}`)) this.textures.remove(`archer-${kind}-${dir}-${i}`);
+        }
+      }
     }
 
     for (const dir of DIRECTIONS_8) {
@@ -106,6 +114,8 @@ export class BootScene extends Phaser.Scene {
       if (this.textures.exists(`transporter-idle-${dir}`)) this.textures.remove(`transporter-idle-${dir}`);
       if (this.anims.exists(`colossus-idle-${dir}`)) this.anims.remove(`colossus-idle-${dir}`);
       if (this.textures.exists(`colossus-idle-${dir}`)) this.textures.remove(`colossus-idle-${dir}`);
+      if (this.anims.exists(`archer-idle-${dir}`)) this.anims.remove(`archer-idle-${dir}`);
+      if (this.textures.exists(`archer-idle-${dir}`)) this.textures.remove(`archer-idle-${dir}`);
     }
 
     if (this.textures.exists('floor-tile')) this.textures.remove('floor-tile');
@@ -432,6 +442,17 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
+    // 14.5. Carregar sprites da Arqueira Demônia (Idle nos 8 ângulos; corrida e tiro em 4 eixos x 9 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(`archer-idle-${dir}`, `assets/sprites/enemies/Archer/Idle/${dir}.png?t=${cacheBuster}`);
+    }
+    for (const dir of MUMMY_DIRS) {
+      for (let i = 0; i < 9; i++) {
+        this.load.image(`archer-run-${dir}-${i}`, `assets/sprites/enemies/Archer/Run/${dir}/frame_00${i}.png?t=${cacheBuster}`);
+        this.load.image(`archer-shoot-${dir}-${i}`, `assets/sprites/enemies/Archer/Shoot/${dir}/frame_00${i}.png?t=${cacheBuster}`);
+      }
+    }
+
     // 15. Carregar sprites oficiais das Gemas de Alma criadas pelo usuário (40x40px)
     this.load.image('gem-green', `assets/sprites/items/gem-green.png?t=${cacheBuster}`);
     this.load.image('gem-blue', `assets/sprites/items/gem-blue.png?t=${cacheBuster}`);
@@ -752,6 +773,21 @@ export class BootScene extends Phaser.Scene {
       this.anims.create({ key: `colossus-idle-${dir}`, frames: [{ key: `colossus-idle-${dir}` }], frameRate: 1, repeat: -1 });
     }
 
+    // Registrar animações da Arqueira Demônia. O tiro dura exatamente `drawMs` (a flecha sai no último quadro).
+    for (const dir of MUMMY_CARDINALS) {
+      const run = [];
+      const shoot = [];
+      for (let i = 0; i < 9; i++) {
+        run.push({ key: `archer-run-${dir}-${i}` });
+        shoot.push({ key: `archer-shoot-${dir}-${i}` });
+      }
+      this.anims.create({ key: `archer-run-${dir}`, frames: run, frameRate: 16, repeat: -1 });
+      this.anims.create({ key: `archer-shoot-${dir}`, frames: shoot, frameRate: 9 / (ENEMY_BALANCE.archer.drawMs / 1000), repeat: 0 });
+    }
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({ key: `archer-idle-${dir}`, frames: [{ key: `archer-idle-${dir}` }], frameRate: 1, repeat: -1 });
+    }
+
     // Registrar animações do Boss Azazel (Idle 8 direções, Rise Hand 8 direções e Running 8 frames mapeados para 8 direções)
     for (const dir of DIRECTIONS_8) {
       this.anims.create({
@@ -825,6 +861,7 @@ export class BootScene extends Phaser.Scene {
     this.createEnemyImpTexture();
     this.createParticleTextures();
     ensurePlaceholderItemTextures(this);
+    EnemyArrowSystem.ensureTexture(this);
     this.createGemTextures();
     this.createScytheTexture();
     this.createDarkOrbTexture();

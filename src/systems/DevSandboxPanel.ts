@@ -574,6 +574,15 @@ export class DevSandboxPanel {
         }
       },
       {
+        label: 'SPAWNAR +3 ARQUEIRAS DEMÔNIAS (ATIRAM DE LONGE)',
+        color: FX_COLORS.archerButtonFill,
+        border: FX_COLORS.archerButtonBorder,
+        action: () => {
+          gs.sandboxSpawnHorde('archer', 3);
+          this.showToast('+3 ARQUEIRAS DEMÔNIAS INVOCADAS!', FX_COLORS.archerToast);
+        }
+      },
+      {
         label: 'SPAWNAR COLOSSUS + ESCOLTA (BLOQUEIA PERFURAÇÃO)',
         color: FX_COLORS.colossusButtonFill,
         border: FX_COLORS.colossusButtonBorder,
@@ -600,20 +609,6 @@ export class DevSandboxPanel {
           this.showToast('MINI-BOSS MATRIARCA SUCCUBUS INVOCADA!', '#e879f9');
         }
       },
-      ...SANDBOX_HORDE_EVENTS.map((ev) => ({
-        label: `EVENTO: ${ev.label}`,
-        color: COLORS.velvetBoss,
-        border: COLORS.goldChest,
-        action: () => {
-          this.togglePanel(false);
-          if (ev.type === 'storm') {
-            gs.hordeEvents?.startStormVolley();
-          } else {
-            gs.hordeEvents?.trigger(ev.type);
-          }
-          DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Evento de horda disparado: ${ev.label}`);
-        }
-      }))
     ];
 
     mobButtons.forEach((b, i) => {
@@ -820,6 +815,29 @@ export class DevSandboxPanel {
         this.showToast(`${count} MONSTROS REMOVIDOS DA ARENA!`, '#34d399');
       }
     );
+
+    // Linhas 8+: Eventos de horda, dois por linha (a coluna 1 ficou só para monstros)
+    SANDBOX_HORDE_EVENTS.forEach((ev, i) => {
+      this.createActionButton(
+        col2X + (i % 2) * (halfBtnW + 8),
+        y + 338 + Math.floor(i / 2) * 30,
+        halfBtnW,
+        26,
+        `EVENTO: ${ev.label}`,
+        COLORS.velvetBoss,
+        COLORS.goldChest,
+        COLORS.textWhite,
+        () => {
+          this.togglePanel(false);
+          if (ev.type === 'storm') {
+            gs.hordeEvents?.startStormVolley();
+          } else {
+            gs.hordeEvents?.trigger(ev.type);
+          }
+          DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Evento de horda disparado: ${ev.label}`);
+        }
+      );
+    });
   }
 
   // ===========================================================================

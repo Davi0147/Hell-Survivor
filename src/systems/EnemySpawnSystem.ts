@@ -8,10 +8,11 @@ import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { TransporterEnemy } from '../entities/enemies/TransporterEnemy';
 import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
+import { ArcherEnemy } from '../entities/enemies/ArcherEnemy';
 import type { GemType } from '../entities/items/SoulGem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { SoundManager } from './SoundManager';
-import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, STORY_ELITES, getEnemyScaling, getChapterConfig, getColossusMaxAlive } from '../config/balance';
+import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, STORY_ELITES, getEnemyScaling, getChapterConfig, getColossusMaxAlive, getArcherMaxAlive } from '../config/balance';
 
 /** O que o sistema de spawn precisa saber sobre o personagem jogável (qualquer BaseCharacter serve). */
 export interface IEnemySpawnPlayer {
@@ -38,6 +39,8 @@ export interface IEnemySpawnContext {
   spawnGemAt(x: number, y: number, type: GemType): void;
   spawnSoulItem(x: number, y: number, value?: number): void;
   spawnMapItem(x: number, y: number, type?: MapItemType): unknown;
+  /** Flechas inimigas (a Arqueira dispara por aqui). */
+  readonly enemyArrows?: { fire(x: number, y: number, angle: number, damage: number): void };
 }
 
 /**
@@ -394,6 +397,19 @@ export class EnemySpawnSystem {
       if (activeColossi < maxColossi) this.spawnColossusFormation();
     }
 
+    // 3.2. ARQUEIRAS (Infinito): atiradoras que mantêm distância
+    const maxArchers = getArcherMaxAlive(this.ctx.gameMode, scaling.minutes);
+    if (maxArchers > 0 && Math.random() < ENEMY_BALANCE.archer.chance) {
+      const activeArchers = (this.ctx.enemiesGroup.getChildren() as BaseEnemy[]).filter(
+        (e) => e.active && e instanceof ArcherEnemy
+      ).length;
+      if (activeArchers < maxArchers) {
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const dist = Phaser.Math.Between(440, 520);
+        this.spawnArcherAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
+      }
+    }
+
     // 4. ZOMBIE DOGS: Presentes em todas as fases com escalonamento de atributos
     let dogCount: number;
     if (phase === 1) {
@@ -439,6 +455,45 @@ export class EnemySpawnSystem {
     } else {
       this.spawnZombieDogAt(x, y, hp, speed, dmg);
     }
+  }
+
+  /** Arqueira Demônia com os atributos escalonados pelo tempo de partida. Reaproveita instâncias mortas. */
+  public spawnArcherAt(x: number, y: number): ArcherEnemy {
+    const pos = this.ctx.clampToArena(x, y);
+    const scaling = getEnemyScaling(this.ctx.survivalTimeMs, this.ctx.gameMode === 'endless');
+    const chMult = this.getChapterEnemyStatMultiplier();
+    const cfg = ENEMY_BALANCE.archer;
+
+    let archer = this.ctx.enemiesGroup.getChildren().find(
+      (child) => !child.active && child instanceof ArcherEnemy
+    ) as ArcherEnemy | undefined;
+
+    if (!archer) {
+      archer = new ArcherEnemy(this.scene, pos.x, pos.y);
+      archer.setDepth(6);
+      this.ctx.enemiesGroup.add(archer);
+      archer.on('enemy-killed', (ex: number, ey: number) => {
+        this.ctx.killCount++;
+        SoundManager.getInstance().playEnemyDeath();
+        this.ctx.player.gainUltimateCharge(4);
+        this.ctx.addPurificationPoints(3);
+        this.ctx.spawnGemAt(ex, ey, Math.random() < 0.4 ? 'blue' : 'green');
+        if (Math.random() < 0.3) this.ctx.spawnSoulItem(ex, ey, Phaser.Math.Between(1, 2));
+      });
+    }
+
+    archer.setupArcher(
+      (fx, fy, angle, dmg) => this.ctx.enemyArrows?.fire(fx, fy, angle, dmg),
+      Math.round(cfg.arrow.damage * scaling.damageMultiplier * chMult)
+    );
+    archer.spawn(
+      pos.x,
+      pos.y,
+      Math.round(cfg.hp * scaling.hpMultiplier * chMult),
+      Math.floor(cfg.speed * scaling.speedMultiplier),
+      Math.round(cfg.damage * scaling.damageMultiplier * chMult)
+    );
+    return archer;
   }
 
   /** Colossus (tanque-escudo) com os atributos escalonados pelo tempo de partida. Reaproveita instâncias mortas. */

@@ -292,6 +292,8 @@ export class TestShowroomSystem {
           { name: 'Cão Alfa Elite', texture: 'zombie-dog-idle-south', scale: 1.35, tint: 0xff4455, anim: 'zombie-dog-idle-south' },
           { name: 'Transportador', texture: 'transporter-idle-south', scale: 1.5, anim: 'transporter-run-south' },
           { name: 'Colossus', texture: 'colossus-idle-south', scale: 2.0, anim: 'colossus-walk-south' },
+          { name: 'Arqueira Demônia', texture: 'archer-idle-south', scale: 1.35, anim: 'archer-run-south' },
+          { name: 'Flecha Inimiga', texture: 'enemy-arrow', scale: 1.5 },
           { name: 'Morcego Sangue', texture: 'blood-bat-idle-south', scale: 0.75, anim: 'blood-bat-fly-south' },
           { name: 'Múmia Abissal', texture: 'mummy-idle-south', scale: 1.05, anim: 'mummy-idle-south' },
           { name: 'Skull Slime', texture: 'skull-slime-idle-south', scale: 1.0, anim: 'skull-slime-idle-south' },

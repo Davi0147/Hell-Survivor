@@ -133,6 +133,14 @@ export const FX_COLORS = {
   colossusButtonFill: 0x1e293b,
   colossusButtonBorder: 0x94a3b8,
   colossusToast: '#cbd5e1',
+  /** Arqueira Demônia: botão do Modo de Teste e flecha (desenhada por código até ter arte). */
+  archerButtonFill: 0x1c1917,
+  archerButtonBorder: 0xe7e5e4,
+  archerToast: '#e7e5e4',
+  archerArrowShaft: 0x3f2a1d,
+  archerArrowHead: 0xd6d3d1,
+  archerArrowFletch: 0xf5f5f4,
+  archerArrowGlow: 0xff3d5a,
   /** Ghoul Devorador: pisca nesta cor enquanto prepara o bote. */
   ghoulLungeTelegraph: 0xff3d2e,
   thiefSparkle: 0xfff3b0,
