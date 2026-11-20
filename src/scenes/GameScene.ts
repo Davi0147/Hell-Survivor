@@ -940,8 +940,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.enemySpawner.spawnGhoulDevourer();
   }
 
-  public spawnMatriarchSuccubus(): void {
-    this.enemySpawner.spawnMatriarchSuccubus();
+  public spawnLyn(): void {
+    this.enemySpawner.spawnLyn();
   }
 
   public spawnColossusFormation(angle?: number, dist?: number): void {

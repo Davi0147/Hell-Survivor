@@ -97,6 +97,11 @@ export class BootScene extends Phaser.Scene {
         if (this.textures.exists(`colossus-walk-${dir}-${i}`)) this.textures.remove(`colossus-walk-${dir}-${i}`);
       }
 
+      if (this.anims.exists(`lyn-fly-${dir}`)) this.anims.remove(`lyn-fly-${dir}`);
+      for (let i = 0; i < 8; i++) {
+        if (this.textures.exists(`lyn-fly-${dir}-${i}`)) this.textures.remove(`lyn-fly-${dir}-${i}`);
+      }
+
       for (const kind of ['run', 'shoot'] as const) {
         if (this.anims.exists(`archer-${kind}-${dir}`)) this.anims.remove(`archer-${kind}-${dir}`);
         for (let i = 0; i < 9; i++) {
@@ -116,6 +121,8 @@ export class BootScene extends Phaser.Scene {
       if (this.textures.exists(`colossus-idle-${dir}`)) this.textures.remove(`colossus-idle-${dir}`);
       if (this.anims.exists(`archer-idle-${dir}`)) this.anims.remove(`archer-idle-${dir}`);
       if (this.textures.exists(`archer-idle-${dir}`)) this.textures.remove(`archer-idle-${dir}`);
+      if (this.anims.exists(`lyn-idle-${dir}`)) this.anims.remove(`lyn-idle-${dir}`);
+      if (this.textures.exists(`lyn-idle-${dir}`)) this.textures.remove(`lyn-idle-${dir}`);
     }
 
     if (this.textures.exists('floor-tile')) this.textures.remove('floor-tile');
@@ -453,6 +460,16 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
+    // 14.6. Carregar sprites da Lyn, minichefe súcubo (Idle nos 8 ângulos; voo em 4 eixos x 8 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(`lyn-idle-${dir}`, `assets/sprites/enemies/Lyn/Idle/${dir}.png?t=${cacheBuster}`);
+    }
+    for (const dir of MUMMY_DIRS) {
+      for (let i = 0; i < 8; i++) {
+        this.load.image(`lyn-fly-${dir}-${i}`, `assets/sprites/enemies/Lyn/Fly/${dir}/frame_00${i}.png?t=${cacheBuster}`);
+      }
+    }
+
     // 15. Carregar sprites oficiais das Gemas de Alma criadas pelo usuário (40x40px)
     this.load.image('gem-green', `assets/sprites/items/gem-green.png?t=${cacheBuster}`);
     this.load.image('gem-blue', `assets/sprites/items/gem-blue.png?t=${cacheBuster}`);
@@ -786,6 +803,16 @@ export class BootScene extends Phaser.Scene {
     }
     for (const dir of DIRECTIONS_8) {
       this.anims.create({ key: `archer-idle-${dir}`, frames: [{ key: `archer-idle-${dir}` }], frameRate: 1, repeat: -1 });
+    }
+
+    // Registrar animações da Lyn (voo rápido, 8 frames nos 4 eixos; idle nos 8 ângulos)
+    for (const dir of MUMMY_CARDINALS) {
+      const fly = [];
+      for (let i = 0; i < 8; i++) fly.push({ key: `lyn-fly-${dir}-${i}` });
+      this.anims.create({ key: `lyn-fly-${dir}`, frames: fly, frameRate: 14, repeat: -1 });
+    }
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({ key: `lyn-idle-${dir}`, frames: [{ key: `lyn-idle-${dir}` }], frameRate: 1, repeat: -1 });
     }
 
     // Registrar animações do Boss Azazel (Idle 8 direções, Rise Hand 8 direções e Running 8 frames mapeados para 8 direções)

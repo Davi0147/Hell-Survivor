@@ -601,12 +601,12 @@ export class DevSandboxPanel {
         }
       },
       {
-        label: 'INVOCAR MINI-BOSS: MATRIARCA SUCCUBUS',
+        label: 'INVOCAR MINI-BOSS: LYN (SÚCUBO)',
         color: 0x701a75,
         border: 0xe879f9,
         action: () => {
-          gs.sandboxSpawnHorde('matriarch', 1);
-          this.showToast('MINI-BOSS MATRIARCA SUCCUBUS INVOCADA!', '#e879f9');
+          gs.sandboxSpawnHorde('lyn', 1);
+          this.showToast('MINI-BOSS LYN INVOCADA!', '#e879f9');
         }
       },
     ];

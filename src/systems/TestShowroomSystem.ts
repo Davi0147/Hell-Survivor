@@ -298,7 +298,7 @@ export class TestShowroomSystem {
           { name: 'Múmia Abissal', texture: 'mummy-idle-south', scale: 1.05, anim: 'mummy-idle-south' },
           { name: 'Skull Slime', texture: 'skull-slime-idle-south', scale: 1.0, anim: 'skull-slime-idle-south' },
           { name: 'Ghoul Devorador', texture: 'ghoul-idle-south', scale: 1.4, anim: 'ghoul-run-south' },
-          { name: 'Succubus Menor', texture: 'succubus-idle-south', scale: 1.0, anim: 'succubus-fly-south' },
+          { name: 'Lyn (Minichefe)', texture: 'lyn-idle-south', scale: 1.6, anim: 'lyn-fly-south' },
           { name: 'Rosalin (Chefe 1)', texture: 'succubus-idle-south', scale: 1.75, anim: 'succubus-fly-south' },
           { name: 'Azazel (Parado)', texture: 'azazel-idle-south', scale: 1.55, anim: 'azazel-idle-south' },
           { name: 'Azazel (Correndo)', texture: 'azazel-run-south-0', scale: 1.55, anim: 'azazel-run-south' },

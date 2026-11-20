@@ -108,7 +108,7 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
       } as unknown as Phaser.GameObjects.Group,
       weapons: [],
       spawnGhoulDevourer: vi.fn(),
-      spawnMatriarchSuccubus: vi.fn(),
+      spawnLyn: vi.fn(),
       spawnBloodBatFlock: vi.fn(),
       spawnZombieDogAt: vi.fn(),
       spawnSkullSlimeAt: vi.fn(),
@@ -170,10 +170,10 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
       expect(mockContext.spawnGhoulDevourer).toHaveBeenCalledTimes(1);
     });
 
-    it('roteia matriarch para spawnMatriarchSuccubus', () => {
+    it('roteia lyn para spawnLyn', () => {
       const ctrl = new SandboxController(mockContext as unknown as ISandboxContext);
-      ctrl.spawnHorde('matriarch', 1);
-      expect(mockContext.spawnMatriarchSuccubus).toHaveBeenCalledTimes(1);
+      ctrl.spawnHorde('lyn', 1);
+      expect(mockContext.spawnLyn).toHaveBeenCalledTimes(1);
     });
 
     it('roteia bat para spawnBloodBatFlock com a contagem exata', () => {

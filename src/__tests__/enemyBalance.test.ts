@@ -18,8 +18,8 @@ describe('ENEMY_BALANCE (atributos centralizados de inimigos e chefes)', () => {
   it('a hierarquia de ameaça é respeitada: comum < minichefe < chefe', () => {
     const toughestCommon = Math.max(ENEMY_BALANCE.skullSlime.hp, ENEMY_BALANCE.mummy.hp, ENEMY_BALANCE.zombieDogElite.hp);
     expect(ENEMY_BALANCE.ghoulDevourer.hp).toBeGreaterThan(toughestCommon);
-    expect(ENEMY_BALANCE.matriarchSuccubus.hp).toBeGreaterThan(ENEMY_BALANCE.ghoulDevourer.hp);
-    expect(SUCCUBUS_BOSS_BALANCE.story.hp).toBeGreaterThan(ENEMY_BALANCE.matriarchSuccubus.hp);
+    expect(ENEMY_BALANCE.lyn.hp).toBeGreaterThan(ENEMY_BALANCE.ghoulDevourer.hp);
+    expect(SUCCUBUS_BOSS_BALANCE.story.hp).toBeGreaterThan(ENEMY_BALANCE.lyn.hp);
     expect(AZAZEL_BOSS_BALANCE.maxHp).toBeGreaterThan(SUCCUBUS_BOSS_BALANCE.story.hp);
   });
 

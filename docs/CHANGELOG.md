@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado — Lyn] — 2026-11-20
+
+### Resumo para o Jogador
+- **A Matriarca Súcubo agora é a Lyn:** antes ela era a própria Rosalin pintada de rosa. Agora é uma súcubo jovem de cabelo preto e asas pretas, com arte e animação de voo próprias. Os golpes e a recompensa continuam iguais (2 gemas roxas, 15 a 20 almas e um baú).
+- No Modo de Teste o botão virou "INVOCAR MINI-BOSS: LYN (SÚCUBO)", e ela está na galeria no lugar da "Succubus Menor".
+
+### Técnico
+- `SuccubusBoss.useLynSprites()`: troca o conjunto de sprites (`lyn-*`, voo em 4 eixos) e a colisão; a Rosalin segue com `succubus-*` em 8 direções.
+- `spawnMatriarchSuccubus` → `spawnLyn`; `ENEMY_BALANCE.matriarchSuccubus` → `ENEMY_BALANCE.lyn`; tipo do Modo de Teste `matriarch` → `lyn`. A tinta rosa saiu (catraca de cores: 1034 → 1033).
+- Sprites em `public/assets/sprites/enemies/Lyn/{Idle,Fly}` (fonte em `art-source/Sprites/Enemies/Lyn/`).
+
 ## [Não publicado — Arqueira Demônia] — 2026-11-20
 
 ### Resumo para o Jogador

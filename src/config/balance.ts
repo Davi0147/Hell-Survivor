@@ -383,7 +383,8 @@ export const ENEMY_BALANCE = {
     // Empurrão na heroína ao acertar (força em px/s e duração); o bote empurra mais forte
     knockback: { force: 300, lungeForce: 560, durationMs: 220, lungeDurationMs: 320 },
   },
-  matriarchSuccubus: { hp: 2400, speed: 115, damage: 24, scale: 1.45 },
+  // Lyn: minichefe súcubo (antes "Matriarca Succubus"). Arte própria 56/76 px, por isso a escala maior.
+  lyn: { hp: 2400, speed: 115, damage: 24, scale: 1.6 },
 } as const;
 
 // Regra de ouro das lutas de chefe: nenhum golpe sozinho tira mais de ~45% da vida

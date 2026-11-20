@@ -616,30 +616,31 @@ export class EnemySpawnSystem {
   }
 
   /**
-   * Spawna a Mini-Chefe Matriarca Succubus (disponível via Sandbox / Modo de Teste F1)
+   * Spawna a minichefe Lyn, súcubo jovem com arte própria (antes "Matriarca Succubus",
+   * que era a Rosalin pintada de rosa). Usa os golpes da súcubo em escala menor.
    */
-  public spawnMatriarchSuccubus(): void {
+  public spawnLyn(): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = 400;
-    const x = this.ctx.player.x + Math.cos(angle) * dist;
-    const y = this.ctx.player.y + Math.sin(angle) * dist;
+    const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
+    const { x, y } = pos;
 
-    const matriarch = new SuccubusBoss(this.scene, x, y);
-    matriarch.setDepth(21);
-    this.ctx.enemiesGroup.add(matriarch);
+    const lyn = new SuccubusBoss(this.scene, x, y);
+    lyn.setDepth(21);
+    this.ctx.enemiesGroup.add(lyn);
 
-    const matriarchStats = ENEMY_BALANCE.matriarchSuccubus;
-    matriarch.spawn(x, y, matriarchStats.hp, matriarchStats.speed, matriarchStats.damage, matriarchStats.scale);
-    matriarch.setTint(0xff758f);
+    const stats = ENEMY_BALANCE.lyn;
+    lyn.spawn(x, y, stats.hp, stats.speed, stats.damage, stats.scale);
+    lyn.useLynSprites();
 
-    matriarch.on('boss-defeated', () => {
+    lyn.on('boss-defeated', () => {
       this.ctx.killCount++;
       this.ctx.player.gainUltimateCharge(50);
       // Recompensa lendária: 2 Gemas Roxas, 15-20 Almas e Baú do Abismo
-      this.ctx.spawnGemAt(matriarch.x - 20, matriarch.y, 'purple');
-      this.ctx.spawnGemAt(matriarch.x + 20, matriarch.y, 'purple');
-      this.ctx.spawnSoulItem(matriarch.x, matriarch.y, Phaser.Math.Between(15, 20));
-      this.ctx.spawnMapItem(matriarch.x, matriarch.y - 30, 'chest');
+      this.ctx.spawnGemAt(lyn.x - 20, lyn.y, 'purple');
+      this.ctx.spawnGemAt(lyn.x + 20, lyn.y, 'purple');
+      this.ctx.spawnSoulItem(lyn.x, lyn.y, Phaser.Math.Between(15, 20));
+      this.ctx.spawnMapItem(lyn.x, lyn.y - 30, 'chest');
       this.scene.cameras.main.shake(300, 0.02);
     });
 
