@@ -20,7 +20,8 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
     scene.add.existing(this);
-    this.setDepth(9);
+    // Abaixo dos monstros (4–15) e da heroína (20): é uma plataforma no chão, quem passa por cima fica na frente.
+    this.setDepth(3);
 
     // 1. Gráficos de Aura e Brilho no Chão
     this.auraGraphics = scene.add.graphics();

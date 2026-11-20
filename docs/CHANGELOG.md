@@ -2,6 +2,11 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — 2026-11-20
+
+### Resumo para o Jogador
+- **Monstros não somem mais atrás dos altares:** o Altar de Invocação e o Altar de Evolução são plataformas no chão; agora qualquer monstro que passa por cima deles aparece na frente, em vez de ficar escondido atrás.
+
 ## [v0.12.4 — iPhone de Verdade] — 2026-11-17
 
 ### Resumo para o Jogador

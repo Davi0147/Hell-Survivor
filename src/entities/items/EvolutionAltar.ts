@@ -18,7 +18,8 @@ export class EvolutionAltar extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
     scene.add.existing(this);
-    this.setDepth(8);
+    // Abaixo dos monstros (4–15): é um círculo no chão, quem pisa nele fica na frente.
+    this.setDepth(3);
 
     // 1. Círculo Mágico / Área Rúnica de Captura no Chão
     this.zoneGraphics = scene.add.graphics();
