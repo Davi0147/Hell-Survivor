@@ -25,10 +25,10 @@ describe('getEnemyScaling (Fórmula Pura de Escalonamento de Inimigos)', () => {
     expect(story.damageMultiplier).toBeCloseTo(1 + 5 * 0.06, 5); // 1.30
     expect(story.speedMultiplier).toBeCloseTo(1 + 5 * 0.02, 5); // 1.10
 
-    // Modo Infinito (+16% HP/min, +8% Dano/min)
+    // Modo Infinito: reta (+16% HP/min, +8% Dano/min) + parte que acelera (minutos²)
     const endless = getEnemyScaling(fiveMinutesMs, true);
-    expect(endless.hpMultiplier).toBeCloseTo(1 + 5 * 0.16, 5); // 1.80
-    expect(endless.damageMultiplier).toBeCloseTo(1 + 5 * 0.08, 5); // 1.40
+    expect(endless.hpMultiplier).toBeCloseTo(1 + 5 * 0.16 + 25 * 0.025, 5); // 2.425
+    expect(endless.damageMultiplier).toBeCloseTo(1 + 5 * 0.08 + 25 * 0.012, 5); // 1.70
     expect(endless.speedMultiplier).toBeCloseTo(1 + 5 * 0.02, 5); // 1.10
 
     // O Modo Infinito deve ser estritamente mais letal que o Modo História
@@ -45,8 +45,8 @@ describe('getEnemyScaling (Fórmula Pura de Escalonamento de Inimigos)', () => {
     expect(story.speedMultiplier).toBeCloseTo(1.20, 5);
 
     const endless = getEnemyScaling(tenMinutesMs, true);
-    expect(endless.hpMultiplier).toBeCloseTo(2.60, 5);
-    expect(endless.damageMultiplier).toBeCloseTo(1.80, 5);
+    expect(endless.hpMultiplier).toBeCloseTo(5.10, 5);
+    expect(endless.damageMultiplier).toBeCloseTo(3.00, 5);
     expect(endless.speedMultiplier).toBeCloseTo(1.20, 5);
   });
 

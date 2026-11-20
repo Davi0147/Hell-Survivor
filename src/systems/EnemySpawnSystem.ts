@@ -150,8 +150,9 @@ export class EnemySpawnSystem {
     const minutes = this.ctx.survivalTimeMs / 60000;
     const chMult = this.getChapterEnemyStatMultiplier();
     const slime = ENEMY_BALANCE.skullSlime;
-    const hp = Math.round((slime.hp + (this.ctx.gameMode === 'endless' ? minutes * slime.endlessHpPerMinute : 0)) * chMult);
-    const dmg = Math.round(slime.damage * chMult);
+    const late = this.endlessLateScaling();
+    const hp = Math.round((slime.hp + (this.ctx.gameMode === 'endless' ? minutes * slime.endlessHpPerMinute : 0)) * chMult * late.hp);
+    const dmg = Math.round(slime.damage * chMult * late.damage);
     enemy.spawn(x, y, hp, slime.speed, dmg);
   }
 
@@ -189,10 +190,21 @@ export class EnemySpawnSystem {
     const minutes = this.ctx.survivalTimeMs / 60000;
     const chMult = this.getChapterEnemyStatMultiplier();
     const bat = ENEMY_BALANCE.bloodBat;
-    const hp = Math.round((bat.hp + (this.ctx.gameMode === 'endless' ? minutes * bat.endlessHpPerMinute : 0)) * chMult);
+    const late = this.endlessLateScaling();
+    const hp = Math.round((bat.hp + (this.ctx.gameMode === 'endless' ? minutes * bat.endlessHpPerMinute : 0)) * chMult * late.hp);
     const speed = Math.floor(bat.speed + (this.ctx.gameMode === 'endless' ? minutes * bat.endlessSpeedPerMinute : 0));
-    const dmg = Math.round(bat.damage * chMult);
+    const dmg = Math.round(bat.damage * chMult * late.damage);
     enemy.spawn(x, y, hp, speed, dmg);
+  }
+
+  /**
+   * Morcegos e slimes já ganham vida por minuto no Infinito; aqui entram a parte que acelera
+   * da vida e o dano por tempo (antes eles nunca batiam mais forte). Fora do Infinito: 1.
+   */
+  private endlessLateScaling(): { hp: number; damage: number } {
+    if (this.ctx.gameMode !== 'endless') return { hp: 1, damage: 1 };
+    const s = getEnemyScaling(this.ctx.survivalTimeMs, true);
+    return { hp: s.lateHpMultiplier, damage: s.damageMultiplier };
   }
 
   /**

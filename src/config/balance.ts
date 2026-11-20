@@ -107,16 +107,84 @@ export const ARENA_CONFIG = {
  * Aumenta gradualmente a vida e o dano dos inimigos conforme a partida avança,
  * garantindo que builds fortes continuem sendo desafiadas e impedindo AFK infinito.
  */
+export const ENEMY_SCALING = {
+  /**
+   * História: só cresce em linha reta (a partida acaba no chefe do capítulo).
+   * Infinito: a parte "quadrática" faz a curva acelerar, porque a build do jogador
+   * multiplica (dano % x projéteis x crítico x armas) e uma reta não acompanha.
+   * Infinito aos 6/10/15/20 min: vida x2,9 / x5,1 / x9,0 / x14,2; dano x1,9 / x3,0 / x4,9 / x7,4.
+   */
+  story: { hpPerMinute: 0.12, hpPerMinuteSq: 0, damagePerMinute: 0.06, damagePerMinuteSq: 0 },
+  endless: { hpPerMinute: 0.16, hpPerMinuteSq: 0.025, damagePerMinute: 0.08, damagePerMinuteSq: 0.012 },
+  speedPerMinute: 0.02,
+  maxSpeedMultiplier: 1.3,
+} as const;
+
 export function getEnemyScaling(survivalTimeMs: number, isEndless: boolean) {
   const minutes = survivalTimeMs / 60000;
-  // +12% HP por minuto no História (+16% no Infinito)
-  const hpMultiplier = 1 + minutes * (isEndless ? 0.16 : 0.12);
-  // +6% Dano por minuto no História (+8% no Infinito)
-  const damageMultiplier = 1 + minutes * (isEndless ? 0.08 : 0.06);
-  // +2% Velocidade por minuto (limitado a +30% para não ficar impossível de desviar)
-  const speedMultiplier = Math.min(1.30, 1 + minutes * 0.02);
+  const c = isEndless ? ENEMY_SCALING.endless : ENEMY_SCALING.story;
+  const hpMultiplier = 1 + minutes * c.hpPerMinute + minutes * minutes * c.hpPerMinuteSq;
+  const damageMultiplier = 1 + minutes * c.damagePerMinute + minutes * minutes * c.damagePerMinuteSq;
+  // Velocidade com teto para continuar dando para desviar
+  const speedMultiplier = Math.min(ENEMY_SCALING.maxSpeedMultiplier, 1 + minutes * ENEMY_SCALING.speedPerMinute);
+  /** Só a parte que acelera (Infinito): aplicada em morcegos e slimes, que já têm o próprio ganho por minuto. */
+  const lateHpMultiplier = 1 + minutes * minutes * c.hpPerMinuteSq;
 
-  return { hpMultiplier, damageMultiplier, speedMultiplier, minutes };
+  return { hpMultiplier, damageMultiplier, speedMultiplier, lateHpMultiplier, minutes };
+}
+
+/** Ritmo de nascimento da horda: intervalo entre levas (ms). */
+export const SPAWN_PACING = {
+  startMs: 1500,
+  dropPerMinuteMs: 350,
+  minStoryMs: 650,
+  minEndlessMs: 450,
+  /** Infinito tardio: depois deste minuto o piso desce até `lateMinMs`, ao longo de `lateRampMinutes`. */
+  lateFromMinutes: 8,
+  lateRampMinutes: 6,
+  lateMinMs: 300,
+} as const;
+
+export function getSpawnIntervalMs(minutes: number, isEndless: boolean): number {
+  const p = SPAWN_PACING;
+  let floor: number = isEndless ? p.minEndlessMs : p.minStoryMs;
+  if (isEndless && minutes > p.lateFromMinutes) {
+    const t = Math.min(1, (minutes - p.lateFromMinutes) / p.lateRampMinutes);
+    floor = p.minEndlessMs - (p.minEndlessMs - p.lateMinMs) * t;
+  }
+  return Math.max(floor, p.startMs - minutes * p.dropPerMinuteMs);
+}
+
+/**
+ * Roubo de vida: cada acerto cura um pouco, mas com teto por segundo. Sem o teto, uma
+ * build com muitos projéteis acertava dezenas de vezes por segundo e ficava imortal.
+ */
+export const LIFE_STEAL_BALANCE = {
+  maxHealPerSec: 4,
+} as const;
+
+/**
+ * Pressão do Abismo (só no Modo Infinito): ficar parado num lugar deixa TODOS os monstros
+ * mais fortes (causam mais dano e aguentam mais), em degraus de 10 s. Sair de perto do
+ * ponto onde parou (mais que `leashRadius`) zera. Medir por distância evita burlar
+ * dando passinhos no lugar.
+ */
+export const IDLE_PRESSURE_BALANCE = {
+  leashRadius: 140,
+  stepMs: 10000,
+  /** Bônus de força em cada degrau (10 s, 20 s, 30 s...). */
+  steps: [0.10, 0.15, 0.25, 0.40, 0.60, 0.85, 1.15, 1.50],
+  /** Depois da tabela, cada novo degrau soma isto. Não tem teto: parado, uma hora morre. */
+  growthAfterTable: 0.5,
+} as const;
+
+/** Bônus de força dos monstros depois de `stillMs` parado (0 = nenhum). */
+export function getIdlePressureBonus(stillMs: number): number {
+  const cfg = IDLE_PRESSURE_BALANCE;
+  const step = Math.floor(stillMs / cfg.stepMs);
+  if (step <= 0) return 0;
+  if (step <= cfg.steps.length) return cfg.steps[step - 1];
+  return cfg.steps[cfg.steps.length - 1] + (step - cfg.steps.length) * cfg.growthAfterTable;
 }
 
 /**

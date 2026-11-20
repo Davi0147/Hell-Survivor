@@ -101,6 +101,10 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite {
       isCrit = rolled.isCrit;
     }
 
+    // Pressão do Abismo (Infinito): monstros fortalecidos aguentam mais
+    const strength = (this.scene as { enemyStrengthMultiplier?: number }).enemyStrengthMultiplier ?? 1;
+    if (strength > 1) amount /= strength;
+
     this.hp -= amount;
 
     // Flash branco de impacto

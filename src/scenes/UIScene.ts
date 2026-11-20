@@ -18,6 +18,7 @@ import { ChestRouletteModal, IChestRouletteGameScene } from '../ui/ChestRoulette
 import { ScreenAnnouncer } from '../ui/ScreenAnnouncer';
 import { StatusPanelHud } from '../ui/StatusPanelHud';
 import { TopCenterHud } from '../ui/TopCenterHud';
+import { IdlePressureHud } from '../ui/IdlePressureHud';
 import { TacticalRadar } from '../ui/TacticalRadar';
 import { AltarEdgeIndicator } from '../ui/AltarEdgeIndicator';
 import { ComboHud } from '../ui/ComboHud';
@@ -98,6 +99,7 @@ export class UIScene
 
   // Topo central (purificação, vida do chefe, cronômetro do Infinito)
   private topCenterHud!: TopCenterHud;
+  private idlePressureHud?: IdlePressureHud;
   private bestRecordSec: number = 0;
 
   // Seta de borda para o objetivo fora da tela
@@ -183,6 +185,7 @@ export class UIScene
     // ==========================================
     this.bestRecordSec = this.getBestRecordSec();
     this.topCenterHud = new TopCenterHud(this, pixelFont, this.formatTime(this.bestRecordSec), (sec) => this.formatTime(sec));
+    this.idlePressureHud = new IdlePressureHud(this);
 
     this.announcer = new ScreenAnnouncer(this, pixelFont);
 
@@ -356,6 +359,12 @@ export class UIScene
       }
       return;
     }
+
+    // Aviso da Pressão do Abismo (só Infinito, só com a HUD visível)
+    this.idlePressureHud?.update(
+      this.isHUDVisibleState && gameScene?.gameMode === 'endless' ? gameScene.idlePressure : undefined,
+      delta
+    );
 
     if (!this.isHUDVisibleState) return;
 

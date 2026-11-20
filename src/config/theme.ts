@@ -200,6 +200,13 @@ export const WEAPON_SLOT_THEME = {
   levelText: '#f3d17a',
 } as const;
 
+/** Aviso da Pressão do Abismo (Infinito): ficou parado, os monstros se fortalecem. */
+export const IDLE_PRESSURE_THEME = {
+  warnText: '#ffb703',
+  dangerText: '#ff2255',
+  stroke: '#12020a',
+} as const;
+
 /** Painel de status (vida, estamina, nível) do canto inferior direito. */
 export const STATUS_PANEL_THEME = {
   /** Fundo das janelas da moldura, visível onde a barra já esvaziou. */

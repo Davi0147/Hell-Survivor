@@ -134,7 +134,7 @@
 - [x] **Ritmo de Combate (v0.10.0):** combo de abates com Frenesi, esquiva com invulnerabilidade, golpes críticos e cinco cartas novas (`CombatFeelSystem.ts`).
 - [ ] **Sistema de Conquistas In-Game (Achievements):** Notificações estilo arcade aproveitando os dados de `MetaProgressManager.stats`.
 - [ ] **Capítulo 3:** Novo bioma, chefe inédito e continuação da campanha.
-- [ ] **Balanceamento do fim de partida (pedido do dono em 2026-11-20, próximo da fila):** com build pronta (nível ~44, +115% dano, +11 projéteis, 5 armas) a Nixy fica parada e nada a ameaça. Duas frentes:
+- [x] **Balanceamento do fim de partida (feito em 2026-11-20; curva acelerada do Infinito, teto do roubo de vida e Pressão do Abismo só no Infinito, por decisão do dono. Falta medir com partidas longas reais e ajustar os números em `balance.ts`):** com build pronta (nível ~44, +115% dano, +11 projéteis, 5 armas) a Nixy fica parada e nada a ameaça. Duas frentes:
   1. **Monstros mais fortes com o tempo** para forçar builds melhores (rever a curva de HP/dano/quantidade em `balance.ts`).
   2. **Castigo por ficar parado:** depois de 10 s parada, todos os monstros ganham +10% de força; 20 s, +15%; e continua subindo até ela morrer. Andar zera. Pontos a decidir na implementação: medir "parado" por distância percorrida numa janela (para não burlar dando passinhos), avisar na tela quando o castigo começa, e se vale para o Modo História ou só para o Infinito.
 

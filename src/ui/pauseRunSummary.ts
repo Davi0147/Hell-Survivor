@@ -1,4 +1,4 @@
-import { CRIT_BALANCE } from '../config/balance';
+import { CRIT_BALANCE, LIFE_STEAL_BALANCE } from '../config/balance';
 
 /** O que o resumo lê do personagem (só números; nada de Phaser, para dar para testar). */
 export interface IRunBonusSource {
@@ -62,7 +62,7 @@ export function buildRunBonuses(p: IRunBonusSource): IRunBonusEntry[] {
   add(p.hpRegenPerSec > 0, 'icon-blessing-vitality', `${fmt1(p.hpRegenPerSec)}/s`, 'REGENERAÇÃO', 'REGENERAÇÃO',
     `A Nixy recupera ${fmt1(p.hpRegenPerSec)} de vida por segundo, sem parar.`);
   add(p.lifeStealPerHit > 0, 'icon-blessing-vitality', `${fmt1(p.lifeStealPerHit)}`, 'ROUBO VIDA', 'DRENO VITAL',
-    `Cada acerto das armas devolve ${fmt1(p.lifeStealPerHit)} de vida.`);
+    `Cada acerto das armas devolve ${fmt1(p.lifeStealPerHit)} de vida, até ${LIFE_STEAL_BALANCE.maxHealPerSec} de vida por segundo.`);
   add(p.dashMasteryLevel > 0, 'icon-card-dash', `NV ${p.dashMasteryLevel}`, 'PASSO SOMBRIO', 'PASSO SOMBRIO',
     'A esquiva corta os monstros no caminho e gasta menos fôlego. Cada nível aumenta o dano do corte.');
   add(p.corpseExplosionLevel > 0, 'icon-card-corpse-explosion', `NV ${p.corpseExplosionLevel}`, 'ALMA INSTÁVEL', 'ALMA INSTÁVEL',

@@ -21,7 +21,8 @@ import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig } from '../config/balance';
+import { PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig, getSpawnIntervalMs } from '../config/balance';
+import { IdlePressureSystem } from '../systems/IdlePressureSystem';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
 import { TestShowroomSystem } from '../systems/TestShowroomSystem';
@@ -158,6 +159,17 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     return this.runEnd?.hasRevivalUsed ?? false;
   }
 
+  /** Pressão do Abismo (Infinito): parado, os monstros ficam mais fortes. */
+  public readonly idlePressure = new IdlePressureSystem();
+
+  /**
+   * Força extra de TODOS os monstros agora: multiplica o dano que causam e divide o dano que
+   * recebem (lido no contato e em BaseEnemy.takeDamage). 1 = normal.
+   */
+  public get enemyStrengthMultiplier(): number {
+    return this.gameMode === 'endless' ? this.idlePressure.multiplier : 1;
+  }
+
   // Sistema de Combate e Armas
   public weapons: BaseWeapon[] = [];
 
@@ -230,6 +242,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.miniBoss3mSpawned = false;
     this.boss10mSpawned = false;
     this.survivalTimeMs = 0;
+    this.idlePressure.reset();
     this.bossInstance = undefined;
     this.azazelBoss = undefined;
     this.isPlayerMovementLocked = false;
@@ -492,7 +505,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
             return;
           }
           SoundManager.getInstance().playPlayerHurt();
-          this.player.takeDamage(enemy.damage);
+          this.player.takeDamage(Math.round(enemy.damage * this.enemyStrengthMultiplier));
           if (enemy instanceof MummyEnemy) {
             enemy.onPlayerCollide(this.player);
           }
@@ -691,6 +704,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     this.survivalTimeMs += delta;
 
+    // Pressão do Abismo: ficar plantado no Infinito fortalece a horda (travas de cena não contam)
+    if (this.gameMode === 'endless' && !this.isPlayerMovementLocked) {
+      this.idlePressure.update(delta, this.player.x, this.player.y);
+    }
+
     // 1. Controles (teclado, gamepad, toque ou bot [F3]); travas cinematográficas zeram o movimento
     const move = this.playerInput.read(delta, this.isPlayerMovementLocked);
 
@@ -783,10 +801,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     if (!this.isBossFightActive && !this.isHordeSpawningPaused && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
       this.spawnTimer += delta;
 
-      // Intervalo de spawn diminui de 1500ms para até 450ms no Modo Infinito
+      // Intervalo entre levas encurta com o tempo (SPAWN_PACING em balance.ts)
       const minutes = this.survivalTimeMs / 60000;
-      const minInterval = this.gameMode === 'endless' ? 450 : 650;
-      const currentInterval = Math.max(minInterval, 1500 - minutes * 350) * (this.hordeEvents?.spawnIntervalMultiplier ?? 1);
+      const currentInterval = getSpawnIntervalMs(minutes, this.gameMode === 'endless') * (this.hordeEvents?.spawnIntervalMultiplier ?? 1);
 
       if (this.spawnTimer >= currentInterval) {
         this.spawnTimer = 0;

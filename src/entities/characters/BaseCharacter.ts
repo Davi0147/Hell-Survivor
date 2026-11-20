@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CharacterStats, Direction8, CRIT_BALANCE, DASH_BALANCE } from '../../config/balance';
+import { CharacterStats, Direction8, CRIT_BALANCE, DASH_BALANCE, LIFE_STEAL_BALANCE } from '../../config/balance';
 
 const DIRECTION_VECTORS: Record<Direction8, { x: number; y: number }> = {
   east: { x: 1, y: 0 },
@@ -45,6 +45,8 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   // Novos Atributos Passivos de Cura e Sobrevivência (Balanceados)
   public hpRegenPerSec: number = 0; // Regeneração contínua de HP por segundo (até 0.8/s)
   public lifeStealPerHit: number = 0; // Roubo de vida por acerto (até 0.3 por golpe)
+  /** Quanto o roubo de vida ainda pode curar agora (enche com o tempo até o teto por segundo). */
+  private lifeStealBudget: number = LIFE_STEAL_BALANCE.maxHealPerSec;
   public rerollsRemaining: number = 2; // Cargas de Re-rolar Bênçãos por partida
 
   // Ritmo de combate: críticos, combo, esquiva e explosão de cadáver (cartas e Frenesi mexem aqui)
@@ -128,6 +130,10 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
 
     if (this.dashCooldownTimer > 0) this.dashCooldownTimer -= deltaMs;
     if (this.dashInvulnTimer > 0) this.dashInvulnTimer -= deltaMs;
+
+    // Reserva do roubo de vida: enche no ritmo do teto por segundo, guarda no máximo 1 s
+    const stealCap = LIFE_STEAL_BALANCE.maxHealPerSec;
+    this.lifeStealBudget = Math.min(stealCap, this.lifeStealBudget + stealCap * deltaSec);
 
     // Esquiva em andamento: velocidade travada na direção escolhida, sem gastar nem recarregar fôlego
     if (this.dashTimer > 0) {
@@ -284,7 +290,11 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
    */
   public triggerLifeSteal(hits: number = 1): void {
     if (this.lifeStealPerHit <= 0 || this.currentHp <= 0) return;
-    this.heal(this.lifeStealPerHit * hits);
+    // Teto por segundo (LIFE_STEAL_BALANCE): muitos acertos não viram cura infinita
+    const amount = Math.min(this.lifeStealPerHit * hits, this.lifeStealBudget);
+    if (amount <= 0) return;
+    this.lifeStealBudget -= amount;
+    this.heal(amount);
   }
 
   public gainXp(amount: number): boolean {
