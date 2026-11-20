@@ -15,15 +15,10 @@ describe('Colossus: escudo contra perfuração', () => {
 describe('Colossus: quando aparece', () => {
   const c = ENEMY_BALANCE.colossus;
 
-  it('não aparece na História nem no Modo de Teste automático', () => {
-    expect(getColossusMaxAlive('story', 20)).toBe(0);
-    expect(getColossusMaxAlive('sandbox', 20)).toBe(0);
-  });
-
-  it('no Infinito começa em minMinutes e sobe o limite no fim', () => {
-    expect(getColossusMaxAlive('endless', c.minMinutes - 0.1)).toBe(0);
-    expect(getColossusMaxAlive('endless', c.minMinutes)).toBe(c.maxAlive);
-    expect(getColossusMaxAlive('endless', c.lateMinutes)).toBe(c.maxAliveLate);
+  it('limite de vivos: o normal, e mais no Infinito tardio (quando aparece é o cronograma)', () => {
+    expect(getColossusMaxAlive(false, 30)).toBe(c.maxAlive);
+    expect(getColossusMaxAlive(true, c.lateMinutes - 0.1)).toBe(c.maxAlive);
+    expect(getColossusMaxAlive(true, c.lateMinutes)).toBe(c.maxAliveLate);
   });
 
   it('é tanque: bem mais vida que o cão, dano de contato comum', () => {

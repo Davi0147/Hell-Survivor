@@ -816,6 +816,26 @@ export class DevSandboxPanel {
       }
     );
 
+    // Coluna 1, abaixo dos monstros: cronograma do Infinito (pular tempo do Círculo)
+    this.createActionButton(
+      x,
+      y + 26 + mobButtons.length * 30 + 8,
+      colW,
+      26,
+      'INFINITO: AVANÇAR 30 S NO CRONOGRAMA',
+      COLORS.velvetBoss,
+      COLORS.goldChest,
+      COLORS.textWhite,
+      () => {
+        if (gs.gameMode !== 'endless' || !gs.encounters) {
+          this.showToast('SÓ FUNCIONA DENTRO DO MODO INFINITO', FX_COLORS.colossusToast);
+          return;
+        }
+        gs.encounters.debugAdvance(30000);
+        this.showToast(gs.encounters.describe(), FX_COLORS.colossusToast);
+      }
+    );
+
     // Linhas 8+: Eventos de horda, dois por linha (a coluna 1 ficou só para monstros)
     SANDBOX_HORDE_EVENTS.forEach((ev, i) => {
       this.createActionButton(

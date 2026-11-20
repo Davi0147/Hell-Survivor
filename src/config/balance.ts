@@ -145,18 +145,19 @@ export const SPAWN_PACING = {
   lateMinMs: 300,
 } as const;
 
-/** Quantos Colossus podem estar vivos ao mesmo tempo (0 = ainda não aparece neste modo/tempo). */
-export function getColossusMaxAlive(gameMode: 'story' | 'endless' | 'sandbox', minutes: number): number {
+/**
+ * Quantos Colossus podem estar vivos ao mesmo tempo, quando ele já foi liberado pelo cronograma
+ * (`STORY_SCHEDULE` / `ENDLESS_SCHEDULE`). Mais no Infinito tardio.
+ */
+export function getColossusMaxAlive(isEndless: boolean, minutes: number): number {
   const c = ENEMY_BALANCE.colossus;
-  if (gameMode !== 'endless' || minutes < c.minMinutes) return 0;
-  return minutes >= c.lateMinutes ? c.maxAliveLate : c.maxAlive;
+  return isEndless && minutes >= c.lateMinutes ? c.maxAliveLate : c.maxAlive;
 }
 
-/** Quantas Arqueiras podem estar vivas ao mesmo tempo (0 = ainda não aparece neste modo/tempo). */
-export function getArcherMaxAlive(gameMode: 'story' | 'endless' | 'sandbox', minutes: number): number {
+/** Quantas Arqueiras podem estar vivas ao mesmo tempo, quando já liberadas pelo cronograma. */
+export function getArcherMaxAlive(isEndless: boolean, minutes: number): number {
   const a = ENEMY_BALANCE.archer;
-  if (gameMode !== 'endless' || minutes < a.minMinutes) return 0;
-  return minutes >= a.lateMinutes ? a.maxAliveLate : a.maxAlive;
+  return isEndless && minutes >= a.lateMinutes ? a.maxAliveLate : a.maxAlive;
 }
 
 export function getSpawnIntervalMs(minutes: number, isEndless: boolean): number {
@@ -306,7 +307,8 @@ export function getBossDefeatOutcome(gameMode: string): BossDefeatOutcome {
 // aplicados no momento do spawn pela GameScene.
 export const ENEMY_BALANCE = {
   zombieDog: { hp: 35, speed: 85, damage: 9 },
-  zombieDogElite: { hp: 140, speed: 90, damage: 13, scale: 1.35, minMinutes: 2, chance: 0.12 },
+  // Quando o Alfa aparece e a chance de cada cão nascer Alfa: `STORY_SCHEDULE` / `ENDLESS_SCHEDULE`
+  zombieDogElite: { hp: 140, speed: 90, damage: 13, scale: 1.35 },
   // Variante elite invocada manualmente pelo Modo de Teste
   zombieDogEliteSandbox: { hp: 180, speed: 96, damage: 15, scale: 1.35 },
   // Guardas dos props de mapa (cães postados em pontos fixos)
@@ -319,14 +321,13 @@ export const ENEMY_BALANCE = {
   azazelDimensionMummy: { hp: 150, speed: 62, damage: 16 },
   // Colossus: tanque lento que puxa uma escolta de cães atrás dele. Projéteis que perfuram
   // param nele (não atravessam). Muita vida, dano de contato comum (perto do Cão Zumbi).
-  // Só no Infinito por enquanto: a partir de `minMinutes`, com `chance` por leva e até
-  // `maxAlive` vivos (`maxAliveLate` depois de `lateMinutes`).
+  // Quando aparece: cronograma (`STORY_SCHEDULE` / `ENDLESS_SCHEDULE`). Depois disso, `chance` por
+  // leva e até `maxAlive` vivos (`maxAliveLate` no Infinito depois de `lateMinutes`).
   colossus: {
     hp: 520,
     speed: 50,
     damage: 10,
     scale: 2.0,
-    minMinutes: 2.5,
     chance: 0.14,
     maxAlive: 1,
     maxAliveLate: 2,
@@ -357,13 +358,13 @@ export const ENEMY_BALANCE = {
     fireCooldownMs: 1500,
     drawMs: 750,
     arrow: { damage: 8, speed: 330, lifespanMs: 1600, hitRadius: 16 },
-    minMinutes: 1.5,
+    // Quando aparece: cronograma. Depois disso, `chance` por leva e até `maxAlive` vivas.
     chance: 0.2,
     maxAlive: 2,
     maxAliveLate: 4,
     lateMinutes: 6,
   },
-  // Minichefe do Infinito (3:00). Substituiu o Titã Cerberus (1400 HP, 95 vel, 20 dano, escala 1.85).
+  // Minichefe (meio do Capítulo 1 e rodízio do Infinito). Substituiu o Titã Cerberus (1400 HP, 95 vel, 20 dano, escala 1.85).
   // O bote é telegrafado e respeita a regra de ouro (golpe <= ~45% da vida base da heroína).
   ghoulDevourer: {
     hp: 2100,
@@ -663,10 +664,106 @@ export const STORM_BALANCE = {
   enemyDamagePerMinute: 14,
 } as const;
 
-/** Elites (Cães Alfa) fora do Modo Infinito: só em capítulos listados aqui. */
-export const STORY_ELITES: Record<number, { chance: number; minMinutes: number }> = {
-  2: { chance: 0.08, minMinutes: 1 },
+// ============================================================================
+// 6.1. CRONOGRAMA DE INIMIGOS (quando cada um aparece, minichefes, formações)
+// ============================================================================
+// Cada inimigo tem um papel e é APRESENTADO sozinho na primeira vez (aviso + grupinho),
+// depois entra na mistura. Mudar o momento de algo = editar estas tabelas.
+// Regras puras que leem isto: `src/systems/encounterRules.ts`. Quem executa: `EncounterDirector`.
+
+export type EnemyKind = 'dog' | 'elite' | 'bat' | 'mummy' | 'slime' | 'archer' | 'colossus';
+/**
+ * Formações: wall = Muralha (Colossus na frente, Arqueiras atrás), pack = Matilha (Alfas juntos),
+ * hunt = Caçada (Arqueiras cercando), swarm = Enxame (morcegos de vários lados),
+ * swamp = Pântano (Múmias e Slimes de um lado só).
+ */
+export type FormationId = 'wall' | 'pack' | 'hunt' | 'swarm' | 'swamp';
+export type MiniBossId = 'ghoul' | 'lyn';
+
+export interface StoryChapterSchedule {
+  /** Fração da barra de purificação (0 a 1) a partir da qual cada inimigo aparece. Ausente = nunca. */
+  unlocks: Partial<Record<EnemyKind, number>>;
+  /** Minichefe do meio da fase: aparece uma vez quando a barra chega em `atRatio`. */
+  miniBoss?: { id: MiniBossId; atRatio: number };
+  /** Formações que podem acontecer (a partir de `fromRatio`), uma a cada `FORMATION_BALANCE.storyIntervalMs`. */
+  formations: { id: FormationId; fromRatio: number }[];
+  /** Chance de um cão nascer Alfa (quando o Alfa já foi liberado). */
+  eliteChance: number;
+}
+
+export const STORY_SCHEDULE: Record<number, StoryChapterSchedule> = {
+  // Capítulo 1 — ensina o básico
+  1: {
+    unlocks: { dog: 0, bat: 0.2, mummy: 0.4, slime: 0.7 },
+    miniBoss: { id: 'ghoul', atRatio: 0.55 },
+    formations: [],
+    eliteChance: 0,
+  },
+  // Capítulo 2 — junta os inimigos novos
+  2: {
+    unlocks: { dog: 0, bat: 0, archer: 0.15, mummy: 0.2, elite: 0.3, colossus: 0.5, slime: 0.6 },
+    miniBoss: { id: 'lyn', atRatio: 0.55 },
+    formations: [
+      { id: 'pack', fromRatio: 0.3 },
+      { id: 'wall', fromRatio: 0.5 },
+    ],
+    eliteChance: 0.08,
+  },
 };
+
+/** Capítulos sem tabela própria usam o do Capítulo 2 (todos os inimigos). */
+export function getStorySchedule(chapter: number): StoryChapterSchedule {
+  return STORY_SCHEDULE[chapter] ?? STORY_SCHEDULE[2];
+}
+
+/**
+ * Modo Infinito em CÍRCULOS. O relógio do Círculo para durante a luta de chefe e a calmaria,
+ * então o minichefe nunca cai em cima do chefe. O Círculo 1 apresenta todo mundo; do 2 em diante
+ * tudo está liberado e cada Círculo tem um tema (formação que se repete).
+ */
+export const ENDLESS_SCHEDULE = {
+  circleMs: 300000,
+  /** Segundo do Círculo 1 em que cada inimigo estreia (do Círculo 2 em diante, todos desde o início). */
+  // (o minichefe chega em 2:30; ninguém estreia perto disso, para os avisos não se atropelarem)
+  firstCircleUnlocksSec: { dog: 0, bat: 45, archer: 90, mummy: 120, elite: 170, colossus: 205, slime: 240 } as Record<EnemyKind, number>,
+  miniBossAtMs: 150000,
+  /** Minichefe do Círculo N = rotation[(N - 1) % tamanho]. */
+  miniBossRotation: ['ghoul', 'lyn'] as MiniBossId[],
+  /** Aviso antes do chefe e segundos finais avisados de novo. */
+  bossWarningMs: 30000,
+  bossFinalWarningMs: 10000,
+  /** Eventos de horda param este tempo antes do chefe (para o chefe não chegar no meio de um Cerco). */
+  eventQuietBeforeBossMs: 20000,
+  /** Depois do chefe: sem hordas novas por este tempo, e então começa o próximo Círculo. */
+  calmAfterBossMs: 10000,
+  /** Tema do Círculo N (N >= 2) = themes[(N - 2) % tamanho]. */
+  themes: ['wall', 'swarm', 'swamp', 'pack', 'hunt'] as FormationId[],
+  /** Chefe do Círculo N: vida = base x (hpBase + hpPerCircle x (N - 1)); dano idem. */
+  boss: { hpBase: 0.75, hpPerCircle: 0.45, damageBase: 1, damagePerCircle: 0.12 },
+  /** Minichefe do Círculo N: vida x (1 + miniBossHpPerCircle x (N - 1)). */
+  miniBossHpPerCircle: 0.5,
+  /** Chance de um cão nascer Alfa (quando o Alfa já foi liberado). */
+  eliteChance: 0.12,
+} as const;
+
+/** Tamanho das formações e dos grupos de apresentação. */
+export const FORMATION_BALANCE = {
+  /** Distância da heroína em que a formação nasce. */
+  distance: 420,
+  /** Intervalo entre formações (História e tema do Infinito); a primeira vem depois de `firstDelayMs`. */
+  storyIntervalMs: 45000,
+  endlessIntervalMs: 35000,
+  firstDelayMs: 20000,
+  /** Arena lotada (limite de desempenho): a formação tenta de novo depois deste tempo. */
+  retryWhenFullMs: 3000,
+  wall: { colossi: 2, archers: 3, sidePx: 70, backPx: 90 },
+  pack: { elites: 4 },
+  hunt: { archers: 4 },
+  swarm: { flocks: 3, batsPerFlock: 8 },
+  swamp: { mummies: 3, slimes: 2 },
+  /** Grupinho que aparece junto do aviso "NOVO INIMIGO" (o cão é o básico, não tem apresentação). */
+  intro: { elite: 2, bat: 6, mummy: 3, slime: 1, archer: 2, colossus: 1 } as Partial<Record<EnemyKind, number>>,
+} as const;
 
 // ============================================================================
 // 7. FIM DE JOGO: PACTO DEMONÍACO (ressurreição única por partida)

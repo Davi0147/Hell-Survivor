@@ -1,4 +1,5 @@
-import { HORDE_EVENT_BALANCE, STORY_ELITES } from '../config/balance';
+import { HORDE_EVENT_BALANCE } from '../config/balance';
+import { storyHasElites } from './encounterRules';
 
 export type HordeEventType = 'siege' | 'ambush' | 'thief' | 'elite_pack' | 'blood_moon';
 
@@ -18,7 +19,7 @@ export function getEligibleHordeEvents(
   if (!isThiefAlive) events.push('thief');
 
   const isLateRealm = gameMode === 'endless' || chapter >= 2;
-  const hasElites = gameMode === 'endless' || STORY_ELITES[chapter] !== undefined;
+  const hasElites = gameMode === 'endless' || storyHasElites(chapter);
   if (hasElites && minutes >= HORDE_EVENT_BALANCE.elitePack.minMinutes) events.push('elite_pack');
   if (isLateRealm && !isBloodMoonActive && minutes >= HORDE_EVENT_BALANCE.bloodMoon.minMinutes) events.push('blood_moon');
   return events;

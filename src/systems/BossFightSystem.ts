@@ -390,12 +390,19 @@ export class BossFightSystem {
    * @param isCinematicIntro nasce parada e intocável (aguardando o diálogo)
    * @param variant 'story' (padrão) ou 'endless' (chefe cronometrada do Infinito)
    */
-  public spawnRosalin(startBanter = true, isCinematicIntro = false, variant: 'story' | 'endless' = 'story'): void {
+  public spawnRosalin(
+    startBanter = true,
+    isCinematicIntro = false,
+    variant: 'story' | 'endless' = 'story',
+    circleScale: { hp: number; damage: number } = { hp: 1, damage: 1 }
+  ): void {
     const pos = variant === 'endless'
-      ? { x: this.ctx.player.x + 240, y: this.ctx.player.y - 140 }
+      ? this.ctx.clampToArena(this.ctx.player.x + 240, this.ctx.player.y - 140)
       : this.resolveBossSpawn(220, -140);
     const stats = SUCCUBUS_BOSS_BALANCE[variant];
-    const mercy = this.getMercy('rosalin');
+    const base = this.getMercy('rosalin');
+    // Círculos do Infinito multiplicam por cima da revanche (que no Infinito é sempre 1)
+    const mercy = { ...base, hpMultiplier: base.hpMultiplier * circleScale.hp, damageMultiplier: base.damageMultiplier * circleScale.damage };
 
     const boss = new SuccubusBoss(this.scene, pos.x, pos.y);
     boss.setDepth(22);
@@ -425,11 +432,14 @@ export class BossFightSystem {
     });
   }
 
-  /** Chefe do Modo Infinito que surge sozinha no marco de tempo. */
-  public spawnEndlessTimedBoss(): void {
+  /**
+   * Chefe do Modo Infinito que surge sozinha no fim do Círculo e vem até a heroína (sem altar).
+   * @param circleScale vida e dano extras do Círculo (`endlessBossMultipliers`)
+   */
+  public spawnEndlessTimedBoss(circleScale: { hp: number; damage: number } = { hp: 1, damage: 1 }): void {
     this.ctx.isBossFightActive = true;
     SoundManager.getInstance().playBossMusic(2200);
-    this.spawnRosalin(false, false, 'endless');
+    this.spawnRosalin(false, false, 'endless', circleScale);
   }
 
   private summonRosalinMinions(boss: SuccubusBoss): void {

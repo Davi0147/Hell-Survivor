@@ -2,6 +2,27 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado — Cronograma de Inimigos e Círculos do Infinito] — 2026-11-20
+
+### Resumo para o Jogador
+- **Cada inimigo novo é apresentado:** na primeira vez que ele aparece, um aviso no centro da tela ("NOVO: ARQUEIRAS DEMÔNIAS — ATIRAM DE LONGE E FOGEM") e um grupinho só dele. Depois ele entra na mistura.
+- **Capítulo 1 ensina o básico:** começa só com cães; morcegos aos 20% da barra, múmias aos 40%, **Ghoul Devorador no meio da fase (55%)** e slimes aos 70%. Sem Alfas, Arqueiras ou Colossus.
+- **Capítulo 2 junta os novos:** Arqueiras desde 15%, Alfas a partir de 30%, Colossus aos 50%, **Lyn no meio da fase** e formações: **Matilha** (Alfas juntos) e **Muralha** (Colossus na frente, Arqueiras atrás, protegidas da perfuração).
+- **Modo Infinito em Círculos de 5 minutos, sem fim:**
+  - **Círculo 1** apresenta todo mundo: morcegos 0:45, Arqueiras 1:30, múmias 2:00, **Ghoul 2:30**, Alfas 2:50, Colossus 3:25, slimes 4:00.
+  - **Chefe no fim de cada Círculo:** aviso "A ROSALIN SE APROXIMA — CHEGA EM 30 SEGUNDOS", outro aos 10 s, e ela vem até você (não precisa mais ir ao altar). Os eventos de horda param 20 s antes.
+  - **Depois do chefe:** 10 s de calmaria sem hordas novas, e começa o próximo Círculo.
+  - **Do Círculo 2 em diante:** tudo liberado, e cada Círculo tem um **tema** que se repete: Muralha, Enxame (morcegos de vários lados), Pântano (múmias e slimes), Matilha, Caçada (Arqueiras cercando).
+  - **Minichefe no meio de todo Círculo**, revezando Ghoul e Lyn. Chefe e minichefe ficam mais fortes a cada Círculo.
+- **Corrigido:** no Infinito, se você não fosse ao Altar de Invocação aos 5:00, as hordas paravam para sempre. O altar não é mais usado no Infinito.
+- **Modo de Teste:** botão "INFINITO: AVANÇAR 30 S NO CRONOGRAMA" (aba 2), para pular partes do Círculo dentro de uma partida do Infinito.
+
+### Técnico
+- Novo `EncounterDirector` (execução) + `encounterRules.ts` (regras puras); tabelas `STORY_SCHEDULE`, `ENDLESS_SCHEDULE`, `FORMATION_BALANCE` em `balance.ts`. Sai `STORY_ELITES`, `miniBoss3mSpawned`/`boss10mSpawned` e os `minMinutes` de Arqueira, Colossus e Alfa.
+- `EnemySpawnSystem` pergunta `isEnemyUnlocked(kind)` antes de cada tipo; `spawnScaledMummyAt` novo; `spawnGhoulDevourer`/`spawnLyn` aceitam multiplicador de vida; `spawnEndlessTimedBoss` aceita escala do Círculo.
+- `HordeEventSystem` respeita `isEncounterQuiet`. Formação recusada por arena lotada tenta de novo em `retryWhenFullMs`.
+- Testes: `encounterRules.test.ts` e `encounterDirector.test.ts` (simula Círculos inteiros quadro a quadro).
+
 ## [Não publicado — Lyn] — 2026-11-20
 
 ### Resumo para o Jogador

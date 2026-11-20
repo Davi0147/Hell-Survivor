@@ -88,10 +88,9 @@ describe('Arqueira: números', () => {
     expect(a.range / a.arrow.speed).toBeGreaterThan(0.45);
   });
 
-  it('aparece só no Infinito, depois de minMinutes', () => {
-    expect(getArcherMaxAlive('story', 10)).toBe(0);
-    expect(getArcherMaxAlive('endless', a.minMinutes - 0.1)).toBe(0);
-    expect(getArcherMaxAlive('endless', a.minMinutes)).toBe(a.maxAlive);
-    expect(getArcherMaxAlive('endless', a.lateMinutes)).toBe(a.maxAliveLate);
+  it('limite de vivas: o normal, e mais no Infinito tardio (quando aparece é o cronograma)', () => {
+    expect(getArcherMaxAlive(false, 30)).toBe(a.maxAlive);
+    expect(getArcherMaxAlive(true, a.lateMinutes - 0.1)).toBe(a.maxAlive);
+    expect(getArcherMaxAlive(true, a.lateMinutes)).toBe(a.maxAliveLate);
   });
 });

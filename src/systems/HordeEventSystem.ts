@@ -26,6 +26,8 @@ export interface IHordeEventContext {
   readonly survivalTimeMs: number;
   readonly isBossFightActive: boolean;
   readonly isHordeSpawningPaused: boolean;
+  /** Cronograma pediu silêncio (calmaria pós-chefe ou chefe do Círculo chegando). */
+  readonly isEncounterQuiet?: boolean;
   readonly isGameOver: boolean;
   readonly sandboxAutoSpawn: boolean;
   clampToArena(x: number, y: number, margin?: number): { x: number; y: number };
@@ -114,7 +116,7 @@ export class HordeEventSystem {
     this.updateStormMarkers(delta);
 
     // Chefe em campo ou altar desperto: nada de evento novo nem raio novo
-    const isQuietMoment = this.ctx.isBossFightActive || this.ctx.isHordeSpawningPaused;
+    const isQuietMoment = this.ctx.isBossFightActive || this.ctx.isHordeSpawningPaused || !!this.ctx.isEncounterQuiet;
     if (isQuietMoment) return;
     if (this.ctx.gameMode === 'sandbox' && !this.ctx.sandboxAutoSpawn) return;
 

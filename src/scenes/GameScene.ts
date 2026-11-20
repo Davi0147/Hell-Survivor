@@ -8,6 +8,7 @@ import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
+import { EncounterDirector, IEncounterContext } from '../systems/EncounterDirector';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
@@ -24,7 +25,7 @@ import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig, getSpawnIntervalMs } from '../config/balance';
+import { PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig, getSpawnIntervalMs, type EnemyKind } from '../config/balance';
 import { IdlePressureSystem } from '../systems/IdlePressureSystem';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
@@ -47,7 +48,7 @@ import type { IPauseWeaponInfo } from '../ui/PauseMenu';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 
-export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext, IUltimateContext {
+export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext, IUltimateContext, IEncounterContext {
   public player!: Nixy;
   private floorTile!: Phaser.GameObjects.TileSprite;
   /** Escala da textura do piso atual (cada piso tem a sua). */
@@ -142,8 +143,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public survivalTimeMs: number = 0;
   public isChapterCompleted: boolean = false;
   public isGameOver: boolean = false;
-  public miniBoss3mSpawned: boolean = false;
-  public boss10mSpawned: boolean = false;
+  /** Cronograma de inimigos (História e Círculos do Infinito). */
+  public encounters?: EncounterDirector;
   public isRevival: boolean = false;
   public isUpgradeSceneOpening: boolean = false;
 
@@ -244,8 +245,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.isBossFightActive = false;
     this.isChapterCompleted = false;
     this.isGameOver = false;
-    this.miniBoss3mSpawned = false;
-    this.boss10mSpawned = false;
+    this.encounters = undefined;
     this.survivalTimeMs = 0;
     this.idlePressure.reset();
     this.bossInstance = undefined;
@@ -302,6 +302,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     if (!this.arenaScenerySystem) {
       this.arenaScenerySystem = new ArenaScenerySystem(this);
     this.enemySpawner = new EnemySpawnSystem(this, this);
+    // Junto com o spawner: a primeira leva da partida já precisa respeitar o cronograma
+    this.encounters = new EncounterDirector(this, this, this.enemySpawner);
     }
     this.chapterDecor = new ChapterDecorSystem(this, this.arenaScenerySystem);
     // Recriado a cada partida para zerar o relógio do Altar de Ascensão
@@ -786,7 +788,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 7. Spawner Escalável Contínuo de Hordas
     // Se o Altar de Invocação despertou (isHordeSpawningPaused) ou a Boss está ativa, não spawna novas levas da horda
-    if (!this.isBossFightActive && !this.isHordeSpawningPaused && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
+    // Cronograma de inimigos: apresentações, minichefes, formações e (Infinito) Círculos e chefe
+    this.encounters?.update(delta);
+
+    if (!this.isBossFightActive && !this.isHordeSpawningPaused && !this.encounters?.isCalm && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
       this.spawnTimer += delta;
 
       // Intervalo entre levas encurta com o tempo (SPAWN_PACING em balance.ts)
@@ -796,34 +801,6 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       if (this.spawnTimer >= currentInterval) {
         this.spawnTimer = 0;
         this.spawnEnemyRandomPerimeter();
-      }
-
-      // Diretor de Ondas do Modo Infinito (Marcos de tempo, Mini-Chefes e Chefe Suprema)
-      if (this.gameMode === 'endless') {
-        const elapsedSec = Math.floor(this.survivalTimeMs / 1000);
-
-        // 3:00 (180s): Mini-Boss Ghoul Devorador
-        if (!this.miniBoss3mSpawned && elapsedSec >= 180) {
-          this.miniBoss3mSpawned = true;
-          if (uiScene) {
-            uiScene.showWaveAlert('ALERTA: GHOUL DEVORADOR DETECTADO!', 4500);
-          }
-          this.spawnGhoulDevourer();
-        }
-
-        // 5:00 (300s): Altar de Invocação desperta no Modo Infinito
-        if (!this.bossSummonAltar?.isActive && elapsedSec >= 300 && !this.boss10mSpawned) {
-          this.activateBossSummonAltar();
-        }
-
-        // 10:00 (600s): Succubus Desperta (Chefe Suprema do Modo Infinito - não spawna se já houver chefe ativo)
-        if (!this.boss10mSpawned && elapsedSec >= 600 && !this.isBossFightActive) {
-          this.boss10mSpawned = true;
-          if (uiScene) {
-            uiScene.showWaveAlert('ALERTA CRÍTICO: SUCCUBUS DESPERTA!', 5000);
-          }
-          this.bossFights.spawnEndlessTimedBoss();
-        }
       }
     }
 
@@ -950,6 +927,26 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public spawnArcherAt(x: number, y: number): void {
     this.enemySpawner.spawnArcherAt(x, y);
+  }
+
+  // --- Cronograma de inimigos (EncounterDirector / EnemySpawnSystem / HordeEventSystem) ---
+
+  public isEnemyUnlocked(kind: EnemyKind): boolean {
+    // Sem cronograma (não deveria acontecer fora do Modo de Teste): só o básico
+    return this.encounters?.isUnlocked(kind) ?? (this.gameMode === 'sandbox' || kind === 'dog');
+  }
+
+  /** Eventos de horda ficam quietos na calmaria pós-chefe e logo antes do chefe do Círculo. */
+  public get isEncounterQuiet(): boolean {
+    return this.encounters?.isEventQuiet ?? false;
+  }
+
+  public spawnEndlessBoss(scale: { hp: number; damage: number }): void {
+    this.bossFights.spawnEndlessTimedBoss(scale);
+  }
+
+  public hasRoomForEnemies(count: number): boolean {
+    return this.enemiesGroup.countActive() + count <= PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES;
   }
 
   /** Contato de um monstro com a heroína: dano, empurrão do monstro e retorno visual. */

@@ -12,7 +12,7 @@ import { ArcherEnemy } from '../entities/enemies/ArcherEnemy';
 import type { GemType } from '../entities/items/SoulGem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { SoundManager } from './SoundManager';
-import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, STORY_ELITES, getEnemyScaling, getChapterConfig, getColossusMaxAlive, getArcherMaxAlive } from '../config/balance';
+import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, ENDLESS_SCHEDULE, getStorySchedule, getEnemyScaling, getChapterConfig, getColossusMaxAlive, getArcherMaxAlive, type EnemyKind } from '../config/balance';
 
 /** O que o sistema de spawn precisa saber sobre o personagem jogável (qualquer BaseCharacter serve). */
 export interface IEnemySpawnPlayer {
@@ -39,6 +39,8 @@ export interface IEnemySpawnContext {
   spawnGemAt(x: number, y: number, type: GemType): void;
   spawnSoulItem(x: number, y: number, value?: number): void;
   spawnMapItem(x: number, y: number, type?: MapItemType): unknown;
+  /** Cronograma: este inimigo já pode aparecer? (EncounterDirector). Ausente = todos liberados. */
+  isEnemyUnlocked?(kind: EnemyKind): boolean;
   /** Flechas inimigas (a Arqueira dispara por aqui). */
   readonly enemyArrows?: { fire(x: number, y: number, angle: number, damage: number): void };
 }
@@ -334,12 +336,16 @@ export class EnemySpawnSystem {
       }
     }
 
-    // 1. BLOOD BATS: Surgem a partir da Fase 2, aumentam muito e voam em bandos numerosos
-    if (phase >= 2) {
+    // QUEM pode aparecer vem do cronograma (STORY_SCHEDULE / ENDLESS_SCHEDULE, via EncounterDirector);
+    // a fase acima só regula QUANTOS e com que chance.
+    const can = (kind: EnemyKind): boolean => this.ctx.isEnemyUnlocked?.(kind) ?? kind === 'dog';
+
+    // 1. BLOOD BATS: bandos que crescem com a fase
+    if (can('bat')) {
       const flockChance = phase === 3 ? 0.35 : 0.25;
       if (Math.random() < flockChance) {
         let flockSize: number;
-        if (phase === 2) {
+        if (phase <= 2) {
           flockSize = Phaser.Math.Between(4, 6);
         } else {
           // Na Fase 3 o bando cresce consideravelmente (muitos morcegos frágeis)
@@ -351,8 +357,8 @@ export class EnemySpawnSystem {
       }
     }
 
-    // 2. SKULL SLIMES: Surgem a partir da Fase 3, aumento estritamente controlado (tanques kamikaze mortais)
-    if (phase === 3) {
+    // 2. SKULL SLIMES: aumento estritamente controlado (tanques kamikaze mortais)
+    if (can('slime')) {
       const activeSlimes = (this.ctx.enemiesGroup.getChildren() as BaseEnemy[]).filter(
         (e) => e.active && e instanceof SkullSlime
       ).length;
@@ -371,7 +377,7 @@ export class EnemySpawnSystem {
     }
 
     // 3. MÚMIAS DO ABISMO (Zigue-zague com rastro verde tóxico e knockback)
-    if (phase >= 2) {
+    if (can('mummy')) {
       const activeMummies = (this.ctx.enemiesGroup.getChildren() as BaseEnemy[]).filter(
         (e) => e.active && e instanceof MummyEnemy
       ).length;
@@ -381,25 +387,24 @@ export class EnemySpawnSystem {
       if (activeMummies < maxMummies && Math.random() < mummyChance) {
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
         const dist = Phaser.Math.Between(320, 440);
-        const hp = Math.floor(ENEMY_BALANCE.mummy.hp * scaling.hpMultiplier);
-        const speed = Math.floor(ENEMY_BALANCE.mummy.speed * scaling.speedMultiplier);
-        const dmg = Math.floor(ENEMY_BALANCE.mummy.damage * scaling.damageMultiplier);
-        this.spawnMummyAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist, hp, speed, dmg);
+        this.spawnScaledMummyAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
       }
     }
 
-    // 3.1. COLOSSUS (Infinito): tanque que chega na frente de uma escolta de cães
-    const maxColossi = getColossusMaxAlive(this.ctx.gameMode, scaling.minutes);
-    if (maxColossi > 0 && Math.random() < ENEMY_BALANCE.colossus.chance) {
+    const isEndless = this.ctx.gameMode === 'endless';
+
+    // 3.1. COLOSSUS: tanque que chega na frente de uma escolta de cães
+    const maxColossi = getColossusMaxAlive(isEndless, scaling.minutes);
+    if (can('colossus') && Math.random() < ENEMY_BALANCE.colossus.chance) {
       const activeColossi = (this.ctx.enemiesGroup.getChildren() as BaseEnemy[]).filter(
         (e) => e.active && e instanceof ColossusEnemy
       ).length;
       if (activeColossi < maxColossi) this.spawnColossusFormation();
     }
 
-    // 3.2. ARQUEIRAS (Infinito): atiradoras que mantêm distância
-    const maxArchers = getArcherMaxAlive(this.ctx.gameMode, scaling.minutes);
-    if (maxArchers > 0 && Math.random() < ENEMY_BALANCE.archer.chance) {
+    // 3.2. ARQUEIRAS: atiradoras que mantêm distância
+    const maxArchers = getArcherMaxAlive(isEndless, scaling.minutes);
+    if (can('archer') && Math.random() < ENEMY_BALANCE.archer.chance) {
       const activeArchers = (this.ctx.enemiesGroup.getChildren() as BaseEnemy[]).filter(
         (e) => e.active && e instanceof ArcherEnemy
       ).length;
@@ -430,17 +435,24 @@ export class EnemySpawnSystem {
       const spawnX = this.ctx.player.x + Math.cos(angle) * dist;
       const spawnY = this.ctx.player.y + Math.sin(angle) * dist;
 
-      this.spawnScaledDogAt(spawnX, spawnY, this.rollElite(scaling.minutes));
+      this.spawnScaledDogAt(spawnX, spawnY, this.rollElite());
     }
   }
 
-  /** Sorteia se o próximo cão nasce Alfa Elite (Infinito, ou capítulos listados em STORY_ELITES). */
-  private rollElite(minutes: number): boolean {
-    if (this.ctx.gameMode === 'endless') {
-      return minutes >= ENEMY_BALANCE.zombieDogElite.minMinutes && Math.random() < ENEMY_BALANCE.zombieDogElite.chance;
-    }
-    const story = this.ctx.gameMode === 'story' ? STORY_ELITES[this.ctx.currentChapter] : undefined;
-    return !!story && minutes >= story.minMinutes && Math.random() < story.chance;
+  /** Sorteia se o próximo cão nasce Alfa Elite (só depois que o cronograma libera o Alfa). */
+  private rollElite(): boolean {
+    if (this.ctx.gameMode === 'sandbox' || !(this.ctx.isEnemyUnlocked?.('elite') ?? false)) return false;
+    const chance = this.ctx.gameMode === 'endless'
+      ? ENDLESS_SCHEDULE.eliteChance
+      : getStorySchedule(this.ctx.currentChapter).eliteChance;
+    return Math.random() < chance;
+  }
+
+  /** Múmia com os atributos escalonados pelo tempo de partida. */
+  public spawnScaledMummyAt(x: number, y: number): void {
+    const scaling = getEnemyScaling(this.ctx.survivalTimeMs, this.ctx.gameMode === 'endless');
+    const m = ENEMY_BALANCE.mummy;
+    this.spawnMummyAt(x, y, Math.floor(m.hp * scaling.hpMultiplier), Math.floor(m.speed * scaling.speedMultiplier), Math.floor(m.damage * scaling.damageMultiplier));
   }
 
   /** Cão Zumbi (comum ou Alfa Elite) com os atributos escalonados pelo tempo de partida. */
@@ -542,12 +554,11 @@ export class EnemySpawnSystem {
     this.spawnColossusAt(p.x + Math.cos(angle) * dist, p.y + Math.sin(angle) * dist);
 
     const dogs = Math.min(cfg.escortDogs, Math.max(0, PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES - this.ctx.enemiesGroup.countActive()));
-    const minutes = this.ctx.survivalTimeMs / 60000;
     for (let i = 0; i < dogs; i++) {
       // Pares lado a lado, cada par um passo mais para trás
       const back = dist + cfg.escortGapPx * (1 + Math.floor(i / 2));
       const side = (i % 2 === 0 ? -1 : 1) * 0.06;
-      this.spawnScaledDogAt(p.x + Math.cos(angle + side) * back, p.y + Math.sin(angle + side) * back, this.rollElite(minutes));
+      this.spawnScaledDogAt(p.x + Math.cos(angle + side) * back, p.y + Math.sin(angle + side) * back, this.rollElite());
     }
   }
 
@@ -587,7 +598,8 @@ export class EnemySpawnSystem {
   /**
    * Spawna o Mini-Chefe Ghoul Devorador no Modo Infinito (3:00). Instância própria, fora de qualquer pool.
    */
-  public spawnGhoulDevourer(): void {
+  /** @param hpMultiplier vida extra (Círculos do Infinito) */
+  public spawnGhoulDevourer(hpMultiplier: number = 1): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = 380;
     const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
@@ -598,7 +610,7 @@ export class EnemySpawnSystem {
     this.ctx.enemiesGroup.add(ghoul);
 
     const ghoulStats = ENEMY_BALANCE.ghoulDevourer;
-    ghoul.spawn(x, y, ghoulStats.hp, ghoulStats.speed, ghoulStats.damage);
+    ghoul.spawn(x, y, Math.round(ghoulStats.hp * hpMultiplier), ghoulStats.speed, ghoulStats.damage);
 
     ghoul.on('enemy-killed', (ex: number, ey: number) => {
       this.ctx.killCount++;
@@ -619,7 +631,8 @@ export class EnemySpawnSystem {
    * Spawna a minichefe Lyn, súcubo jovem com arte própria (antes "Matriarca Succubus",
    * que era a Rosalin pintada de rosa). Usa os golpes da súcubo em escala menor.
    */
-  public spawnLyn(): void {
+  /** @param hpMultiplier vida extra (Círculos do Infinito) */
+  public spawnLyn(hpMultiplier: number = 1): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = 400;
     const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
@@ -630,7 +643,7 @@ export class EnemySpawnSystem {
     this.ctx.enemiesGroup.add(lyn);
 
     const stats = ENEMY_BALANCE.lyn;
-    lyn.spawn(x, y, stats.hp, stats.speed, stats.damage, stats.scale);
+    lyn.spawn(x, y, Math.round(stats.hp * hpMultiplier), stats.speed, stats.damage, stats.scale);
     lyn.useLynSprites();
 
     lyn.on('boss-defeated', () => {

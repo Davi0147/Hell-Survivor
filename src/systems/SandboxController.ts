@@ -69,6 +69,8 @@ export interface ISandboxContext extends Phaser.Scene {
   // Spawners de monstros e chefes
   spawnGhoulDevourer(): void;
   spawnLyn(): void;
+  /** Cronograma de inimigos (só para o botão de avançar o Círculo no Infinito). */
+  readonly encounters?: { debugAdvance(ms: number): void; describe(): string };
   spawnColossusFormation(angle?: number, dist?: number): void;
   spawnArcherAt(sx: number, sy: number): void;
   spawnBloodBatFlock(count: number): void;
