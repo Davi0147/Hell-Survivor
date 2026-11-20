@@ -23,6 +23,9 @@ export interface IRunBonusEntry {
   iconKey: string;
   value: string;
   label: string;
+  /** Nome e explicação mostrados ao clicar no bônus. */
+  title: string;
+  description: string;
 }
 
 const fmt1 = (n: number): string => (Math.round(n * 10) / 10).toString();
@@ -33,24 +36,39 @@ const fmt1 = (n: number): string => (Math.round(n * 10) / 10).toString();
  */
 export function buildRunBonuses(p: IRunBonusSource): IRunBonusEntry[] {
   const out: IRunBonusEntry[] = [];
-  const add = (cond: boolean, iconKey: string, value: string, label: string): void => {
-    if (cond) out.push({ iconKey, value, label });
+  const add = (cond: boolean, iconKey: string, value: string, label: string, title: string, description: string): void => {
+    if (cond) out.push({ iconKey, value, label, title, description });
   };
+  const pct = (n: number): string => `${Math.round(n)}%`;
 
-  add(p.bonusDamagePercent > 0, 'icon-blessing-might', `+${Math.round(p.bonusDamagePercent)}%`, 'DANO');
-  add(p.bonusSpeedPercent > 0, 'icon-blessing-agility', `+${Math.round(p.bonusSpeedPercent)}%`, 'VELOCIDADE');
-  add(p.cardBonusMaxHp > 0, 'icon-blessing-vitality', `+${p.cardBonusMaxHp}`, 'VIDA MÁX');
-  add(p.cardBonusMaxStamina > 0, 'icon-card-stamina', `+${p.cardBonusMaxStamina}`, 'FÔLEGO');
-  add(p.bonusPickupRadiusPercent > 0, 'icon-blessing-magnetism', `+${Math.round(p.bonusPickupRadiusPercent)}%`, 'COLETA');
-  add(p.extraProjectiles > 0, 'icon-card-multishot', `+${p.extraProjectiles}`, 'PROJÉTEIS');
-  add(p.extraPierce > 0, 'icon-card-pierce', `+${p.extraPierce}`, 'PERFURAÇÃO');
-  add(p.critChance > CRIT_BALANCE.baseChance, 'icon-card-crit-chance', `${Math.round(p.critChance * 100)}%`, 'CRÍTICO');
-  add(p.critMultiplier > CRIT_BALANCE.baseMultiplier, 'icon-card-crit-damage', `x${fmt1(p.critMultiplier)}`, 'DANO CRÍTICO');
-  add(p.hpRegenPerSec > 0, 'icon-blessing-vitality', `${fmt1(p.hpRegenPerSec)}/s`, 'REGENERAÇÃO');
-  add(p.lifeStealPerHit > 0, 'icon-blessing-vitality', `${fmt1(p.lifeStealPerHit)}`, 'ROUBO VIDA');
-  add(p.dashMasteryLevel > 0, 'icon-card-dash', `NV ${p.dashMasteryLevel}`, 'PASSO SOMBRIO');
-  add(p.corpseExplosionLevel > 0, 'icon-card-corpse-explosion', `NV ${p.corpseExplosionLevel}`, 'ALMA INSTÁVEL');
-  add(p.bloodthirstLevel > 0, 'icon-card-bloodthirst', `NV ${p.bloodthirstLevel}`, 'SEDE SANGUE');
+  add(p.bonusDamagePercent > 0, 'icon-blessing-might', `+${pct(p.bonusDamagePercent)}`, 'DANO', 'FÚRIA',
+    `Todas as armas causam +${pct(p.bonusDamagePercent)} de dano.`);
+  add(p.bonusSpeedPercent > 0, 'icon-blessing-agility', `+${pct(p.bonusSpeedPercent)}`, 'VELOCIDADE', 'CELERIDADE',
+    `A Nixy anda e corre ${pct(p.bonusSpeedPercent)} mais rápido.`);
+  add(p.cardBonusMaxHp > 0, 'icon-blessing-vitality', `+${p.cardBonusMaxHp}`, 'VIDA MÁX', 'VITALIDADE',
+    `A vida máxima aumentou ${p.cardBonusMaxHp} pontos nesta partida.`);
+  add(p.cardBonusMaxStamina > 0, 'icon-card-stamina', `+${p.cardBonusMaxStamina}`, 'FÔLEGO', 'VIGOR',
+    `A estamina máxima aumentou ${p.cardBonusMaxStamina} pontos: dá para correr por mais tempo.`);
+  add(p.bonusPickupRadiusPercent > 0, 'icon-blessing-magnetism', `+${pct(p.bonusPickupRadiusPercent)}`, 'COLETA', 'ÍMÃ ASTRAL',
+    `Gemas e almas são puxadas de ${pct(p.bonusPickupRadiusPercent)} mais longe.`);
+  add(p.extraProjectiles > 0, 'icon-card-multishot', `+${p.extraProjectiles}`, 'PROJÉTEIS', 'ALMA EXTRA',
+    `Cada rajada solta ${p.extraProjectiles} projétil(eis) a mais.`);
+  add(p.extraPierce > 0, 'icon-card-pierce', `+${p.extraPierce}`, 'PERFURAÇÃO', 'PERFURAÇÃO',
+    `Tiros e adagas atravessam ${p.extraPierce} monstro(s) a mais antes de sumir.`);
+  add(p.critChance > CRIT_BALANCE.baseChance, 'icon-card-crit-chance', pct(p.critChance * 100), 'CRÍTICO', 'OLHO ABISSAL',
+    `Cada golpe tem ${pct(p.critChance * 100)} de chance de ser crítico (dano multiplicado).`);
+  add(p.critMultiplier > CRIT_BALANCE.baseMultiplier, 'icon-card-crit-damage', `x${fmt1(p.critMultiplier)}`, 'DANO CRÍTICO', 'GOLPE FATAL',
+    `Golpes críticos causam ${fmt1(p.critMultiplier)} vezes o dano normal.`);
+  add(p.hpRegenPerSec > 0, 'icon-blessing-vitality', `${fmt1(p.hpRegenPerSec)}/s`, 'REGENERAÇÃO', 'REGENERAÇÃO',
+    `A Nixy recupera ${fmt1(p.hpRegenPerSec)} de vida por segundo, sem parar.`);
+  add(p.lifeStealPerHit > 0, 'icon-blessing-vitality', `${fmt1(p.lifeStealPerHit)}`, 'ROUBO VIDA', 'DRENO VITAL',
+    `Cada acerto das armas devolve ${fmt1(p.lifeStealPerHit)} de vida.`);
+  add(p.dashMasteryLevel > 0, 'icon-card-dash', `NV ${p.dashMasteryLevel}`, 'PASSO SOMBRIO', 'PASSO SOMBRIO',
+    'A esquiva corta os monstros no caminho e gasta menos fôlego. Cada nível aumenta o dano do corte.');
+  add(p.corpseExplosionLevel > 0, 'icon-card-corpse-explosion', `NV ${p.corpseExplosionLevel}`, 'ALMA INSTÁVEL', 'ALMA INSTÁVEL',
+    'Monstros podem explodir ao morrer, ferindo os vizinhos (e as explosões podem encadear). Cada nível aumenta a chance.');
+  add(p.bloodthirstLevel > 0, 'icon-card-bloodthirst', `NV ${p.bloodthirstLevel}`, 'SEDE SANGUE', 'SEDE DE SANGUE',
+    'O combo de abates e o Frenesi duram mais antes de acabar.');
   return out;
 }
 

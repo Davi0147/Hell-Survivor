@@ -5,6 +5,9 @@ import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { createModalFrame } from './ModalFrame';
 import { buildRunBonuses, describeRunMode, type IRunBonusSource } from './pauseRunSummary';
+import { WEAPON_INFO } from '../config/pauseInfo';
+import { PauseDialog } from './PauseDialog';
+import { createGlowButton } from './pauseWidgets';
 
 /** Arma equipada como o menu de pausa a vê (ícone e nível vêm do catálogo). */
 export interface IPauseWeaponInfo {
@@ -52,7 +55,8 @@ const LAYOUT = {
   panelH: 600,
   contentW: 756,
   titleY: 46,
-  titlePlaqueW: 280,
+  titlePlaqueW: 320,
+  titleFontSize: 19,
   titlePlaqueH: 80,
   modeY: 96,
   statsY: 140,
@@ -105,12 +109,22 @@ export class PauseMenu {
   private updatePauseSfxDisplay?: () => void;
   private prevPadCancelOrStart: boolean = false;
   private lastPauseToggleTime: number = 0;
+  /** Janela por cima do menu: explicação de bônus/arma ou confirmação de sair. */
+  private readonly dialog: PauseDialog;
 
   constructor(host: IPauseMenuHost) {
     this.host = host;
+    // O mesmo ESC que fecha a janela passa pelo atalho da UIScene e por updateControls:
+    // marcar o horário impede que ele também tire o jogo da pausa
+    this.dialog = new PauseDialog(host, () => { this.lastPauseToggleTime = Date.now(); });
   }
 
   public togglePause(gameScene: IPauseGameScene): void {
+    // ESC com a explicação aberta fecha só a janela, sem sair da pausa
+    if (this.isPaused && this.dialog.isOpen) {
+      this.dialog.close();
+      return;
+    }
     if (this.host.isDialogueActive()) return;
     if (this.host.scene.isActive('UpgradeScene')) return;
     if (this.host.isChestRouletteOpen) return;
@@ -216,6 +230,19 @@ export class PauseMenu {
     const padStartJustDown = padStartCurrent && !this.prevPadCancelOrStart;
     this.prevPadCancelOrStart = padStartCurrent;
 
+    // Com uma janela aberta, as teclas vão para ela
+    if (this.dialog.isOpen) {
+      const just = (code: number): boolean => Boolean(k && Phaser.Input.Keyboard.JustDown(k.addKey(code)));
+      const codes = Phaser.Input.Keyboard.KeyCodes;
+      this.dialog.handleInput(
+        nav.left || just(codes.LEFT) || just(codes.A),
+        nav.right || just(codes.RIGHT) || just(codes.D),
+        nav.confirm || just(codes.SPACE) || just(codes.ENTER),
+        escPressed || nav.cancel || padStartJustDown
+      );
+      return;
+    }
+
     if (escPressed || nav.cancel || padStartJustDown) {
       if (now - this.lastPauseToggleTime > 250) {
         this.lastPauseToggleTime = now;
@@ -291,6 +318,7 @@ export class PauseMenu {
   }
 
   public cleanupCursor(): void {
+    this.dialog.reset(); // a janela é filha do container: some junto com ele
     this.pauseZones = [];
     this.pauseActionBtnRenders = [];
     this.pauseActionBtnActions = [];
@@ -325,7 +353,8 @@ export class PauseMenu {
       this.add(plaque);
     }
 
-    this.add(this.text(cx, top + LAYOUT.titleY, 'JOGO PAUSADO', 24, t.titleColor, 0.5, FONTS.body, 5, t.titleStroke));
+    // Fonte menor que a placa: o texto fica entre as pontas, sem encostar nos cristais
+    this.add(this.text(cx, top + LAYOUT.titleY, 'JOGO PAUSADO', LAYOUT.titleFontSize, t.titleColor, 0.5, FONTS.body, 4, t.titleStroke));
     const mode = describeRunMode(gameScene.gameMode, gameScene.currentChapter ?? 1);
     this.add(this.text(cx, top + LAYOUT.modeY, mode, 12, t.subtitleColor, 0.5));
   }
@@ -375,6 +404,7 @@ export class PauseMenu {
       this.addIcon(x + 20, y + h / 2, b.iconKey, 28);
       this.add(this.text(x + 40, y + 11, b.value, 12, t.valueColor, 0));
       this.add(this.text(x + 40, y + 26, b.label, 8, t.labelColor, 0));
+      this.addInfoHotspot(x + w / 2, y + h / 2, w, h, (c) => this.dialog.openInfo(c, b.iconKey, b.title, b.value, b.description));
     });
   }
 
@@ -395,6 +425,10 @@ export class PauseMenu {
       this.addIcon(x + 28, y, wpn.key, 36);
       const lvl = wpn.isEvolved ? 'EVOLUÍDA' : `NV ${wpn.level}/${wpn.maxLevel}`;
       this.add(this.text(x + 50, y, lvl, 9, wpn.isEvolved ? t.evolvedText : t.valueColor, 0));
+      const info = WEAPON_INFO[wpn.key];
+      if (info) {
+        this.addInfoHotspot(x + slotW / 2, y, slotW - 8, 44, (c) => this.dialog.openInfo(c, wpn.key, info.name, lvl, info.text));
+      }
     });
   }
 
@@ -419,31 +453,77 @@ export class PauseMenu {
       this.resumeGame(gameScene);
     });
 
-    this.createActionBtn(startX + (bW + gap), y, bW, bH, 'REINICIAR', t.btnRestartBg, t.btnRestartBorder, ART.restart, () => {
+    const restart = (): void => {
       MetaProgressManager.getInstance().finalizeRunSouls();
-      this.isPaused = false;
-      this.cleanupCursor();
-      if (this.container) {
-        this.container.destroy();
-        this.container = undefined;
-      }
-      this.host.scene.stop('UIScene');
+      this.closeMenuForExit();
       gameScene.scene.restart({ mode: gameScene.gameMode });
+    };
+    const toMenu = (): void => {
+      MetaProgressManager.getInstance().finalizeRunSouls();
+      SoundManager.getInstance().stopMusic();
+      this.closeMenuForExit();
+      gameScene.scene.stop('GameScene');
+      this.host.scene.start('MenuScene');
+    };
+
+    this.createActionBtn(startX + (bW + gap), y, bW, bH, 'REINICIAR', t.btnRestartBg, t.btnRestartBorder, ART.restart, () => {
+      this.confirmExit('REINICIAR A PARTIDA?', 'SIM, REINICIAR', ART.restart, t.btnRestartBg, t.btnRestartBorder, restart);
     });
 
     this.createActionBtn(startX + 2 * (bW + gap), y, bW, bH, 'MENU', t.btnMenuBg, t.btnMenuBorder, ART.menu, () => {
-      MetaProgressManager.getInstance().finalizeRunSouls();
-      SoundManager.getInstance().stopMusic();
-      this.isPaused = false;
-      this.cleanupCursor();
-      if (this.container) {
-        this.container.destroy();
-        this.container = undefined;
-      }
-      this.host.scene.stop('UIScene');
-      gameScene.scene.stop('GameScene');
-      this.host.scene.start('MenuScene');
+      this.confirmExit('VOLTAR AO MENU?', 'SIM, SAIR', ART.menu, t.btnMenuBg, t.btnMenuBorder, toMenu);
     });
+  }
+
+  /** Pergunta antes de sair: tempo, nível, bônus e armas da partida se perdem. */
+  private confirmExit(title: string, yesLabel: string, yesArt: string, yesBg: number, yesBorder: number, onYes: () => void): void {
+    if (!this.container) return;
+    const t = MODAL_THEME.pause;
+    this.dialog.openConfirm(
+      this.container,
+      title,
+      'VOCÊ VAI PERDER O PROGRESSO DESTA PARTIDA: TEMPO, NÍVEL, BÔNUS E ARMAS. AS ALMAS COLETADAS FICAM GUARDADAS.',
+      [
+        { label: 'VOLTAR', artKey: ART.resume, bgCol: t.btnResumeBg, borderCol: t.btnResumeBorder, onClick: () => undefined },
+        { label: yesLabel, artKey: yesArt, bgCol: yesBg, borderCol: yesBorder, onClick: onYes },
+      ]
+    );
+  }
+
+  private closeMenuForExit(): void {
+    this.isPaused = false;
+    this.cleanupCursor();
+    if (this.container) {
+      this.container.destroy();
+      this.container = undefined;
+    }
+    this.host.scene.stop('UIScene');
+  }
+
+  // ---------------------------------------------------------------- explicação
+
+  /** Área clicável sobre um bônus ou arma; acende uma borda com o mouse em cima. */
+  private addInfoHotspot(cx: number, cy: number, w: number, h: number, onClick: (parent: Phaser.GameObjects.Container) => void): void {
+    const t = MODAL_THEME.pause;
+    const hl = this.host.add.graphics();
+    this.add(hl);
+    const zone = this.host.add.zone(cx, cy, w, h);
+    zone.setInteractive({ useHandCursor: true });
+    this.add(zone);
+    zone.on('pointerover', () => {
+      if (this.dialog.isOpen) return;
+      hl.clear();
+      hl.lineStyle(2, t.innerBorderColor, 1);
+      hl.strokeRoundedRect(cx - w / 2, cy - h / 2, w, h, 6);
+    });
+    zone.on('pointerout', () => hl.clear());
+    zone.on('pointerdown', () => {
+      if (this.dialog.isOpen || !this.container) return;
+      hl.clear();
+      SoundManager.getInstance().playMenuClick();
+      onClick(this.container);
+    });
+    this.pauseZones.push(zone);
   }
 
   // ---------------------------------------------------------------- peças
@@ -613,10 +693,7 @@ export class PauseMenu {
     this.pauseZones.push(zone);
   }
 
-  /**
-   * Botão de ação: o texto fica sempre branco. Selecionado ganha um brilho da cor do botão
-   * atrás e cresce um pouco (com arte) ou borda clara (desenhado por código).
-   */
+  /** Botão de ação (Continuar / Reiniciar / Menu). Visual em pauseWidgets.createGlowButton. */
   private createActionBtn(
     x: number,
     y: number,
@@ -629,49 +706,22 @@ export class PauseMenu {
     onClick: () => void
   ): void {
     if (!this.container) return;
-    const t = MODAL_THEME.pause;
     const btnIndex = this.pauseActionBtnRenders.length;
-
-    const bg = this.host.add.graphics();
-    const plate = this.hasTexture(artKey) ? this.host.add.image(x, y, artKey).setDisplaySize(w, h) : undefined;
-    const txt = this.text(x, y - 1, label, 13, COLORS.textWhite, 0.5, FONTS.body, 4);
-
-    const render = (hover: boolean) => {
-      bg.clear();
-      if (hover) {
-        bg.fillStyle(borderCol, 0.4);
-        bg.fillRoundedRect(x - w / 2 - 6, y - h / 2 + 2, w + 12, h - 4, 14);
-      }
-      if (plate) {
-        const s = hover ? 1.06 : 1;
-        plate.setDisplaySize(w * s, h * s);
-        txt.setScale(s);
-        return;
-      }
-      bg.fillStyle(bgCol, 1);
-      bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 8);
-      bg.lineStyle(hover ? 3 : 2, hover ? t.btnHoverBorder : borderCol, 1);
-      bg.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 8);
-    };
-    render(false);
-    this.add(bg);
-    if (plate) this.add(plate);
-    this.add(txt);
-
-    this.pauseActionBtnRenders.push(render);
+    const btn = createGlowButton(this.host, x, y, w, h, { label, artKey, bgCol, borderCol });
+    btn.objects.forEach((o) => this.add(o));
+    this.pauseActionBtnRenders.push(btn.render);
     this.pauseActionBtnActions.push(onClick);
-
-    const zone = this.host.add.zone(x, y, w, h);
-    zone.setInteractive({ useHandCursor: true });
-    this.add(zone);
+    const zone = btn.zone;
 
     zone.on('pointerover', () => {
+      if (this.dialog.isOpen) return;
       this.pauseSelectedRow = 2;
       this.pauseSelectedActionIdx = btnIndex;
       this.updateVisualSelection();
       SoundManager.getInstance().playMenuHover();
     });
     zone.on('pointerdown', () => {
+      if (this.dialog.isOpen) return;
       SoundManager.getInstance().playMenuClick();
       onClick();
     });

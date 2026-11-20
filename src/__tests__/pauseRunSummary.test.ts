@@ -28,10 +28,12 @@ describe('pauseRunSummary', () => {
     const p = { ...fresh(), bonusDamagePercent: 50, cardBonusMaxHp: 25, extraProjectiles: 2, critChance: 0.13, hpRegenPerSec: 0.4, dashMasteryLevel: 2 };
     const list = buildRunBonuses(p);
     expect(list.map((b) => b.label)).toEqual(['DANO', 'VIDA MÁX', 'PROJÉTEIS', 'CRÍTICO', 'REGENERAÇÃO', 'PASSO SOMBRIO']);
-    expect(list[0]).toEqual({ iconKey: 'icon-blessing-might', value: '+50%', label: 'DANO' });
+    expect(list[0]).toMatchObject({ iconKey: 'icon-blessing-might', value: '+50%', label: 'DANO', title: 'FÚRIA' });
+    expect(list[0].description).toContain('+50%');
     expect(list[3].value).toBe('13%');
     expect(list[4].value).toBe('0.4/s');
-    expect(list[5]).toEqual({ iconKey: 'icon-card-dash', value: 'NV 2', label: 'PASSO SOMBRIO' });
+    expect(list[5]).toMatchObject({ iconKey: 'icon-card-dash', value: 'NV 2', label: 'PASSO SOMBRIO' });
+    for (const b of list) expect(b.description.length).toBeGreaterThan(10);
   });
 
   it('descreve o modo da partida', () => {

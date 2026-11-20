@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('phaser', () => ({
   default: {
     Scene: class {},
+    BlendModes: { ADD: 1 },
     Input: {
       Keyboard: {
         KeyCodes: {
@@ -145,11 +146,16 @@ function createFakeHost() {
         return c;
       }),
       rectangle: vi.fn(() => ({
-        setInteractive: vi.fn().mockReturnThis()
+        setInteractive: vi.fn().mockReturnThis(),
+        on: vi.fn().mockReturnThis()
       })),
       image: vi.fn(() => ({
         setDisplaySize: vi.fn().mockReturnThis(),
-        setOrigin: vi.fn().mockReturnThis()
+        setOrigin: vi.fn().mockReturnThis(),
+        setTint: vi.fn().mockReturnThis(),
+        setTintFill: vi.fn().mockReturnThis(),
+        setBlendMode: vi.fn().mockReturnThis(),
+        setAlpha: vi.fn().mockReturnThis()
       })),
       graphics: vi.fn(() => ({
         clear: vi.fn().mockReturnThis(),
@@ -167,6 +173,8 @@ function createFakeHost() {
           width: 100,
           setOrigin: vi.fn().mockReturnThis(),
           setScale: vi.fn().mockReturnThis(),
+          setWordWrapWidth: vi.fn().mockReturnThis(),
+          setAlign: vi.fn().mockReturnThis(),
           setVisible: vi.fn().mockReturnThis(),
           setText: vi.fn((val: string) => {
             t.text = val;
@@ -329,6 +337,32 @@ describe('Pacote UI — ModalFrame, PauseMenu, GameOverModal e ChapterVictoryMod
     nav.confirm = true;
     pauseMenu.updateControls(gameScene);
     expect(pauseMenu.isPaused).toBe(false);
+  });
+
+  it('PauseMenu: Reiniciar pede confirmação; VOLTAR cancela e SIM reinicia', () => {
+    const { host } = createFakeHost();
+    const gameScene = createFakeGameScene();
+    const pauseMenu = new PauseMenu(host);
+    pauseMenu.pauseGame(gameScene);
+    const nav = GamepadManager.getInstance().getMenuNavigation(host);
+    const press = (key: 'left' | 'right' | 'confirm'): void => {
+      nav[key] = true;
+      pauseMenu.updateControls(gameScene);
+      nav[key] = false;
+    };
+
+    press('right'); // CONTINUAR -> REINICIAR
+    press('confirm');
+    expect(gameScene.scene.restart).not.toHaveBeenCalled();
+
+    press('confirm'); // janela começa no VOLTAR
+    expect(gameScene.scene.restart).not.toHaveBeenCalled();
+    expect(pauseMenu.isPaused).toBe(true);
+
+    press('confirm'); // abre de novo
+    press('right'); // VOLTAR -> SIM, REINICIAR
+    press('confirm');
+    expect(gameScene.scene.restart).toHaveBeenCalledTimes(1);
   });
 
   it('GameOverModal: exibe estatísticas, atualiza recorde no modo endless e dispara callbacks nos botões', () => {
