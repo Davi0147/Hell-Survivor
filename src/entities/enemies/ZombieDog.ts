@@ -1,22 +1,15 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
 import { GemType } from '../items/SoulGem';
-import { ARENA_CONFIG } from '../../config/balance';
 
 const ELITE_TINT = 0xff4455;
-/** Distância a partir da qual quem foge desacelera, para a perseguição ser possível. */
-const FLEE_RELAX_DISTANCE = 380;
 
 export class ZombieDog extends BaseEnemy {
   private currentDir: 'east' | 'west' | 'north' | 'south' = 'south';
   public isElite: boolean = false;
-  /** Titã Cerberus do Modo Infinito: não volta para o pool de cães comuns. */
-  public isSpecialMiniBoss: boolean = false;
   public eliteScale: number = 1.0;
   public customDrop?: GemType;
-  /** Foge do jogador em vez de perseguir (Ladrão de Almas). */
-  public isFleeing: boolean = false;
-  /** Cor de repouso (elite, ladrão); undefined = sem tinta. */
+  /** Cor de repouso (elite); undefined = sem tinta. */
   public idleTint?: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -45,7 +38,6 @@ export class ZombieDog extends BaseEnemy {
     this.eliteScale = eliteScale;
     this.customDrop = customDrop;
     this.setScale(eliteScale);
-    this.isFleeing = false;
     this.setIdleTint(isElite ? ELITE_TINT : undefined);
     this.play('zombie-dog-idle-south', true);
   }
@@ -75,25 +67,13 @@ export class ZombieDog extends BaseEnemy {
     const stunMult = this.updateStunState(deltaMs, this.idleTint);
 
     // Vetor de perseguição até o jogador
-    let dx = targetX - this.x;
-    let dy = targetY - this.y;
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
     const dist = Math.hypot(dx, dy);
-    let paceMult = 1;
-
-    if (this.isFleeing) {
-      // Corre para longe; perto da borda da arena, desliza de lado em vez de travar no canto
-      dx = -dx;
-      dy = -dy;
-      const m = 140;
-      if (this.x < ARENA_CONFIG.MIN_X + m || this.x > ARENA_CONFIG.MAX_X - m) dx = -dx * 0.4;
-      if (this.y < ARENA_CONFIG.MIN_Y + m || this.y > ARENA_CONFIG.MAX_Y - m) dy = -dy * 0.4;
-      if (dist > FLEE_RELAX_DISTANCE) paceMult = 0.35;
-    }
 
     if (dist > 8) {
-      const len = Math.hypot(dx, dy) || 1;
-      const vx = (dx / len) * this.speed * stunMult * paceMult;
-      const vy = (dy / len) * this.speed * stunMult * paceMult;
+      const vx = (dx / dist) * this.speed * stunMult;
+      const vy = (dy / dist) * this.speed * stunMult;
       this.setVelocity(vx, vy);
 
       // Determinar direção cardinal predominante (east, west, north, south)

@@ -15,7 +15,7 @@ import { ENEMY_BALANCE } from '../config/balance';
 
 import type { HordeEventType as HordeEventType2 } from './HordeEventSystem';
 
-export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'titan_cerberus' | 'matriarch';
+export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'ghoul' | 'matriarch';
 
 /**
  * Interface estrita de ponte entre o SandboxController, DevSandboxPanel e a GameScene.
@@ -67,7 +67,7 @@ export interface ISandboxContext extends Phaser.Scene {
   sandboxClearItemsAndGems(): void;
 
   // Spawners de monstros e chefes
-  spawnTitanCerberus(): void;
+  spawnGhoulDevourer(): void;
   spawnMatriarchSuccubus(): void;
   spawnBloodBatFlock(count: number): void;
   spawnZombieDogAt(sx: number, sy: number, hp?: number, speed?: number, dmg?: number, isElite?: boolean, scale?: number): void;
@@ -114,8 +114,8 @@ export class SandboxController {
   public spawnHorde(type: HordeEnemyType, count: number = 1): void {
     DebugSessionLogger.getInstance().log('SANDBOX', 'INFO', `Spawn manual de horda: ${count}x ${type}`);
 
-    if (type === 'titan_cerberus') {
-      this.context.spawnTitanCerberus();
+    if (type === 'ghoul') {
+      this.context.spawnGhoulDevourer();
       return;
     }
     if (type === 'matriarch') {

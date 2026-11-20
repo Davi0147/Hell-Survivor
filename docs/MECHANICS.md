@@ -31,7 +31,7 @@ Este documento define o **contrato técnico e de design** de cada mecânica exis
    - Os valores base de HP, velocidade e dano de todos os inimigos, elites, minichefes e chefes moram em `src/config/balance.ts` (`ENEMY_BALANCE`, `SUCCUBUS_BOSS_BALANCE`, `AZAZEL_BOSS_BALANCE`). Este documento não repete os números.
    - `ZombieDog` (comum e elite) e `MummyEnemy` escalam pelo tempo de partida via `getEnemyScaling` e pelo multiplicador do capítulo (`CHAPTER_CONFIG.enemyStatMultiplier`, só no Modo História).
    - `BloodBat` e `SkullSlime` têm atributos fixos no Modo História e ganham bônus lineares por minuto apenas no Modo Infinito (`endlessHpPerMinute`, `endlessSpeedPerMinute`), além do multiplicador do capítulo.
-   - Minichefes (Cerberus, Matriarca) e chefes (Rosalin, Azazel) usam valores fixos, sem escalonamento. A Matriarca só existe no Modo de Teste.
+   - Minichefes (Ghoul Devorador, Matriarca) e chefes (Rosalin, Azazel) usam valores fixos, sem escalonamento. A Matriarca só existe no Modo de Teste.
    - O elite de `ZombieDog` surge apenas no Modo Infinito, a partir de `zombieDogElite.minMinutes`.
 3. **Controle de Grupo e Resistência:**
    - O controle de grupo é gerenciado por `applyStun(durationMs)` e `updateStunState(deltaMs)` dentro de `updateEnemy`.
@@ -211,7 +211,7 @@ Todos os números moram em `src/config/balance.ts`.
 - **Explosão de cadáver (`CORPSE_EXPLOSION_BALANCE`):** no máximo `maxPerFrame` por quadro, para a reação em cadeia não derrubar o desempenho.
 - **Eventos de horda (`HORDE_EVENT_BALANCE`):** primeiro aos 50s, depois a cada 38 a 52s; não acontecem com chefe em campo nem com o Altar de Invocação desperto; nunca o mesmo evento duas vezes seguidas; respeitam `MAX_ACTIVE_ENEMIES`. Regras de elegibilidade em `hordeEventRules.ts`.
 - **Tempestade de Azazel (`STORM_BALANCE`):** só no Modo História dos capítulos listados em `chapters`. Aviso de 1,15s no padrão de telegrafia de chefes; fere jogador e monstros comuns (chefes não).
-- **Ladrão de Almas:** dano de contato zero, foge do jogador e desacelera quando longe; some sem recompensa após `lifetimeMs`.
+- **Transportador** (antes Ladrão de Almas; entidade `TransporterEnemy`): dano de contato zero, foge do jogador e desacelera quando longe; some sem recompensa após `lifetimeMs`.
 - **Gemas fora da tela (`GemReserve`):** gema parada além da câmera + `GEM_PARK_MARGIN` vira registro (posição + XP) e volta a ser sprite quando entra na área de novo; só a tela tem teto de 150 sprites (excedente na tela funde na vizinha). Depósito cheio soma o XP na guardada mais próxima. O Ímã chama `releaseStoredGems` antes de puxar.
 - **Suprema Ascensão Infernal (`ULTIMATE_BALANCE`):** modo de poder com duração fixa. Soma dano e velocidade em `bonusDamagePercent`/`bonusSpeedPercent` e multiplica `weaponHasteMultiplier` (a `GameScene` passa `delta * weaponHasteMultiplier` às armas); tudo é desfeito no fim, sem descer abaixo do valor base. A horda não para de nascer durante a Suprema. A morte encerra a Suprema sem explosão final.
 - **Itens de mapa (`BALANCE.MAP_ITEMS`):** sorteio por peso em `mapItemRules.ts`. Bomba fere monstros no raio (chefes recebem `bossDamage`); Ampulheta aplica `applyStun` (chefes reduzem o tempo como em qualquer atordoamento); Frasco enche a Suprema se ela não estiver ativa; Relíquia espalha gemas e almas.

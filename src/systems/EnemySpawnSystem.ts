@@ -5,11 +5,12 @@ import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
+import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
+import { TransporterEnemy } from '../entities/enemies/TransporterEnemy';
 import type { GemType } from '../entities/items/SoulGem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { SoundManager } from './SoundManager';
 import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, STORY_ELITES, getEnemyScaling, getChapterConfig } from '../config/balance';
-import { FX_COLORS } from '../config/theme';
 
 /** O que o sistema de spawn precisa saber sobre o personagem jogável (qualquer BaseCharacter serve). */
 export interface IEnemySpawnPlayer {
@@ -76,7 +77,7 @@ export class EnemySpawnSystem {
     damage = Math.round(damage * chMult);
 
     let enemy = this.ctx.enemiesGroup.getChildren().find(
-      (child) => !child.active && child instanceof ZombieDog && !child.isSpecialMiniBoss
+      (child) => !child.active && child instanceof ZombieDog
     ) as ZombieDog | undefined;
 
     if (!enemy) {
@@ -431,23 +432,20 @@ export class EnemySpawnSystem {
   }
 
   /**
-   * Ladrão de Almas: cão dourado que foge do jogador. Quem o abate leva uma chuva de gemas e almas.
-   * Instância própria (fora do pool de cães), como o Titã Cerberus.
+   * Transportador: diabrete com um saco de gemas que foge do jogador. Quem o abate leva o saco
+   * (chuva de gemas e almas). Instância própria, fora de qualquer pool.
    */
-  public spawnSoulThief(): ZombieDog {
+  public spawnSoulThief(): TransporterEnemy {
     const cfg = HORDE_EVENT_BALANCE.thief;
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * 260, this.ctx.player.y + Math.sin(angle) * 260);
 
-    const thief = new ZombieDog(this.scene, pos.x, pos.y);
-    thief.isSpecialMiniBoss = true;
+    const thief = new TransporterEnemy(this.scene, pos.x, pos.y);
     thief.setDepth(14);
     this.ctx.enemiesGroup.add(thief);
 
     const minutes = this.ctx.survivalTimeMs / 60000;
-    thief.spawn(pos.x, pos.y, Math.round(cfg.hp + minutes * cfg.hpPerMinute), cfg.speed, 0, false, 1.15);
-    thief.isFleeing = true;
-    thief.setIdleTint(FX_COLORS.thiefTint);
+    thief.spawn(pos.x, pos.y, Math.round(cfg.hp + minutes * cfg.hpPerMinute), cfg.speed, 0);
 
     thief.on('enemy-killed', (ex: number, ey: number) => {
       this.ctx.killCount++;
@@ -467,23 +465,22 @@ export class EnemySpawnSystem {
   }
 
   /**
-   * Spawna o Mini-Chefe Titã Cerberus no Modo Infinito (3:00)
+   * Spawna o Mini-Chefe Ghoul Devorador no Modo Infinito (3:00). Instância própria, fora de qualquer pool.
    */
-  public spawnTitanCerberus(): void {
+  public spawnGhoulDevourer(): void {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = 380;
-    const x = this.ctx.player.x + Math.cos(angle) * dist;
-    const y = this.ctx.player.y + Math.sin(angle) * dist;
+    const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
+    const { x, y } = pos;
 
-    const titan = new ZombieDog(this.scene, x, y);
-    titan.isSpecialMiniBoss = true;
-    titan.setDepth(15);
-    this.ctx.enemiesGroup.add(titan);
+    const ghoul = new GhoulEnemy(this.scene, x, y);
+    ghoul.setDepth(15);
+    this.ctx.enemiesGroup.add(ghoul);
 
-    const titanStats = ENEMY_BALANCE.titanCerberus;
-    titan.spawn(x, y, titanStats.hp, titanStats.speed, titanStats.damage, true, titanStats.scale, 'purple');
+    const ghoulStats = ENEMY_BALANCE.ghoulDevourer;
+    ghoul.spawn(x, y, ghoulStats.hp, ghoulStats.speed, ghoulStats.damage);
 
-    titan.on('enemy-killed', (ex: number, ey: number) => {
+    ghoul.on('enemy-killed', (ex: number, ey: number) => {
       this.ctx.killCount++;
       this.ctx.player.gainUltimateCharge(25);
       this.ctx.spawnGemAt(ex, ey, 'purple');

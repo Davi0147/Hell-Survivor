@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import type { BaseEnemy } from '../entities/enemies/BaseEnemy';
-import type { ZombieDog } from '../entities/enemies/ZombieDog';
+import type { TransporterEnemy } from '../entities/enemies/TransporterEnemy';
 import type { EnemySpawnSystem } from './EnemySpawnSystem';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
@@ -39,14 +39,15 @@ interface StormMarker {
 
 /**
  * HordeEventSystem — o "diretor" da partida: de tempos em tempos quebra a rotina da horda
- * com um evento (Cerco, Emboscada, Ladrão de Almas, Matilha Alfa, Lua de Sangue) e cuida da
+ * com um evento (Cerco, Emboscada, Transportador, Matilha Alfa, Lua de Sangue) e cuida da
  * Tempestade de Azazel, o perigo ambiental do Capítulo 2.
  */
 export class HordeEventSystem {
   private eventTimer: number = HORDE_EVENT_BALANCE.firstEventMs;
   private lastEvent?: HordeEventType;
 
-  private thief?: ZombieDog;
+  /** Transportador vivo (o id interno do evento continua 'thief'). */
+  private thief?: TransporterEnemy;
   private thiefTimer = 0;
 
   private bloodMoonTimer = 0;
@@ -71,7 +72,7 @@ export class HordeEventSystem {
     return this.ctx.survivalTimeMs / 60000;
   }
 
-  /** Ladrão de Almas vivo (para o radar e a seta de borda), ou undefined. */
+  /** Transportador vivo (para o radar e a seta de borda), ou undefined. */
   public get activeThief(): { x: number; y: number; timeLeftMs: number } | undefined {
     const t = this.thief;
     if (!t || !t.active || t.isDead) return undefined;
@@ -207,7 +208,7 @@ export class HordeEventSystem {
   }
 
   // ---------------------------------------------------------------------------
-  // Ladrão de Almas: foge; abater antes do tempo rende uma chuva de recompensas
+  // Transportador: foge com o saco; abater antes do tempo rende uma chuva de recompensas
   // ---------------------------------------------------------------------------
   private startThief(): void {
     if (this.thief && this.thief.active && !this.thief.isDead) return;
@@ -216,9 +217,9 @@ export class HordeEventSystem {
     this.thiefTimer = HORDE_EVENT_BALANCE.thief.lifetimeMs;
     thief.once('enemy-killed', () => {
       if (this.thief === thief) this.thief = undefined;
-      this.hud?.showWaveAlert('LADRÃO ABATIDO! TESOURO LIBERADO!', 2600);
+      this.hud?.showWaveAlert('TRANSPORTADOR ABATIDO! O SACO SE ABRIU!', 2600);
     });
-    this.hud?.showCenterAnnouncement('LADRÃO DE ALMAS', 'SIGA A SETA DOURADA', 2600);
+    this.hud?.showCenterAnnouncement('TRANSPORTADOR', 'PEGUE O SACO! SIGA A SETA DOURADA', 2600);
   }
 
   private updateThief(delta: number): void {
@@ -238,7 +239,7 @@ export class HordeEventSystem {
     this.scene.tweens.add({ targets: ring, scale: 2.2, alpha: 0, duration: 320, onComplete: () => ring.destroy() });
     thief.removeAllListeners('enemy-killed');
     this.ctx.enemiesGroup.remove(thief, true, true);
-    this.hud?.showWaveAlert('O LADRÃO DE ALMAS ESCAPOU...', 2400);
+    this.hud?.showWaveAlert('O TRANSPORTADOR ESCAPOU...', 2400);
   }
 
   // ---------------------------------------------------------------------------

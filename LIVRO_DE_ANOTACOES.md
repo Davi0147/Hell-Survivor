@@ -47,7 +47,7 @@
   - Morcego de Sangue (`BloodBat`);
   - Skull Slime (`SkullSlime`);
   - Múmia do Abismo (`MummyEnemy` — movimentação em zigue-zague, poças de veneno tóxico com lentidão de `-40%` e dano periódico que duram 5 segundos após a morte da múmia, além de knockback no contato);
-  - Titã Cerberus (minichefe do Infinito aos 3 min — sprite de `ZombieDog`);
+  - Ghoul Devorador (minichefe do Infinito aos 3 min — `GhoulEnemy`, arte própria, bote telegrafado; substituiu o Titã Cerberus);
   - Matriarca Succubus (apenas no Modo de Teste — sprite de `SuccubusBoss`).
 - [x] **Atributos e Escalonamento:** todos os valores base moram em `src/config/balance.ts` (`ENEMY_BALANCE`, `SUCCUBUS_BOSS_BALANCE`, `AZAZEL_BOSS_BALANCE`); as regras de escalonamento estão em `docs/MECHANICS.md` §2.
 - [x] **Limites Rígidos e Viewport Culling (`PERFORMANCE_LIMITS`):**
@@ -130,7 +130,7 @@
 - [ ] **Ciclo de Chefes do Modo Infinito (postergado para pós-publicação por decisão do dono):** Implementação de rotação cíclica progressiva de chefes (ex.: Cérbero aos 3m, Succubus aos 10m, Azazel ou variantes em ondas seguintes) utilizando como especificação e base arquitetural a ficha técnica formalizada em [`docs/FICHA_CICLO_DE_CHEFES.md`](docs/FICHA_CICLO_DE_CHEFES.md).
 - [x] **Bot Autônomo de Testes `[F3]` (`AutoPlayTestAgent`):** Resolvido no Pacote B (escolha de cartas via `UpgradeScene.update`, busca ampliada de XP e telemetria no logger).
 - [ ] **Novos Inimigos da Fase 3:** *Cultista Arcano* (artilheiro à distância) e *Brutamonte das Profundezas* (tanque com resistência a knockback).
-- [x] **Eventos Dinâmicos de Horda (v0.10.0):** Cerco, Emboscada, Ladrão de Almas, Matilha Alfa e Lua de Sangue via `HordeEventSystem.ts`; Tempestade de Azazel no Capítulo 2.
+- [x] **Eventos Dinâmicos de Horda (v0.10.0):** Cerco, Emboscada, Transportador (antes Ladrão de Almas), Matilha Alfa e Lua de Sangue via `HordeEventSystem.ts`; Tempestade de Azazel no Capítulo 2.
 - [x] **Ritmo de Combate (v0.10.0):** combo de abates com Frenesi, esquiva com invulnerabilidade, golpes críticos e cinco cartas novas (`CombatFeelSystem.ts`).
 - [ ] **Sistema de Conquistas In-Game (Achievements):** Notificações estilo arcade aproveitando os dados de `MetaProgressManager.stats`.
 - [ ] **Capítulo 3:** Novo bioma, chefe inédito e continuação da campanha.

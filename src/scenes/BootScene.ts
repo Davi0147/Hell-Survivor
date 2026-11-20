@@ -80,11 +80,25 @@ export class BootScene extends Phaser.Scene {
       for (let i = 0; i < 9; i++) {
         if (this.textures.exists(`mummy-walk-${dir}-${i}`)) this.textures.remove(`mummy-walk-${dir}-${i}`);
       }
+
+      if (this.anims.exists(`ghoul-run-${dir}`)) this.anims.remove(`ghoul-run-${dir}`);
+      for (let i = 0; i < 8; i++) {
+        if (this.textures.exists(`ghoul-run-${dir}-${i}`)) this.textures.remove(`ghoul-run-${dir}-${i}`);
+      }
+
+      if (this.anims.exists(`transporter-run-${dir}`)) this.anims.remove(`transporter-run-${dir}`);
+      for (let i = 0; i < 8; i++) {
+        if (this.textures.exists(`transporter-run-${dir}-${i}`)) this.textures.remove(`transporter-run-${dir}-${i}`);
+      }
     }
 
     for (const dir of DIRECTIONS_8) {
       if (this.anims.exists(`mummy-idle-${dir}`)) this.anims.remove(`mummy-idle-${dir}`);
       if (this.textures.exists(`mummy-idle-${dir}`)) this.textures.remove(`mummy-idle-${dir}`);
+      if (this.anims.exists(`ghoul-idle-${dir}`)) this.anims.remove(`ghoul-idle-${dir}`);
+      if (this.textures.exists(`ghoul-idle-${dir}`)) this.textures.remove(`ghoul-idle-${dir}`);
+      if (this.anims.exists(`transporter-idle-${dir}`)) this.anims.remove(`transporter-idle-${dir}`);
+      if (this.textures.exists(`transporter-idle-${dir}`)) this.textures.remove(`transporter-idle-${dir}`);
     }
 
     if (this.textures.exists('floor-tile')) this.textures.remove('floor-tile');
@@ -363,6 +377,38 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
+    // 14.2. Carregar sprites do Ghoul Devorador (Idle nos 8 ângulos e corrida em 4 eixos x 8 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(
+        `ghoul-idle-${dir}`,
+        `assets/sprites/enemies/Ghoul/Idle/rotations/${dir}.png?t=${cacheBuster}`
+      );
+    }
+    for (const dir of MUMMY_DIRS) {
+      for (let i = 0; i < 8; i++) {
+        this.load.image(
+          `ghoul-run-${dir}-${i}`,
+          `assets/sprites/enemies/Ghoul/Idle/animations/Running/${dir}/frame_00${i}.png?t=${cacheBuster}`
+        );
+      }
+    }
+
+    // 14.3. Carregar sprites do Transportador (Idle nos 8 ângulos e corrida em 4 eixos x 8 frames)
+    for (const dir of DIRECTIONS_8) {
+      this.load.image(
+        `transporter-idle-${dir}`,
+        `assets/sprites/enemies/Transporter/Idle/rotations/${dir}.png?t=${cacheBuster}`
+      );
+    }
+    for (const dir of MUMMY_DIRS) {
+      for (let i = 0; i < 8; i++) {
+        this.load.image(
+          `transporter-run-${dir}-${i}`,
+          `assets/sprites/enemies/Transporter/Idle/animations/Running/${dir}/frame_00${i}.png?t=${cacheBuster}`
+        );
+      }
+    }
+
     // 15. Carregar sprites oficiais das Gemas de Alma criadas pelo usuário (40x40px)
     this.load.image('gem-green', `assets/sprites/items/gem-green.png?t=${cacheBuster}`);
     this.load.image('gem-blue', `assets/sprites/items/gem-blue.png?t=${cacheBuster}`);
@@ -635,6 +681,40 @@ export class BootScene extends Phaser.Scene {
         frameRate: 1,
         repeat: -1
       });
+    }
+
+    // Registrar animações do Ghoul Devorador (8 frames de corrida e 8 direções de idle)
+    for (const dir of MUMMY_CARDINALS) {
+      const ghoulFrames = [];
+      for (let i = 0; i < 8; i++) {
+        ghoulFrames.push({ key: `ghoul-run-${dir}-${i}` });
+      }
+      this.anims.create({
+        key: `ghoul-run-${dir}`,
+        frames: ghoulFrames,
+        frameRate: 12,
+        repeat: -1
+      });
+    }
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({
+        key: `ghoul-idle-${dir}`,
+        frames: [{ key: `ghoul-idle-${dir}` }],
+        frameRate: 1,
+        repeat: -1
+      });
+    }
+
+    // Registrar animações do Transportador (8 frames de corrida e 8 direções de idle)
+    for (const dir of MUMMY_CARDINALS) {
+      const transporterFrames = [];
+      for (let i = 0; i < 8; i++) {
+        transporterFrames.push({ key: `transporter-run-${dir}-${i}` });
+      }
+      this.anims.create({ key: `transporter-run-${dir}`, frames: transporterFrames, frameRate: 14, repeat: -1 });
+    }
+    for (const dir of DIRECTIONS_8) {
+      this.anims.create({ key: `transporter-idle-${dir}`, frames: [{ key: `transporter-idle-${dir}` }], frameRate: 1, repeat: -1 });
     }
 
     // Registrar animações do Boss Azazel (Idle 8 direções, Rise Hand 8 direções e Running 8 frames mapeados para 8 direções)

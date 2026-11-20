@@ -5,6 +5,7 @@ import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy, PoisonPuddle } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
+import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import { SoulBoltProjectile } from '../entities/weapons/SoulBoltProjectile';
@@ -499,14 +500,14 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
           this.playerInvulnerableTimer = 450; // Tempo de imunidade contra hit consecutivo
           if (this.sandboxGodMode) {
             DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Hit de contato bloqueado (God Mode): ${enemy.damage} dano`);
-            if (enemy instanceof MummyEnemy) {
+            if (enemy instanceof MummyEnemy || enemy instanceof GhoulEnemy) {
               enemy.onPlayerCollide(this.player);
             }
             return;
           }
           SoundManager.getInstance().playPlayerHurt();
           this.player.takeDamage(Math.round(enemy.damage * this.enemyStrengthMultiplier));
-          if (enemy instanceof MummyEnemy) {
+          if (enemy instanceof MummyEnemy || enemy instanceof GhoulEnemy) {
             enemy.onPlayerCollide(this.player);
           }
           DebugSessionLogger.getInstance().log('COMBAT', 'INFO', `Nixy recebeu ${enemy.damage} de dano de contato`, {
@@ -814,13 +815,13 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       if (this.gameMode === 'endless') {
         const elapsedSec = Math.floor(this.survivalTimeMs / 1000);
 
-        // 3:00 (180s): Titã Cerberus Mini-Boss
+        // 3:00 (180s): Mini-Boss Ghoul Devorador
         if (!this.miniBoss3mSpawned && elapsedSec >= 180) {
           this.miniBoss3mSpawned = true;
           if (uiScene) {
-            uiScene.showWaveAlert('ALERTA: TITÃ CERBERUS DETECTADO!', 4500);
+            uiScene.showWaveAlert('ALERTA: GHOUL DEVORADOR DETECTADO!', 4500);
           }
-          this.spawnTitanCerberus();
+          this.spawnGhoulDevourer();
         }
 
         // 5:00 (300s): Altar de Invocação desperta no Modo Infinito
@@ -948,8 +949,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.enemySpawner.spawnEnemyRandomPerimeter();
   }
 
-  public spawnTitanCerberus(): void {
-    this.enemySpawner.spawnTitanCerberus();
+  public spawnGhoulDevourer(): void {
+    this.enemySpawner.spawnGhoulDevourer();
   }
 
   public spawnMatriarchSuccubus(): void {

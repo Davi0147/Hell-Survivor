@@ -4,7 +4,6 @@ import { GameScene } from '../scenes/GameScene';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { ARENA_CONFIG } from '../config/balance';
-import { FX_COLORS } from '../config/theme';
 
 export interface ShowroomItemConfig {
   name: string;
@@ -291,10 +290,11 @@ export class TestShowroomSystem {
         items: [
           { name: 'Cão Zumbi', texture: 'zombie-dog-idle-south', scale: 1.0, anim: 'zombie-dog-idle-south' },
           { name: 'Cão Alfa Elite', texture: 'zombie-dog-idle-south', scale: 1.35, tint: 0xff4455, anim: 'zombie-dog-idle-south' },
-          { name: 'Ladrão de Almas', texture: 'zombie-dog-idle-south', scale: 1.15, tint: FX_COLORS.thiefTint, anim: 'zombie-dog-idle-south' },
+          { name: 'Transportador', texture: 'transporter-idle-south', scale: 1.5, anim: 'transporter-run-south' },
           { name: 'Morcego Sangue', texture: 'blood-bat-idle-south', scale: 0.75, anim: 'blood-bat-fly-south' },
           { name: 'Múmia Abissal', texture: 'mummy-idle-south', scale: 1.05, anim: 'mummy-idle-south' },
           { name: 'Skull Slime', texture: 'skull-slime-idle-south', scale: 1.0, anim: 'skull-slime-idle-south' },
+          { name: 'Ghoul Devorador', texture: 'ghoul-idle-south', scale: 1.4, anim: 'ghoul-run-south' },
           { name: 'Succubus Menor', texture: 'succubus-idle-south', scale: 1.0, anim: 'succubus-fly-south' },
           { name: 'Rosalin (Chefe 1)', texture: 'succubus-idle-south', scale: 1.75, anim: 'succubus-fly-south' },
           { name: 'Azazel (Parado)', texture: 'azazel-idle-south', scale: 1.55, anim: 'azazel-idle-south' },

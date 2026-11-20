@@ -303,7 +303,26 @@ export const ENEMY_BALANCE = {
   // Horda da Dimensão Abissal (Fase 3 do Azazel)
   azazelDimensionDog: { hp: 48, speed: 92, damage: 11 },
   azazelDimensionMummy: { hp: 150, speed: 62, damage: 16 },
-  titanCerberus: { hp: 1400, speed: 95, damage: 20, scale: 1.85 },
+  // Minichefe do Infinito (3:00). Substituiu o Titã Cerberus (1400 HP, 95 vel, 20 dano, escala 1.85).
+  // O bote é telegrafado e respeita a regra de ouro (golpe <= ~45% da vida base da heroína).
+  ghoulDevourer: {
+    hp: 2100,
+    speed: 102,
+    damage: 24,
+    scale: 2.1,
+    lunge: {
+      damage: 34,
+      speed: 520,
+      telegraphMs: 650,
+      durationMs: 420,
+      cooldownMs: 4200,
+      firstCooldownMs: 2500,
+      minRange: 90,
+      maxRange: 300,
+    },
+    // Empurrão na heroína ao acertar (força em px/s e duração); o bote empurra mais forte
+    knockback: { force: 300, lungeForce: 560, durationMs: 220, lungeDurationMs: 320 },
+  },
   matriarchSuccubus: { hp: 2400, speed: 115, damage: 24, scale: 1.45 },
 } as const;
 
@@ -558,7 +577,11 @@ export const HORDE_EVENT_BALANCE = {
   intervalMaxMs: 52000,
   siege: { baseDogs: 10, dogsPerMinute: 2, maxDogs: 22, radius: 390 },
   ambush: { batFlocks: 3, batsPerFlock: 6, dogs: 5, distance: 430 },
-  thief: { hp: 260, hpPerMinute: 60, speed: 168, lifetimeMs: 15000, gems: 10, soulsMin: 6, soulsMax: 10, chestChance: 0.35 },
+  /** Transportador (antes "Ladrão de Almas"): foge com o saco; abater em `lifetimeMs` libera o tesouro. */
+  thief: {
+    hp: 260, hpPerMinute: 60, speed: 168, lifetimeMs: 15000, gems: 10, soulsMin: 6, soulsMax: 10, chestChance: 0.35,
+    scale: 1.5, fleeRelaxDistance: 380, relaxedPace: 0.35,
+  },
   elitePack: { count: 3, minMinutes: 1.5 },
   bloodMoon: { durationMs: 20000, spawnIntervalMultiplier: 0.55, xpBonus: 1, minMinutes: 2 },
 } as const;

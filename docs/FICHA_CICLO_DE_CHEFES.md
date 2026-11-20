@@ -51,7 +51,7 @@
 
 - **Evidência no código:**
   - Atualmente, **nenhum chefe ou minichefe utiliza a função de escalonamento** [`balance.ts:getEnemyScaling()`](../src/config/balance.ts#L30):
-    - `TitanCerberus`: 1400 HP, 95 vel, 20 dano fixos ([`GameScene.ts:1652`](../src/scenes/GameScene.ts#L1652)).
+    - `GhoulDevourer` (substituiu o Titã Cerberus): 2100 HP, 102 vel, 24 dano (34 no bote) fixos (`ENEMY_BALANCE.ghoulDevourer`).
     - `MatriarchSuccubus`: 2400 HP, 115 vel, 24 dano fixos ([`GameScene.ts:1683`](../src/scenes/GameScene.ts#L1683)).
     - `SuccubusBossEndless`: 12000 HP, 135 vel, 40 dano fixos ([`GameScene.ts:1716`](../src/scenes/GameScene.ts#L1716)).
     - `AzazelBoss`: 26000 HP, 140 vel, 45 dano fixos ([`GameScene.ts:2970`](../src/scenes/GameScene.ts#L2970)).
@@ -66,7 +66,7 @@
 ### 2.3. Cronograma e Interação com Minichefes Existentes
 
 A linha do tempo atual do Modo Infinito em [`GameScene.ts:988-1018`](../src/scenes/GameScene.ts#L988-L1018):
-- **03:00 (180s):** `spawnTitanCerberus()` (Minichefe 1).
+- **03:00 (180s):** `spawnGhoulDevourer()` (Minichefe 1).
 - **05:00 (300s):** `activateBossSummonAltar()` (Altar de Invocação).
 - **06:00 (360s):** `spawnMatriarchSuccubus()` (Minichefe 2).
 - **10:00 (600s):** `spawnSuccubusBossEndless()` (Chefe Suprema).

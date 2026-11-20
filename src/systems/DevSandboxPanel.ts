@@ -29,7 +29,7 @@ const SANDBOX_NEW_ITEMS: { type: MapItemType; label: string }[] = [
 const SANDBOX_HORDE_EVENTS: { type: HordeEventType | 'storm'; label: string }[] = [
   { type: 'siege', label: 'CERCO INFERNAL' },
   { type: 'ambush', label: 'EMBOSCADA' },
-  { type: 'thief', label: 'LADRÃO DE ALMAS' },
+  { type: 'thief', label: 'TRANSPORTADOR' },
   { type: 'elite_pack', label: 'MATILHA ALFA' },
   { type: 'blood_moon', label: 'LUA DE SANGUE' },
   { type: 'storm', label: 'RAIOS DA TEMPESTADE DE AZAZEL' },
@@ -574,12 +574,12 @@ export class DevSandboxPanel {
         }
       },
       {
-        label: 'INVOCAR MINI-BOSS: TITÃ CERBERUS',
+        label: 'INVOCAR MINI-BOSS: GHOUL DEVORADOR',
         color: 0x7c2d12,
         border: 0xfb923c,
         action: () => {
-          gs.sandboxSpawnHorde('titan_cerberus', 1);
-          this.showToast('MINI-BOSS TITÃ CERBERUS INVOCADO!', '#fb923c');
+          gs.sandboxSpawnHorde('ghoul', 1);
+          this.showToast('MINI-BOSS GHOUL DEVORADOR INVOCADO!', '#fb923c');
         }
       },
       {

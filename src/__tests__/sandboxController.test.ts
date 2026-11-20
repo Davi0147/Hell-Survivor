@@ -107,7 +107,7 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
         getChildren: vi.fn().mockReturnValue([])
       } as unknown as Phaser.GameObjects.Group,
       weapons: [],
-      spawnTitanCerberus: vi.fn(),
+      spawnGhoulDevourer: vi.fn(),
       spawnMatriarchSuccubus: vi.fn(),
       spawnBloodBatFlock: vi.fn(),
       spawnZombieDogAt: vi.fn(),
@@ -164,10 +164,10 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
   });
 
   describe('Roteamento de Spawn de Hordas (spawnHorde)', () => {
-    it('roteia titan_cerberus para spawnTitanCerberus', () => {
+    it('roteia ghoul para spawnGhoulDevourer', () => {
       const ctrl = new SandboxController(mockContext as unknown as ISandboxContext);
-      ctrl.spawnHorde('titan_cerberus', 1);
-      expect(mockContext.spawnTitanCerberus).toHaveBeenCalledTimes(1);
+      ctrl.spawnHorde('ghoul', 1);
+      expect(mockContext.spawnGhoulDevourer).toHaveBeenCalledTimes(1);
     });
 
     it('roteia matriarch para spawnMatriarchSuccubus', () => {

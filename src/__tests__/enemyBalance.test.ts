@@ -17,10 +17,24 @@ describe('ENEMY_BALANCE (atributos centralizados de inimigos e chefes)', () => {
 
   it('a hierarquia de ameaça é respeitada: comum < minichefe < chefe', () => {
     const toughestCommon = Math.max(ENEMY_BALANCE.skullSlime.hp, ENEMY_BALANCE.mummy.hp, ENEMY_BALANCE.zombieDogElite.hp);
-    expect(ENEMY_BALANCE.titanCerberus.hp).toBeGreaterThan(toughestCommon);
-    expect(ENEMY_BALANCE.matriarchSuccubus.hp).toBeGreaterThan(ENEMY_BALANCE.titanCerberus.hp);
+    expect(ENEMY_BALANCE.ghoulDevourer.hp).toBeGreaterThan(toughestCommon);
+    expect(ENEMY_BALANCE.matriarchSuccubus.hp).toBeGreaterThan(ENEMY_BALANCE.ghoulDevourer.hp);
     expect(SUCCUBUS_BOSS_BALANCE.story.hp).toBeGreaterThan(ENEMY_BALANCE.matriarchSuccubus.hp);
     expect(AZAZEL_BOSS_BALANCE.maxHp).toBeGreaterThan(SUCCUBUS_BOSS_BALANCE.story.hp);
+  });
+
+  it('o Ghoul Devorador supera o antigo Titã Cerberus (1400 HP, 20 dano, escala 1.85)', () => {
+    const g = ENEMY_BALANCE.ghoulDevourer;
+    expect(g.hp).toBeGreaterThan(1400);
+    expect(g.damage).toBeGreaterThan(20);
+    expect(g.scale).toBeGreaterThan(1.85);
+  });
+
+  it('o bote do Ghoul é telegrafado e respeita a regra de ouro (<= 45 de dano)', () => {
+    const l = ENEMY_BALANCE.ghoulDevourer.lunge;
+    expect(l.damage).toBeLessThanOrEqual(45);
+    expect(l.telegraphMs).toBeGreaterThanOrEqual(500);
+    expect(l.cooldownMs).toBeGreaterThan(l.telegraphMs + l.durationMs);
   });
 
   it('a Rosalin do Modo Infinito é mais forte que a do Modo História', () => {

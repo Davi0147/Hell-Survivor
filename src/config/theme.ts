@@ -129,7 +129,8 @@ export const FX_COLORS = {
   dashButton: 0x38bdf8,
   novaRing: 0xffd700,
   corpseExplosion: 0xc084fc,
-  thiefTint: 0xffd700,
+  /** Ghoul Devorador: pisca nesta cor enquanto prepara o bote. */
+  ghoulLungeTelegraph: 0xff3d2e,
   thiefSparkle: 0xfff3b0,
   /** Seta de borda e blip do radar do Ladrão de Almas. */
   thiefArrowFill: 0x2a1c00,
