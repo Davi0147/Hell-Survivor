@@ -2,7 +2,7 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Não publicado] — Azazel Refinado — 2026-11-20
+## [v0.14.0 — Azazel Refinado] — 2026-11-20
 
 ### Resumo para o Jogador
 - **Azazel não mata mais de uma vez:** o dash da escuridão acertava a cada quadro em que passava pela Nixy (5 ou 6 vezes seguidas) e matava de uma vez. Agora cada golpe dele acerta uma vez só, e depois de um acerto a Nixy fica meio segundo imune (a mesma imunidade do contato com monstros): golpes não se somam no mesmo instante. Nenhum golpe passa de 20 de dano. O contato com o corpo dele caiu de 13 para 8.
