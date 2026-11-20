@@ -597,7 +597,7 @@ foreground with eyes closed and a satisfied smirk behind the mask, cloak moving 
 wind, black feathers drifting around her.
 ```
 
-Salve como `art-source/novos/EndChap2_1.jpg`, `EndChap2_2.jpg` e `EndChap2_3.jpg` e me avise. Eu coloco em `public/assets/scenes/chapter2/` e ligo na cena (a troca é automática: o jogo usa a arte assim que ela existir).
+Salve como `art-source/novos/EndChap2_1.jpg`, `EndChap2_2.jpg` e `EndChap2_3.jpg` e me avise. Eu coloco em `public/assets/scenes/chapter2/`, carrego no `BootScene` com as chaves `endchap2-1` a `endchap2-3` e a cena passa a usá-las sozinha (o fundo provisório só aparece enquanto essas chaves não existem).
 
 ---
 
