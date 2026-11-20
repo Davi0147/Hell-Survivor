@@ -7,6 +7,7 @@ import type { UpgradeCard, RichTextSegment, UpgradeGameScene } from '../systems/
 export type { UpgradeCard, RichTextSegment } from '../systems/UpgradeCatalog';
 import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
+import { UPGRADE_SKIP_BALANCE } from '../config/balance';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 
 /** Cena de jogo que abriu a tela de cartas: além das armas, sinaliza a reabertura da fila de níveis. */
@@ -227,7 +228,7 @@ export class UpgradeScene extends Phaser.Scene {
       height: 46,
       iconKey: 'ui-icon-skip',
       label: 'CANALIZAR',
-      badge: '+20',
+      badge: `+${Math.round(UPGRADE_SKIP_BALANCE.healFractionOfMaxHp * 100)}%`,
       badgeColor: ACTION_BUTTON_THEME.heal,
       onHover: () => SoundManager.getInstance().playCardHover(),
       onClick: () => this.handleSkipAndHeal()
@@ -261,7 +262,7 @@ export class UpgradeScene extends Phaser.Scene {
     if (this.isClosing) return;
     this.isClosing = true;
     SoundManager.getInstance().playMenuClick();
-    this.player.heal(20);
+    this.player.heal(this.player.maxHp * UPGRADE_SKIP_BALANCE.healFractionOfMaxHp);
     this.time.delayedCall(100, () => {
       this.scene.stop('UpgradeScene');
       this.gameScene.scene.resume();

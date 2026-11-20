@@ -159,6 +159,11 @@ export function getSpawnIntervalMs(minutes: number, isEndless: boolean): number 
  * Roubo de vida: cada acerto cura um pouco, mas com teto por segundo. Sem o teto, uma
  * build com muitos projéteis acertava dezenas de vezes por segundo e ficava imortal.
  */
+/** Canalizar (pular a carta no level-up): cura uma fração da vida máxima. */
+export const UPGRADE_SKIP_BALANCE = {
+  healFractionOfMaxHp: 0.4,
+} as const;
+
 export const LIFE_STEAL_BALANCE = {
   maxHealPerSec: 4,
 } as const;
