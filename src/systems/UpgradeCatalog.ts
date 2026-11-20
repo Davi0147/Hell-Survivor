@@ -234,6 +234,7 @@ export function getAvailableUpgrades(player: BaseCharacter, gameScene: UpgradeGa
       ],
       apply: (p) => {
         p.maxStamina += 30;
+        p.cardBonusMaxStamina += 30;
         p.currentStamina = p.maxStamina;
         p.bonusStaminaPercent += 20;
       }
@@ -282,6 +283,7 @@ export function getAvailableUpgrades(player: BaseCharacter, gameScene: UpgradeGa
       ],
       apply: (p) => {
         p.maxHp += 25;
+        p.cardBonusMaxHp += 25;
         p.heal(40);
       }
     }

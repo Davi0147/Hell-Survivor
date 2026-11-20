@@ -549,6 +549,81 @@ Salve em `art-source/novos/cenario/ch1-props.png`, `ch1-decals.png` e `floor-ch1
 
 ---
 
+## 15. Menu de pausa (moldura, placa do título e 3 botões)
+
+O conteúdo do menu (tempo, abates, nível, almas, bônus, armas, volume) já é desenhado pelo jogo. Esta folha dá a **borda** em volta do painel, a **placa do título** e os **3 botões**, no mesmo estilo violeta do painel de status. Tudo vazio por dentro: o jogo escreve os textos.
+
+Prompt único — copiar e colar inteiro:
+
+```text
+Create ONE image: a pixel art UI sprite sheet for the PAUSE MENU of a dark gothic
+hell-themed 2D action roguelite game. Clean and elegant, NOT overloaded: few ornaments,
+strong silhouette, lots of calm empty space inside.
+
+=== GLOBAL STYLE (applies to everything) ===
+16-bit pixel art, hand-placed pixels, crisp hard edges, NO anti-aliasing, NO blur, NO soft
+airbrush gradients, NO photorealism, NO 3D render look. Dark gothic demonic fantasy, same
+look as a violet obsidian-and-crystal relic. Strong 1-pixel near-black purple outline
+(#12020a) around every shape. Palette ONLY: near-black purple (#0b0208, #12061a), dark
+violet stone (#2a1238, #3d1a52), deep violet (#6a1fa0, #9b5de5), neon magenta glow
+(#d61cff, #ff4df0), white-pink highlights (#ffd6ff), small crimson accents (#ff0055,
+#8a0f2a), a little bone white (#efe6d8). No gold, no orange, no lava, no green.
+No text, no letters, no numbers, no icons, no watermark, no signature anywhere.
+
+=== CANVAS AND BACKGROUND ===
+Canvas 1536x1024 pixels, landscape. The ENTIRE background is solid flat pure magenta
+#FF00FF, one single color, no texture, no vignette, no shadow on it, no glow bleeding onto
+it, no transparency checkerboard. Every piece is separate, never touching another piece,
+with at least 40 px of pure #FF00FF around each one.
+
+Layout:
+- LEFT AREA (x from 0 to 1050): piece A, centered in that area.
+- RIGHT COLUMN (x from 1090 to 1536): pieces B, C, D and E stacked from top to bottom,
+  each centered horizontally in the column, evenly spaced.
+
+=== PIECE A — PANEL BORDER FRAME (the main piece) ===
+A rectangular ornate border frame. Its INNER OPENING is a clean rectangle with aspect
+ratio exactly 1.37 : 1 (for example 900 x 657 px), with slightly rounded inner corners.
+The inside of the opening is filled with solid flat pure magenta #FF00FF exactly like the
+background (it will be cut out; the game draws the menu content there).
+The border band itself is THIN: about 18-22 px thick, made of dark violet obsidian with a
+1-2 px glowing magenta inner edge line all around the opening.
+Ornaments, outside the opening only, never covering it:
+- Four corners: each corner has a small cluster of 2-3 sharp violet crystals plus one
+  short curved black horn pointing diagonally outward.
+- Top center: a small crest sitting on the top edge: a tiny horned skull (bone white with
+  glowing magenta eyes) with two small bat wings spread left and right, no wider than 20%
+  of the frame width.
+- Bottom center: a single downward crystal spike with a glowing magenta gem.
+- Left and right edges: a thin thorny black vine running along the middle third of each
+  side, with 2 tiny crimson rose buds.
+Everything else on the band stays plain and calm. Symmetric left-right.
+
+=== PIECE B — TITLE PLAQUE (about 420 x 90 px, aspect 4.6 : 1) ===
+A horizontal plaque of dark violet obsidian with a thin glowing magenta border, small
+pointed (hexagonal) ends, a tiny crystal on each end. Inside completely EMPTY, flat dark
+(#12061a), no letters: the game writes "JOGO PAUSADO" on it.
+
+=== PIECES C, D, E — BUTTONS (each about 400 x 86 px, aspect 4.6 : 1) ===
+Three button plates with the same shape: horizontal plate with pointed hexagonal ends,
+thin outer outline, a 2 px lighter bevel on top and a darker band at the bottom, small
+crystal stud on each end. Inside EMPTY, no letters, no icons.
+- C (CONTINUE): rich violet-purple plate (#4b1673 body, #d61cff glowing border).
+- D (RESTART): deep crimson plate (#5a0f1f body, #ff4d6d border).
+- E (MENU): dark violet-black plate (#241030 body, #9b5de5 border).
+
+=== DO NOT ===
+Do not write any text. Do not draw stats, sliders, icons or any content inside the frame
+opening. Do not add statues, angels, gargoyles, big wings, chains everywhere, candles or
+roses all over: keep it simple. Do not merge pieces.
+```
+
+**Se o gerador errar:** gere a peça A sozinha (apague as peças B a E e o "RIGHT COLUMN") e depois B, C, D e E numa segunda imagem. O importante é o fundo magenta liso e a abertura da moldura também magenta.
+
+Salve como `art-source/novos/pausa-moldura.png` e me avise.
+
+---
+
 ## 14. Ícones das 8 cartas que ainda não têm ícone
 
 Cartas de upgrade só mostram o ícone redondo do meio se tiverem arte própria ligada em `CARD_ICON_KEYS` (`src/systems/UpgradeCatalog.ts`). Estas 8 não tinham. Uma imagem só, grade 4x2; eu recorto pelo magenta e ligo cada ícone à sua carta.

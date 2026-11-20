@@ -38,6 +38,9 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
   public bonusPickupRadiusPercent: number = 0;
   public extraProjectiles: number = 0;
   public extraPierce: number = 0;
+  /** Vida e estamina máximas ganhas por cartas nesta partida (mostradas no menu de pausa). */
+  public cardBonusMaxHp: number = 0;
+  public cardBonusMaxStamina: number = 0;
 
   // Novos Atributos Passivos de Cura e Sobrevivência (Balanceados)
   public hpRegenPerSec: number = 0; // Regeneração contínua de HP por segundo (até 0.8/s)

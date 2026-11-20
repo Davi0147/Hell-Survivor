@@ -4,6 +4,15 @@ import { SoundManager } from '../systems/SoundManager';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { createModalFrame } from './ModalFrame';
+import { buildRunBonuses, describeRunMode, type IRunBonusSource } from './pauseRunSummary';
+
+/** Arma equipada como o menu de pausa a vê (ícone e nível vêm do catálogo). */
+export interface IPauseWeaponInfo {
+  key: string;
+  level: number;
+  maxLevel: number;
+  isEvolved: boolean;
+}
 
 export interface IPauseGameScene {
   isGameOver?: boolean;
@@ -11,7 +20,10 @@ export interface IPauseGameScene {
   survivalTimeMs: number;
   killCount: number;
   gameMode: 'story' | 'endless' | 'sandbox';
-  player?: { currentLevel?: number };
+  currentChapter?: number;
+  player?: { currentLevel?: number } & Partial<IRunBonusSource>;
+  /** Armas equipadas já traduzidas para ícone e nível (UIScene monta com o catálogo). */
+  getPauseWeapons?(): IPauseWeaponInfo[];
   physics: {
     pause(): void;
     resume(): void;
@@ -34,10 +46,33 @@ export interface IPauseMenuHost extends Phaser.Scene {
   formatTime(totalSec: number): string;
 }
 
+/** Medidas do painel (1280x720 lógico). Topo = 0; tudo é relativo a ele. */
+const LAYOUT = {
+  panelW: 820,
+  panelH: 600,
+  contentW: 756,
+  titleY: 44,
+  modeY: 86,
+  statsY: 132,
+  statsCellH: 58,
+  bonusHeaderY: 186,
+  bonusGridY: 214,
+  bonusCols: 5,
+  bonusChipH: 36,
+  bonusGap: 4,
+  bonusMaxRows: 3,
+  weaponsHeaderY: 344,
+  weaponsY: 382,
+  volumeHeaderY: 428,
+  bgmY: 462,
+  sfxY: 498,
+  buttonsY: 556,
+} as const;
+
 /**
- * Menu de Pausa (ESC / Start) extraído da UIScene (Pacote UI).
- * Gerencia congelamento de física/cena, sliders de volume de BGM e SFX ao vivo,
- * navegação por teclado/gamepad/mouse e ações de Continuar, Reiniciar e Menu Principal.
+ * Menu de Pausa (ESC / Start): resumo da partida (tempo, abates, nível, almas, bônus das
+ * cartas e armas), volume de música e efeitos ao vivo e Continuar / Reiniciar / Menu.
+ * Navegação por teclado, controle e toque.
  */
 export class PauseMenu {
   private host: IPauseMenuHost;
@@ -91,7 +126,6 @@ export class PauseMenu {
       this.host.touchControls.setVisible(false);
     }
 
-    const pixelFont = FONTS.body;
     const t = MODAL_THEME.pause;
 
     this.cleanupCursor();
@@ -102,8 +136,8 @@ export class PauseMenu {
     const frame = createModalFrame(this.host, {
       depth: 3500,
       backdropAlpha: t.backdropAlpha,
-      panelWidth: 540,
-      panelHeight: 390,
+      panelWidth: LAYOUT.panelW,
+      panelHeight: LAYOUT.panelH,
       panelFill: t.panelFill,
       panelAlpha: t.panelAlpha,
       outerBorderColor: t.outerBorderColor,
@@ -116,215 +150,15 @@ export class PauseMenu {
     });
 
     this.container = frame.container;
-    const { panelX, panelY, panelH } = frame;
+    const cx = frame.panelX;
+    const top = frame.panelY - frame.panelH / 2;
 
-    // Título
-    const title = this.host.add.text(panelX, panelY - panelH / 2 + 38, 'JOGO PAUSADO', {
-      fontFamily: pixelFont,
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: t.titleColor,
-      stroke: t.titleStroke,
-      strokeThickness: 3
-    }).setOrigin(0.5);
-    this.container.add(title);
-
-    // Estatísticas da Partida Atual
-    const sec = Math.floor(gameScene.survivalTimeMs / 1000);
-    const runSouls = MetaProgressManager.getInstance().runSoulsCollected;
-    const statsText = this.host.add.text(
-      panelX,
-      panelY - 95,
-      `TEMPO: ${this.host.formatTime(sec)}   |   ABATES: ${gameScene.killCount}   |   NÍVEL: ${gameScene.player?.currentLevel || 1}   |   ALMAS: ${runSouls}`,
-      {
-        fontFamily: pixelFont,
-        fontSize: '11px',
-        color: t.statsTextColor
-      }
-    ).setOrigin(0.5);
-    this.container.add(statsText);
-
-    // Divisória sutil
-    const div = this.host.add.graphics();
-    div.lineStyle(1.5, t.outerBorderColor, 0.35);
-    div.lineBetween(panelX - 200, panelY - 75, panelX + 200, panelY - 75);
-    this.container.add(div);
-
-    // Volume de Música (BGM)
-    const bgmRowY = panelY - 30;
-    const bgmIndicator = this.host.add.text(panelX - 118, bgmRowY - 18, '▶', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: t.bgmColorHex
-    }).setOrigin(1, 0.5).setVisible(false);
-    this.container.add(bgmIndicator);
-    this.pauseRowIndicators.push(bgmIndicator);
-
-    const bgmLabel = this.host.add.text(panelX, bgmRowY - 18, 'VOLUME DA MÚSICA', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: COLORS.textWhite
-    }).setOrigin(0.5);
-    this.container.add(bgmLabel);
-
-    const bgmPct = this.host.add.text(panelX + 138, bgmRowY + 10, '', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: t.statsTextColor
-    }).setOrigin(0, 0.5);
-    this.container.add(bgmPct);
-
-    const bgmBarGraphics = this.host.add.graphics();
-    this.container.add(bgmBarGraphics);
-
-    const updateBgmDisplay = () => {
-      const vol = SoundManager.getInstance().getMusicVolume();
-      bgmPct.setText(`${Math.round(vol * 100)}%`);
-
-      bgmBarGraphics.clear();
-      const barX = panelX - 98;
-      const barY = bgmRowY + 3;
-      const barW = 188;
-      const barH = 14;
-
-      bgmBarGraphics.fillStyle(t.barTrackFill, 1);
-      bgmBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
-
-      const fillW = Math.max(0, barW * vol);
-      if (fillW > 0) {
-        bgmBarGraphics.fillStyle(t.bgmColorNum, 1);
-        bgmBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
-      }
-
-      const isSelected = this.pauseSelectedRow === 0;
-      bgmBarGraphics.lineStyle(isSelected ? 2.5 : 1.5, isSelected ? COLORS.white : t.outerBorderColor, 1);
-      bgmBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
-    };
-    this.updatePauseBgmDisplay = updateBgmDisplay;
-    updateBgmDisplay();
-
-    this.createStepperBtn(panelX - 125, bgmRowY + 10, '-', 0, () => {
-      const cur = SoundManager.getInstance().getMusicVolume();
-      SoundManager.getInstance().setMusicVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
-      updateBgmDisplay();
-    });
-
-    this.createStepperBtn(panelX + 112, bgmRowY + 10, '+', 0, () => {
-      const cur = SoundManager.getInstance().getMusicVolume();
-      SoundManager.getInstance().setMusicVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
-      updateBgmDisplay();
-    });
-
-    // Volume de SFX
-    const sfxRowY = panelY + 40;
-    const sfxIndicator = this.host.add.text(panelX - 148, sfxRowY - 18, '▶', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: t.sfxColorHex
-    }).setOrigin(1, 0.5).setVisible(false);
-    this.container.add(sfxIndicator);
-    this.pauseRowIndicators.push(sfxIndicator);
-
-    const sfxLabel = this.host.add.text(panelX, sfxRowY - 18, 'VOLUME DE EFEITOS (SFX)', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: COLORS.textWhite
-    }).setOrigin(0.5);
-    this.container.add(sfxLabel);
-
-    const sfxPct = this.host.add.text(panelX + 138, sfxRowY + 10, '', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: t.sfxColorHex
-    }).setOrigin(0, 0.5);
-    this.container.add(sfxPct);
-
-    const sfxBarGraphics = this.host.add.graphics();
-    this.container.add(sfxBarGraphics);
-
-    const updateSfxDisplay = () => {
-      const vol = SoundManager.getInstance().getSfxVolume();
-      sfxPct.setText(`${Math.round(vol * 100)}%`);
-
-      sfxBarGraphics.clear();
-      const barX = panelX - 98;
-      const barY = sfxRowY + 3;
-      const barW = 188;
-      const barH = 14;
-
-      sfxBarGraphics.fillStyle(t.barTrackFill, 1);
-      sfxBarGraphics.fillRoundedRect(barX, barY, barW, barH, 4);
-
-      const fillW = Math.max(0, barW * vol);
-      if (fillW > 0) {
-        sfxBarGraphics.fillStyle(t.sfxColorNum, 1);
-        sfxBarGraphics.fillRoundedRect(barX, barY, fillW, barH, 4);
-      }
-
-      const isSelected = this.pauseSelectedRow === 1;
-      sfxBarGraphics.lineStyle(isSelected ? 2.5 : 1.5, isSelected ? COLORS.white : t.outerBorderColor, 1);
-      sfxBarGraphics.strokeRoundedRect(barX, barY, barW, barH, 4);
-    };
-    this.updatePauseSfxDisplay = updateSfxDisplay;
-    updateSfxDisplay();
-
-    this.createStepperBtn(panelX - 125, sfxRowY + 10, '-', 1, () => {
-      const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setSfxVolume(Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
-      updateSfxDisplay();
-      SoundManager.getInstance().playEnemyHit();
-    });
-
-    this.createStepperBtn(panelX + 112, sfxRowY + 10, '+', 1, () => {
-      const cur = SoundManager.getInstance().getSfxVolume();
-      SoundManager.getInstance().setSfxVolume(Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
-      updateSfxDisplay();
-      SoundManager.getInstance().playEnemyHit();
-    });
-
-    // Botões Inferiores: CONTINUAR | REINICIAR | MENU
-    const btnY = panelY + panelH / 2 - 42;
-    const bW = 150;
-    const bH = 34;
-    const bSpacing = 16;
-    const bTotalW = 3 * bW + 2 * bSpacing;
-    const bStartX = panelX - bTotalW / 2 + bW / 2;
-
-    this.createActionBtn(bStartX, btnY, bW, bH, 'CONTINUAR', t.btnResumeBg, t.btnResumeBorder, () => {
-      this.resumeGame(gameScene);
-    });
-
-    this.createActionBtn(bStartX + (bW + bSpacing), btnY, bW, bH, 'REINICIAR', t.btnRestartBg, t.btnRestartBorder, () => {
-      MetaProgressManager.getInstance().finalizeRunSouls();
-      this.isPaused = false;
-      this.cleanupCursor();
-      if (this.container) {
-        this.container.destroy();
-        this.container = undefined;
-      }
-      this.host.scene.stop('UIScene');
-      gameScene.scene.restart({ mode: gameScene.gameMode });
-    });
-
-    this.createActionBtn(bStartX + 2 * (bW + bSpacing), btnY, bW, bH, 'MENU', t.btnMenuBg, t.btnMenuBorder, () => {
-      MetaProgressManager.getInstance().finalizeRunSouls();
-      SoundManager.getInstance().stopMusic();
-      this.isPaused = false;
-      this.cleanupCursor();
-      if (this.container) {
-        this.container.destroy();
-        this.container = undefined;
-      }
-      this.host.scene.stop('UIScene');
-      gameScene.scene.stop('GameScene');
-      this.host.scene.start('MenuScene');
-    });
+    this.buildHeader(cx, top, gameScene);
+    this.buildStatsRow(cx, top, gameScene);
+    this.buildBonuses(cx, top, gameScene);
+    this.buildWeapons(cx, top, gameScene);
+    this.buildVolumeRows(cx, top);
+    this.buildActionButtons(cx, top, gameScene);
 
     this.updateVisualSelection();
   }
@@ -399,31 +233,17 @@ export class PauseMenu {
 
     if (this.pauseSelectedRow === 0) {
       if (leftPressed) {
-        const cur = SoundManager.getInstance().getMusicVolume();
-        const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
-        SoundManager.getInstance().setMusicVolume(next);
-        if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
+        this.stepMusic(-0.05);
         SoundManager.getInstance().playMenuHover();
       } else if (rightPressed) {
-        const cur = SoundManager.getInstance().getMusicVolume();
-        const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
-        SoundManager.getInstance().setMusicVolume(next);
-        if (this.updatePauseBgmDisplay) this.updatePauseBgmDisplay();
+        this.stepMusic(0.05);
         SoundManager.getInstance().playMenuHover();
       }
     } else if (this.pauseSelectedRow === 1) {
       if (leftPressed) {
-        const cur = SoundManager.getInstance().getSfxVolume();
-        const next = Math.max(0, parseFloat((cur - 0.05).toFixed(2)));
-        SoundManager.getInstance().setSfxVolume(next);
-        if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
-        SoundManager.getInstance().playEnemyHit();
+        this.stepSfx(-0.05);
       } else if (rightPressed) {
-        const cur = SoundManager.getInstance().getSfxVolume();
-        const next = Math.min(1, parseFloat((cur + 0.05).toFixed(2)));
-        SoundManager.getInstance().setSfxVolume(next);
-        if (this.updatePauseSfxDisplay) this.updatePauseSfxDisplay();
-        SoundManager.getInstance().playEnemyHit();
+        this.stepSfx(0.05);
       }
     } else if (this.pauseSelectedRow === 2) {
       if (leftPressed) {
@@ -467,6 +287,246 @@ export class PauseMenu {
     this.isPaused = false;
   }
 
+  // ---------------------------------------------------------------- seções
+
+  private buildHeader(cx: number, top: number, gameScene: IPauseGameScene): void {
+    const t = MODAL_THEME.pause;
+    const plaque = this.host.add.graphics();
+    plaque.fillStyle(t.titlePlaqueFill, 1);
+    plaque.fillRoundedRect(cx - 190, top + LAYOUT.titleY - 26, 380, 52, 10);
+    plaque.lineStyle(2, t.innerBorderColor, 0.9);
+    plaque.strokeRoundedRect(cx - 190, top + LAYOUT.titleY - 26, 380, 52, 10);
+    this.add(plaque);
+
+    this.add(this.text(cx, top + LAYOUT.titleY, 'JOGO PAUSADO', 24, t.titleColor, 0.5, FONTS.body, 5, t.titleStroke));
+    const mode = describeRunMode(gameScene.gameMode, gameScene.currentChapter ?? 1);
+    this.add(this.text(cx, top + LAYOUT.modeY, mode, 12, t.subtitleColor, 0.5));
+  }
+
+  private buildStatsRow(cx: number, top: number, gameScene: IPauseGameScene): void {
+    const sec = Math.floor(gameScene.survivalTimeMs / 1000);
+    const cells: Array<[string, string, string]> = [
+      ['ui-icon-timer', 'TEMPO', this.host.formatTime(sec)],
+      ['ui-icon-kills', 'ABATES', `${gameScene.killCount}`],
+      ['ui-icon-level', 'NÍVEL', `${gameScene.player?.currentLevel ?? 1}`],
+      ['ui-icon-souls', 'ALMAS', `${MetaProgressManager.getInstance().runSoulsCollected}`],
+    ];
+    const gap = 12;
+    const w = (LAYOUT.contentW - gap * (cells.length - 1)) / cells.length;
+    const left = cx - LAYOUT.contentW / 2;
+    const y = top + LAYOUT.statsY;
+    cells.forEach(([icon, label, value], i) => {
+      const x = left + i * (w + gap);
+      this.add(this.cellBox(x, y - LAYOUT.statsCellH / 2, w, LAYOUT.statsCellH));
+      this.addIcon(x + 30, y, icon, 34);
+      this.add(this.text(x + 56, y - 11, label, 9, MODAL_THEME.pause.labelColor, 0));
+      this.add(this.text(x + 56, y + 9, value, 16, MODAL_THEME.pause.valueColor, 0));
+    });
+  }
+
+  private buildBonuses(cx: number, top: number, gameScene: IPauseGameScene): void {
+    const t = MODAL_THEME.pause;
+    this.sectionHeader(cx, top + LAYOUT.bonusHeaderY, 'BÔNUS DA PARTIDA');
+
+    const p = gameScene.player;
+    const bonuses = p && typeof p.bonusDamagePercent === 'number' ? buildRunBonuses(p as IRunBonusSource) : [];
+    const gridTop = top + LAYOUT.bonusGridY;
+    if (bonuses.length === 0) {
+      this.add(this.text(cx, gridTop + 30, 'NENHUM BÔNUS AINDA: SUBA DE NÍVEL E ESCOLHA CARTAS', 10, t.emptyText, 0.5));
+      return;
+    }
+
+    const cols = LAYOUT.bonusCols;
+    const gap = LAYOUT.bonusGap;
+    const w = (LAYOUT.contentW - gap * (cols - 1)) / cols;
+    const h = LAYOUT.bonusChipH;
+    const left = cx - LAYOUT.contentW / 2;
+    bonuses.slice(0, cols * LAYOUT.bonusMaxRows).forEach((b, i) => {
+      const x = left + (i % cols) * (w + gap);
+      const y = gridTop + Math.floor(i / cols) * (h + gap);
+      this.add(this.cellBox(x, y, w, h));
+      this.addIcon(x + 20, y + h / 2, b.iconKey, 28);
+      this.add(this.text(x + 40, y + 11, b.value, 12, t.valueColor, 0));
+      this.add(this.text(x + 40, y + 26, b.label, 8, t.labelColor, 0));
+    });
+  }
+
+  private buildWeapons(cx: number, top: number, gameScene: IPauseGameScene): void {
+    const t = MODAL_THEME.pause;
+    this.sectionHeader(cx, top + LAYOUT.weaponsHeaderY, 'ARMAS');
+    const weapons = gameScene.getPauseWeapons?.() ?? [];
+    const y = top + LAYOUT.weaponsY;
+    if (weapons.length === 0) {
+      this.add(this.text(cx, y, 'NENHUMA ARMA EQUIPADA', 10, t.emptyText, 0.5));
+      return;
+    }
+    const slotW = 120;
+    const left = cx - (weapons.length * slotW) / 2;
+    weapons.forEach((wpn, i) => {
+      const x = left + i * slotW;
+      this.add(this.cellBox(x + 4, y - 22, slotW - 8, 44));
+      this.addIcon(x + 28, y, wpn.key, 36);
+      const lvl = wpn.isEvolved ? 'EVOLUÍDA' : `NV ${wpn.level}/${wpn.maxLevel}`;
+      this.add(this.text(x + 50, y, lvl, 9, wpn.isEvolved ? t.evolvedText : t.valueColor, 0));
+    });
+  }
+
+  private buildVolumeRows(cx: number, top: number): void {
+    const t = MODAL_THEME.pause;
+    this.sectionHeader(cx, top + LAYOUT.volumeHeaderY, 'VOLUME');
+    this.updatePauseBgmDisplay = this.volumeRow(cx, top + LAYOUT.bgmY, 0, 'MÚSICA', t.bgmColorHex, t.bgmColorNum,
+      () => SoundManager.getInstance().getMusicVolume(), (d) => this.stepMusic(d));
+    this.updatePauseSfxDisplay = this.volumeRow(cx, top + LAYOUT.sfxY, 1, 'EFEITOS', t.sfxColorHex, t.sfxColorNum,
+      () => SoundManager.getInstance().getSfxVolume(), (d) => this.stepSfx(d));
+  }
+
+  private buildActionButtons(cx: number, top: number, gameScene: IPauseGameScene): void {
+    const t = MODAL_THEME.pause;
+    const y = top + LAYOUT.buttonsY;
+    const bW = 210;
+    const bH = 44;
+    const gap = 18;
+    const startX = cx - (3 * bW + 2 * gap) / 2 + bW / 2;
+
+    this.createActionBtn(startX, y, bW, bH, 'CONTINUAR', t.btnResumeBg, t.btnResumeBorder, () => {
+      this.resumeGame(gameScene);
+    });
+
+    this.createActionBtn(startX + (bW + gap), y, bW, bH, 'REINICIAR', t.btnRestartBg, t.btnRestartBorder, () => {
+      MetaProgressManager.getInstance().finalizeRunSouls();
+      this.isPaused = false;
+      this.cleanupCursor();
+      if (this.container) {
+        this.container.destroy();
+        this.container = undefined;
+      }
+      this.host.scene.stop('UIScene');
+      gameScene.scene.restart({ mode: gameScene.gameMode });
+    });
+
+    this.createActionBtn(startX + 2 * (bW + gap), y, bW, bH, 'MENU', t.btnMenuBg, t.btnMenuBorder, () => {
+      MetaProgressManager.getInstance().finalizeRunSouls();
+      SoundManager.getInstance().stopMusic();
+      this.isPaused = false;
+      this.cleanupCursor();
+      if (this.container) {
+        this.container.destroy();
+        this.container = undefined;
+      }
+      this.host.scene.stop('UIScene');
+      gameScene.scene.stop('GameScene');
+      this.host.scene.start('MenuScene');
+    });
+  }
+
+  // ---------------------------------------------------------------- peças
+
+  private add(obj: Phaser.GameObjects.GameObject): void {
+    this.container?.add(obj);
+  }
+
+  private text(
+    x: number, y: number, value: string, size: number, color: string, originX: number,
+    font: string = FONTS.body, stroke: number = 3, strokeColor: string = MODAL_THEME.pause.textStroke
+  ): Phaser.GameObjects.Text {
+    return this.host.add.text(x, y, value, {
+      fontFamily: font,
+      fontSize: `${size}px`,
+      fontStyle: 'bold',
+      color,
+      stroke: strokeColor,
+      strokeThickness: stroke
+    }).setOrigin(originX, 0.5);
+  }
+
+  private addIcon(x: number, y: number, key: string, size: number): void {
+    if (!this.host.textures?.exists(key)) return;
+    this.add(this.host.add.image(x, y, key).setDisplaySize(size, size));
+  }
+
+  private cellBox(x: number, y: number, w: number, h: number): Phaser.GameObjects.Graphics {
+    const t = MODAL_THEME.pause;
+    const g = this.host.add.graphics();
+    g.fillStyle(t.cellFill, 0.95);
+    g.fillRoundedRect(x, y, w, h, 6);
+    g.lineStyle(1, t.cellBorder, 1);
+    g.strokeRoundedRect(x, y, w, h, 6);
+    return g;
+  }
+
+  /** Título de seção com uma linha fina de cada lado. */
+  private sectionHeader(cx: number, y: number, label: string): void {
+    const t = MODAL_THEME.pause;
+    const txt = this.text(cx, y, label, 11, t.sectionText, 0.5);
+    this.add(txt);
+    const half = LAYOUT.contentW / 2;
+    const pad = (txt.width ?? 120) / 2 + 14;
+    const g = this.host.add.graphics();
+    g.lineStyle(1.5, t.sectionLine, 0.8);
+    g.lineBetween(cx - half, y, cx - pad, y);
+    g.lineBetween(cx + pad, y, cx + half, y);
+    this.add(g);
+  }
+
+  /** Linha de volume: rótulo, [-], barra, [+], porcentagem. Devolve quem redesenha a barra. */
+  private volumeRow(
+    cx: number, y: number, rowIndex: number, label: string, colorHex: string, colorNum: number,
+    read: () => number, step: (delta: number) => void
+  ): () => void {
+    const t = MODAL_THEME.pause;
+    const left = cx - LAYOUT.contentW / 2;
+
+    const indicator = this.text(left + 2, y, '▶', 12, colorHex, 0).setVisible(false);
+    this.add(indicator);
+    this.pauseRowIndicators.push(indicator);
+    this.add(this.text(left + 24, y, label, 11, t.valueColor, 0));
+
+    const barX = cx - 150;
+    const barW = 300;
+    const barH = 14;
+    const pct = this.text(cx + 210, y, '', 12, colorHex, 0);
+    this.add(pct);
+
+    const bar = this.host.add.graphics();
+    this.add(bar);
+    const redraw = (): void => {
+      const vol = read();
+      pct.setText(`${Math.round(vol * 100)}%`);
+      bar.clear();
+      bar.fillStyle(t.barTrackFill, 1);
+      bar.fillRoundedRect(barX, y - barH / 2, barW, barH, 4);
+      if (vol > 0) {
+        bar.fillStyle(colorNum, 1);
+        bar.fillRoundedRect(barX, y - barH / 2, Math.max(8, barW * vol), barH, 4);
+      }
+      const selected = this.pauseSelectedRow === rowIndex;
+      bar.lineStyle(selected ? 2.5 : 1.5, selected ? COLORS.white : t.cellBorder, 1);
+      bar.strokeRoundedRect(barX, y - barH / 2, barW, barH, 4);
+    };
+    redraw();
+
+    this.createStepperBtn(barX - 26, y, '-', rowIndex, () => step(-0.05));
+    this.createStepperBtn(barX + barW + 26, y, '+', rowIndex, () => step(0.05));
+    return redraw;
+  }
+
+  private static stepVolume(current: number, delta: number): number {
+    return Math.min(1, Math.max(0, parseFloat((current + delta).toFixed(2))));
+  }
+
+  private stepMusic(delta: number): void {
+    const sm = SoundManager.getInstance();
+    sm.setMusicVolume(PauseMenu.stepVolume(sm.getMusicVolume(), delta));
+    this.updatePauseBgmDisplay?.();
+  }
+
+  private stepSfx(delta: number): void {
+    const sm = SoundManager.getInstance();
+    sm.setSfxVolume(PauseMenu.stepVolume(sm.getSfxVolume(), delta));
+    this.updatePauseSfxDisplay?.();
+    sm.playEnemyHit();
+  }
+
   private updateVisualSelection(): void {
     if (this.pauseRowIndicators.length >= 2) {
       this.pauseRowIndicators[0].setVisible(this.pauseSelectedRow === 0);
@@ -490,31 +550,23 @@ export class PauseMenu {
     onClick: () => void
   ): void {
     if (!this.container) return;
-    const pixelFont = FONTS.body;
     const t = MODAL_THEME.pause;
 
     const bg = this.host.add.graphics();
     const render = (hover: boolean) => {
       bg.clear();
       bg.fillStyle(hover ? t.stepperHoverFill : t.stepperIdleFill, 1);
-      bg.fillCircle(x, y, 14);
+      bg.fillCircle(x, y, 13);
       bg.lineStyle(1.5, hover ? COLORS.white : t.outerBorderColor, 1);
-      bg.strokeCircle(x, y, 14);
+      bg.strokeCircle(x, y, 13);
     };
     render(false);
-    this.container.add(bg);
-
-    const txt = this.host.add.text(x, y, symbol, {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: COLORS.textWhite
-    }).setOrigin(0.5);
-    this.container.add(txt);
+    this.add(bg);
+    this.add(this.text(x, y, symbol, 13, COLORS.textWhite, 0.5));
 
     const zone = this.host.add.zone(x, y, 36, 36);
     zone.setInteractive({ useHandCursor: true });
-    this.container.add(zone);
+    this.add(zone);
 
     zone.on('pointerover', () => {
       render(true);
@@ -530,6 +582,7 @@ export class PauseMenu {
     this.pauseZones.push(zone);
   }
 
+  /** Botão de ação: o texto fica sempre branco; selecionado ganha fundo mais vivo e borda clara. */
   private createActionBtn(
     x: number,
     y: number,
@@ -541,37 +594,33 @@ export class PauseMenu {
     onClick: () => void
   ): void {
     if (!this.container) return;
-    const pixelFont = FONTS.body;
+    const t = MODAL_THEME.pause;
     const btnIndex = this.pauseActionBtnRenders.length;
 
     const bg = this.host.add.graphics();
-    const txt = this.host.add.text(x, y, label, {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: COLORS.textWhite,
-      stroke: COLORS.strokeBlack,
-      strokeThickness: 2
-    }).setOrigin(0.5);
+    const txt = this.text(x, y, label, 13, COLORS.textWhite, 0.5, FONTS.body, 4);
 
     const render = (hover: boolean) => {
       bg.clear();
-      bg.fillStyle(hover ? borderCol : bgCol, 1);
-      bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 6);
-      bg.lineStyle(hover ? 2.5 : 1.5, hover ? COLORS.white : borderCol, 1);
-      bg.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 6);
-      txt.setColor(hover ? COLORS.strokeBlack : COLORS.textWhite);
+      if (hover) {
+        bg.fillStyle(borderCol, 0.35);
+        bg.fillRoundedRect(x - w / 2 - 4, y - h / 2 - 4, w + 8, h + 8, 10);
+      }
+      bg.fillStyle(bgCol, 1);
+      bg.fillRoundedRect(x - w / 2, y - h / 2, w, h, 8);
+      bg.lineStyle(hover ? 3 : 2, hover ? t.btnHoverBorder : borderCol, 1);
+      bg.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 8);
     };
     render(false);
-    this.container.add(bg);
-    this.container.add(txt);
+    this.add(bg);
+    this.add(txt);
 
     this.pauseActionBtnRenders.push(render);
     this.pauseActionBtnActions.push(onClick);
 
     const zone = this.host.add.zone(x, y, w, h);
     zone.setInteractive({ useHandCursor: true });
-    this.container.add(zone);
+    this.add(zone);
 
     zone.on('pointerover', () => {
       this.pauseSelectedRow = 2;

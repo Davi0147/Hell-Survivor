@@ -38,6 +38,8 @@ import { BossFightSystem, IBossFightContext, BossId } from '../systems/BossFight
 import { RunEndSystem, IRunEndContext } from '../systems/RunEndSystem';
 import { FONTS, getArenaFloorTint, ARENA_FLOOR_SCALE, ARENA_FLOOR_SCALE_DEFAULT, CHAPTER_FLOOR_TEXTURE } from '../config/theme';
 import { ChapterDecorSystem } from '../systems/ChapterDecorSystem';
+import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
+import type { IPauseWeaponInfo } from '../ui/PauseMenu';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 
@@ -158,6 +160,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   // Sistema de Combate e Armas
   public weapons: BaseWeapon[] = [];
+
+  /** Armas equipadas como ícone + nível, para o menu de pausa. */
+  public getPauseWeapons(): IPauseWeaponInfo[] {
+    return this.weapons.map((w) => getWeaponIconInfo(w)).filter((i): i is IPauseWeaponInfo => i !== undefined);
+  }
   public soulBoltWeapon!: SoulBoltWeapon;
   public enemiesGroup!: Phaser.GameObjects.Group;
   public gemsGroup!: Phaser.GameObjects.Group;

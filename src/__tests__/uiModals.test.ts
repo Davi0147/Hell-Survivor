@@ -108,6 +108,7 @@ function createFakeHost() {
 
   const host = {
     scale: { width: 1280, height: 720 },
+    textures: { exists: vi.fn(() => true) },
     isChestRouletteOpen: false,
     isGameOverModalOpen: false,
     sandboxPanel: { isOpen: false, togglePanel: vi.fn() },
@@ -146,6 +147,9 @@ function createFakeHost() {
       rectangle: vi.fn(() => ({
         setInteractive: vi.fn().mockReturnThis()
       })),
+      image: vi.fn(() => ({
+        setDisplaySize: vi.fn().mockReturnThis()
+      })),
       graphics: vi.fn(() => ({
         clear: vi.fn().mockReturnThis(),
         fillStyle: vi.fn().mockReturnThis(),
@@ -159,6 +163,7 @@ function createFakeHost() {
       text: vi.fn((_x: number, _y: number, initialText: string) => {
         const t = {
           text: initialText,
+          width: 100,
           setOrigin: vi.fn().mockReturnThis(),
           setVisible: vi.fn().mockReturnThis(),
           setText: vi.fn((val: string) => {
