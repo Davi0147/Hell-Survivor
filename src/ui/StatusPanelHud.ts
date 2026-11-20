@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { STATUS_PANEL_THEME } from '../config/theme';
 
 /** O que o painel lê do personagem jogável a cada quadro. */
 export interface IStatusPanelPlayer {
@@ -12,25 +13,48 @@ export interface IStatusPanelPlayer {
   currentLevel: number;
 }
 
+interface IRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /**
- * Painel de status do canto inferior direito: retrato gigante, moldura com nome,
- * barras de vida e estamina e nível. A Suprema mora na barra de armas (WeaponSlotsHud).
+ * Medidas da arte `HudStatusFrame.png` (460x218), em pixels da textura, tiradas pelo
+ * scripts/cut-hud-status.py. As janelas são vazadas: as barras ficam atrás da moldura.
+ */
+const FRAME_ART = {
+  width: 460,
+  height: 218,
+  hpWindow: { x: 151, y: 86, w: 252, h: 31 },
+  staminaWindow: { x: 156, y: 137, w: 241, h: 19 },
+  /** Placa lisa acima da janela de vida, à esquerda, para o nível. */
+  levelSpot: { x: 163, y: 61 },
+  /** Centro do logo do nome: sobe além da borda de cima para não cobrir o nível. */
+  nameCenter: { x: 277, y: 8 },
+  /** As texturas de preenchimento sobram 4 px de cada lado e a borda delas some sob a moldura. */
+  fillBleed: 4,
+} as const;
+
+/**
+ * Painel de status do canto inferior direito: retrato gigante, moldura violeta com
+ * janelas vazadas, barras de vida e estamina atrás dela, nome e nível.
+ * A Suprema mora na barra de armas (WeaponSlotsHud).
  */
 export class StatusPanelHud {
   private readonly portraitSize = 340;
   private readonly portraitBaseX: number;
   private readonly portraitBaseY: number;
-  private readonly barsX: number;
-  private readonly barsW: number;
-  private readonly hpBarY: number;
-  private readonly stBarY: number;
+  private readonly hpRect: IRect;
+  private readonly stRect: IRect;
 
   private readonly portraitImage: Phaser.GameObjects.Image;
   private readonly statusHudImage: Phaser.GameObjects.Image;
   private readonly charNameImage: Phaser.GameObjects.Image;
-  private readonly baroquePanelGraphics: Phaser.GameObjects.Graphics;
-  private readonly hpBarFill: Phaser.GameObjects.Graphics;
-  private readonly staminaBarFill: Phaser.GameObjects.Graphics;
+  private readonly trackGraphics: Phaser.GameObjects.Graphics;
+  private readonly hpFill: Phaser.GameObjects.Image;
+  private readonly staminaFill: Phaser.GameObjects.Image;
   private readonly levelTag: Phaser.GameObjects.Text;
   private readonly levelIcon?: Phaser.GameObjects.Image;
   private readonly hpText: Phaser.GameObjects.Text;
@@ -50,67 +74,51 @@ export class StatusPanelHud {
     this.portraitImage.setDisplaySize(this.portraitSize, this.portraitSize);
     this.portraitImage.setDepth(150);
 
-    const hudScale = 1.6;
-    const panelW = Math.round(280 * hudScale);
-    const panelH = Math.round(131 * hudScale);
-    const panelX = width - this.portraitSize - panelW + 225;
-    const panelY = height - 14 - panelH;
-    const hudCenterX = panelX + panelW / 2;
-    const hudCenterY = panelY + panelH / 2;
+    // Arte em escala 1:1 (pixelArt ligado: esticar deixaria os pixels tortos)
+    // Recuado para a mão do retrato não esconder o fim das barras
+    const panelX = width - this.portraitSize - FRAME_ART.width + 150;
+    const panelY = height - 10 - FRAME_ART.height;
 
-    this.statusHudImage = ui.add.image(hudCenterX, hudCenterY, 'ui-status-hud');
-    this.statusHudImage.setDisplaySize(panelW, panelH);
-    this.statusHudImage.setDepth(30);
+    const win = (r: IRect): IRect => ({ x: panelX + r.x, y: panelY + r.y, w: r.w, h: r.h });
+    this.hpRect = win(FRAME_ART.hpWindow);
+    this.stRect = win(FRAME_ART.staminaWindow);
+
+    // Camadas, de trás para a frente: fundo das janelas, barras, moldura, textos
+    this.trackGraphics = ui.add.graphics().setDepth(33);
+    this.trackGraphics.fillStyle(STATUS_PANEL_THEME.track, STATUS_PANEL_THEME.trackAlpha);
+    for (const r of [this.hpRect, this.stRect]) this.trackGraphics.fillRect(r.x, r.y, r.w, r.h);
+
+    const bleed = FRAME_ART.fillBleed;
+    this.hpFill = ui.add.image(this.hpRect.x - bleed, this.hpRect.y - bleed, 'ui-hp-fill').setOrigin(0, 0).setDepth(34);
+    this.staminaFill = ui.add.image(this.stRect.x - bleed, this.stRect.y - bleed, 'ui-stamina-fill').setOrigin(0, 0).setDepth(34);
+
+    this.statusHudImage = ui.add.image(panelX, panelY, 'ui-status-hud').setOrigin(0, 0).setDepth(36);
 
     const charNameTexture = ui.textures.exists(`ui-char-name-${characterId}`) ? `ui-char-name-${characterId}` : 'ui-char-name-nixy';
-    this.charNameImage = ui.add.image(hudCenterX, panelY + 40, charNameTexture);
-    this.charNameImage.setDisplaySize(220, 100);
+    this.charNameImage = ui.add.image(panelX + FRAME_ART.nameCenter.x, panelY + FRAME_ART.nameCenter.y, charNameTexture);
     this.charNameImage.setDepth(62);
 
-    // Barras ocupam a cavidade inteira (a Suprema saiu daqui e foi para a barra de armas)
-    this.barsX = panelX + 56;
-    this.barsW = 328;
-    this.hpBarY = panelY + 116;
-    this.stBarY = this.hpBarY + 24;
-
-    this.baroquePanelGraphics = ui.add.graphics();
-    this.baroquePanelGraphics.setDepth(35);
-    this.drawBaroqueFrame();
-
-    this.hpBarFill = ui.add.graphics();
-    this.hpBarFill.setDepth(40);
-    this.staminaBarFill = ui.add.graphics();
-    this.staminaBarFill.setDepth(40);
-
-    this.levelTag = ui.add.text(this.barsX, this.hpBarY - 18, 'LVL 1', {
+    const textStyle = (size: number, color: string): Phaser.Types.GameObjects.Text.TextStyle => ({
       fontFamily: pixelFont,
-      fontSize: '13px',
+      fontSize: `${size}px`,
       fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#000000',
+      color,
+      stroke: STATUS_PANEL_THEME.textStroke,
       strokeThickness: 3
-    }).setDepth(60);
+    });
+
+    const levelX = panelX + FRAME_ART.levelSpot.x;
+    const levelY = panelY + FRAME_ART.levelSpot.y;
+    this.levelTag = ui.add.text(levelX, levelY, 'LVL 1', textStyle(13, STATUS_PANEL_THEME.levelText))
+      .setOrigin(0, 0.5).setDepth(60);
     if (ui.textures.exists('ui-icon-level')) {
-      this.levelIcon = ui.add.image(this.barsX, this.hpBarY - 11, 'ui-icon-level').setDisplaySize(18, 18).setDepth(60);
+      this.levelIcon = ui.add.image(levelX, levelY, 'ui-icon-level').setDisplaySize(18, 18).setDepth(60);
     }
 
-    this.hpText = ui.add.text(this.barsX + this.barsW / 2, this.hpBarY + 9, '100 / 100 HP', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(60);
-
-    this.staminaText = ui.add.text(this.barsX + this.barsW / 2, this.stBarY + 7, '100% STAMINA', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(60);
+    this.hpText = ui.add.text(this.hpRect.x + this.hpRect.w / 2, this.hpRect.y + this.hpRect.h / 2, '100 / 100 HP', textStyle(12, STATUS_PANEL_THEME.valueText))
+      .setOrigin(0.5).setDepth(60);
+    this.staminaText = ui.add.text(this.stRect.x + this.stRect.w / 2, this.stRect.y + this.stRect.h / 2, '100% STAMINA', textStyle(10, STATUS_PANEL_THEME.valueText))
+      .setOrigin(0.5).setDepth(60);
   }
 
   public getHudElements(): Phaser.GameObjects.GameObject[] {
@@ -118,9 +126,9 @@ export class StatusPanelHud {
       this.portraitImage,
       this.statusHudImage,
       this.charNameImage,
-      this.baroquePanelGraphics,
-      this.hpBarFill,
-      this.staminaBarFill,
+      this.trackGraphics,
+      this.hpFill,
+      this.staminaFill,
       this.levelTag,
       ...(this.levelIcon ? [this.levelIcon] : []),
       this.hpText,
@@ -129,27 +137,25 @@ export class StatusPanelHud {
   }
 
   public clearBars(): void {
-    this.hpBarFill.clear();
-    this.staminaBarFill.clear();
+    this.setFillRatio(this.hpFill, this.hpRect, 0);
+    this.setFillRatio(this.staminaFill, this.stRect, 0);
   }
 
   public update(p: IStatusPanelPlayer): void {
-    const hpRatio = Math.max(0, p.currentHp / p.maxHp);
-    this.hpBarFill.clear();
-    this.hpBarFill.fillStyle(0xd90429, 1);
-    this.hpBarFill.fillRect(this.barsX + 2, this.hpBarY + 2, (this.barsW - 4) * hpRatio, 14);
+    const hpRatio = Phaser.Math.Clamp(p.currentHp / p.maxHp, 0, 1);
+    this.setFillRatio(this.hpFill, this.hpRect, hpRatio);
     this.hpText.setText(`${Math.max(0, Math.round(p.currentHp))} / ${p.maxHp} HP`);
 
-    // Ciano em sprint, magenta quase esgotada, dourado normal
-    this.staminaBarFill.clear();
-    const stRatio = Math.max(0, p.currentStamina / p.maxStamina);
-    const stColor = p.isSprinting ? 0x00f5d4 : (stRatio < 0.2 ? 0xf72585 : 0xe0a96d);
-    this.staminaBarFill.fillStyle(stColor, 1);
-    this.staminaBarFill.fillRect(this.barsX + 2, this.stBarY + 2, (this.barsW - 4) * stRatio, 10);
+    // Ciano em sprint, rosa quase esgotada, dourado normal
+    const stRatio = Phaser.Math.Clamp(p.currentStamina / p.maxStamina, 0, 1);
+    this.setFillRatio(this.staminaFill, this.stRect, stRatio);
+    if (p.isSprinting) this.staminaFill.setTint(STATUS_PANEL_THEME.staminaSprintTint);
+    else if (stRatio < 0.2) this.staminaFill.setTint(STATUS_PANEL_THEME.staminaLowTint);
+    else this.staminaFill.clearTint();
     this.staminaText.setText(`${Math.round(p.currentStamina)}% STAMINA`);
 
     this.levelTag.setText(`LVL ${p.currentLevel}`);
-    this.levelIcon?.setX(this.barsX + this.levelTag.width + 12);
+    this.levelIcon?.setX(this.levelTag.x + this.levelTag.width + 12);
 
     if (p.characterId) {
       const charNameKey = `ui-char-name-${p.characterId}`;
@@ -159,6 +165,13 @@ export class StatusPanelHud {
     }
 
     this.updatePortrait(p.hurtTimer > 0);
+  }
+
+  /** Mostra só a parte cheia da barra: a sobra à esquerda fica sob a moldura, o resto é cortado. */
+  private setFillRatio(fill: Phaser.GameObjects.Image, rect: IRect, ratio: number): void {
+    const bleed = FRAME_ART.fillBleed;
+    const visible = ratio <= 0 ? 0 : Math.round(bleed + rect.w * ratio);
+    fill.setCrop(0, 0, visible, fill.height);
   }
 
   /** Retrato troca para a arte de dano e treme enquanto a heroína está ferida. */
@@ -176,22 +189,5 @@ export class StatusPanelHud {
       img.setPosition(this.portraitBaseX, this.portraitBaseY);
       img.clearTint();
     }
-  }
-
-  /** Trilhos das barras de vida e estamina dentro da cavidade de pedra. */
-  private drawBaroqueFrame(): void {
-    const g = this.baroquePanelGraphics;
-    g.clear();
-    const bW = this.barsW;
-
-    g.fillStyle(0x140104, 0.95);
-    g.fillRect(this.barsX, this.hpBarY, bW, 18);
-    g.lineStyle(1.5, 0xc59b27, 0.9);
-    g.strokeRect(this.barsX, this.hpBarY, bW, 18);
-
-    g.fillStyle(0x120a02, 0.95);
-    g.fillRect(this.barsX, this.stBarY, bW, 14);
-    g.lineStyle(1.5, 0xc59b27, 0.8);
-    g.strokeRect(this.barsX, this.stBarY, bW, 14);
   }
 }

@@ -5,6 +5,7 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 ## [Não publicado] — 2026-11-20
 
 ### Resumo para o Jogador
+- **Painel da Nixy novo:** moldura violeta de obsidiana e cristal, no lugar da pedra com lava. As barras de vida e estamina ficam por trás da moldura, que cobre as pontas delas, então tudo parece uma peça só. O logo NIXY fica por cima da moldura, o nível fica acima da barra de vida, e o painel foi um pouco para a esquerda para a mão do retrato não esconder o fim das barras.
 - **Monstros não somem mais atrás dos altares:** o Altar de Invocação e o Altar de Evolução são plataformas no chão; agora qualquer monstro que passa por cima deles aparece na frente, em vez de ficar escondido atrás.
 
 ## [v0.12.4 — iPhone de Verdade] — 2026-11-17

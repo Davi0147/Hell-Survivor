@@ -200,6 +200,19 @@ export const WEAPON_SLOT_THEME = {
   levelText: '#f3d17a',
 } as const;
 
+/** Painel de status (vida, estamina, nível) do canto inferior direito. */
+export const STATUS_PANEL_THEME = {
+  /** Fundo das janelas da moldura, visível onde a barra já esvaziou. */
+  track: 0x0b0208,
+  trackAlpha: 0.92,
+  /** Tons aplicados sobre a arte dourada da estamina. */
+  staminaSprintTint: 0x9ffff0,
+  staminaLowTint: 0xff5c9a,
+  levelText: '#f3d17a',
+  valueText: '#ffffff',
+  textStroke: '#12020a',
+} as const;
+
 /**
  * Botões de ação com tecla (Re-rolar e Canalizar na tela de cartas): ícone, nome e uma
  * "tecla" desenhada que muda com o controle em uso.

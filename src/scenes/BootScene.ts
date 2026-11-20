@@ -140,6 +140,8 @@ export class BootScene extends Phaser.Scene {
     if (this.textures.exists('ult-gauge-bg')) this.textures.remove('ult-gauge-bg');
     if (this.textures.exists('ui-status-hud')) this.textures.remove('ui-status-hud');
     if (this.textures.exists('ui-char-name-nixy')) this.textures.remove('ui-char-name-nixy');
+    if (this.textures.exists('ui-hp-fill')) this.textures.remove('ui-hp-fill');
+    if (this.textures.exists('ui-stamina-fill')) this.textures.remove('ui-stamina-fill');
     this.sound.removeByKey('bgm-azazel-intro');
     this.sound.removeByKey('bgm-azazel-mid');
     this.sound.removeByKey('bgm-azazel-fight');
@@ -378,8 +380,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image('ui-menu-arrow', `assets/sprites/items/Seta.png?t=${cacheBuster}`);
     this.load.image('ult-gauge-frame', `assets/sprites/items/UltGauge1.png?t=${cacheBuster}`);
     this.load.image('ult-gauge-bg', `assets/sprites/items/UltGauge2.png?t=${cacheBuster}`);
-    this.load.image('ui-status-hud', `assets/sprites/items/StatusHud.png?t=${cacheBuster}`);
-    this.load.image('ui-char-name-nixy', `assets/sprites/items/NixyName.png?t=${cacheBuster}`);
+    // Painel de status violeta (docs/ART_PROMPTS.md §13; recortado por scripts/cut-hud-status.py)
+    this.load.image('ui-status-hud', `assets/sprites/items/HudStatusFrame.png?t=${cacheBuster}`);
+    this.load.image('ui-char-name-nixy', `assets/sprites/items/HudNixyName.png?t=${cacheBuster}`);
+    this.load.image('ui-hp-fill', `assets/sprites/items/HudHpFill.png?t=${cacheBuster}`);
+    this.load.image('ui-stamina-fill', `assets/sprites/items/HudStaminaFill.png?t=${cacheBuster}`);
     this.load.image('void-scythe', `assets/sprites/items/scythe.png?t=${cacheBuster}`);
     this.load.image('blood-dagger', `assets/sprites/items/Adaga.png?t=${cacheBuster}`);
     this.load.image('infernal-meteor', `assets/sprites/items/Meteoro.png?t=${cacheBuster}`);

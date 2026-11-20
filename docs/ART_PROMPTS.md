@@ -546,3 +546,106 @@ Salve em `art-source/novos/cenario/ch1-props.png`, `ch1-decals.png` e `floor-ch1
 3. Ordeno a profundidade pela base de cada objeto, para a heroína passar atrás de pilares e estátuas em vez de por cima.
 4. Monto composições em vez de espalhar objetos soltos: pilar + rosas + pétalas no chão; altar + velas + mancha de sangue; tocha com luz quente pulsando.
 5. Espalho decalques aleatórios pelo mapa inteiro para o piso não parecer repetido, e coloco tudo no Editor de Mapas.
+
+---
+
+## 13. Painel de status novo (moldura violeta com janelas para as barras)
+
+Substitui o painel de pedra com lava do canto inferior direito. A moldura tem **duas janelas vazadas**: o jogo desenha vida e estamina **atrás** da moldura, e a borda da moldura cobre as pontas das barras, então tudo parece uma peça só. O nível continua escrito por código, em cima, à esquerda da barra de vida. O nome do personagem vem numa peça separada (para funcionar com outros personagens).
+
+Prompt único (já inclui o bloco de estilo) — copiar e colar inteiro:
+
+```text
+Create ONE image: a pixel art UI sprite sheet for the player status HUD of a dark gothic
+hell-themed 2D action roguelite game.
+
+=== GLOBAL STYLE (applies to everything) ===
+16-bit pixel art, hand-placed pixels, crisp hard edges, NO anti-aliasing, NO blur, NO soft
+airbrush gradients, NO photorealism, NO 3D render look. Dark gothic baroque demonic fantasy,
+hell and catacombs theme. Strong 1-pixel near-black purple outline (#12020a) around every
+shape. Palette ONLY: near-black purple shadows (#0b0208, #1a0a1f), dark violet stone
+(#2a1238, #3d1a52), deep violet (#6a1fa0, #9b5de5), hot neon magenta glow (#d61cff, #ff4df0),
+white-pink highlights (#ffd6ff), small crimson accents (#ff0055). No gold, no orange, no lava.
+High contrast, dramatic magenta rim light. No text, no letters, no numbers, no watermark,
+no signature anywhere except the logo in piece B.
+
+=== CANVAS AND BACKGROUND ===
+Canvas 1536x1024 pixels, landscape. The ENTIRE background is solid flat pure magenta
+#FF00FF, one single color, no texture, no vignette, no shadow on it, no glow bleeding onto it.
+Every piece is separate, never touching another piece, with at least 40 px of pure #FF00FF
+around each one.
+
+Layout:
+- TOP AREA (upper 640 px): piece A, centered horizontally.
+- BOTTOM STRIP (lower 340 px), three pieces side by side from left to right: piece B,
+  piece C, piece D.
+
+=== PIECE A — STATUS PANEL FRAME (the main piece, about 1300 px wide x 605 px tall,
+aspect ratio 2.15:1) ===
+A wide horizontal ornate frame/plaque, symmetric left-right, in the style of a demonic
+crystal-and-obsidian relic, glowing neon magenta and violet.
+Shape and ornaments:
+- Body: a horizontal plaque of dark violet obsidian stone with cracked texture, edged by a
+  thick ornate border of jagged violet crystal and twisted thorny demonic filigree, with
+  thin glowing magenta energy veins running inside the stone.
+- Top edge: in the upper center a large EMPTY dark recessed banner area (about 55% of the
+  width, from 4% to 38% of the height) where a character name logo will be placed later.
+  Leave it plain dark stone with a soft magenta inner glow, NO letters.
+- Left end: a large round demonic sigil medallion (circle about 32% of the panel height)
+  centered at about 9% of the width and 62% of the height, with a glowing magenta eye /
+  crystal core, framed by curved horns and small bat-wing / claw spikes sweeping outward.
+- Right end: a mirrored set of curved horns and bat-wing spikes, simpler and smaller than
+  the left side (the right 15% of the panel will be partly covered by a character portrait
+  in game, so keep the detail there low).
+- Bottom center: a downward-pointing crystal spike with a glowing magenta gem at its tip,
+  hanging below the bottom edge.
+- Small floating magenta sparks and violet smoke wisps around the outer silhouette only.
+
+THE TWO WINDOWS (MOST IMPORTANT):
+The frame must have two long horizontal rectangular openings that go all the way through
+the art. Fill the inside of both openings with solid flat pure magenta #FF00FF exactly like
+the background (they will be cut out to transparent so the game can draw the bars BEHIND
+the frame).
+- WINDOW 1 (health): from 22% to 84% of the panel width, from 46% to 57% of the panel
+  height. Straight long edges, short ends slightly pointed (like an elongated hexagon).
+- WINDOW 2 (stamina): same left and right limits as window 1 (22% to 84% of the width),
+  from 62% to 69% of the height, thinner than window 1, same pointed ends.
+- Around each window: a thin raised violet crystal lip 3-4 pixels thick with a magenta
+  inner edge highlight, so the frame looks like it overlaps the edges of whatever is
+  behind it. The lip must NOT intrude into the window and must NOT cast glow inside it.
+- Between the two windows: a thin horizontal strip of frame stone (from 57% to 62% of the
+  height), solid, not transparent.
+- LEVEL SPOT: just above window 1, on its left end (from 22% to 38% of the width, from 38%
+  to 45% of the height), keep a small flat smooth dark area with no ornaments, where the
+  game will write the level number. No letters there.
+- Nothing else inside the frame is transparent: only those two windows are #FF00FF.
+
+=== PIECE B — CHARACTER NAME LOGO "NIXY" (about 560 x 250 px) ===
+The word "NIXY" in large tall gothic blackletter / demonic display lettering, all
+uppercase, pixel art, glowing neon magenta and violet with white-pink highlights, thick
+near-black outline, small thorns and sharp serifs on the letters, a little magenta sparkle
+on the dot area of the letter I. Letters must read clearly as N-I-X-Y. Same palette and
+style as piece A so it sits naturally in A's top banner. Solid #FF00FF around it.
+
+=== PIECE C — HEALTH BAR FILL (about 420 x 60 px) ===
+A flat horizontal rectangle with straight square ends and no frame and no border: glossy
+crimson blood liquid, base #d90429, a 2-pixel brighter band near the top (#ff4d6d),
+a darker band at the bottom (#6a0010), a few tiny pixel bubbles. Perfectly rectangular
+silhouette so it can be stretched horizontally.
+
+=== PIECE D — STAMINA BAR FILL (about 420 x 40 px) ===
+Same as piece C but thinner: flat rectangle, straight square ends, no frame: warm golden
+energy, base #e0a96d, 2-pixel bright band on top #ffe3a8, darker band at the bottom
+#8a5a1f, tiny bright pixel specks. Perfectly rectangular silhouette.
+
+=== DO NOT ===
+Do not draw any bar, liquid, number, text or "HP"/"STAMINA" words inside piece A's windows.
+Do not put the NIXY letters inside piece A. Do not add a character portrait. Do not merge
+pieces. Do not use transparency checkerboard; use flat #FF00FF only.
+```
+
+**Se o gerador errar** (janelas preenchidas, peças grudadas, letras dentro da moldura): gere a peça A sozinha (apague do prompt as peças B, C e D e o "BOTTOM STRIP"), depois peça B, C e D numa segunda imagem. O importante é: **fundo magenta liso** e **janelas magenta vazias**.
+
+**Já gerado e no jogo** (`art-source/novos/hud-status-violeta.jpg`). Para trocar a arte, gere de novo e rode `python scripts/cut-hud-status.py <imagem> public/assets/sprites/items 460`. Se a moldura mudar de formato, ajuste as janelas em `FRAME_ART` (`src/ui/StatusPanelHud.ts`) com os números que o script imprime.
+
+Salve como `art-source/novos/hud-status-violeta.png` e me avise. Eu recorto, deixo as janelas transparentes, encaixo vida e estamina atrás da moldura, coloco o nível no lugar reservado e ajusto o tamanho para o celular.
