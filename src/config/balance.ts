@@ -177,6 +177,11 @@ export function getSpawnIntervalMs(minutes: number, isEndless: boolean): number 
 /** Canalizar (pular a carta no level-up): cura uma fração da vida máxima. */
 export const UPGRADE_SKIP_BALANCE = {
   healFractionOfMaxHp: 0.4,
+  /**
+   * Tempo, ao abrir a tela de cartas, em que CANALIZAR fica travado. Espaço é também a
+   * esquiva: quem esquivava quando o nível subiu pulava a carta sem nem ver as opções.
+   */
+  lockMs: 5000,
 } as const;
 
 export const LIFE_STEAL_BALANCE = {

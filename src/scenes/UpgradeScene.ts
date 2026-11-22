@@ -9,6 +9,7 @@ import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { UPGRADE_SKIP_BALANCE } from '../config/balance';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
+import { getSkipLockRemainingMs, formatSkipLockBadge } from '../systems/UpgradeSkipLock';
 
 /** Cena de jogo que abriu a tela de cartas: além das armas, sinaliza a reabertura da fila de níveis. */
 export type UpgradeHostScene = UpgradeGameScene & { isUpgradeSceneOpening?: boolean; survivalTimeMs?: number };
@@ -31,6 +32,8 @@ export class UpgradeScene extends Phaser.Scene {
   private rerollButton?: ActionKeyButton;
   private skipButton?: ActionKeyButton;
   private isClosing: boolean = false;
+  /** Quando a tela abriu (relógio do jogo): base da trava do CANALIZAR. */
+  private openedAtMs: number = 0;
 
   public getCardContainers(): Phaser.GameObjects.Container[] {
     return this.cardContainers;
@@ -70,6 +73,9 @@ export class UpgradeScene extends Phaser.Scene {
     this.cardContainers = [];
     this.currentCardIds = [];
     this.isClosing = false;
+    // Relógio do jogo, não da cena: o da cena começa em 0 (ou parado no último valor)
+    // até o primeiro quadro, e a trava parecia já vencida na primeira abertura
+    this.openedAtMs = this.game.loop.time;
 
     // Toca fanfarra viciante estilo Cassino / Arcade Slot ao abrir as cartas
     SoundManager.getInstance().playCasinoLevelUp();
@@ -131,11 +137,10 @@ export class UpgradeScene extends Phaser.Scene {
     const onKeyDownR = () => {
       this.handleReroll();
     };
-    // Espaço também é a esquiva no combate: quem estava esquivando quando o nível subiu
-    // não pode pular a carta sem querer. Ignora tecla presa e o primeiro instante da tela.
-    const openedAt = this.time.now;
+    // Espaço também é a esquiva no combate: tecla presa é ignorada, e a trava de tempo
+    // fica em handleSkipAndHeal (vale para teclado, clique e controle)
     const onKeyDownSpace = (event?: KeyboardEvent) => {
-      if (event?.repeat || this.time.now - openedAt < 700) return;
+      if (event?.repeat) return;
       this.handleSkipAndHeal();
     };
 
@@ -234,7 +239,22 @@ export class UpgradeScene extends Phaser.Scene {
       onClick: () => this.handleSkipAndHeal()
     });
     this.updateRerollButtonVisual();
+    this.updateSkipButtonVisual();
     this.updateActionKeys();
+  }
+
+  private get skipLockRemainingMs(): number {
+    return getSkipLockRemainingMs(this.openedAtMs, this.game.loop.time);
+  }
+
+  /** Travado: botão apagado com a contagem no lugar da cura. Liberado: volta a mostrar a cura. */
+  private updateSkipButtonVisual(): void {
+    if (!this.skipButton) return;
+    const remaining = this.skipLockRemainingMs;
+    this.skipButton.setEnabled(remaining <= 0);
+    this.skipButton.setBadge(remaining > 0
+      ? formatSkipLockBadge(remaining)
+      : `+${Math.round(UPGRADE_SKIP_BALANCE.healFractionOfMaxHp * 100)}%`);
   }
 
   /** Mostra nas teclas o atalho do controle em uso (some no toque). */
@@ -259,7 +279,7 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   private handleSkipAndHeal(): void {
-    if (this.isClosing) return;
+    if (this.isClosing || this.skipLockRemainingMs > 0) return;
     this.isClosing = true;
     SoundManager.getInstance().playMenuClick();
     this.player.heal(this.player.maxHp * UPGRADE_SKIP_BALANCE.healFractionOfMaxHp);
@@ -687,6 +707,7 @@ export class UpgradeScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     this.updateActionKeys();
     if (this.isClosing) return;
+    this.updateSkipButtonVisual();
 
     if (AutoPlayTestAgent.getInstance().isEnabled) {
       AutoPlayTestAgent.getInstance().checkAndResolveUpgradeModal(this, delta);

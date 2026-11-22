@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — 2026-11-21
+
+### Tela de cartas: Espaço não pula mais a carta sem querer
+
+#### Resumo para o Jogador
+- **CANALIZAR travado por 5 segundos:** ao subir de nível, o botão CANALIZAR (Espaço / B / clique) fica apagado, com a contagem no lugar do "+40%", por 5 s. Quem estava esquivando com Espaço quando o nível subiu não perde mais a escolha de carta. As cartas e o RE-ROLAR continuam liberados na hora.
+- **Corrigido:** na primeira tela de cartas da partida, a trava antiga nem funcionava, e um Espaço pulava a carta na hora.
+
 ## [v0.16.0 — Arqueira, Lyn e Círculos do Infinito] — 2026-11-20
 
 ### Cronograma de Inimigos e Círculos do Infinito
