@@ -152,6 +152,9 @@ export const FX_COLORS = {
   thiefBlipCore: 0xfff3b0,
   thiefBlipOutline: 0x000000,
   bloodMoonOverlay: 0x8a0018,
+  /** Fúria do Inferno (Infinito): véu laranja-avermelhado e brasas subindo. */
+  infernalFuryOverlay: 0xb31a00,
+  infernalFuryEmber: 0xff7a1a,
   stormFlash: 0x9d7bff,
   // Suprema "Ascensão Infernal"
   ultAura: 0xff2a3d,

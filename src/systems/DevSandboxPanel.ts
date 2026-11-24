@@ -25,14 +25,18 @@ const SANDBOX_NEW_ITEMS: { type: MapItemType; label: string }[] = [
   { type: 'relic', label: 'RELÍQUIA DOURADA' },
 ];
 
-/** Eventos de horda disparáveis pelo Modo de Teste ('storm' = rajada da Tempestade de Azazel). */
-const SANDBOX_HORDE_EVENTS: { type: HordeEventType | 'storm'; label: string }[] = [
+/**
+ * Eventos de horda disparáveis pelo Modo de Teste ('storm' = rajada da Tempestade de Azazel,
+ * 'fury' = Fúria do Inferno, que no jogo normal só sai no level up do Infinito).
+ */
+const SANDBOX_HORDE_EVENTS: { type: HordeEventType | 'storm' | 'fury'; label: string }[] = [
   { type: 'siege', label: 'CERCO INFERNAL' },
   { type: 'ambush', label: 'EMBOSCADA' },
   { type: 'thief', label: 'TRANSPORTADOR' },
   { type: 'elite_pack', label: 'MATILHA ALFA' },
   { type: 'blood_moon', label: 'LUA DE SANGUE' },
-  { type: 'storm', label: 'RAIOS DA TEMPESTADE DE AZAZEL' },
+  { type: 'storm', label: 'RAIOS DE AZAZEL' },
+  { type: 'fury', label: 'FÚRIA DO INFERNO' },
 ];
 
 type SandboxTab = 'CHEATS' | 'SPAWNER' | 'WEAPONS' | 'UPGRADES' | 'LOGS';
@@ -836,12 +840,13 @@ export class DevSandboxPanel {
       }
     );
 
-    // Linhas 8+: Eventos de horda, dois por linha (a coluna 1 ficou só para monstros)
+    // Linhas 8+: Eventos de horda, três por linha para caber no painel (a coluna 1 ficou só para monstros)
+    const thirdBtnW = Math.floor((colW - 16) / 3);
     SANDBOX_HORDE_EVENTS.forEach((ev, i) => {
       this.createActionButton(
-        col2X + (i % 2) * (halfBtnW + 8),
-        y + 338 + Math.floor(i / 2) * 30,
-        halfBtnW,
+        col2X + (i % 3) * (thirdBtnW + 8),
+        y + 338 + Math.floor(i / 3) * 30,
+        thirdBtnW,
         26,
         `EVENTO: ${ev.label}`,
         COLORS.velvetBoss,
@@ -851,6 +856,8 @@ export class DevSandboxPanel {
           this.togglePanel(false);
           if (ev.type === 'storm') {
             gs.hordeEvents?.startStormVolley();
+          } else if (ev.type === 'fury') {
+            gs.infernalFury?.start();
           } else {
             gs.hordeEvents?.trigger(ev.type);
           }

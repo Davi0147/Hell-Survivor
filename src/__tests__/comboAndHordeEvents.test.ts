@@ -102,6 +102,10 @@ describe('getEligibleHordeEvents (o que o diretor pode sortear)', () => {
     expect(late).toContain('blood_moon');
   });
 
+  it('Infinito não tem Lua de Sangue (lá quem manda é a Fúria do Inferno)', () => {
+    expect(getEligibleHordeEvents('endless', 1, 30, false, false)).not.toContain('blood_moon');
+  });
+
   it('não repete Ladrão vivo nem Lua de Sangue em andamento', () => {
     const events = getEligibleHordeEvents('endless', 1, 10, true, true);
     expect(events).not.toContain('thief');

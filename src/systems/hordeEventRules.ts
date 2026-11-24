@@ -18,9 +18,10 @@ export function getEligibleHordeEvents(
   if (minutes >= 1) events.push('ambush');
   if (!isThiefAlive) events.push('thief');
 
-  const isLateRealm = gameMode === 'endless' || chapter >= 2;
+  // No Infinito a Lua de Sangue deu lugar à Fúria do Inferno (InfernalFurySystem), que sai no level up
+  const hasBloodMoon = gameMode !== 'endless' && chapter >= 2;
   const hasElites = gameMode === 'endless' || storyHasElites(chapter);
   if (hasElites && minutes >= HORDE_EVENT_BALANCE.elitePack.minMinutes) events.push('elite_pack');
-  if (isLateRealm && !isBloodMoonActive && minutes >= HORDE_EVENT_BALANCE.bloodMoon.minMinutes) events.push('blood_moon');
+  if (hasBloodMoon && !isBloodMoonActive && minutes >= HORDE_EVENT_BALANCE.bloodMoon.minMinutes) events.push('blood_moon');
   return events;
 }

@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — 2026-11-24
+
+### Fúria do Inferno e Lyn na vila
+
+#### Resumo para o Jogador
+- **Fúria do Inferno (Modo Infinito):** ao subir de nível, há chance de a arena pegar fogo por 30 segundos: a tela fica avermelhada, brasas sobem e o chão treme de tempos em tempos. Nesse tempo os monstros batem mais forte, aguentam mais e correm mais, e dão **+50% de XP**. A chance começa em 5% e cresce a cada nível sem fúria, para ela não sumir no fim da partida; depois de uma fúria, a próxima só pode vir 4 níveis depois. Se um chefe chegar, a fúria se apaga.
+- **Lua de Sangue** agora é só do Modo História (Capítulo 2); no Infinito o lugar dela é da Fúria.
+- **Capítulo 1:** a **Lyn**, que mora na vila, é a minichefe do meio da fase. O **Ghoul Devorador** passou para o Capítulo 2.
+- **Modo de Teste:** botão "EVENTO: FÚRIA DO INFERNO" na aba 2; os botões de evento agora ficam em três colunas para caber no painel.
+
+#### Técnico
+- `InfernalFurySystem.ts` (efeitos, visual, velocidade dos monstros) + `infernalFuryRules.ts` (sorteio puro, testado em `infernalFuryRules.test.ts`). Números em `INFERNAL_FURY_BALANCE`; cores `infernalFuryOverlay`/`infernalFuryEmber` em `theme.ts`.
+- `GameScene.enemyStrengthMultiplier` = Pressão do Abismo × Fúria.
+
 ## [Não publicado] — 2026-11-21
 
 ### Tela de cartas: Espaço não pula mais a carta sem querer

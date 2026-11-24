@@ -38,8 +38,8 @@ describe('História: Capítulo 1 ensina o básico', () => {
     expect(storyHasElites(1)).toBe(false);
   });
 
-  it('minichefe Ghoul no meio da fase e sem formações', () => {
-    expect(STORY_SCHEDULE[1].miniBoss?.id).toBe('ghoul');
+  it('minichefe Lyn (da vila) no meio da fase e sem formações', () => {
+    expect(STORY_SCHEDULE[1].miniBoss?.id).toBe('lyn');
     expect(storyFormations(1, 1)).toEqual([]);
   });
 
@@ -58,8 +58,8 @@ describe('História: Capítulo 2 junta os inimigos novos', () => {
     expect(u.archer!).toBeLessThan(u.colossus!);
   });
 
-  it('Lyn é a minichefe; Matilha e Muralha entram como formações', () => {
-    expect(STORY_SCHEDULE[2].miniBoss?.id).toBe('lyn');
+  it('Ghoul é o minichefe; Matilha e Muralha entram como formações', () => {
+    expect(STORY_SCHEDULE[2].miniBoss?.id).toBe('ghoul');
     expect(storyFormations(2, 0)).toEqual([]);
     expect(storyFormations(2, 1)).toEqual(['pack', 'wall']);
   });

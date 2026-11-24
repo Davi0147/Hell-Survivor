@@ -46,6 +46,8 @@ export interface ISandboxContext extends Phaser.Scene {
 
   /** Diretor de eventos de horda (Cerco, Emboscada, Ladrão, Matilha, Lua de Sangue, Tempestade). */
   hordeEvents?: { trigger(type: HordeEventType2): void; startStormVolley(): void };
+  /** Fúria do Inferno (Infinito; o Modo de Teste dispara em qualquer modo). */
+  infernalFury?: { start(): void };
 
   // Modificadores de Trapaça do Sandbox
   sandboxGodMode: boolean;

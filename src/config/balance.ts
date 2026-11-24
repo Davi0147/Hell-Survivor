@@ -653,6 +653,35 @@ export const HORDE_EVENT_BALANCE = {
   bloodMoon: { durationMs: 20000, spawnIntervalMultiplier: 0.55, xpBonus: 1, minMinutes: 2 },
 } as const;
 
+/**
+ * Fúria do Inferno (só no Infinito): a cada nível ganho há chance de 30 s em que a horda fica
+ * mais forte e mais rápida e dá mais XP. Ideia do dono (2026-11-24); a chance cresce a cada nível
+ * sem fúria para o evento não sumir no fim da partida, quando cada nível demora mais.
+ */
+export const INFERNAL_FURY_BALANCE = {
+  durationMs: 30000,
+  /** Chance no primeiro nível elegível. */
+  baseChance: 0.05,
+  /** Soma na chance a cada nível elegível que passou sem fúria. */
+  chanceStepPerLevel: 0.05,
+  /** Depois de uma fúria, só pode haver outra `cooldownLevels` níveis depois. */
+  cooldownLevels: 4,
+  /** Antes deste nível não sorteia (o começo da partida é para aprender). */
+  minLevel: 4,
+  /** Dano causado e dano aguentado pelos monstros (multiplica com a Pressão do Abismo). */
+  strengthMultiplier: 1.35,
+  /** Velocidade de corrida dos monstros comuns (chefes e minichefes não mudam). */
+  speedMultiplier: 1.25,
+  xpBonus: 0.5,
+  /** Tremidas curtas em vez de tremer sem parar (legibilidade no celular). */
+  shakeEveryMs: 3000,
+  shakeDurationMs: 260,
+  shakeIntensity: 0.006,
+  overlayAlpha: 0.16,
+  /** Brasas na tela: poucas, para não pesar no celular. */
+  embersPerSecond: 20,
+} as const;
+
 /** Tempestade de Azazel: raios telegrafados que caem durante o Capítulo 2 e ferem todo mundo. */
 export const STORM_BALANCE = {
   chapters: [2] as number[],
@@ -700,14 +729,15 @@ export const STORY_SCHEDULE: Record<number, StoryChapterSchedule> = {
   // Capítulo 1 — ensina o básico
   1: {
     unlocks: { dog: 0, bat: 0.2, mummy: 0.4, slime: 0.7 },
-    miniBoss: { id: 'ghoul', atRatio: 0.55 },
+    // A Lyn mora na vila do Capítulo 1 (decisão do dono, 2026-11-24)
+    miniBoss: { id: 'lyn', atRatio: 0.55 },
     formations: [],
     eliteChance: 0,
   },
   // Capítulo 2 — junta os inimigos novos
   2: {
     unlocks: { dog: 0, bat: 0, archer: 0.15, mummy: 0.2, elite: 0.3, colossus: 0.5, slime: 0.6 },
-    miniBoss: { id: 'lyn', atRatio: 0.55 },
+    miniBoss: { id: 'ghoul', atRatio: 0.55 },
     formations: [
       { id: 'pack', fromRatio: 0.3 },
       { id: 'wall', fromRatio: 0.5 },

@@ -138,7 +138,7 @@ describe('EncounterDirector — Infinito', () => {
 });
 
 describe('EncounterDirector — História', () => {
-  it('Capítulo 1: apresenta pela barra e solta o Ghoul no meio, uma vez', () => {
+  it('Capítulo 1: apresenta pela barra e solta a Lyn no meio, uma vez', () => {
     const w = makeWorld('story');
     const u = STORY_SCHEDULE[1].unlocks;
     w.ctx.chapterPurifiedSouls = u.bat! * 100;
@@ -147,17 +147,18 @@ describe('EncounterDirector — História', () => {
 
     w.ctx.chapterPurifiedSouls = STORY_SCHEDULE[1].miniBoss!.atRatio * 100;
     w.run(FRAME * 5);
-    expect(w.spawner.spawnGhoulDevourer).toHaveBeenCalledTimes(1);
+    expect(w.spawner.spawnLyn).toHaveBeenCalledTimes(1);
+    expect(w.spawner.spawnGhoulDevourer).not.toHaveBeenCalled();
     expect(w.spawner.spawnArcherAt).not.toHaveBeenCalled();
     expect(w.ctx.spawnEndlessBoss).not.toHaveBeenCalled();
   });
 
-  it('Capítulo 2: Lyn no meio e a Muralha aparece depois do Colossus', () => {
+  it('Capítulo 2: Ghoul no meio e a Muralha aparece depois do Colossus', () => {
     const w = makeWorld('story');
     w.ctx.currentChapter = 2;
     w.ctx.chapterPurifiedSouls = 60;
     w.run(FORMATION_BALANCE.firstDelayMs + FORMATION_BALANCE.storyIntervalMs + FRAME);
-    expect(w.spawner.spawnLyn).toHaveBeenCalledTimes(1);
+    expect(w.spawner.spawnGhoulDevourer).toHaveBeenCalledTimes(1);
     expect(w.spawner.spawnColossusAt).toHaveBeenCalled();
     expect(w.spawner.spawnScaledDogAt).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), true); // Matilha
   });

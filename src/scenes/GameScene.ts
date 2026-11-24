@@ -47,6 +47,7 @@ import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
 import type { IPauseWeaponInfo } from '../ui/PauseMenu';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
+import { InfernalFurySystem } from '../systems/InfernalFurySystem';
 
 export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext, IUltimateContext, IEncounterContext {
   public player!: Nixy;
@@ -173,8 +174,12 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
    * recebem (lido no contato e em BaseEnemy.takeDamage). 1 = normal.
    */
   public get enemyStrengthMultiplier(): number {
-    return this.gameMode === 'endless' ? this.idlePressure.multiplier : 1;
+    const idle = this.gameMode === 'endless' ? this.idlePressure.multiplier : 1;
+    return idle * (this.infernalFury?.strengthMultiplier ?? 1);
   }
+
+  /** Fúria do Inferno (Infinito): sorteada no level up. */
+  public infernalFury?: InfernalFurySystem;
 
   // Sistema de Combate e Armas
   public weapons: BaseWeapon[] = [];
@@ -260,6 +265,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.weapons = [];
     this.combatFeel = undefined;
     this.hordeEvents = undefined;
+    this.infernalFury = undefined;
     this.enemyArrows = undefined;
     this.ultimate = undefined;
     this.clearCombatSpeechBubbles();
@@ -370,6 +376,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 3.35. Ritmo de combate e diretor de eventos (precisam do jogador e do grupo de inimigos)
     this.combatFeel = new CombatFeelSystem(this, this);
     this.hordeEvents = new HordeEventSystem(this, this, this.enemySpawner);
+    this.infernalFury = new InfernalFurySystem(this, this);
     this.enemyArrows = new EnemyArrowSystem(this, () => this.player);
     this.ultimate = new UltimateSystem(this, this);
 
@@ -453,7 +460,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.weapons.push(this.soulBoltWeapon);
 
     // Escutar Level Up da heroína com Fila Segura Anti-Crash
-    this.player.on('player-level-up', () => {
+    this.player.on('player-level-up', (level: number) => {
+      this.infernalFury?.onLevelUp(level);
       this.checkAndOpenUpgradeScene();
     });
 
@@ -544,6 +552,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.sandboxController?.destroy();
       this.combatFeel?.destroy();
       this.hordeEvents?.destroy();
+      this.infernalFury?.destroy();
       this.enemyArrows?.destroy();
       this.ultimate?.destroy();
       this.bossFights?.destroy();
@@ -707,9 +716,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 1.2. Combo, Frenesi e bônus de XP do momento (combo + evento de horda)
     this.combatFeel?.update(delta);
     this.hordeEvents?.update(delta);
+    this.infernalFury?.update(delta);
     this.enemyArrows?.update(delta);
     this.ultimate?.update(delta);
-    this.player.xpGainMultiplier = 1 + (this.combatFeel?.xpBonus ?? 0) + (this.hordeEvents?.xpBonus ?? 0);
+    this.player.xpGainMultiplier =
+      1 + (this.combatFeel?.xpBonus ?? 0) + (this.hordeEvents?.xpBonus ?? 0) + (this.infernalFury?.xpBonus ?? 0);
 
     // 2. Atualizar lógica e animações da Nixy
     this.player.updateNixy(move.dx, move.dy, move.isSprint, delta);
