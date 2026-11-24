@@ -9,11 +9,6 @@ const BAR_WIDTH = 170;
 const BAR_HEIGHT = 8;
 /** Combo em que o número chega ao tamanho máximo. */
 const FULL_SIZE_COMBO = 200;
-/** Posição (distância da borda direita e altura): normal e no celular, longe dos botões de toque. */
-const COMBO_OFFSET_X = 200;
-const COMBO_Y = 210;
-const COMBO_TOUCH_OFFSET_X = 340;
-const COMBO_TOUCH_Y = 150;
 
 /**
  * Contador de combo da HUD. Quanto maior a sequência, mais "quente" ele fica:
@@ -29,9 +24,8 @@ export class ComboHud {
   private readonly bar: Phaser.GameObjects.Graphics;
   private readonly sparks?: Phaser.GameObjects.Particles.ParticleEmitter;
 
-  private originX: number;
-  private originY: number;
-  private touchLayout = false;
+  private readonly originX: number;
+  private readonly originY: number;
 
   private lastCombo = 0;
   private lastHeat = -1;
@@ -41,10 +35,10 @@ export class ComboHud {
   private pop = { scale: 1 };
   private popTween?: Phaser.Tweens.Tween;
 
-  constructor(private readonly ui: Phaser.Scene) {
-    const { width } = ui.scale;
-    this.originX = width - COMBO_OFFSET_X;
-    this.originY = COMBO_Y;
+  /** @param anchor centro do número (ver `config/hudLayout.ts`) */
+  constructor(private readonly ui: Phaser.Scene, anchor: { x: number; y: number }) {
+    this.originX = anchor.x;
+    this.originY = anchor.y;
 
     if (ui.textures.exists('particle-spark')) {
       this.sparks = ui.add.particles(0, 0, 'particle-spark', {
@@ -97,19 +91,6 @@ export class ComboHud {
     }).setOrigin(0.5).setVisible(false);
 
     this.container.add([this.echoText, this.countText, this.tierText, this.bar, this.frenzyText]);
-  }
-
-  /**
-   * Toque: sobe e vai para a esquerda, para não ficar atrás dos botões de corrida e esquiva
-   * (que ocupam a lateral direita no celular).
-   */
-  public setTouchLayout(isTouch: boolean): void {
-    if (this.touchLayout === isTouch) return;
-    this.touchLayout = isTouch;
-    const { width } = this.ui.scale;
-    this.originX = isTouch ? width - COMBO_TOUCH_OFFSET_X : width - COMBO_OFFSET_X;
-    this.originY = isTouch ? COMBO_TOUCH_Y : COMBO_Y;
-    this.container.setPosition(this.originX, this.originY);
   }
 
   /** Some junto com o resto da HUD. */

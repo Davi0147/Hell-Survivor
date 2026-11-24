@@ -257,6 +257,44 @@ export const STATUS_PANEL_THEME = {
   levelPlaqueBorder: 0x6a1fa0,
   valueText: '#ffffff',
   textStroke: '#12020a',
+  /** Aro do medalhão com o rosto da heroína (no olho da moldura). */
+  medallionRing: 0xd946ef,
+  medallionBg: 0x12020a,
+  hurtTint: 0xff4444,
+} as const;
+
+/** Topo da HUD: placa de abates/almas e barra fina de experiência. */
+export const HUD_COUNTER_THEME = {
+  plate: 0x12040a,
+  plateAlpha: 0.82,
+  border: 0xc59b27,
+  stroke: '#000000',
+  kills: '#ffffff',
+  souls: '#c084fc',
+  xpTrack: 0x0c0407,
+  xpFill: 0x00f5d4,
+  xpShine: 0xb8fff3,
+} as const;
+
+/**
+ * Placa do objetivo no topo central da HUD (purificação, relógio do Infinito, vida do chefe):
+ * obsidiana com moldura dourada, a mesma linguagem das cartas e da barra de armas.
+ */
+export const OBJECTIVE_THEME = {
+  plate: 0x12040a,
+  plateAlpha: 0.9,
+  border: 0xc59b27,
+  innerBorder: 0x5a1020,
+  label: '#f3d17a',
+  labelStroke: '#0e0208',
+  timer: '#ffffff',
+  timerStroke: '#3a0812',
+  barTrack: 0x1a0208,
+  purifyFill: 0xff0055,
+  purifyShine: 0xff7aa8,
+  bossFill: 0xd90429,
+  bossShine: 0xff4d6d,
+  bossName: '#ff2255',
 } as const;
 
 /**

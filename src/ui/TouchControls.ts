@@ -1,18 +1,9 @@
 import Phaser from 'phaser';
 import { FX_COLORS, TOUCH_THEME } from '../config/theme';
+import type { HudLayout } from '../config/hudLayout';
 
-/** Distância mínima dos controles até a borda da tela (px de jogo). */
+/** Distância mínima do analógico até a borda da tela (px de jogo). */
 const TOUCH_EDGE_MARGIN = 96;
-/** Botão de pausa grande o bastante para o dedo. */
-const PAUSE_SIZE = 66;
-/**
- * Área do analógico: o dedo pode cair em qualquer ponto dela e o analógico nasce ali.
- * Fração da largura da tela a partir da esquerda e faixa de cima que fica de fora (radar).
- */
-const JOYSTICK_ZONE_WIDTH = 0.5;
-const JOYSTICK_ZONE_TOP = 170;
-
-interface IRect { left: number; top: number; right: number; bottom: number }
 
 export interface TouchInputState {
   hasMovement: boolean;
@@ -49,24 +40,24 @@ export class TouchControls {
   private readonly MAX_DISTANCE: number = 50;
   private readonly DEADZONE: number = 8;
 
-  // Botões de Ação (Lado Direito)
+  // Botões de Ação (canto do polegar direito, posições em config/hudLayout.ts)
   private sprintBtn: Phaser.GameObjects.Image;
   private sprintPointer: Phaser.Input.Pointer | null = null;
   private sprintBtnX: number = 0;
   private sprintBtnY: number = 0;
-  private readonly SPRINT_RADIUS: number = 46;
+  private readonly SPRINT_RADIUS: number;
 
   // Botão de Esquiva (usa o sprite do Sprint tingido até existir arte própria)
   private dashBtn: Phaser.GameObjects.Image;
   private dashBtnX: number = 0;
   private dashBtnY: number = 0;
-  private readonly DASH_RADIUS: number = 40;
+  private readonly DASH_RADIUS: number;
   private dashQueued: boolean = false;
 
   private ultBtn: Phaser.GameObjects.Image;
   private ultBtnX: number = 0;
   private ultBtnY: number = 0;
-  private readonly ULT_RADIUS: number = 48;
+  private readonly ULT_RADIUS: number;
   private isUltReadyState: boolean = false;
   private ultPulseTween: Phaser.Tweens.Tween | null = null;
 
@@ -74,18 +65,20 @@ export class TouchControls {
   private pauseBtn: Phaser.GameObjects.Image;
   private pauseBtnX: number = 0;
   private pauseBtnY: number = 0;
+  private readonly PAUSE_SIZE: number;
+
+  /** Área do analógico: metade esquerda, abaixo das armas. O dedo cai ali e ele nasce no lugar. */
+  private readonly joystickZoneTop: number;
+  private readonly joystickZoneRight: number;
 
   // Contorno branco dos botões (para enxergar em cima de qualquer chão)
   private rings: Phaser.GameObjects.Graphics;
-  /** Onde o analógico não pode nascer (a barra de armas, no meio de baixo). */
-  private blockedRect: IRect | null = null;
 
   // Visibilidade e Ciclo
   private isVisibleState: boolean = true;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, layout: HudLayout['touch']) {
     this.scene = scene;
-    const { width, height } = scene.scale;
 
     this.container = scene.add.container(0, 0);
     this.container.setDepth(1200);
@@ -94,29 +87,30 @@ export class TouchControls {
     const isDesktop = Boolean(scene.sys.game.device.os.desktop);
     this.isActive = !isDesktop;
 
-    // Posicionamento ergonômico: longe das bordas (cantos arredondados e recorte da câmera do celular).
-    // A barra de armas foi para o meio de baixo, então o analógico descansa mais baixo.
-    this.homeX = Math.max(TOUCH_EDGE_MARGIN + this.BASE_RADIUS, Math.round(width * 0.15));
-    this.homeY = height - 170;
+    // Analógico descansa embaixo à esquerda; nasce onde o dedo cair na metade esquerda
+    this.homeX = layout.joystickHome.x;
+    this.homeY = layout.joystickHome.y;
     this.baseX = this.homeX;
     this.baseY = this.homeY;
     this.knobX = this.baseX;
     this.knobY = this.baseY;
+    this.joystickZoneTop = layout.joystickZoneTop;
+    this.joystickZoneRight = layout.joystickZoneRight;
 
-    // Corrida e esquiva ficam acima do retrato da Nixy (o retrato ocupa o canto inferior direito)
-    const right = width - TOUCH_EDGE_MARGIN;
-    this.sprintBtnX = right - 70;
-    this.sprintBtnY = 330;
-
-    this.dashBtnX = right + 10;
-    this.dashBtnY = 262;
-
-    // Suprema colada ao analógico (em cima e à direita dele): o polegar esquerdo alcança sem esticar
-    this.ultBtnX = this.homeX + 128;
-    this.ultBtnY = this.homeY - 100;
-
-    this.pauseBtnX = right + 18;
-    this.pauseBtnY = 150;
+    // Suprema grande no canto do polegar direito, esquiva e corrida em arco em volta dela
+    // (antes a Suprema ficava junto do analógico, e usar ela obrigava a parar de andar)
+    this.ultBtnX = layout.ult.x;
+    this.ultBtnY = layout.ult.y;
+    this.ULT_RADIUS = layout.ult.r;
+    this.dashBtnX = layout.dash.x;
+    this.dashBtnY = layout.dash.y;
+    this.DASH_RADIUS = layout.dash.r;
+    this.sprintBtnX = layout.sprint.x;
+    this.sprintBtnY = layout.sprint.y;
+    this.SPRINT_RADIUS = layout.sprint.r;
+    this.pauseBtnX = layout.pause.x;
+    this.pauseBtnY = layout.pause.y;
+    this.PAUSE_SIZE = layout.pause.r * 2;
 
     // Contornos ficam atrás das artes dos botões
     this.rings = scene.add.graphics();
@@ -155,7 +149,7 @@ export class TouchControls {
 
     // 4. Botão de Pausa Rápida para Mobile (Pixel Art)
     this.pauseBtn = scene.add.image(this.pauseBtnX, this.pauseBtnY, 'touch-pause');
-    this.pauseBtn.setDisplaySize(PAUSE_SIZE, PAUSE_SIZE);
+    this.pauseBtn.setDisplaySize(this.PAUSE_SIZE, this.PAUSE_SIZE);
     this.pauseBtn.setAlpha(0.85);
     this.container.add(this.pauseBtn);
 
@@ -182,7 +176,7 @@ export class TouchControls {
     g.strokeCircle(this.sprintBtnX, this.sprintBtnY, this.SPRINT_RADIUS);
     g.strokeCircle(this.dashBtnX, this.dashBtnY, this.DASH_RADIUS);
     g.strokeCircle(this.ultBtnX, this.ultBtnY, this.ULT_RADIUS);
-    g.strokeCircle(this.pauseBtnX, this.pauseBtnY, PAUSE_SIZE / 2);
+    g.strokeCircle(this.pauseBtnX, this.pauseBtnY, this.PAUSE_SIZE / 2);
   }
 
   /** O analógico fica apagado parado e acende enquanto o dedo está nele. */
@@ -193,19 +187,9 @@ export class TouchControls {
     this.joystickKnob?.setAlpha(Math.min(1, alpha + 0.2));
   }
 
-  /** O dedo caiu na área do analógico (metade esquerda, fora do radar, da Suprema e da barra de armas)? */
+  /** O dedo caiu na área do analógico (metade esquerda, abaixo do status e das armas)? */
   private isInJoystickZone(x: number, y: number): boolean {
-    const { width } = this.scene.scale;
-    if (x >= width * JOYSTICK_ZONE_WIDTH || y < JOYSTICK_ZONE_TOP) return false;
-    if (Math.hypot(x - this.ultBtnX, y - this.ultBtnY) <= this.ULT_RADIUS + 15) return false;
-    const b = this.blockedRect;
-    if (b && x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) return false;
-    return true;
-  }
-
-  /** A barra de armas mudou de lugar: o analógico não nasce em cima dela. */
-  public setBlockedRect(rect: IRect | null): void {
-    this.blockedRect = rect;
+    return x < this.joystickZoneRight && y >= this.joystickZoneTop;
   }
 
   private drawJoystickKnob(): void {
@@ -269,11 +253,11 @@ export class TouchControls {
 
   private drawPauseButton(isPressed: boolean = false): void {
     if (isPressed) {
-      this.pauseBtn.setDisplaySize(PAUSE_SIZE * 0.9, PAUSE_SIZE * 0.9);
+      this.pauseBtn.setDisplaySize(this.PAUSE_SIZE * 0.9, this.PAUSE_SIZE * 0.9);
       this.pauseBtn.setAlpha(1.0);
       this.pauseBtn.setTint(0xffa8ba);
     } else {
-      this.pauseBtn.setDisplaySize(PAUSE_SIZE, PAUSE_SIZE);
+      this.pauseBtn.setDisplaySize(this.PAUSE_SIZE, this.PAUSE_SIZE);
       this.pauseBtn.setAlpha(0.85);
       this.pauseBtn.clearTint();
     }
@@ -343,7 +327,7 @@ export class TouchControls {
 
       // Zona Topo: Botão de Pausa
       const distPause = Math.hypot(pointer.x - this.pauseBtnX, pointer.y - this.pauseBtnY);
-      if (distPause <= PAUSE_SIZE / 2 + 14) {
+      if (distPause <= this.PAUSE_SIZE / 2 + 14) {
         this.drawPauseButton(true);
         const gs = this.scene.scene.get('GameScene');
         const ui = this.scene as { togglePause?: (scene: unknown) => void };

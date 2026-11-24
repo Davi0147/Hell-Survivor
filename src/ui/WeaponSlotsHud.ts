@@ -2,16 +2,22 @@ import Phaser from 'phaser';
 import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
 import { FONTS, COLORS, WEAPON_SLOT_THEME as T } from '../config/theme';
+import { HUD_SIZES } from '../config/hudLayout';
 
-const SLOT = 46;
+// Medidas compartilhadas com o layout da HUD (que confere se nada se sobrepõe)
+const SLOT = HUD_SIZES.weapons.slot;
 /** O espaço da Suprema é maior para chamar atenção quando ela fica pronta. */
-const ULT = 66;
-const KEYCAP = 26;
-const GAP = 8;
-const MAX_WEAPON_SLOTS = 6;
-/** Toque: distância da barra até a borda de baixo e até o painel da Nixy. */
-const TOUCH_BOTTOM_MARGIN = 18;
-const TOUCH_PANEL_GAP = 20;
+const ULT = HUD_SIZES.weapons.ult;
+const KEYCAP = HUD_SIZES.weapons.keyCap;
+const GAP = HUD_SIZES.weapons.gap;
+const MAX_WEAPON_SLOTS = HUD_SIZES.weapons.slots;
+
+/** Onde a barra fica: borda esquerda, centro vertical e escala (ver `config/hudLayout.ts`). */
+export interface WeaponSlotsLayout {
+  x: number;
+  y: number;
+  scale: number;
+}
 
 /** O que a barra lê do personagem para o espaço da Suprema. */
 export interface IWeaponSlotsPlayer {
@@ -43,12 +49,10 @@ export class WeaponSlotsHud {
   private readonly ultKeyCap: Phaser.GameObjects.Graphics;
   private readonly slots: Slot[] = [];
   private keyLabelHidden = false;
-  private touchLayout = false;
 
-  constructor(private readonly ui: Phaser.Scene, onUltimateClick?: () => void) {
-    const { height } = ui.scale;
-    this.container = ui.add.container(26 + ULT / 2, height - 100);
-    this.container.setDepth(58);
+  constructor(private readonly ui: Phaser.Scene, layout: WeaponSlotsLayout, onUltimateClick?: () => void) {
+    this.container = ui.add.container(layout.x + (ULT / 2) * layout.scale, layout.y);
+    this.container.setScale(layout.scale).setDepth(58);
 
     this.ultFrame = ui.add.graphics();
     this.ultShade = ui.add.graphics();
@@ -89,30 +93,6 @@ export class WeaponSlotsHud {
 
     // Por último, para ficar por cima de tudo
     this.container.add([this.ultKeyCap, this.ultKey]);
-  }
-
-  /**
-   * Toque: a barra vai para o meio de baixo, liberando o canto esquerdo para o analógico.
-   * `rightLimit` é onde começa o painel da Nixy: a barra recua para não encostar nele.
-   */
-  public setTouchLayout(isTouch: boolean, rightLimit: number): void {
-    if (this.touchLayout === isTouch) return;
-    this.touchLayout = isTouch;
-    const { width, height } = this.ui.scale;
-    if (!isTouch) {
-      this.container.setPosition(26 + ULT / 2, height - 100);
-      return;
-    }
-    const total = ULT + MAX_WEAPON_SLOTS * (SLOT + GAP);
-    const left = Math.min(width / 2 - total / 2, rightLimit - TOUCH_PANEL_GAP - total);
-    this.container.setPosition(left + ULT / 2, height - ULT / 2 - TOUCH_BOTTOM_MARGIN);
-  }
-
-  /** Retângulo ocupado pela barra (px de jogo), para o analógico não nascer em cima dela. */
-  public getBounds(): { left: number; top: number; right: number; bottom: number } {
-    const total = ULT + MAX_WEAPON_SLOTS * (SLOT + GAP);
-    const left = this.container.x - ULT / 2;
-    return { left, top: this.container.y - ULT / 2 - KEYCAP / 2, right: left + total, bottom: this.container.y + ULT / 2 + KEYCAP / 2 };
   }
 
   /** Some junto com o resto da HUD. */

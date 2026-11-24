@@ -3,7 +3,7 @@ import { RadarEnemy, RadarPlayer, RadarWorld } from './radarTypes';
 import { FX_COLORS } from '../config/theme';
 
 /**
- * Radar tático circular do canto superior esquerdo da HUD.
+ * Radar tático circular do canto superior direito da HUD (posição em `config/hudLayout.ts`).
  * Desenha a moldura uma vez e redesenha os blips (inimigos, itens, cristais,
  * altares e o ponteiro da heroína) a cada quadro.
  */
@@ -18,12 +18,12 @@ export class TacticalRadar {
   private readonly tagText: Phaser.GameObjects.Text;
   private readonly northText: Phaser.GameObjects.Text;
 
-  /** @param sizeScale 1 no PC; maior no celular, onde a tela é pequena. */
-  constructor(private readonly scene: Phaser.Scene, pixelFont: string, sizeScale: number = 1) {
-    this.radius = Math.round(54 * sizeScale);
-    this.centerX = 20 + this.radius;
-    this.centerY = 30 + this.radius;
-    const labelSize = `${Math.round(8 * Math.min(1.3, sizeScale))}px`;
+  /** @param area centro e raio (maior no celular, onde a tela é pequena) */
+  constructor(private readonly scene: Phaser.Scene, pixelFont: string, area: { x: number; y: number; r: number }) {
+    this.radius = area.r;
+    this.centerX = area.x;
+    this.centerY = area.y;
+    const labelSize = `${Math.round(10 * Math.min(1.6, area.r / 54))}px`;
     this.frameGraphics = scene.add.graphics();
     this.frameGraphics.setDepth(100);
     this.drawFrame();
@@ -31,7 +31,7 @@ export class TacticalRadar {
     this.blipsGraphics = scene.add.graphics();
     this.blipsGraphics.setDepth(101);
 
-    this.tagText = scene.add.text(this.centerX, this.centerY + this.radius + 10, 'RADAR // 750m', {
+    this.tagText = scene.add.text(this.centerX, this.centerY + this.radius + 11, 'RADAR // 750m', {
       fontFamily: pixelFont,
       fontSize: labelSize,
       fontStyle: 'bold',

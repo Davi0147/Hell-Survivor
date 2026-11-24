@@ -19,10 +19,11 @@ export class IdlePressureHud {
   private readonly text: Phaser.GameObjects.Text;
   private pulse = 0;
 
-  constructor(ui: Phaser.Scene) {
-    this.text = ui.add.text(ui.scale.width / 2, 58, '', {
+  /** @param y altura (logo abaixo da placa do objetivo) @param fontSize maior no celular */
+  constructor(ui: Phaser.Scene, y: number = 58, fontSize: number = 11) {
+    this.text = ui.add.text(ui.scale.width / 2, y, '', {
       fontFamily: FONTS.body,
-      fontSize: '11px',
+      fontSize: `${fontSize}px`,
       fontStyle: 'bold',
       color: T.warnText,
       stroke: T.stroke,

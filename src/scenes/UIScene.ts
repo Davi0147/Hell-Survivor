@@ -23,6 +23,8 @@ import { TacticalRadar } from '../ui/TacticalRadar';
 import { AltarEdgeIndicator } from '../ui/AltarEdgeIndicator';
 import { ComboHud } from '../ui/ComboHud';
 import { WeaponSlotsHud } from '../ui/WeaponSlotsHud';
+import { getHudLayout, HUD_SIZES, type HudLayout } from '../config/hudLayout';
+import { HUD_COUNTER_THEME } from '../config/theme';
 
 export class UIScene
   extends Phaser.Scene
@@ -66,19 +68,21 @@ export class UIScene
   // Vinheta de Alerta de Vida Crítica (Low HP)
   private lowHpVignetteGraphics!: Phaser.GameObjects.Graphics;
 
-  // Painel de status (canto inferior direito)
+  /** Onde fica cada peça da HUD (config/hudLayout.ts): maior e com botões no polegar no celular. */
+  private layout!: HudLayout;
+
+  // Painel de status (topo esquerdo)
   private statusPanel!: StatusPanelHud;
 
-  // Barra Superior de Experiência (XP) e Nível
+  // Barra fina de experiência no alto da tela (o nível fica no painel de status)
   private xpBarBg!: Phaser.GameObjects.Graphics;
   private xpBarFill!: Phaser.GameObjects.Graphics;
-  private xpText!: Phaser.GameObjects.Text;
+  private lastXpRatio = -1;
 
-  // Painel Superior Direito Minimalista (Abates e Almas)
+  // Topo direito: abates e almas, lado a lado
   private killsPanelGraphics!: Phaser.GameObjects.Graphics;
   private killsIcon!: Phaser.GameObjects.Image;
   private killsText!: Phaser.GameObjects.Text;
-  private weaponInfoText?: Phaser.GameObjects.Text;
   private soulsIcon!: Phaser.GameObjects.Image;
   private soulsText!: Phaser.GameObjects.Text;
 
@@ -143,18 +147,21 @@ export class UIScene
     this.lowHpVignetteGraphics = this.add.graphics();
     this.lowHpVignetteGraphics.setDepth(200);
 
-    // ==========================================
-    // 0. RADAR TÁTICO / MINIMAPA CIRCULAR (CANTO SUPERIOR ESQUERDO)
-    // ==========================================
-    // No celular a tela é pequena: minimapa maior
+    // Layout único da HUD: no celular tudo fica maior (o jogo inteiro é encolhido para caber)
     const isTouchDevice = !this.sys.game.device.os.desktop;
-    this.radar = new TacticalRadar(this, pixelFont, isTouchDevice ? 1.45 : 1);
+    this.layout = getHudLayout(width, height, isTouchDevice);
+    const L = this.layout;
 
     // ==========================================
-    // 1-2. RETRATO E PAINEL DE STATUS (CANTO INFERIOR DIREITO)
+    // 0. RADAR TÁTICO (TOPO DIREITO, SOB ABATES E ALMAS)
+    // ==========================================
+    this.radar = new TacticalRadar(this, pixelFont, L.radar);
+
+    // ==========================================
+    // 1-2. PAINEL DE STATUS (TOPO ESQUERDO, ROSTO NO MEDALHÃO)
     // ==========================================
     const gsForName = this.scene.get('GameScene') as { player?: { characterId?: string } } | null;
-    this.statusPanel = new StatusPanelHud(this, pixelFont, gsForName?.player?.characterId ?? 'nixy');
+    this.statusPanel = new StatusPanelHud(this, pixelFont, gsForName?.player?.characterId ?? 'nixy', L.status, isTouchDevice);
 
     // Tecla [E] também escutada diretamente na UIScene
     if (this.input.keyboard) {
@@ -162,43 +169,52 @@ export class UIScene
     }
 
     // ==========================================
-    // 4. CANTO SUPERIOR DIREITO: ABATES E ALMAS (MINIMALISTA SEM FUNDO)
+    // 4. TOPO DIREITO: ABATES E ALMAS LADO A LADO, NUMA PLACA ESCURA
     // ==========================================
+    const c = L.counters;
+    const itemW = HUD_SIZES.counters.itemW * c.scale;
+    const iconSize = 32 * c.scale;
+    const counterFont = Math.round(20 * c.scale);
+    const counterY = c.y;
+    const killsX = c.right - itemW * 2;
+    const soulsX = c.right - itemW;
+
     this.killsPanelGraphics = this.add.graphics();
-    this.killsPanelGraphics.setDepth(60);
+    this.killsPanelGraphics.setDepth(59);
+    const plateH = HUD_SIZES.counters.h * c.scale;
+    this.killsPanelGraphics.fillStyle(HUD_COUNTER_THEME.plate, HUD_COUNTER_THEME.plateAlpha);
+    this.killsPanelGraphics.fillRect(killsX, counterY - plateH / 2, itemW * 2, plateH);
+    this.killsPanelGraphics.lineStyle(2, HUD_COUNTER_THEME.border, 1);
+    this.killsPanelGraphics.strokeRect(killsX, counterY - plateH / 2, itemW * 2, plateH);
+    this.killsPanelGraphics.lineStyle(1, HUD_COUNTER_THEME.border, 0.5);
+    this.killsPanelGraphics.lineBetween(soulsX, counterY - plateH / 2 + 6, soulsX, counterY + plateH / 2 - 6);
 
-    const hudRightX = width - 120;
-    const killsY = 46;
-    const soulsY = 88;
-
-    // Linha 1: ABATES (Sprite Kills + Quantidade com contorno preto)
-    this.killsIcon = this.add.image(hudRightX, killsY, this.textures.exists('ui-icon-kills') ? 'ui-icon-kills' : 'ui-kills-icon').setDisplaySize(36, 36).setOrigin(0.5).setDepth(60);
-    this.killsText = this.add.text(hudRightX + 26, killsY, '0', {
+    const counterStyle = (color: string): Phaser.Types.GameObjects.Text.TextStyle => ({
       fontFamily: pixelFont,
-      fontSize: '18px',
+      fontSize: `${counterFont}px`,
       fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0, 0.5).setDepth(60);
-
-    // Linha 2: ALMAS (Sprite Alma + Quantidade com contorno preto)
-    this.soulsIcon = this.add.image(hudRightX, soulsY, this.textures.exists('ui-icon-souls') ? 'ui-icon-souls' : 'item-soul').setDisplaySize(34, 34).setOrigin(0.5).setDepth(60);
-    this.soulsText = this.add.text(hudRightX + 26, soulsY, '0', {
-      fontFamily: pixelFont,
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#c084fc',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0, 0.5).setDepth(60);
+      color,
+      stroke: HUD_COUNTER_THEME.stroke,
+      strokeThickness: 4,
+    });
+    this.killsIcon = this.add.image(killsX + 8 + iconSize / 2, counterY, this.textures.exists('ui-icon-kills') ? 'ui-icon-kills' : 'ui-kills-icon')
+      .setDisplaySize(iconSize, iconSize).setDepth(60);
+    this.killsText = this.add.text(killsX + 14 + iconSize, counterY, '0', counterStyle(HUD_COUNTER_THEME.kills)).setOrigin(0, 0.5).setDepth(60);
+    this.soulsIcon = this.add.image(soulsX + 8 + iconSize / 2, counterY, this.textures.exists('ui-icon-souls') ? 'ui-icon-souls' : 'item-soul')
+      .setDisplaySize(iconSize, iconSize).setDepth(60);
+    this.soulsText = this.add.text(soulsX + 14 + iconSize, counterY, '0', counterStyle(HUD_COUNTER_THEME.souls)).setOrigin(0, 0.5).setDepth(60);
 
     // ==========================================
     // 5. TOPO CENTRAL: PURIFICAÇÃO, VIDA DO CHEFE E CRONÔMETRO DO INFINITO
     // ==========================================
     this.bestRecordSec = this.getBestRecordSec();
-    this.topCenterHud = new TopCenterHud(this, pixelFont, this.formatTime(this.bestRecordSec), (sec) => this.formatTime(sec));
-    this.idlePressureHud = new IdlePressureHud(this);
+    this.topCenterHud = new TopCenterHud(this, pixelFont, this.formatTime(this.bestRecordSec), (sec) => this.formatTime(sec), L.objective);
+    this.idlePressureHud = new IdlePressureHud(
+      this,
+      L.objective.y + HUD_SIZES.objective.h * L.objective.scale + 18,
+      // Cabe entre o status e os contadores mesmo na frase mais longa
+      isTouchDevice ? 15 : 12
+    );
 
     this.announcer = new ScreenAnnouncer(this, pixelFont);
 
@@ -246,26 +262,19 @@ export class UIScene
     this.dialogueSystem = new DialogueSystem(this);
 
     // ==========================================
-    // 7. TOPO DA TELA: BARRA CONTÍNUA DE EXPERIÊNCIA (XP)
+    // 7. TOPO DA TELA: BARRA FINA DE EXPERIÊNCIA DE PONTA A PONTA
     // ==========================================
+    // Sem texto: os números eram ilegíveis no celular; o nível fica no painel de status
     this.xpBarBg = this.add.graphics();
     this.xpBarBg.setDepth(120);
-    this.xpBarBg.fillStyle(0x0c0407, 0.95);
-    this.xpBarBg.fillRect(0, 0, width, 14);
-    this.xpBarBg.lineStyle(1.5, 0xc59b27, 0.9);
-    this.xpBarBg.lineBetween(0, 14, width, 14);
+    this.xpBarBg.fillStyle(HUD_COUNTER_THEME.xpTrack, 0.95);
+    this.xpBarBg.fillRect(0, 0, width, L.xpBarH);
+    this.xpBarBg.lineStyle(2, HUD_COUNTER_THEME.border, 1);
+    this.xpBarBg.lineBetween(0, L.xpBarH, width, L.xpBarH);
 
     this.xpBarFill = this.add.graphics();
     this.xpBarFill.setDepth(121);
-
-    this.xpText = this.add.text(width / 2, 7, 'LVL 1   [ 0 / 20 XP ]', {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#00f5d4',
-      stroke: '#002520',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(122);
+    this.lastXpRatio = -1;
 
     // Lista consolidada de todos os elementos da HUD para controle unificado de visibilidade
     this.hudElements = [
@@ -279,20 +288,19 @@ export class UIScene
       ...this.topCenterHud.getHudElements(),
       this.controlsText,
       this.xpBarBg,
-      this.xpBarFill,
-      this.xpText
+      this.xpBarFill
     ];
 
     // 8. Seta de borda para o objetivo fora da tela
     this.altarEdgeIndicator = new AltarEdgeIndicator(this, pixelFont);
     this.hudElements.push(this.altarEdgeIndicator.getHudElement());
 
-    // 8.1. Contador de combo (abaixo de abates e almas)
-    this.comboHud = new ComboHud(this);
+    // 8.1. Contador de combo (perto do radar)
+    this.comboHud = new ComboHud(this, L.combo);
     this.hudElements.push(this.comboHud.getHudElement());
 
-    // 8.2. Armas equipadas e espaço da Suprema
-    this.weaponSlots = new WeaponSlotsHud(this, () => this.tryTriggerUltimate());
+    // 8.2. Armas equipadas e espaço da Suprema (sob o painel de status)
+    this.weaponSlots = new WeaponSlotsHud(this, L.weapons, () => this.tryTriggerUltimate());
     this.hudElements.push(this.weaponSlots.getHudElement());
 
     // ==========================================
@@ -306,7 +314,7 @@ export class UIScene
     // ==========================================
     // 9. CONTROLES TOUCH NA TELA (MOBILE / TABLET)
     // ==========================================
-    this.touchControls = new TouchControls(this);
+    this.touchControls = new TouchControls(this, L.touch);
 
     // ==========================================
     // 10. LIMPEZA NO DESLIGAMENTO DA CENA (DEC-006 / ANTI-LEAK)
@@ -354,6 +362,8 @@ export class UIScene
 
     // 3. Se o modal Fim da Jornada (Game Over) estiver aberto, processa controles
     if (this.isGameOverModalOpen && this.gameOverModal?.container) {
+      // O aviso de "parada demais" ficava aceso por cima do Fim da Jornada
+      this.idlePressureHud?.update(undefined, delta);
       this.gameOverModal.updateControls();
       return;
     }
@@ -403,20 +413,20 @@ export class UIScene
     }
     const scheme = this.controlScheme;
     this.weaponSlots.setUltimateKeyLabel(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'Y' : 'E');
-    // Toque: barra de armas no meio de baixo, e o analógico não nasce em cima dela
-    const isTouch = scheme === 'touch';
-    this.weaponSlots.setTouchLayout(isTouch, this.statusPanel.leftEdge);
-    this.comboHud.setTouchLayout(isTouch);
-    this.touchControls?.setBlockedRect(isTouch ? this.weaponSlots.getBounds() : null);
     this.weaponSlots.update(p, gameScene.weapons);
 
-    // Atualizar Barra Superior de Experiência (XP)
+    // Barra fina de experiência (redesenha só quando muda)
     const { width, height } = this.scale;
     const xpRatio = Phaser.Math.Clamp(p.currentXp / p.xpToNextLevel, 0, 1);
-    this.xpBarFill.clear();
-    this.xpBarFill.fillStyle(0x00f5d4, 1);
-    this.xpBarFill.fillRect(0, 0, width * xpRatio, 13);
-    this.xpText.setText(`LVL ${p.currentLevel}   [ ${p.currentXp} / ${p.xpToNextLevel} XP ]`);
+    if (Math.abs(xpRatio - this.lastXpRatio) > 0.001) {
+      this.lastXpRatio = xpRatio;
+      const h = this.layout.xpBarH;
+      this.xpBarFill.clear();
+      this.xpBarFill.fillStyle(HUD_COUNTER_THEME.xpFill, 1);
+      this.xpBarFill.fillRect(0, 0, width * xpRatio, h - 1);
+      this.xpBarFill.fillStyle(HUD_COUNTER_THEME.xpShine, 1);
+      this.xpBarFill.fillRect(0, 0, width * xpRatio, 2);
+    }
 
     // Topo central: purificação, vida do chefe ou cronômetro do Infinito
     this.topCenterHud.update(gameScene);

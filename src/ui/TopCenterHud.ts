@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { OBJECTIVE_THEME as T, COLORS } from '../config/theme';
+import { HUD_SIZES } from '../config/hudLayout';
 
 /** Chefe com barra de vida no topo. */
 interface IBossBarSource {
@@ -21,181 +23,160 @@ export interface ITopCenterHudWorld {
   chapterTargetSouls: number;
 }
 
+type PlateMode = 'none' | 'purify' | 'timer' | 'boss' | 'bossTimer';
+
+const W = HUD_SIZES.objective.w;
+const H = HUD_SIZES.objective.h;
+const BOSS_W = HUD_SIZES.objective.bossW;
+
 /**
- * Topo central da HUD: barra de purificação de almas (História),
- * barra de vida do chefe e cronômetro/recorde do Modo Infinito.
+ * Topo central da HUD: uma placa de obsidiana com moldura dourada que mostra o objetivo do
+ * momento — purificação de almas (História), relógio e recorde (Infinito) ou a vida do chefe.
+ * Tudo num container escalado pelo layout (maior no celular).
  */
 export class TopCenterHud {
-  private readonly purifyBar: Phaser.GameObjects.Graphics;
-  private readonly purifyLabel: Phaser.GameObjects.Text;
-  private readonly bossBar: Phaser.GameObjects.Graphics;
-  private readonly bossName: Phaser.GameObjects.Text;
+  private readonly container: Phaser.GameObjects.Container;
+  private readonly plate: Phaser.GameObjects.Graphics;
+  private readonly bar: Phaser.GameObjects.Graphics;
+  private readonly label: Phaser.GameObjects.Text;
   private readonly timerText: Phaser.GameObjects.Text;
   private readonly recordText: Phaser.GameObjects.Text;
   private readonly timerIcon?: Phaser.GameObjects.Image;
+  private mode: PlateMode = 'none';
 
   constructor(
     private readonly ui: Phaser.Scene,
     pixelFont: string,
     formattedBestRecord: string,
-    private readonly formatTime: (sec: number) => string
+    private readonly formatTime: (sec: number) => string,
+    layout: { x: number; y: number; scale: number }
   ) {
-    const { width } = ui.scale;
+    this.container = ui.add.container(layout.x, layout.y).setScale(layout.scale).setDepth(110);
+    this.plate = ui.add.graphics();
+    this.bar = ui.add.graphics();
 
-    this.purifyBar = ui.add.graphics();
-    this.purifyBar.setDepth(110);
-
-    this.purifyLabel = ui.add.text(width / 2, 19, 'PURIFICAÇÃO DE ALMAS', {
+    const text = (size: number, color: string, stroke: string): Phaser.Types.GameObjects.Text.TextStyle => ({
       fontFamily: pixelFont,
-      fontSize: '8px',
+      fontSize: `${size}px`,
       fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#0e0208',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(112);
-
-    this.bossBar = ui.add.graphics();
-    this.bossBar.setDepth(115);
-    this.bossBar.setVisible(false);
-
-    this.bossName = ui.add.text(width / 2, 17, 'ROSALIN [CHEFE DO CAPÍTULO 1]', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ff0055',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(116);
-    this.bossName.setVisible(false);
-
-    this.timerText = ui.add.text(width / 2, 22, '00:00', {
-      fontFamily: pixelFont,
-      fontSize: '15px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#3a0812',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(115);
-    this.timerText.setVisible(false);
-
-    this.recordText = ui.add.text(width / 2, 38, `RECORDE: ${formattedBestRecord}`, {
-      fontFamily: pixelFont,
-      fontSize: '9px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#0e0208',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(116);
-    this.recordText.setVisible(false);
-
+      color,
+      stroke,
+      strokeThickness: 3,
+    });
+    this.label = ui.add.text(0, 12, 'PURIFICAÇÃO DE ALMAS', text(12, T.label, T.labelStroke)).setOrigin(0.5);
+    this.timerText = ui.add.text(0, 17, '00:00', text(20, T.timer, T.timerStroke)).setOrigin(0.5);
+    this.recordText = ui.add.text(0, 36, `RECORDE: ${formattedBestRecord}`, text(10, T.label, T.labelStroke)).setOrigin(0.5);
+    const parts: Phaser.GameObjects.GameObject[] = [this.plate, this.bar, this.label, this.timerText, this.recordText];
     if (ui.textures.exists('ui-icon-timer')) {
-      this.timerIcon = ui.add.image(width / 2, 22, 'ui-icon-timer').setDisplaySize(20, 20).setDepth(115).setVisible(false);
+      this.timerIcon = ui.add.image(0, 17, 'ui-icon-timer').setDisplaySize(22, 22);
+      parts.push(this.timerIcon);
     }
+    this.container.add(parts);
+    this.setMode('none');
   }
 
   public getHudElements(): Phaser.GameObjects.GameObject[] {
-    const parts: Phaser.GameObjects.GameObject[] = [this.purifyBar, this.purifyLabel, this.bossBar, this.bossName, this.timerText, this.recordText];
-    if (this.timerIcon) parts.push(this.timerIcon);
-    return parts;
+    return [this.container];
   }
 
   public clear(): void {
-    this.purifyBar.clear();
-    this.bossBar.clear();
-  }
-
-  private show(parts: { purify?: boolean; boss?: boolean; timer?: boolean; record?: boolean }): void {
-    this.purifyBar.setVisible(!!parts.purify);
-    this.purifyLabel.setVisible(!!parts.purify);
-    this.bossBar.setVisible(!!parts.boss);
-    this.bossName.setVisible(!!parts.boss);
-    this.timerText.setVisible(!!parts.timer);
-    this.recordText.setVisible(!!parts.record);
-    this.timerIcon?.setVisible(!!parts.timer);
-  }
-
-  /** Ampulheta sempre colada à esquerda do cronômetro. */
-  private placeTimerIcon(): void {
-    this.timerIcon?.setPosition(this.timerText.x - this.timerText.width / 2 - 14, this.timerText.y);
+    this.bar.clear();
   }
 
   public update(gs: ITopCenterHudWorld): void {
     // Azazel tem prioridade quando está em campo; antes a barra só lia a Rosalin
     const azazel = gs.azazelBoss && gs.azazelBoss.active ? gs.azazelBoss : undefined;
     const boss = azazel ?? gs.bossInstance;
+    const timeText = this.formatTime(Math.floor(gs.survivalTimeMs / 1000));
+
     if (gs.isBossFightActive && boss && boss.active) {
       const isEndless = gs.gameMode === 'endless';
-      this.show({ boss: true, timer: isEndless });
-      this.bossName.setText(this.bossLabel(gs, boss));
-      if (isEndless) {
-        // Durante a luta no Infinito o cronômetro desce para baixo da barra do chefe
-        this.timerText.setY(48);
-        this.timerText.setText(this.formatTime(Math.floor(gs.survivalTimeMs / 1000)));
-        this.placeTimerIcon();
-      }
-      this.drawBossBar(Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1));
+      this.setMode(isEndless ? 'bossTimer' : 'boss');
+      this.label.setText(this.bossLabel(gs, boss));
+      if (isEndless) this.setTimer(timeText);
+      this.drawBar(BOSS_W - 40, 28, Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1), T.bossFill, T.bossShine, 14);
     } else if (gs.gameMode === 'endless') {
-      this.show({ timer: true, record: true });
-      this.timerText.setY(22);
-      this.timerText.setText(this.formatTime(Math.floor(gs.survivalTimeMs / 1000)));
-      this.placeTimerIcon();
+      this.setMode('timer');
+      this.setTimer(timeText);
     } else if (gs.gameMode === 'story' && !gs.isBossFightActive) {
       // Sem números visíveis: só a barra
-      this.show({ purify: true });
-      this.drawPurifyBar(Phaser.Math.Clamp(gs.chapterPurifiedSouls / gs.chapterTargetSouls, 0, 1));
-    } else if (gs.gameMode === 'sandbox' && !gs.isBossFightActive) {
-      // A pílula do Modo de Teste ocupa este espaço
-      this.show({});
+      this.setMode('purify');
+      this.drawBar(W - 40, 26, Phaser.Math.Clamp(gs.chapterPurifiedSouls / gs.chapterTargetSouls, 0, 1), T.purifyFill, T.purifyShine, 10);
+    } else {
+      // Modo de Teste: a pílula do painel ocupa este espaço
+      this.setMode('none');
+    }
+  }
+
+  private setTimer(text: string): void {
+    if (this.timerText.text !== text) this.timerText.setText(text);
+    this.timerIcon?.setX(this.timerText.x - this.timerText.width / 2 - 16);
+  }
+
+  /** Liga as partes do modo e redesenha a placa só quando o modo muda. */
+  private setMode(mode: PlateMode): void {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    const isBoss = mode === 'boss' || mode === 'bossTimer';
+    const hasTimer = mode === 'timer' || mode === 'bossTimer';
+    this.label.setVisible(mode === 'purify' || isBoss);
+    this.label.setColor(isBoss ? T.bossName : T.label);
+    this.timerText.setVisible(hasTimer);
+    this.timerIcon?.setVisible(hasTimer);
+    this.recordText.setVisible(mode === 'timer');
+    this.bar.setVisible(mode === 'purify' || isBoss);
+    this.bar.clear();
+
+    // No Infinito com chefe, o relógio desce para baixo da barra
+    this.timerText.setY(mode === 'bossTimer' ? 58 : 17);
+    this.timerIcon?.setY(this.timerText.y);
+    this.label.setY(isBoss ? 13 : 12);
+
+    const plateW = isBoss ? BOSS_W : mode === 'timer' ? 200 : W;
+    const plateH = mode === 'bossTimer' ? H + 26 : H;
+    this.drawPlate(mode === 'none' ? 0 : plateW, plateH);
+  }
+
+  private drawPlate(w: number, h: number): void {
+    const g = this.plate;
+    g.clear();
+    if (w <= 0) return;
+    const x = -w / 2;
+    g.fillStyle(T.plate, T.plateAlpha);
+    g.fillRect(x, 0, w, h);
+    g.lineStyle(1, T.innerBorder, 1);
+    g.strokeRect(x + 3, 3, w - 6, h - 6);
+    g.lineStyle(2, T.border, 1);
+    g.strokeRect(x, 0, w, h);
+    // Cantos reforçados (mesma moldura da barra de armas e das cartas)
+    g.fillStyle(T.border, 1);
+    for (const [cx, cy] of [[x, 0], [x + w, 0], [x, h], [x + w, h]]) g.fillRect(cx - 3, cy - 3, 6, 6);
+  }
+
+  private drawBar(w: number, y: number, ratio: number, fill: number, shine: number, h: number): void {
+    const g = this.bar;
+    g.clear();
+    const x = -w / 2;
+    g.fillStyle(T.barTrack, 1);
+    g.fillRect(x, y, w, h);
+    g.lineStyle(1, T.border, 0.9);
+    g.strokeRect(x, y, w, h);
+    if (ratio > 0.005) {
+      g.fillStyle(fill, 1);
+      g.fillRect(x + 2, y + 2, (w - 4) * ratio, h - 4);
+      g.fillStyle(shine, 0.85);
+      g.fillRect(x + 2, y + 2, (w - 4) * ratio, 2);
+      g.fillStyle(COLORS.white, 0.9);
+      g.fillRect(x + 2 + (w - 4) * ratio - 2, y + 1, 2, h - 2);
     }
   }
 
   /** O nome vem de quem está na luta, não do capítulo (no Infinito o capítulo é sempre 1). */
   private bossLabel(gs: ITopCenterHudWorld, boss: IBossBarSource): string {
     const isAzazel = boss === gs.azazelBoss;
-    if (!isAzazel) return 'ROSALIN [CHEFE DO CAPÍTULO 1]';
-    if (boss.combatPhase === 3) return `AZAZEL [CRISTAIS PURIFICADOS: ${gs.azazelCrystalsCaptured || 0}/3]`;
-    return 'AZAZEL [CHEFE DO CAPÍTULO 2]';
-  }
-
-  private drawBossBar(ratio: number): void {
-    const g = this.bossBar;
-    g.clear();
-    const bW = 460;
-    const bH = 12;
-    const bX = this.ui.scale.width / 2 - bW / 2;
-    const bY = 28;
-
-    g.fillStyle(0x1a0208, 0.96);
-    g.fillRoundedRect(bX, bY, bW, bH, 4);
-    g.lineStyle(2, 0xc59b27, 1);
-    g.strokeRoundedRect(bX, bY, bW, bH, 4);
-    g.lineStyle(1, 0xf3d17a, 0.8);
-    g.strokeRoundedRect(bX + 1, bY + 1, bW - 2, bH - 2, 3);
-
-    if (ratio > 0.01) {
-      g.fillStyle(0xd90429, 1);
-      g.fillRoundedRect(bX + 2, bY + 2, (bW - 4) * ratio, bH - 4, 3);
-      g.fillStyle(0xff4d6d, 0.85);
-      g.fillRect(bX + 3, bY + 3, (bW - 6) * ratio, 2);
-    }
-  }
-
-  private drawPurifyBar(ratio: number): void {
-    const g = this.purifyBar;
-    g.clear();
-    const pW = 320;
-    const pH = 8;
-    const pX = this.ui.scale.width / 2 - pW / 2;
-    const pY = 28;
-
-    g.fillStyle(0x140208, 0.94);
-    g.fillRoundedRect(pX, pY, pW, pH, 3);
-    g.lineStyle(1.5, 0xc59b27, 0.9);
-    g.strokeRoundedRect(pX, pY, pW, pH, 3);
-
-    if (ratio > 0.01) {
-      g.fillStyle(0xff0055, 1);
-      g.fillRoundedRect(pX + 1.5, pY + 1.5, (pW - 3) * ratio, pH - 3, 2);
-    }
+    // Hífen, não ponto médio: a fonte pixel não tem todos os símbolos
+    if (!isAzazel) return 'ROSALIN - CHEFE DO CAPÍTULO 1';
+    if (boss.combatPhase === 3) return `AZAZEL - CRISTAIS ${gs.azazelCrystalsCaptured || 0}/3`;
+    return 'AZAZEL - CHEFE DO CAPÍTULO 2';
   }
 }

@@ -4,6 +4,20 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-24
 
+### HUD nova, pensada para o celular
+
+#### Resumo para o Jogador
+- **Status no topo esquerdo:** a moldura da Nixy saiu do canto de baixo à direita (onde ficava o polegar) e foi para o alto à esquerda. O rosto dela agora aparece dentro do medalhão do olho da moldura e fica vermelho e treme quando ela toma dano. Vida e nível com números grandes.
+- **Armas logo abaixo do status**, e a **barra de XP** virou uma faixa fina de ponta a ponta no alto da tela.
+- **Objetivo no topo central** numa placa de obsidiana com moldura dourada: purificação (História), relógio e recorde (Infinito) ou a vida do chefe.
+- **Abates e almas** lado a lado no topo direito, com o **radar** logo abaixo.
+- **No celular:** tudo maior e legível. A **Suprema ficou grande no canto do polegar direito**, com esquiva e corrida em arco em volta dela, e não é mais preciso parar de andar para soltá-la. O analógico nasce em qualquer ponto da metade esquerda, abaixo das armas.
+- **Corrigido:** o aviso "PARADA DEMAIS" ficava aceso por cima do Fim da Jornada.
+
+#### Técnico
+- `src/config/hudLayout.ts` (posição e escala de cada peça por tamanho de tela e tipo de aparelho), testado em `hudLayout.test.ts` (tudo dentro da tela e nada sobreposto em 1280, 1562 e 1680, no toque e no computador).
+- `StatusPanelHud`, `TopCenterHud`, `WeaponSlotsHud`, `TacticalRadar`, `ComboHud` e `TouchControls` recebem a posição do layout; as cores novas foram para `HUD_COUNTER_THEME` e `OBJECTIVE_THEME`.
+
 ### Botão PULAR que funciona no celular
 
 #### Resumo para o Jogador
