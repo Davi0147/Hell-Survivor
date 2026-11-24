@@ -1163,7 +1163,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     btnContainer.add([bg, text]);
     btnContainer.setSize(130, 36);
-    btnContainer.setInteractive(new Phaser.Geom.Rectangle(-65, -18, 130, 36), Phaser.Geom.Rectangle.Contains);
+    // Container: a área de toque conta do canto de cima à esquerda (ver ActionKeyButton)
+    btnContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, 130, 36), Phaser.Geom.Rectangle.Contains);
 
     btnContainer.on('pointerover', () => {
       bg.clear();

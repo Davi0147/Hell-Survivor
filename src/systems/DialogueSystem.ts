@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SoundManager } from './SoundManager';
 import { enableCensoredTextHighlight } from './TextHighlight';
 import { GamepadManager } from './GamepadManager';
+import { SkipButton } from '../ui/SkipButton';
 
 export interface DialogueLine {
   speaker: string; // 'nixy', 'succubus', ou futuros NPCs
@@ -35,6 +36,8 @@ export class DialogueSystem {
   private nameText!: Phaser.GameObjects.Text;
   private dialogueText!: Phaser.GameObjects.Text;
   private promptText!: Phaser.GameObjects.Text;
+  /** Pular a conversa inteira (antes só existia no ESC e no B do controle; no celular não havia). */
+  private skipButton!: SkipButton;
 
   // Posições dos balões
   private readonly BALLOON_W = 870;
@@ -142,11 +145,17 @@ export class DialogueSystem {
       repeat: -1
     });
 
-    // 5. Controles de Teclado, Toque e Clique
-    dimBg.on('pointerdown', () => this.handleAdvance());
+    // 4.6 Botão Pular (acima do escurecimento; fica visível junto com o diálogo)
+    this.skipButton = new SkipButton(this.scene, 'PULAR', () => this.skipAll(), 3040);
+    this.skipButton.setVisible(false);
 
-    this.scene.input.on('pointerdown', () => {
-      if (this.container.visible) this.handleAdvance();
+    // 5. Controles de Teclado, Toque e Clique
+    // (o escurecimento só segura o clique para não chegar no jogo; quem avança é o ouvinte da cena,
+    // senão um toque avançava duas falas)
+    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!this.container.visible) return;
+      if (this.skipButton.containsPointer(pointer)) return;
+      this.handleAdvance();
     });
 
     if (this.scene.input.keyboard) {
@@ -186,6 +195,7 @@ export class DialogueSystem {
     this.rightBustImage.setAlpha(0);
 
     this.container.setVisible(true);
+    this.skipButton.setVisible(true);
     this.displayLine(0);
   }
 
@@ -523,18 +533,21 @@ export class DialogueSystem {
       if (stickActive || btnActive) {
         if (this.currentControlScheme !== 'gamepad') {
           this.currentControlScheme = 'gamepad';
-          if (this.promptText) this.promptText.setText('▶ (A) AVANÇAR  |  (B) PULAR');
+          if (this.promptText) this.promptText.setText('▶ (A) AVANÇAR');
+          this.skipButton.setScheme('gamepad');
         }
       }
     } else if (isTouch && this.currentControlScheme !== 'touch') {
       this.currentControlScheme = 'touch';
       if (this.promptText) this.promptText.setText('▶ TOQUE P/ AVANÇAR');
+      this.skipButton.setScheme('touch');
     }
 
     if (this.wasKeyboardPressed && this.currentControlScheme !== 'keyboard') {
       this.currentControlScheme = 'keyboard';
       this.wasKeyboardPressed = false;
-      if (this.promptText) this.promptText.setText('▶ ESPAÇO / CLIQUE  |  [ESC] PULAR');
+      if (this.promptText) this.promptText.setText('▶ ESPAÇO / CLIQUE');
+      this.skipButton.setScheme('keyboard');
     }
 
     const nav = GamepadManager.getInstance().getMenuNavigation(this.scene);
@@ -558,6 +571,7 @@ export class DialogueSystem {
     this.scene.tweens.killTweensOf(this.balloonContainer);
 
     this.container.setVisible(false);
+    this.skipButton.setVisible(false);
     this.leftBustImage.setAlpha(0);
     this.rightBustImage.setAlpha(0);
     this.currentSpeakerSide = undefined;

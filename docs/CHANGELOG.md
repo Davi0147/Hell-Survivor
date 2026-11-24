@@ -4,6 +4,17 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-24
 
+### Botão PULAR que funciona no celular
+
+#### Resumo para o Jogador
+- **Pular no celular:** o botão PULAR da intro e do fim de capítulo ficava minúsculo no iPhone (uns 15 pontos de altura), e no fim do Capítulo 1 havia uma área em volta dele que engolia o toque. Agora ele é grande no celular, tem o visual dourado dos botões da tela de cartas e funciona na área inteira.
+- **Diálogos no meio da partida** (chegada da Rosalin, do Azazel...) ganharam o mesmo botão PULAR. Antes só dava para pular com ESC ou o B do controle.
+- **Corrigido:** os botões RE-ROLAR e CANALIZAR da tela de cartas só respondiam no quarto de cima à esquerda; agora respondem no botão todo.
+
+#### Técnico
+- `src/ui/SkipButton.ts` (tamanho por tipo de aparelho, `containsPointer` para a cena não avançar o texto com o mesmo toque).
+- `ActionKeyButton`: área de toque de Container é relativa ao canto (Phaser soma `displayOrigin`); mesma correção no botão do Editor.
+
 ### Fúria do Inferno e Lyn na vila
 
 #### Resumo para o Jogador

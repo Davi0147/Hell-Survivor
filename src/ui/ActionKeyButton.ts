@@ -15,6 +15,8 @@ export interface ActionKeyButtonOptions {
   badgeColor?: string;
   onClick: () => void;
   onHover?: () => void;
+  /** Tamanho da fonte do nome (padrão 15). Maior no celular, onde o jogo é encolhido. */
+  labelFontSize?: number;
 }
 
 /**
@@ -56,7 +58,7 @@ export class ActionKeyButton {
 
     this.labelText = scene.add.text(iconX + h / 2 + 8, 0, opts.label, {
       fontFamily: FONTS.body,
-      fontSize: '15px',
+      fontSize: `${opts.labelFontSize ?? 15}px`,
       fontStyle: 'bold',
       color: T.label,
       stroke: COLORS.strokeBlack,
@@ -76,7 +78,9 @@ export class ActionKeyButton {
     this.container.add([this.keyCap, this.keyText]);
 
     this.container.setSize(w, h);
-    this.container.setInteractive(new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h), Phaser.Geom.Rectangle.Contains);
+    // A área de toque de um Container conta a partir do canto de cima à esquerda (o Phaser soma
+    // metade do tamanho ao ponto). Com (-w/2, -h/2) só o quarto de cima à esquerda respondia.
+    this.container.setInteractive(new Phaser.Geom.Rectangle(0, 0, w, h), Phaser.Geom.Rectangle.Contains);
     if (this.container.input) this.container.input.cursor = 'pointer';
     this.container.on('pointerover', () => {
       if (!this.enabled) return;

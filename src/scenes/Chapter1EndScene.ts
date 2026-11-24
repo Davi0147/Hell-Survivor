@@ -4,6 +4,7 @@ import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { GamepadManager } from '../systems/GamepadManager';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { CHAPTER2_END_FALLBACK } from '../config/theme';
+import { SkipButton } from '../ui/SkipButton';
 
 interface DialogueStep {
   bgKey: string;
@@ -40,8 +41,7 @@ export class Chapter1EndScene extends Phaser.Scene {
   private blackOverlay!: Phaser.GameObjects.Rectangle;
   private slashGraphics!: Phaser.GameObjects.Graphics;
   private cutPromptText!: Phaser.GameObjects.Text;
-  private skipBtnContainer!: Phaser.GameObjects.Container;
-  private skipTxt!: Phaser.GameObjects.Text;
+  private skipButton!: SkipButton;
 
   // Caixa de Diálogo Estilo Persona 5 / Visual Novel
   private boxContainer!: Phaser.GameObjects.Container;
@@ -281,66 +281,19 @@ export class Chapter1EndScene extends Phaser.Scene {
   }
 
   private setupSkipButton(): void {
-    const { width } = this.scale;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
-
-    this.skipBtnContainer = this.add.container(width - 120, 36).setDepth(60);
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0f0308, 0.85);
-    bg.fillRoundedRect(-85, -16, 170, 32, 6);
-    bg.lineStyle(1.5, 0xff0055, 0.8);
-    bg.strokeRoundedRect(-85, -16, 170, 32, 6);
-    this.skipBtnContainer.add(bg);
-
-    this.skipTxt = this.add.text(0, 0, '[ESC] PULAR CENA', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#ffd8a8',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    this.skipBtnContainer.add(this.skipTxt);
-
-    const hit = this.add.zone(0, 0, 170, 32);
-    hit.setInteractive({ useHandCursor: true });
-    this.skipBtnContainer.add(hit);
-
-    hit.on('pointerover', () => {
-      bg.clear();
-      bg.fillStyle(0x280410, 0.95);
-      bg.fillRoundedRect(-85, -16, 170, 32, 6);
-      bg.lineStyle(2, 0xff2a55, 1);
-      bg.strokeRoundedRect(-85, -16, 170, 32, 6);
-      this.skipTxt.setColor('#ffffff');
-    });
-
-    hit.on('pointerout', () => {
-      bg.clear();
-      bg.fillStyle(0x0f0308, 0.85);
-      bg.fillRoundedRect(-85, -16, 170, 32, 6);
-      bg.lineStyle(1.5, 0xff0055, 0.8);
-      bg.strokeRoundedRect(-85, -16, 170, 32, 6);
-      this.skipTxt.setColor('#ffd8a8');
-    });
-
-    hit.on('pointerdown', () => {
-      this.skipScene();
-    });
+    this.skipButton = new SkipButton(this, 'PULAR CENA', () => this.skipScene(), 60);
   }
 
   private updateControlPrompts(): void {
+    this.skipButton.setScheme(this.currentControlScheme);
     if (this.currentControlScheme === 'gamepad') {
       this.promptText.setText('(A) AVANÇAR ▶');
-      this.skipTxt.setText('[(B)] PULAR CENA');
       this.cutPromptText.setText('(A) AVANÇAR ▶');
     } else if (this.currentControlScheme === 'touch') {
       this.promptText.setText('TOQUE P/ AVANÇAR ▶');
-      this.skipTxt.setText('PULAR CENA');
       this.cutPromptText.setText('TOQUE P/ AVANÇAR ▶');
     } else {
       this.promptText.setText('ESPAÇO ▶');
-      this.skipTxt.setText('[ESC] PULAR CENA');
       this.cutPromptText.setText('ESPAÇO P/ CONTINUAR ▶');
     }
   }
@@ -391,10 +344,9 @@ export class Chapter1EndScene extends Phaser.Scene {
 
       if (this.isEnding || this.isSlashCutPlaying) return;
 
-      // Se clicar no canto superior direito do botão pular, deixa o evento do botão lidar
-      if (pointer.x > this.scale.width - 210 && pointer.y < 70) {
-        return;
-      }
+      // Toque no botão Pular é dele. Antes havia uma "área morta" maior que o botão em volta
+      // dele, e no celular um toque perto do botão não pulava nem avançava (parecia travado).
+      if (this.skipButton.containsPointer(pointer)) return;
 
       this.handleAdvance();
     });
@@ -1236,6 +1188,7 @@ export class Chapter1EndScene extends Phaser.Scene {
 
   private skipScene(): void {
     if (this.isEnding) return;
+    SoundManager.getInstance().playMenuClick();
     this.finishScene();
   }
 
@@ -1245,7 +1198,7 @@ export class Chapter1EndScene extends Phaser.Scene {
 
     if (this.typeTimer) this.typeTimer.remove();
     this.boxContainer.setVisible(false);
-    this.skipBtnContainer.setVisible(false);
+    this.skipButton.setVisible(false);
     this.cutPromptText.setVisible(false);
     this.tweens.killTweensOf(this.leftBust);
     this.tweens.killTweensOf(this.rightBust);

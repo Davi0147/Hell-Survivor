@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { GamepadManager } from '../systems/GamepadManager';
+import { SkipButton } from '../ui/SkipButton';
 
 interface IntroStep {
   bgKey?: string;
@@ -22,8 +23,7 @@ export class IntroScene extends Phaser.Scene {
   private flickerOverlay!: Phaser.GameObjects.Rectangle;
   private paperParticles!: Phaser.GameObjects.Group;
   private blackFadeOverlay!: Phaser.GameObjects.Rectangle;
-  private skipBtnContainer!: Phaser.GameObjects.Container;
-  private skipTxt!: Phaser.GameObjects.Text;
+  private skipButton!: SkipButton;
 
   // Bustos dos Personagens
   private leftBust!: Phaser.GameObjects.Image;
@@ -197,47 +197,13 @@ export class IntroScene extends Phaser.Scene {
       repeat: -1
     });
 
-    // 6. Botão de Pular no Canto Superior Direito: [ESC] PULAR INTRO
-    const skipBtn = this.add.container(width - 130, 36).setDepth(100);
-    const skipG = this.add.graphics();
-    const btnW = 190;
-    const btnH = 34;
-
-    const renderSkip = (hover: boolean) => {
-      skipG.clear();
-      skipG.fillStyle(hover ? 0x9d0208 : 0x180309, 0.85);
-      skipG.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 6);
-      skipG.lineStyle(1.5, hover ? 0xffffff : 0xc59b27, 0.9);
-      skipG.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 6);
-    };
-    renderSkip(false);
-    skipBtn.add(skipG);
-
-    this.skipTxt = this.add.text(0, 0, '[ESC] PULAR INTRO', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    skipBtn.add(this.skipTxt);
-
-    const skipZone = this.add.zone(0, 0, btnW, btnH).setInteractive({ useHandCursor: true });
-    skipBtn.add(skipZone);
-
-    skipZone.on('pointerover', () => {
-      renderSkip(true);
-      SoundManager.getInstance().playMenuHover();
-    });
-    skipZone.on('pointerout', () => renderSkip(false));
-    skipZone.on('pointerdown', () => this.skipIntro());
-
-    this.skipBtnContainer = skipBtn;
+    // 6. Botão de Pular no canto superior direito (grande no celular)
+    this.skipButton = new SkipButton(this, 'PULAR INTRO', () => this.skipIntro(), 100);
 
     // 7. Controles de Avanço (Clique, Espaço, Enter, ESC, Toque)
-    this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[]) => {
-      if (gameObjects.includes(skipZone)) return;
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // O toque que caiu no Pular é dele: não avança o texto antes de a cena acabar
+      if (this.skipButton.containsPointer(pointer)) return;
       this.handleAdvance();
     });
 
@@ -288,7 +254,7 @@ export class IntroScene extends Phaser.Scene {
 
     // Ocultar balão e botão enquanto a tela está preta nos 2 segundos iniciais
     this.boxContainer.setVisible(false);
-    this.skipBtnContainer.setVisible(false);
+    this.skipButton.setVisible(false);
 
     // Fica na escuridão por exatamente 2 segundos enquanto a música faz o fade-in suave em loop
     this.initialDarkTimer = this.time.delayedCall(2000, () => {
@@ -301,7 +267,7 @@ export class IntroScene extends Phaser.Scene {
         onComplete: () => {
           this.initialFadeTween = undefined;
           this.boxContainer.setVisible(true);
-          this.skipBtnContainer.setVisible(true);
+          this.skipButton.setVisible(true);
           this.displayStep(0);
         }
       });
@@ -643,20 +609,20 @@ export class IntroScene extends Phaser.Scene {
         if (this.currentControlScheme !== 'gamepad') {
           this.currentControlScheme = 'gamepad';
           if (this.promptText) this.promptText.setText('▶ (A) AVANÇAR');
-          if (this.skipTxt) this.skipTxt.setText('[(B)] PULAR INTRO');
+          this.skipButton.setScheme('gamepad');
         }
       }
     } else if (isTouch && this.currentControlScheme !== 'touch') {
       this.currentControlScheme = 'touch';
       if (this.promptText) this.promptText.setText('▶ TOQUE P/ AVANÇAR');
-      if (this.skipTxt) this.skipTxt.setText('PULAR INTRO');
+      this.skipButton.setScheme('touch');
     }
 
     if (this.wasKeyboardPressed && this.currentControlScheme !== 'keyboard') {
       this.currentControlScheme = 'keyboard';
       this.wasKeyboardPressed = false;
       if (this.promptText) this.promptText.setText('▶ ESPAÇO / CLIQUE');
-      if (this.skipTxt) this.skipTxt.setText('[ESC] PULAR INTRO');
+      this.skipButton.setScheme('keyboard');
     }
 
     const nav = GamepadManager.getInstance().getMenuNavigation(this);
@@ -744,7 +710,7 @@ export class IntroScene extends Phaser.Scene {
 
     // Oculta caixa de diálogo e botão para focar na transição
     if (this.boxContainer) this.boxContainer.setVisible(false);
-    if (this.skipBtnContainer) this.skipBtnContainer.setVisible(false);
+    this.skipButton?.setVisible(false);
 
     // Se o jogador pulou durante a escuridão inicial (ou se a tela já está preta):
     if (isSkip && this.blackFadeOverlay && this.blackFadeOverlay.alpha >= 0.8) {
