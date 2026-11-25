@@ -23,6 +23,8 @@ export interface IPickupSpawnContext {
   readonly sandboxAutoSpawn: boolean;
   altarInstance: EvolutionAltar | null;
   clampToArena(x: number, y: number, margin?: number): { x: number; y: number };
+  /** Uma tela de cartas está sendo aberta neste quadro (ainda não conta como ativa). */
+  isUpgradeSceneOpening?: boolean;
   /** Aviso no topo da tela (altar que virou baú). */
   showWaveAlert?(message: string, durationMs?: number): void;
 }
@@ -43,6 +45,8 @@ interface ViewBounds {
  */
 export class PickupSpawnSystem {
   private altarSpawnTimer = 0;
+  /** Altar a 100% esperando a vez de abrir a escolha (depois dos level ups da fila). */
+  private completedAltar: EvolutionAltar | null = null;
   private mapItemSpawnTimer = 0;
   private gemSyncTimer = 0;
   private readonly gemReserve = new GemReserve(PERFORMANCE_LIMITS.MAX_STORED_GEMS);
@@ -105,6 +109,7 @@ export class PickupSpawnSystem {
 
     const altar = this.ctx.altarInstance;
     if (altar && altar.active && !altar.isDestroyed) altar.updateAltar(player, delta);
+    this.tryOpenCompletedAltar();
     // Sempre: faz o altar surgir quando há arma no máximo e sumir quando não há
     this.updateAltarSpawning(delta);
   }
@@ -306,10 +311,28 @@ export class PickupSpawnSystem {
     return altar;
   }
 
-  /** Altar carregado a 100%: pausa o jogo e abre a escolha de evolução. */
+  /**
+   * Altar carregado a 100%: só marca. A escolha abre em `tryOpenCompletedAltar`, no primeiro
+   * quadro livre. Abrir na hora atropelava um level up do mesmo instante (as duas telas de
+   * cartas se cancelavam e o jogo ficava pausado com o clarão do altar congelado).
+   */
   private handleAltarCompleted(altar: EvolutionAltar): void {
+    this.completedAltar = altar;
+    DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Ascensão completado 100%: escolha na fila.');
+  }
+
+  /** Abre a escolha do altar completado quando nenhuma outra tela de cartas está aberta ou na fila. */
+  private tryOpenCompletedAltar(): void {
+    const altar = this.completedAltar;
+    if (!altar) return;
+    if (!altar.active || altar.isDestroyed) {
+      this.completedAltar = null;
+      return;
+    }
     if (this.ctx.isGameOver || this.ctx.isChapterCompleted) return;
-    if (this.scene.scene.isActive('UpgradeScene')) return;
+    const busy = this.scene.scene.isActive('UpgradeScene') || this.ctx.isUpgradeSceneOpening === true || this.ctx.player.pendingLevelUps > 0;
+    if (busy) return;
+    this.completedAltar = null;
 
     // Sem arma para evoluir: vira um Baú do Abismo no chão, sem pausar (antes travava)
     if (altarCompletionAction(getAltarEvolutionCards(this.ctx.player, this.scene).length) === 'fallback-reward') {
@@ -325,6 +348,12 @@ export class PickupSpawnSystem {
     this.scene.cameras.main.flash(300, 255, 230, 0);
     this.scene.physics.pause();
     this.scene.scene.pause();
+
+    // Um level up no mesmo quadro espera esta tela fechar (o mesmo aviso que o level up usa)
+    this.ctx.isUpgradeSceneOpening = true;
+    this.scene.scene.get('UpgradeScene')?.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.ctx.isUpgradeSceneOpening = false;
+    });
 
     this.scene.scene.launch('UpgradeScene', {
       player: this.ctx.player,
