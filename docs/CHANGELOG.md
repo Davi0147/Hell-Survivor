@@ -4,6 +4,21 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-24
 
+### Chefes mais duros e fase dos cristais sem enrolação
+
+#### Resumo para o Jogador
+- **Grito do Azazel legível:** o "SUA ALMA É MINHA!" do começo da luta aparecia em cima da cabeça dele, atrás da barra de vida. Agora surge grande no centro da tela, como as outras frases dele.
+- **Fase dos cristais com pressa:** quanto mais tempo você demora para purificar os cristais, mais fortes ficam os monstros (mais vida e mais dano, e as levas chegam mais rápido). Enquanto isso o **Azazel se cura devagar** (0,4% da vida por segundo, até 60%) e dá para ver a barra subindo, com o aviso "AZAZEL SE CURA" no nome.
+- **Área fechada nos cristais:** a fase acontece num círculo menor, marcado por uma borda de blocos carmesim. Não dá para sair correndo, e os cristais ficam mais perto.
+- **Azazel:** +30% de vida e +10% de dano em todos os golpes.
+- **Rosalin:** +20% de vida e +30% de dano (no História e no Infinito). O salto esmagador dela agora tira 55 de 100 de vida base.
+- **Chefes não cobrem mais a heroína:** a Nixy sempre aparece na frente da Rosalin, do Azazel, dos clones e da Lyn.
+
+#### Técnico
+- `AZAZEL_BOSS_BALANCE.crystalPhase` + `src/systems/crystalPhaseRules.ts` (testado em `crystalPhaseRules.test.ts`); `AZAZEL_BOSS_BALANCE.damageMultiplier` aplicado a golpes, contato e clones.
+- Regras de justiça da Rosalin em `bossBalance.test.ts` atualizadas para o novo dano (salto até 56% no História, 66% no Infinito; os outros golpes seguem até 45%).
+- Heroína na camada 23 (chefes 21–22, projéteis 25+).
+
 ### Menu de capítulos novo e controle em mais telas
 
 #### Resumo para o Jogador

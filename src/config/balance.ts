@@ -441,8 +441,9 @@ export const LYN_BALANCE = {
 // base da heroína (100 HP), e todo golpe forte é telegrafado. Quem erra duas vezes
 // seguidas ainda está vivo; quem erra sempre, morre.
 export const SUCCUBUS_BOSS_BALANCE = {
-  story: { hp: 9000, speed: 125, damage: 20, scale: 1.75, attackDamageMultiplier: 1 },
-  endless: { hp: 12000, speed: 135, damage: 24, scale: 1.85, attackDamageMultiplier: 1.2 },
+  // Vida +20% e dano +30% (pedido do dono em 2026-11-24): 9000→10800, 20→26, golpes x1.3
+  story: { hp: 10800, speed: 125, damage: 26, scale: 1.75, attackDamageMultiplier: 1.3 },
+  endless: { hp: 14400, speed: 135, damage: 31, scale: 1.85, attackDamageMultiplier: 1.56 },
   attacks: {
     dashDamage: 30,
     dashTelegraphMs: 1000,
@@ -471,8 +472,13 @@ export const SUCCUBUS_BOSS_BALANCE = {
 // 5. CHEFE DO CAPÍTULO 2: AZAZEL, O ANJO CAÍDO
 // ============================================================================
 export const AZAZEL_BOSS_BALANCE = {
-  /** 24000 (antes 16000): o dono achou que ele caía rápido demais. */
-  maxHp: 24000,
+  /** 31200 = 24000 +30% (pedido do dono em 2026-11-24; antes 16000 → 24000). */
+  maxHp: 31200,
+  /**
+   * Multiplica TODO dano dele (golpes, orbes, contato e clones). 1.1 = +10% pedido do
+   * dono em 2026-11-24. Soma-se à revanche (que alivia) por multiplicação.
+   */
+  damageMultiplier: 1.1,
   speed: 138,
   scale: 1.65,
   /** Fração do dano que atravessa a armadura dele. */
@@ -531,6 +537,27 @@ export const AZAZEL_BOSS_BALANCE = {
   /** Fase dos cristais: quantos cristais, e de quanto em quanto tempo nasce uma leva. */
   crystalCount: 3,
   dimensionWaveIntervalMs: 1100,
+  /**
+   * Fase dos cristais sem enrolação: quem fica farmando os monstros em vez de purificar
+   * os cristais vê a horda ficar mais forte e o Azazel recuperando vida na barra.
+   */
+  crystalPhase: {
+    /** Força da horda sobe este tanto por segundo de fase (+0.01 = +60% por minuto). */
+    hordeStrengthPerSec: 0.01,
+    hordeStrengthMax: 3,
+    /** Fração do aumento de força que vira dano (o resto fica só na vida dos monstros). */
+    hordeDamageShare: 0.5,
+    /** A leva nasce mais rápido conforme a força sobe, até este intervalo mínimo. */
+    minWaveIntervalMs: 650,
+    /** Vida que o Azazel recupera por segundo, em fração da vida máxima (0.004 = 0,4%/s). */
+    bossRegenPerSec: 0.004,
+    /** Teto da recuperação, em fração da vida máxima (entra na fase com 20%). */
+    bossRegenCap: 0.6,
+    /** Raio da área jogável em volta do centro da fase (a heroína não sai dele). */
+    arenaRadius: 470,
+    /** Distância dos cristais até o centro (sorteada entre min e max). */
+    crystalDist: { min: 220, max: 340 },
+  },
   /** Cálice de cura entregue ao entrar na fase dos cristais e ao voltar para o duelo final. */
   healOnPhaseChange: true,
   soulReward: { min: 90, max: 120 },

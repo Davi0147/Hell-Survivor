@@ -69,6 +69,8 @@ vi.mock('../entities/enemies/AzazelBoss', async () => {
   class AzazelBoss extends Base {
     resumeFinalShowdown = vi.fn();
     playMidPrepareScream = vi.fn();
+    isBanished = true;
+    regenerateWhileBanished = vi.fn();
   }
   class AzazelPhantomClone extends Base {}
   return { AzazelBoss, AzazelPhantomClone };
@@ -158,6 +160,14 @@ function createScene(hud: ReturnType<typeof createHud>) {
     cameras: { main: { flash: vi.fn(), shake: vi.fn(), fadeOut: vi.fn(), once: vi.fn() } },
     time: { delayedCall: vi.fn() },
     physics: { pause: vi.fn() },
+    // Borda da área da fase dos cristais
+    add: {
+      graphics: () => {
+        const g = { scene: true, setDepth: () => g, fillStyle: () => g, fillRect: () => g, setAlpha: () => g, destroy: vi.fn() };
+        return g;
+      },
+    },
+    tweens: { add: vi.fn(), killTweensOf: vi.fn() },
   };
 }
 
@@ -170,7 +180,7 @@ function createContext(gameMode: 'story' | 'endless' | 'sandbox' = 'story'): Tes
     currentLevel: 7,
     characterId: 'nixy',
     currentDirection: 'south',
-    body: { setVelocity: vi.fn() },
+    body: { setVelocity: vi.fn(), reset: vi.fn() },
     play: vi.fn(),
     setPosition: vi.fn(),
     gainUltimateCharge: vi.fn(),
@@ -227,7 +237,7 @@ describe('BossFightSystem', () => {
       const { ctx, system } = build('story');
       system.spawnRosalin(false, false);
       expect(ctx.bossInstance?.maxHp).toBe(SUCCUBUS_BOSS_BALANCE.story.hp);
-      expect(ctx.bossInstance?.attackDamageMultiplier).toBe(1);
+      expect(ctx.bossInstance?.attackDamageMultiplier).toBe(SUCCUBUS_BOSS_BALANCE.story.attackDamageMultiplier);
     });
 
     it('depois de 2 mortes no História: menos vida e menos dano', () => {
@@ -235,7 +245,7 @@ describe('BossFightSystem', () => {
       const { ctx, system } = build('story');
       system.spawnRosalin(false, false);
       expect(ctx.bossInstance?.maxHp).toBe(Math.round(SUCCUBUS_BOSS_BALANCE.story.hp * (1 - 2 * BOSS_MERCY.hpReductionPerDeath)));
-      expect(ctx.bossInstance?.attackDamageMultiplier).toBeCloseTo(1 - 2 * BOSS_MERCY.damageReductionPerDeath);
+      expect(ctx.bossInstance?.attackDamageMultiplier).toBeCloseTo(SUCCUBUS_BOSS_BALANCE.story.attackDamageMultiplier * (1 - 2 * BOSS_MERCY.damageReductionPerDeath));
     });
 
     it('Infinito e Modo de Teste nunca recebem alívio', () => {
@@ -349,6 +359,36 @@ describe('BossFightSystem', () => {
 
       system.update(AZAZEL_BOSS_BALANCE.dimensionWaveIntervalMs + 1);
       expect(ctx.spawnAzazelDimensionHordeWave).toHaveBeenCalledTimes(initialWaves + 1);
+    });
+
+    it('enrolar na fase deixa a horda mais forte e o Azazel se curando', () => {
+      const { ctx, system } = build('story');
+      ctx.isBossFightActive = true;
+      system.spawnAzazel(false);
+      system.startAzazelCrystalPhase();
+      const boss = ctx.azazelBoss as unknown as { hp: number; maxHp: number; regenerateWhileBanished: ReturnType<typeof vi.fn> };
+      boss.hp = boss.maxHp * 0.2;
+
+      // Um minuto inteiro sem purificar nada
+      system.update(60_000);
+      const calls = vi.mocked(ctx.spawnAzazelDimensionHordeWave).mock.calls;
+      const lastStrength = calls[calls.length - 1][0] as number;
+      expect(lastStrength).toBeGreaterThan(1.5);
+      const healedTo = boss.regenerateWhileBanished.mock.calls[0][0] as number;
+      expect(healedTo).toBeGreaterThan(boss.hp);
+    });
+
+    it('a heroína não sai da área da fase', () => {
+      const { ctx, system } = build('story');
+      ctx.isBossFightActive = true;
+      system.spawnAzazel(false);
+      system.startAzazelCrystalPhase();
+      const player = ctx.player as unknown as { x: number; y: number; body: { reset: ReturnType<typeof vi.fn> } };
+      player.x = 5000;
+      player.y = 0;
+      system.update(16);
+      const [rx, ry] = player.body.reset.mock.calls[0] as [number, number];
+      expect(Math.hypot(rx, ry)).toBeCloseTo(AZAZEL_BOSS_BALANCE.crystalPhase.arenaRadius);
     });
 
     it('purificar todos os cristais encerra a horda e traz Azazel de volta', () => {

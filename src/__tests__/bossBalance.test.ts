@@ -13,18 +13,24 @@ import {
 const BASE_HP = BALANCE.NIXY.maxHp;
 
 describe('Regras de justiça das lutas de chefe', () => {
-  it('Rosalin (História): nenhum golpe tira mais de 45% da vida base', () => {
+  // Limites subiram em 2026-11-24 com o +30% de dano pedido pelo dono (antes 45% e 55%):
+  // o salto esmagador passou a tirar mais da metade da vida base. Continua o único golpe
+  // assim, e é o mais telegrafado (teste abaixo).
+  it('Rosalin (História): nenhum golpe tira mais de 56% da vida base', () => {
     const { attacks, story } = SUCCUBUS_BOSS_BALANCE;
     for (const dmg of [attacks.dashDamage, attacks.slamDamage, attacks.orbDamage, story.damage]) {
+      expect(dmg * story.attackDamageMultiplier).toBeLessThanOrEqual(BASE_HP * 0.56);
+    }
+    // Só o salto passa da metade da vida
+    for (const dmg of [attacks.dashDamage, attacks.orbDamage, story.damage]) {
       expect(dmg * story.attackDamageMultiplier).toBeLessThanOrEqual(BASE_HP * 0.45);
     }
   });
 
-  it('Rosalin (Infinito): bate mais forte, mas nunca mata com dois golpes', () => {
+  it('Rosalin (Infinito): bate mais forte que no História, com teto', () => {
     const { attacks, endless, story } = SUCCUBUS_BOSS_BALANCE;
     expect(endless.attackDamageMultiplier).toBeGreaterThan(story.attackDamageMultiplier);
-    expect(attacks.slamDamage * endless.attackDamageMultiplier * 2).toBeGreaterThan(BASE_HP * 0.9);
-    expect(attacks.slamDamage * endless.attackDamageMultiplier).toBeLessThanOrEqual(BASE_HP * 0.55);
+    expect(attacks.slamDamage * endless.attackDamageMultiplier).toBeLessThanOrEqual(BASE_HP * 0.66);
   });
 
   it('Rosalin: o golpe mais forte é o mais telegrafado', () => {

@@ -354,6 +354,12 @@ export const BOSS_TELEGRAPH = {
   crosshairThickness: 1.5
 } as const;
 
+/** Borda da área da fase dos cristais do Azazel (blocos de pixel carmesim com miolo claro). */
+export const CRYSTAL_ARENA_THEME = {
+  ring: 0xff0055,
+  ringCore: 0xffb3c8
+} as const;
+
 /** Lyn (minichefe súcubo): rosa para separar dela os avisos carmesim da Rosalin. */
 export const LYN_THEME = {
   tellTint: 0xff7ad9,

@@ -176,7 +176,8 @@ export class TopCenterHud {
     const isAzazel = boss === gs.azazelBoss;
     // Hífen, não ponto médio: a fonte pixel não tem todos os símbolos
     if (!isAzazel) return 'ROSALIN - CHEFE DO CAPÍTULO 1';
-    if (boss.combatPhase === 3) return `AZAZEL - CRISTAIS ${gs.azazelCrystalsCaptured || 0}/3`;
+    // A vida dele volta a subir enquanto os cristais estão de pé: o rótulo avisa
+    if (boss.combatPhase === 3) return `AZAZEL SE CURA - CRISTAIS ${gs.azazelCrystalsCaptured || 0}/3`;
     return 'AZAZEL - CHEFE DO CAPÍTULO 2';
   }
 }

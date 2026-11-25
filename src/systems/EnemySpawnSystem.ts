@@ -5,6 +5,7 @@ import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy } from '../entities/enemies/MummyEnemy';
 import { LynMiniBoss } from '../entities/enemies/LynMiniBoss';
+import { getCrystalHordeScaling } from './crystalPhaseRules';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { TransporterEnemy } from '../entities/enemies/TransporterEnemy';
 import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
@@ -275,9 +276,14 @@ export class EnemySpawnSystem {
   /**
    * Spawna horda intensa na Dimensão Corrompida de Azazel (Fase 3) enquanto o jogador captura os 3 Cristais
    */
-  public spawnAzazelDimensionHordeWave(): void {
+  public spawnAzazelDimensionHordeWave(strength: number = 1): void {
     if (!this.ctx.isAzazelPhase3HordeActive) return;
     if (this.ctx.enemiesGroup.countActive() >= PERFORMANCE_LIMITS.MAX_ACTIVE_ENEMIES) return;
+
+    // Quanto mais a fase se arrasta, mais vida e dano (os cristais são a saída)
+    const s = getCrystalHordeScaling(strength);
+    const dog = ENEMY_BALANCE.azazelDimensionDog;
+    const mummy = ENEMY_BALANCE.azazelDimensionMummy;
 
     const dogCount = Phaser.Math.Between(3, 5);
     for (let i = 0; i < dogCount; i++) {
@@ -285,7 +291,7 @@ export class EnemySpawnSystem {
       const dist = Phaser.Math.Between(300, 440);
       const sx = this.ctx.player.x + Math.cos(angle) * dist;
       const sy = this.ctx.player.y + Math.sin(angle) * dist;
-      this.spawnZombieDogAt(sx, sy, ENEMY_BALANCE.azazelDimensionDog.hp, ENEMY_BALANCE.azazelDimensionDog.speed, ENEMY_BALANCE.azazelDimensionDog.damage);
+      this.spawnZombieDogAt(sx, sy, Math.round(dog.hp * s.hp), dog.speed, Math.round(dog.damage * s.damage));
     }
 
     if (Math.random() < 0.45) {
@@ -295,7 +301,7 @@ export class EnemySpawnSystem {
     if (Math.random() < 0.25) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       const dist = Phaser.Math.Between(320, 420);
-      this.spawnMummyAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist, ENEMY_BALANCE.azazelDimensionMummy.hp, ENEMY_BALANCE.azazelDimensionMummy.speed, ENEMY_BALANCE.azazelDimensionMummy.damage);
+      this.spawnMummyAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist, Math.round(mummy.hp * s.hp), mummy.speed, Math.round(mummy.damage * s.damage));
     }
   }
 

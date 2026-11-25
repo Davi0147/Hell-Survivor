@@ -335,7 +335,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 2. Instanciação da Nixy na posição de spawn do mapa
     this.player = new Nixy(this, spawnX, spawnY);
-    this.player.setDepth(20);
+    // Acima de todo chefe e minichefe (Lyn 21, Rosalin/Azazel/clones 22): o sprite de um
+    // chefe nunca cobre a heroína. Projéteis (25+) e raios (28) continuam por cima dela.
+    this.player.setDepth(23);
 
     // 2.1. Animação ritual da Estrela de Respawn (Pentagrama de Invocação) nos pés de Nixy
     this.playRespawnStarEffect();
@@ -866,8 +868,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.enemySpawner.spawnMummyAt(x, y, hp, speed, damage);
   }
 
-  public spawnAzazelDimensionHordeWave(): void {
-    this.enemySpawner.spawnAzazelDimensionHordeWave();
+  public spawnAzazelDimensionHordeWave(strength: number = 1): void {
+    this.enemySpawner.spawnAzazelDimensionHordeWave(strength);
   }
 
   public spawnGemAt(x: number, y: number, type: GemType): void {

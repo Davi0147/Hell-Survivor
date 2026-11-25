@@ -23,6 +23,8 @@ import {
   getBossMercy,
   getBossDefeatOutcome,
 } from '../config/balance';
+import { CRYSTAL_ARENA_THEME } from '../config/theme';
+import { getCrystalHordeStrength, getCrystalWaveIntervalMs, getBossRegenHp, clampToCircle } from './crystalPhaseRules';
 
 export type BossId = 'rosalin' | 'azazel';
 
@@ -68,7 +70,8 @@ export interface IBossFightContext {
   showCombatSpeechBubble(target: ICombatBubbleTarget, text: string, durationMs: number, isNixy?: boolean): void;
   spawnZombieDogAt(x: number, y: number, hp?: number, speed?: number, damage?: number): void;
   spawnBloodBatFlock(count?: number): void;
-  spawnAzazelDimensionHordeWave(): void;
+  /** `strength` 1 = horda normal; sobe enquanto a fase dos cristais se arrasta. */
+  spawnAzazelDimensionHordeWave(strength?: number): void;
   spawnGemAt(x: number, y: number, type: GemType): void;
   spawnSoulItem(x: number, y: number, value?: number): void;
   spawnMapItem(x: number, y: number, type?: MapItemType): unknown;
@@ -94,6 +97,11 @@ export class BossFightSystem {
 
   private minionTimer = 0;
   private dimensionWaveTimer = 0;
+  /** Tempo na fase dos cristais: quanto mais demora, mais forte a horda. */
+  private crystalPhaseElapsedMs = 0;
+  /** Centro da área da fase dos cristais (a heroína não sai do círculo em volta dele). */
+  private crystalArenaCenter?: { x: number; y: number };
+  private crystalArenaRing?: Phaser.GameObjects.Graphics;
   private fightBossId?: BossId;
   private fightElapsedMs = 0;
   private fatigueAnnounced = false;
@@ -141,11 +149,7 @@ export class BossFightSystem {
     this.updateFatigue(delta);
 
     if (this.isPhase3HordeActive) {
-      this.dimensionWaveTimer += delta;
-      if (this.dimensionWaveTimer >= AZAZEL_BOSS_BALANCE.dimensionWaveIntervalMs) {
-        this.dimensionWaveTimer = 0;
-        this.ctx.spawnAzazelDimensionHordeWave();
-      }
+      this.updateCrystalPhase(delta);
       return;
     }
 
@@ -582,11 +586,11 @@ export class BossFightSystem {
       pos.y,
       Math.round(AZAZEL_BOSS_BALANCE.maxHp * mercy.hpMultiplier),
       AZAZEL_BOSS_BALANCE.speed,
-      Math.round(AZAZEL_BOSS_BALANCE.baseContactDamage * mercy.damageMultiplier),
+      Math.round(AZAZEL_BOSS_BALANCE.baseContactDamage * AZAZEL_BOSS_BALANCE.damageMultiplier * mercy.damageMultiplier),
       AZAZEL_BOSS_BALANCE.scale,
       isCinematicIntro
     );
-    boss.attackDamageMultiplier = mercy.damageMultiplier;
+    boss.attackDamageMultiplier = AZAZEL_BOSS_BALANCE.damageMultiplier * mercy.damageMultiplier;
     this.ctx.azazelBoss = boss;
 
     if (!isCinematicIntro) {
@@ -639,12 +643,20 @@ export class BossFightSystem {
     this.clearCrystals();
     this.crystalsCaptured = 0;
 
+    // Área fechada em volta de onde a fase começa: dá para correr, não para fugir
+    const cp = AZAZEL_BOSS_BALANCE.crystalPhase;
     const player = this.ctx.player;
+    const center = this.ctx.clampToArena(player.x, player.y, cp.arenaRadius + 40);
+    player.setPosition(center.x, center.y);
+    this.crystalArenaCenter = center;
+    this.crystalPhaseElapsedMs = 0;
+    this.drawCrystalArenaRing(center.x, center.y, cp.arenaRadius);
+
     const baseAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     for (let i = 0; i < count; i++) {
       const angle = baseAngle + (i * (Math.PI * 2 / count)) + Phaser.Math.FloatBetween(-0.32, 0.32);
-      const dist = Phaser.Math.Between(290, 480);
-      const pt = this.ctx.clampToArena(player.x + Math.cos(angle) * dist, player.y + Math.sin(angle) * dist, 200);
+      const dist = Phaser.Math.Between(cp.crystalDist.min, cp.crystalDist.max);
+      const pt = { x: center.x + Math.cos(angle) * dist, y: center.y + Math.sin(angle) * dist };
       const crystal = new AzazelCrystal(this.scene, pt.x, pt.y);
       crystal.on('crystal-completed', () => this.handleCrystalCaptured());
       this.crystals.push(crystal);
@@ -657,7 +669,70 @@ export class BossFightSystem {
     this.ctx.spawnAzazelDimensionHordeWave();
     this.ctx.spawnAzazelDimensionHordeWave();
 
-    this.hud?.showWaveAlert(`DIMENSÃO DE AZAZEL: PURIFIQUE OS ${count} CRISTAIS (5s CADA)!`, 4500);
+    this.hud?.showWaveAlert(`PURIFIQUE OS ${count} CRISTAIS! ENQUANTO ISSO AZAZEL SE CURA E A HORDA CRESCE`, 5000);
+  }
+
+  /** Cada quadro da fase dos cristais: horda cada vez mais forte, Azazel se curando, área fechada. */
+  private updateCrystalPhase(delta: number): void {
+    this.crystalPhaseElapsedMs += delta;
+    const strength = getCrystalHordeStrength(this.crystalPhaseElapsedMs);
+
+    this.dimensionWaveTimer += delta;
+    if (this.dimensionWaveTimer >= getCrystalWaveIntervalMs(strength)) {
+      this.dimensionWaveTimer = 0;
+      this.ctx.spawnAzazelDimensionHordeWave(strength);
+    }
+
+    const boss = this.ctx.azazelBoss;
+    if (boss && boss.active && boss.isBanished) {
+      boss.regenerateWhileBanished(getBossRegenHp(boss.hp, boss.maxHp, delta));
+    }
+
+    const c = this.crystalArenaCenter;
+    if (c) {
+      const player = this.ctx.player;
+      const p = clampToCircle(player.x, player.y, c.x, c.y, AZAZEL_BOSS_BALANCE.crystalPhase.arenaRadius);
+      if (p.clamped) {
+        const body = player.body as Phaser.Physics.Arcade.Body | null;
+        if (body) body.reset(p.x, p.y);
+        else player.setPosition(p.x, p.y);
+      }
+    }
+  }
+
+  /** Borda da área em blocos de pixel (sem linha fina), pulsando devagar. */
+  private drawCrystalArenaRing(cx: number, cy: number, radius: number): void {
+    this.clearCrystalArena(false);
+    const g = this.scene.add.graphics().setDepth(4);
+    const block = 8;
+    const steps = Math.round((Math.PI * 2 * radius) / 20);
+    g.fillStyle(CRYSTAL_ARENA_THEME.ring, 1);
+    for (let i = 0; i < steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const x = Math.round((cx + Math.cos(a) * radius) / 4) * 4;
+      const y = Math.round((cy + Math.sin(a) * radius) / 4) * 4;
+      g.fillRect(x - block / 2, y - block / 2, block, block);
+    }
+    g.fillStyle(CRYSTAL_ARENA_THEME.ringCore, 1);
+    for (let i = 0; i < steps; i += 2) {
+      const a = (i / steps) * Math.PI * 2;
+      const x = Math.round((cx + Math.cos(a) * radius) / 4) * 4;
+      const y = Math.round((cy + Math.sin(a) * radius) / 4) * 4;
+      g.fillRect(x - 2, y - 2, 4, 4);
+    }
+    g.setAlpha(0.85);
+    this.scene.tweens.add({ targets: g, alpha: 0.45, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.crystalArenaRing = g;
+  }
+
+  /** Solta a área da fase dos cristais (fim da fase, derrota do chefe, saída da luta). */
+  private clearCrystalArena(resetCenter = true): void {
+    if (this.crystalArenaRing) {
+      this.scene.tweens.killTweensOf(this.crystalArenaRing);
+      if (this.crystalArenaRing.scene) this.crystalArenaRing.destroy();
+      this.crystalArenaRing = undefined;
+    }
+    if (resetCenter) this.crystalArenaCenter = undefined;
   }
 
   /** Fôlego entre fases: um Cálice de Cura ao lado do jogador. */
@@ -678,6 +753,7 @@ export class BossFightSystem {
 
     this.isPhase3HordeActive = false;
     this.clearCrystals();
+    this.clearCrystalArena();
 
     this.scene.cameras.main.shake(680, 0.028);
     this.scene.cameras.main.flash(380, 255, 0, 68);
@@ -706,6 +782,7 @@ export class BossFightSystem {
     this.ctx.isPlayerMovementLocked = false;
     this.isPhase3HordeActive = false;
     this.clearCrystals();
+    this.clearCrystalArena();
     this.ctx.setCameraZoom(DEFAULT_CAMERA_ZOOM, 1000);
     this.hud?.setHUDVisible(true);
 
@@ -725,10 +802,12 @@ export class BossFightSystem {
   public onPlayerDeath(): void {
     this.isPhase3HordeActive = false;
     this.ctx.isPlayerMovementLocked = false;
+    this.clearCrystalArena();
   }
 
   public destroy(): void {
     this.clearCrystals();
+    this.clearCrystalArena();
     this.isPhase3HordeActive = false;
     this.stopFightClock();
   }

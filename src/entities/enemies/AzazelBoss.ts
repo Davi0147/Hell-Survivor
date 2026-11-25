@@ -64,7 +64,8 @@ export class AzazelPhantomClone extends BaseEnemy {
     this.maxHp = parentBoss.maxHp;
     this.hp = parentBoss.hp;
     this.speed = 0;
-    this.damage = AZAZEL_BOSS_BALANCE.cloneContactDamage;
+    // Mesmo multiplicador do pai (inclui o +10% do balanço e a revanche)
+    this.damage = Math.max(1, Math.round(AZAZEL_BOSS_BALANCE.cloneContactDamage * parentBoss.attackDamageMultiplier));
     this.setScale(AZAZEL_BOSS_BALANCE.scale);
     this.setDepth(22);
 
@@ -200,8 +201,6 @@ export class AzazelBoss extends BaseEnemy {
   private darkSurroundCenter: { x: number; y: number } = { x: 0, y: 0 };
 
   // Texto acima da cabeça ("SUA ALMA É MINHA!")
-  private overheadShoutText?: Phaser.GameObjects.Text;
-  private overheadShoutTween?: Phaser.Tweens.Tween;
 
   // Grupo de projéteis de Azazel
   public projectilesGroup!: Phaser.GameObjects.Group;
@@ -318,8 +317,7 @@ export class AzazelBoss extends BaseEnemy {
     }
     this.play(`azazel-hand-${dir}`, true);
 
-    this.scene.cameras.main.shake(320, 0.014);
-    SoundManager.getInstance().playDialogueVoice('azazel');
+    // A voz e o tremor vêm junto com a frase central (azazel-center-phrase)
 
     // Aura carmesim pulsante ao erguer a mão
     const aura = this.scene.add.circle(this.x, this.y, 24, 0xff0044, 0.75);
@@ -334,60 +332,15 @@ export class AzazelBoss extends BaseEnemy {
       onComplete: () => aura.destroy()
     });
 
-    this.clearOverheadShout();
-    this.overheadShoutText = this.scene.add.text(this.x, this.y - 82, 'SUA ALMA É MINHA!', {
-      fontFamily: "'Cinzel', Georgia, serif",
-      fontSize: '30px',
-      fontStyle: 'bold',
-      color: '#ff1a4b',
-      stroke: '#000000',
-      strokeThickness: 8,
-      shadow: {
-        offsetX: 0,
-        offsetY: 0,
-        color: '#ff0044',
-        blur: 16,
-        stroke: true,
-        fill: true
-      }
-    }).setOrigin(0.5).setDepth(35).setScale(0.3);
-
-    this.overheadShoutTween = this.scene.tweens.add({
-      targets: this.overheadShoutText,
-      scaleX: 1.12,
-      scaleY: 1.12,
-      y: this.y - 94,
-      duration: 260,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        if (!this.overheadShoutText || !this.overheadShoutText.scene) return;
-        this.overheadShoutTween = this.scene.tweens.add({
-          targets: this.overheadShoutText,
-          x: { from: this.x - 3, to: this.x + 3 },
-          duration: 55,
-          yoyo: true,
-          repeat: -1
-        });
-      }
-    });
-  }
-
-  private clearOverheadShout(): void {
-    if (this.overheadShoutTween) {
-      this.overheadShoutTween.stop();
-      this.overheadShoutTween = undefined;
-    }
-    if (this.overheadShoutText && this.overheadShoutText.scene) {
-      this.overheadShoutText.destroy();
-      this.overheadShoutText = undefined;
-    }
+    // O grito vai para o centro da tela (camada da HUD), como as outras frases dele. Escrito
+    // sobre a cabeça dele no mundo, ficava atrás da barra de vida do chefe e não dava para ler.
+    this.emit('azazel-center-phrase', 'SUA ALMA É MINHA!', 1900);
   }
 
   /**
    * Inicia o combate real sincronizado com a entrada de fight.mp3
    */
   public startCombat(): void {
-    this.clearOverheadShout();
     this.isInvulnerable = false;
     this.bossState = 'CHASE';
     this.combatPhase = 1;
@@ -408,11 +361,6 @@ export class AzazelBoss extends BaseEnemy {
 
   public updateBoss(player: BaseCharacter, deltaMs: number): void {
     if (this.isDead || !this.active) return;
-
-    // Atualiza texto flutuante se estiver visível
-    if (this.overheadShoutText && this.overheadShoutText.active) {
-      this.overheadShoutText.setY(this.y - 90);
-    }
 
     // Atualiza projéteis disparados por Azazel e seus clones
     const projs = this.projectilesGroup.getChildren() as DarkOrbProjectile[];
@@ -1499,9 +1447,19 @@ export class AzazelBoss extends BaseEnemy {
 
     SoundManager.getInstance().playAzazelTeleport();
     this.playMidPrepareScream(player);
-    this.scene.time.delayedCall(1500, () => {
-      this.clearOverheadShout();
-    });
+  }
+
+  /** Fase dos cristais: enquanto está banido ele se recupera (a barra de vida mostra). */
+  public regenerateWhileBanished(newHp: number): void {
+    if (this.isDead || this.bossState !== 'CRYSTAL_BANISHED') return;
+    const hp = Math.min(this.maxHp, Math.round(newHp));
+    if (hp === this.hp) return;
+    this.hp = hp;
+    this.emit('boss-hp-changed', this.hp, this.maxHp);
+  }
+
+  public get isBanished(): boolean {
+    return this.bossState === 'CRYSTAL_BANISHED';
   }
 
   private scaleAttack(base: number): number {
@@ -1568,7 +1526,6 @@ export class AzazelBoss extends BaseEnemy {
     if (this.isDead) return;
     this.isDead = true;
 
-    this.clearOverheadShout();
     this.deactivatePitchBlackOverlay();
     this.deactivatePhantomClones();
     this.deactivateAllProjectiles();
