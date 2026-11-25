@@ -49,6 +49,24 @@ import type { IPauseWeaponInfo } from '../ui/PauseMenu';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 import { InfernalFurySystem } from '../systems/InfernalFurySystem';
+import { TalismanSystem, type ITalismanSystemContext } from '../systems/TalismanSystem';
+
+/** Contexto dos talismãs: a cena expõe `scene` como ScenePlugin, então ele é montado à parte. */
+function createTalismanContext(gs: GameScene): ITalismanSystemContext {
+  return {
+    scene: gs,
+    get player() { return gs.player; },
+    get enemiesGroup() { return gs.enemiesGroup; },
+    get gemsGroup() { return gs.gemsGroup; },
+    get isGameOver() { return gs.isGameOver; },
+    registerSoulBoltOverlap: (w) => gs.registerSoulBoltOverlap(w),
+    openTalismanReveal: (def, onCollected) => {
+      const ui = gs.scene.get('UIScene') as UIScene | undefined;
+      if (ui && gs.scene.isActive('UIScene')) ui.showTalismanReveal(def, gs, onCollected);
+      else onCollected();
+    },
+  };
+}
 
 export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext, IUltimateContext, IEncounterContext {
   public player!: Nixy;
@@ -82,6 +100,18 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public enemyArrows?: EnemyArrowSystem;
   /** Suprema "Ascensão Infernal" (modo de poder temporário). */
   public ultimate?: UltimateSystem;
+  /** Talismãs da partida (prêmio do minichefe: pets e armas únicas). */
+  public talismans?: TalismanSystem;
+
+  /** Talismãs no chão, para o radar e a seta de borda. */
+  public get talismanDrops(): readonly { x: number; y: number; active: boolean }[] {
+    return this.talismans?.drops ?? [];
+  }
+
+  public dropTalismanAt(x: number, y: number): void {
+    const p = this.clampToArena(x, y, 40);
+    this.talismans?.dropAt(p.x, p.y);
+  }
 
   /** Ladrão de Almas vivo, para o radar e a seta de borda. */
   public get soulThief(): { x: number; y: number; timeLeftMs: number } | undefined {
@@ -269,6 +299,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.infernalFury = undefined;
     this.enemyArrows = undefined;
     this.ultimate = undefined;
+    this.talismans = undefined;
     this.clearCombatSpeechBubbles();
     this.arenaScenerySystem?.destroy();
     this.arenaScenerySystem = undefined!;
@@ -462,6 +493,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.soulBoltWeapon = new SoulBoltWeapon(this, this.player);
     this.weapons.push(this.soulBoltWeapon);
 
+    // 5.1. Talismãs (a cena expõe `scene` como ScenePlugin, então o contexto é montado à parte)
+    this.talismans = new TalismanSystem(createTalismanContext(this));
+
     // Escutar Level Up da heroína com Fila Segura Anti-Crash
     this.player.on('player-level-up', (level: number) => {
       this.infernalFury?.onLevelUp(level);
@@ -558,6 +592,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.infernalFury?.destroy();
       this.enemyArrows?.destroy();
       this.ultimate?.destroy();
+      this.talismans?.destroy();
       this.bossFights?.destroy();
       this.combatBubbleSystem?.destroy();
       this.combatBubbleSystem = undefined!;
@@ -743,6 +778,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
         weapon.update(weaponDelta, this.player.x, this.player.y, this.enemiesGroup);
       }
     }
+
+    // 4.1. Talismãs: itens no chão, pets e armas únicas
+    this.talismans?.update(delta);
 
     // Limites de Câmera para Otimização de Renderização (Viewport Culling)
     const cam = this.cameras.main;

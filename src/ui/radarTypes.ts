@@ -29,6 +29,8 @@ export interface RadarWorld {
   bossSummonAltar?: { x: number; y: number; isCompleted: boolean; isActive: boolean; isBossSpawned: boolean } | null;
   /** Ladrão de Almas vivo (sempre no radar e na seta de borda). */
   soulThief?: { x: number; y: number; timeLeftMs: number };
+  /** Talismãs no chão (prêmio do minichefe): sempre no radar e na seta de borda. */
+  talismanDrops?: readonly { x: number; y: number; active: boolean }[];
   cameras?: { main?: Phaser.Cameras.Scene2D.Camera };
 }
 

@@ -15,6 +15,8 @@ import { PauseMenu, IPauseGameScene, IPauseMenuHost } from '../ui/PauseMenu';
 import { GameOverModal, GameOverStats, IGameOverModalHost } from '../ui/GameOverModal';
 import { ChapterVictoryModal, ChapterVictoryStats, IChapterVictoryModalHost } from '../ui/ChapterVictoryModal';
 import { ChestRouletteModal, IChestRouletteGameScene } from '../ui/ChestRouletteModal';
+import { TalismanRevealModal, type ITalismanRevealGameScene } from '../ui/TalismanRevealModal';
+import type { TalismanDef } from '../systems/TalismanCatalog';
 import { ScreenAnnouncer } from '../ui/ScreenAnnouncer';
 import { StatusPanelHud } from '../ui/StatusPanelHud';
 import { TopCenterHud } from '../ui/TopCenterHud';
@@ -60,8 +62,10 @@ export class UIScene
   }
 
   public chestRoulette!: ChestRouletteModal;
+  public talismanReveal!: TalismanRevealModal;
+  /** Alguma tela de prêmio aberta (roleta do baú ou carta de talismã): o combate fica congelado. */
   public get isChestRouletteOpen(): boolean {
-    return this.chestRoulette?.isOpen ?? false;
+    return (this.chestRoulette?.isOpen ?? false) || (this.talismanReveal?.isOpen ?? false);
   }
   public sandboxPanel?: DevSandboxPanel;
 
@@ -142,6 +146,7 @@ export class UIScene
     this.chapterVictoryModal = new ChapterVictoryModal(this);
 
     this.chestRoulette = new ChestRouletteModal(this);
+    this.talismanReveal = new TalismanRevealModal(this);
 
     // 0. Vinheta de Alerta de Vida Baixa (Depth 200 - acima da HUD e abaixo de modais)
     this.lowHpVignetteGraphics = this.add.graphics();
@@ -508,8 +513,14 @@ export class UIScene
     return this.isChestRouletteOpen;
   }
 
+  /** Avança a tela de prêmio aberta (bot [F3]): roleta do baú ou carta de talismã. */
   public resolveChestRoulette(): void {
-    this.chestRoulette.resolve();
+    if (this.talismanReveal?.isOpen) this.talismanReveal.resolve();
+    else this.chestRoulette.resolve();
+  }
+
+  public showTalismanReveal(def: TalismanDef, gameScene: ITalismanRevealGameScene | null, onCollected: () => void): void {
+    this.talismanReveal.show(def, gameScene, onCollected);
   }
 
   public showChapterVictoryModal(stats: ChapterVictoryStats, onReturnToMenu: () => void): void {

@@ -10,6 +10,7 @@ import type { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BossSummonAltar } from '../entities/items/BossSummonAltar';
 import type { SoulBoltWeapon } from '../entities/weapons/SoulBoltWeapon';
 import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
+import type { TalismanSystem } from './TalismanSystem';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { ENEMY_BALANCE } from '../config/balance';
@@ -92,6 +93,9 @@ export interface ISandboxContext extends Phaser.Scene {
   activateBossSummonAltar(): void;
   triggerUltimate(): void;
   registerSoulBoltOverlap(weapon: SoulBoltWeapon): void;
+  /** Talismãs da partida (soltar no chão, abrir carta de uma raridade). */
+  readonly talismans?: TalismanSystem;
+  dropTalismanAt(x: number, y: number): void;
 
   // Limpeza e efeitos visuais
   clearCombatSpeechBubbles(): void;

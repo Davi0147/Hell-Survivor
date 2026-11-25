@@ -260,7 +260,8 @@ export class TestShowroomSystem {
           { name: 'Ampulheta Partida', texture: 'item-hourglass', scale: 1.0 },
           { name: 'Frasco de Fúria', texture: 'item-fury', scale: 1.0 },
           { name: 'Relíquia Dourada', texture: 'item-relic', scale: 1.0 },
-          { name: 'Alma Corrompida', texture: 'item-soul', scale: 1.0 }
+          { name: 'Alma Corrompida', texture: 'item-soul', scale: 1.0 },
+          { name: 'Talismã (chão)', texture: 'card-gold', scale: 0.12 }
         ]
       },
 

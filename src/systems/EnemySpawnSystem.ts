@@ -40,6 +40,8 @@ export interface IEnemySpawnContext {
   spawnGemAt(x: number, y: number, type: GemType): void;
   spawnSoulItem(x: number, y: number, value?: number): void;
   spawnMapItem(x: number, y: number, type?: MapItemType): unknown;
+  /** Prêmio do minichefe: solta um talismã (pet ou arma única) no chão. */
+  dropTalismanAt?(x: number, y: number): void;
   /** Cronograma: este inimigo já pode aparecer? (EncounterDirector). Ausente = todos liberados. */
   isEnemyUnlocked?(kind: EnemyKind): boolean;
   /** Flechas inimigas (a Arqueira dispara por aqui). */
@@ -626,6 +628,7 @@ export class EnemySpawnSystem {
       this.ctx.spawnSoulItem(ex, ey, Phaser.Math.Between(10, 15));
       // Drop de item especial de auxílio (Cálice de Cura ou Ímã)
       this.ctx.spawnMapItem(ex + 25, ey, Math.random() < 0.5 ? 'chalice' : 'magnet');
+      this.ctx.dropTalismanAt?.(ex, ey + 40);
       this.scene.cameras.main.shake(250, 0.015);
     });
 
@@ -658,6 +661,7 @@ export class EnemySpawnSystem {
       this.ctx.spawnGemAt(lyn.x + 20, lyn.y, 'purple');
       this.ctx.spawnSoulItem(lyn.x, lyn.y, Phaser.Math.Between(15, 20));
       this.ctx.spawnMapItem(lyn.x, lyn.y - 30, 'chest');
+      this.ctx.dropTalismanAt?.(lyn.x, lyn.y + 40);
       this.scene.cameras.main.shake(300, 0.02);
     });
 

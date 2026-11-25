@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { RadarEnemy, RadarPlayer, RadarWorld } from './radarTypes';
-import { FX_COLORS } from '../config/theme';
+import { FX_COLORS, TALISMAN_THEME } from '../config/theme';
 
 /**
  * Radar tático circular do canto superior direito da HUD (posição em `config/hudLayout.ts`).
@@ -187,6 +187,20 @@ export class TacticalRadar {
       g.fillPoints(points, true);
       g.fillStyle(FX_COLORS.thiefBlipCore, 1);
       g.fillCircle(bx, by, 1.6);
+    }
+
+    // 7. Talismãs no chão: losango dourado pulsando com aro violeta, sempre visível
+    if (world.talismanDrops) {
+      const pulse = 1 + Math.sin(this.scene.time.now * 0.01) * 0.3;
+      for (const d of world.talismanDrops) {
+        if (!d.active) continue;
+        const { bx, by } = this.toRadar(d.x - p.x, d.y - p.y);
+        const r = 5.5 * pulse;
+        g.fillStyle(TALISMAN_THEME.radarRing, 0.55);
+        g.fillCircle(bx, by, r + 2.5);
+        g.fillStyle(TALISMAN_THEME.radarFill, 1);
+        g.fillPoints([{ x: bx, y: by - r }, { x: bx + r * 0.7, y: by }, { x: bx, y: by + r }, { x: bx - r * 0.7, y: by }], true);
+      }
     }
 
     this.drawPlayerPointer(p);

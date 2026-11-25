@@ -15,7 +15,8 @@ import type { ISandboxContext } from './SandboxController';
 import type { HordeEventType } from './HordeEventSystem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { CRIT_BALANCE } from '../config/balance';
-import { COLORS, FX_COLORS } from '../config/theme';
+import { COLORS, FX_COLORS, TALISMAN_THEME } from '../config/theme';
+import { TALISMAN_RARITIES } from './talismanRules';
 
 /** Itens de mapa novos (v0.11.0) com botão no Modo de Teste. */
 const SANDBOX_NEW_ITEMS: { type: MapItemType; label: string }[] = [
@@ -1172,6 +1173,23 @@ export class DevSandboxPanel {
         this.reRenderCurrentTab();
       }
     );
+
+    // Talismãs (prêmio do minichefe): soltar no chão ou abrir a carta já numa raridade
+    const talY = footerY + 52;
+    const owned = gs.talismans?.ownedIds.size ?? 0;
+    const talBtnW = Math.floor((w - 6 * 8) / 7);
+    this.createActionButton(x, talY, talBtnW * 2 + 8, 30, `SOLTAR TALISMÃ (${owned} TEM)`, COLORS.velvetNixy, TALISMAN_THEME.radarFill, TALISMAN_THEME.edgeText, () => {
+      this.togglePanel(false);
+      gs.dropTalismanAt(p.x + 70, p.y);
+      DebugSessionLogger.getInstance().log('ITEM', 'INFO', 'Talismã solto ao lado da Nixy via Sandbox.');
+    });
+    TALISMAN_RARITIES.forEach((r, i) => {
+      const look = TALISMAN_THEME.rarity[r];
+      this.createActionButton(x + (talBtnW + 8) * (i + 2), talY, talBtnW, 30, `ABRIR ${look.label}`, COLORS.velvetNixy, look.color, look.text, () => {
+        this.togglePanel(false);
+        gs.talismans?.openNext(r);
+      });
+    });
   }
 
   // ===========================================================================

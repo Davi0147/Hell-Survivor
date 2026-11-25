@@ -7,6 +7,7 @@ import * as dialogueSfx from './audio/dialogueSfx';
 import * as combatSfx from './audio/combatSfx';
 import * as cutsceneSfx from './audio/cutsceneSfx';
 import * as weaponSfx from './audio/weaponSfx';
+import * as talismanSfx from './audio/talismanSfx';
 
 export class SoundManager {
   private static instance: SoundManager;
@@ -269,6 +270,22 @@ export class SoundManager {
   public playRouletteJackpot(): void {
     const s = this.getSfxOutput();
     if (s) uiSfx.playRouletteJackpot(s);
+  }
+
+  /** Talismã: toque na carta (`tier` 0 = comum ... 4 = lendária). */
+  public playTalismanTap(tier: number): void {
+    const s = this.getSfxOutput();
+    if (s) talismanSfx.playTalismanTap(s, tier);
+  }
+
+  public playTalismanTierUp(tier: number): void {
+    const s = this.getSfxOutput();
+    if (s) talismanSfx.playTalismanTierUp(s, tier);
+  }
+
+  public playTalismanOpen(tier: number): void {
+    const s = this.getSfxOutput();
+    if (s) talismanSfx.playTalismanOpen(s, tier);
   }
 
   public playCasinoLevelUp(): void {

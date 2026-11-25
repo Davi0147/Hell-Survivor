@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { RadarPlayer, RadarWorld } from './radarTypes';
-import { FX_COLORS } from '../config/theme';
+import { FX_COLORS, TALISMAN_THEME } from '../config/theme';
 
 /** Tipo de alvo: muda as cores da seta. */
-type EdgeKind = 'boss' | 'altar' | 'thief';
+type EdgeKind = 'boss' | 'altar' | 'thief' | 'talisman';
 
 interface EdgeTarget {
   x: number;
@@ -12,7 +12,7 @@ interface EdgeTarget {
 
 /**
  * Seta na borda da tela apontando para o objetivo fora da câmera, com a distância em metros.
- * Prioridade: cristal de Azazel mais próximo > Ladrão de Almas > Altar de Invocação ativo > Altar de Ascensão.
+ * Prioridade: cristal de Azazel mais próximo > Ladrão de Almas > talismã no chão > Altar de Invocação ativo > Altar de Ascensão.
  * Some quando o alvo entra na tela.
  */
 export class AltarEdgeIndicator {
@@ -63,6 +63,21 @@ export class AltarEdgeIndicator {
     const thief = world.soulThief;
     if (thief) return { target: thief, kind: 'thief', timeLeftMs: thief.timeLeftMs };
 
+    // Talismã no chão: o mais perto
+    if (world.talismanDrops) {
+      let nearest: EdgeTarget | null = null;
+      let minDist = Infinity;
+      for (const d of world.talismanDrops) {
+        if (!d.active) continue;
+        const dist = Math.hypot(d.x - p.x, d.y - p.y);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = d;
+        }
+      }
+      if (nearest) return { target: nearest, kind: 'talisman' };
+    }
+
     const bAltar = world.bossSummonAltar;
     if (bAltar && bAltar.isActive && !bAltar.isBossSpawned) return { target: bAltar, kind: 'boss' };
 
@@ -82,6 +97,7 @@ export class AltarEdgeIndicator {
     const { target, kind, timeLeftMs } = picked;
     const isBossAltar = kind === 'boss';
     const isThief = kind === 'thief';
+    const isTalisman = kind === 'talisman';
 
     // Alvo visível na câmera (com folga de 30px): esconde a seta
     const margin = 30;
@@ -116,9 +132,9 @@ export class AltarEdgeIndicator {
     // Plaquinha da distância no centro, seta para fora dela apontando o alvo
     const badgeW = isThief ? 76 : isBossAltar ? 48 : 44;
     const badgeH = 20;
-    g.fillStyle(isThief ? FX_COLORS.thiefBadgeFill : isBossAltar ? 0x1a0509 : 0x0e0206, 0.94);
+    g.fillStyle(isTalisman ? TALISMAN_THEME.edgeBadge : isThief ? FX_COLORS.thiefBadgeFill : isBossAltar ? 0x1a0509 : 0x0e0206, 0.94);
     g.fillRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
-    g.lineStyle(1.5, isThief ? FX_COLORS.thiefArrowBorder : isBossAltar ? 0xff7700 : 0xffe600, 0.95);
+    g.lineStyle(1.5, isTalisman ? TALISMAN_THEME.radarRing : isThief ? FX_COLORS.thiefArrowBorder : isBossAltar ? 0xff7700 : 0xffe600, 0.95);
     g.strokeRoundedRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
 
     // Onde a direção do alvo cruza a borda da plaquinha
@@ -137,7 +153,7 @@ export class AltarEdgeIndicator {
       g.lineTo(baseX - wingX, baseY - wingY);
       g.closePath();
     };
-    g.fillStyle(isThief ? FX_COLORS.thiefArrowBorder : isBossAltar ? 0xff4500 : 0xff002b, 1);
+    g.fillStyle(isTalisman ? TALISMAN_THEME.radarFill : isThief ? FX_COLORS.thiefArrowBorder : isBossAltar ? 0xff4500 : 0xff002b, 1);
     tracePath();
     g.fill();
     g.lineStyle(1.5, isThief ? FX_COLORS.thiefArrowFill : 0x000000, 1);
@@ -146,8 +162,9 @@ export class AltarEdgeIndicator {
     const meters = `${Math.max(1, Math.round(dist / 10))}m`;
     // Ladrão: distância e segundos que faltam para ele fugir
     this.text.setText(isThief && timeLeftMs !== undefined ? `${meters} | ${Math.ceil(timeLeftMs / 1000)}s` : meters);
-    this.text.setColor(isThief ? FX_COLORS.thiefText : isBossAltar ? '#ffaa00' : '#ffe600');
-    // Pulsa para chamar atenção enquanto ele pode escapar
-    this.container.setScale(isThief ? 1.15 + Math.sin(this.scene.time.now * 0.012) * 0.08 : 1);
+    this.text.setColor(isTalisman ? TALISMAN_THEME.edgeText : isThief ? FX_COLORS.thiefText : isBossAltar ? '#ffaa00' : '#ffe600');
+    // Pulsa para chamar atenção (ladrão que pode escapar, talismã esperando no chão)
+    const pulses = isThief || isTalisman;
+    this.container.setScale(pulses ? 1.15 + Math.sin(this.scene.time.now * 0.012) * 0.08 : 1);
   }
 }

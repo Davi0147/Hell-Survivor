@@ -501,3 +501,45 @@ export const MODAL_THEME = {
   }
 } as const;
 
+/**
+ * Talismãs (prêmio do minichefe): cor de cada raridade, moldura da carta, item no chão,
+ * contorno branco dos pets e efeitos das armas únicas.
+ */
+export const TALISMAN_THEME = {
+  rarity: {
+    common: { color: 0xcbd5e1, text: '#e2e8f0', card: 'card-base', label: 'COMUM' },
+    uncommon: { color: 0x4ade80, text: '#4ade80', card: 'card-green', label: 'INCOMUM' },
+    rare: { color: 0x38bdf8, text: '#38bdf8', card: 'card-ice', label: 'RARA' },
+    epic: { color: 0xc084fc, text: '#c084fc', card: 'card-mystic', label: 'ÉPICA' },
+    legendary: { color: 0xffd700, text: '#ffd700', card: 'card-gold', label: 'LENDÁRIA' },
+  },
+  textStroke: '#0e0208',
+  hint: '#94a3b8',
+  kindText: '#f3d17a',
+  backdrop: 0x000000,
+  /** Item no chão: feixe e brilho violeta-dourado (a raridade só aparece ao abrir). */
+  dropBeam: 0xffd700,
+  dropGlow: 0xd946ef,
+  dropSpark: 0xfff3b0,
+  /** Radar e seta de borda. */
+  radarFill: 0xffd700,
+  radarRing: 0xd946ef,
+  edgeBadge: 0x1f0a2b,
+  edgeText: '#ffd700',
+  petOutline: 0xffffff,
+  twinTint: 0x7c3aed,
+  fx: {
+    spark: 0x7df9ff,
+    sparkCore: 0xffffff,
+    bone: 0xf5f0e1,
+    boneWarn: 0xff7b00,
+    frost: 0x93c5fd,
+    frostCore: 0xe0f2fe,
+    eye: 0xd946ef,
+    eyeCore: 0xffd6ff,
+    pillar: 0xff4500,
+    pillarCore: 0xffe600,
+    slimeSplash: 0x4ade80,
+  },
+} as const;
+

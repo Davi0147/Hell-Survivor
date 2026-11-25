@@ -2,6 +2,29 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — 2026-11-25
+
+### Talismãs: prêmio do minichefe que sobe de raridade
+
+#### Resumo para o Jogador
+- **Minichefe solta um Talismã:** ao derrotar a Lyn ou o Ghoul, cai no chão uma carta dourada com um **feixe de luz** subindo e faíscas. Ela aparece como um **losango dourado pulsando no radar** e com uma **seta na borda da tela** mostrando a distância.
+- **A carta sobe de raridade:** ao pegar, a carta começa **COMUM**. Cada toque pode fazer ela **girar e subir** (Incomum → Rara → Épica → Lendária), com som cada vez mais rico e clarão na cor da raridade. Quando ela não sobe mais, o toque abre o prêmio. Épica e Lendária ganham raios girando atrás da carta. Chances: 45% comum, 28% incomum, 16% rara, 8% épica e 3% lendária.
+- **10 talismãs** (pets e armas únicas, que valem só na partida e não se repetem):
+  - Comum: **Morcego Coletor** (puxa gemas e bica) e **Faísca Encadeada** (raio que pula entre monstros).
+  - Incomum: **Slime Saltador** (pula em cima e esmaga) e **Espinhos de Osso** (brotam do chão embaixo de 3 monstros).
+  - Rara: **Cão de Guarda** (corre e morde) e **Anel de Gelo Negro** (onda que congela por um instante).
+  - Épica: **Cérbero Filhote** (morde até 3 e atordoa) e **Olho do Abismo** (raio girando em volta de você).
+  - Lendária: **Gêmea Sombria** (uma sombra sua que copia seus disparos) e **Pilar do Inferno** (colunas de fogo nos monstros mais fortes).
+- **Pets com contorno branco**, para não se confundirem com os monstros.
+- No Modo História cada capítulo tem um minichefe (1 talismã). No Infinito cada Círculo traz um minichefe, então dá para juntar todos.
+
+#### Técnico
+- Regras puras em `src/systems/talismanRules.ts` (sorteio, sem repetição, revelação por toques), testadas em `talismanRules.test.ts`. Catálogo em `TalismanCatalog.ts`, números em `TALISMAN_BALANCE`, cores em `TALISMAN_THEME`.
+- `TalismanSystem` (por partida) solta, detecta a coleta e liga os efeitos; pets em `src/entities/talismans/pets/`, armas em `src/entities/talismans/weapons/`. Tela em `src/ui/TalismanRevealModal.ts`, sons em `src/systems/audio/talismanSfx.ts`.
+- `UIScene.isChestRouletteActive()` agora vale para qualquer tela de prêmio (baú ou talismã); o bot [F3] toca na carta sozinho.
+- Modo de Teste, aba Armas: soltar talismã e abrir carta de cada raridade. Galeria ganhou o talismã do chão.
+- Pets usam a arte dos monstros (morcego, slime, cão) e da heroína até chegar arte própria.
+
 ## [Não publicado] — 2026-11-24
 
 ### Chefes mais duros e fase dos cristais sem enrolação

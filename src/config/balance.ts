@@ -882,3 +882,39 @@ export const REVIVAL_BALANCE = {
   shockwaveKnockback: 350,
 } as const;
 
+// ============================================================================
+// 8. TALISMÃS (prêmio do minichefe: pets, armas únicas; valem só na partida)
+// ============================================================================
+// Raridade sorteada no momento em que a carta aparece; os toques só revelam.
+// Regras puras em `src/systems/talismanRules.ts`, o que cada um faz em `TalismanCatalog.ts`.
+export const TALISMAN_BALANCE = {
+  /** Peso de cada raridade (soma não precisa dar 100). */
+  rarityWeights: { common: 45, uncommon: 28, rare: 16, epic: 8, legendary: 3 },
+  /** Item no chão: raio de coleta e altura do feixe de luz. */
+  drop: { pickupRadius: 26, beamHeight: 150, scale: 0.42 },
+  /** Tela da carta: tempo mínimo entre toques e espera do bot [F3] entre toques. */
+  reveal: { tapLockMs: 260, botTapMs: 420, collectLockMs: 450 },
+
+  pets: {
+    /** Pets que andam sem alvo ficam nesta distância da heroína. */
+    followRadius: 44,
+    /** Longe demais da heroína: o pet larga o alvo e volta. */
+    leashRange: 340,
+    bat: { scale: 0.55, orbitSpeed: 2.2, pullEveryMs: 1400, pullRadius: 150, peckEveryMs: 900, peckRange: 70, peckDamage: 7 },
+    slime: { scale: 0.5, jumpEveryMs: 2600, jumpRange: 260, jumpMs: 420, splashRadius: 72, splashDamage: 24 },
+    /** `restAngle`: onde o cão espera ao lado da heroína (radianos; cada pet num lugar, para não empilhar). */
+    hound: { scale: 0.55, speed: 230, biteEveryMs: 520, biteRange: 26, biteDamage: 18, seekRange: 300, targets: 1, stunMs: 0, restAngle: 0.8 },
+    cerberus: { scale: 0.75, speed: 250, biteEveryMs: 600, biteRange: 34, biteDamage: 30, seekRange: 320, targets: 3, stunMs: 300, restAngle: -0.6 },
+    /** Gêmea Sombria: cópia do Disparo de Almas da heroína, mais fraca, saindo dela. */
+    twin: { scale: 1, alpha: 0.72, damageFraction: 0.6, cooldownFraction: 1.1, offsetX: -30, offsetY: 14 },
+  },
+
+  weapons: {
+    chainSpark: { everyMs: 1600, damage: 15, jumps: 3, jumpRange: 130, range: 300 },
+    boneSpikes: { everyMs: 2200, damage: 32, targets: 3, radius: 36, warnMs: 380 },
+    frostRing: { everyMs: 4200, damage: 22, radius: 155, stunMs: 950 },
+    abyssEye: { length: 230, turnSpeed: 1.6, tickMs: 250, damage: 11, hitWidth: 14 },
+    hellPillar: { everyMs: 3000, damage: 150, targets: 2, radius: 62, warnMs: 450, range: 420 },
+  },
+} as const;
+
