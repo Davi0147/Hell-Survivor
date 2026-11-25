@@ -2,6 +2,15 @@ import Phaser from 'phaser';
 import { BaseEnemy } from '../enemies/BaseEnemy';
 import { remainingPierce } from './pierceRules';
 
+/** Aparência alternativa do tiro (ex.: Gêmea Sombria). Corpo de colisão: círculo na cabeça. */
+export interface SoulBoltSkin {
+  texture: string;
+  scale: number;
+  radius: number;
+  offsetX: number;
+  offsetY: number;
+}
+
 export class SoulBoltProjectile extends Phaser.Physics.Arcade.Sprite {
   public damage: number = 25;
   public pierce: number = 1;
@@ -31,7 +40,8 @@ export class SoulBoltProjectile extends Phaser.Physics.Arcade.Sprite {
     speed: number,
     damage: number,
     pierce: number,
-    isEvolved: boolean = false
+    isEvolved: boolean = false,
+    skin?: SoulBoltSkin
   ): void {
     this.setPosition(startX, startY);
     this.setRotation(targetAngle);
@@ -42,13 +52,16 @@ export class SoulBoltProjectile extends Phaser.Physics.Arcade.Sprite {
     this.trailTimer = 0;
     this.hitEnemies.clear();
 
-    const textureKey = isEvolved ? 'apocalypse-shoot' : 'soul-shoot';
+    const useSkin = skin && this.scene.textures.exists(skin.texture) ? skin : undefined;
+    const textureKey = useSkin ? useSkin.texture : isEvolved ? 'apocalypse-shoot' : 'soul-shoot';
     if (this.scene.textures.exists(textureKey)) {
       this.setTexture(textureKey);
     }
 
     this.clearTint();
-    if (isEvolved) {
+    if (useSkin) {
+      this.setScale(useSkin.scale);
+    } else if (isEvolved) {
       this.setScale(0.85);
     } else {
       this.setScale(0.68);
@@ -60,7 +73,9 @@ export class SoulBoltProjectile extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.enable = true;
-      if (isEvolved) {
+      if (useSkin) {
+        body.setCircle(useSkin.radius, useSkin.offsetX, useSkin.offsetY);
+      } else if (isEvolved) {
         body.setCircle(12, 8, 8);
       } else {
         body.setCircle(9, 11, 11);

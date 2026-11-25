@@ -23,9 +23,27 @@ export type TalismanId =
   | 'act_blood_heart'
   | 'act_meteor_rain';
 
-/** Sprites dos pets (`pet-<nome>-0/1`, de lado, virados para a direita). */
+/** Pets com sprite próprio (de lado, virados para a direita; a esquerda é espelhada). */
 export const PET_SPRITES = ['bat', 'slime', 'hound', 'cerberus', 'twin'] as const;
 export type PetSprite = (typeof PET_SPRITES)[number];
+
+/** Tiro próprio da Gêmea Sombria (chama roxa com rastro, cabeça para a direita). */
+export const TWIN_BOLT_TEXTURE = 'twin-bolt';
+
+const range = (prefix: string, n: number): string[] => Array.from({ length: n }, (_, i) => `${prefix}-${i}`);
+
+/**
+ * Quadros de cada animação (chave de textura = nome do arquivo em `assets/sprites/pets/`).
+ * Os 4 pets da folha comum têm 2 quadros de andar e ficam parados no primeiro;
+ * a Gêmea tem folha própria com 4 quadros de parada e 4 de andar.
+ */
+export const PET_ANIM_FRAMES: Record<PetSprite, { idle: string[]; walk: string[] }> = {
+  bat: { idle: ['pet-bat-0'], walk: range('pet-bat', 2) },
+  slime: { idle: ['pet-slime-0'], walk: range('pet-slime', 2) },
+  hound: { idle: ['pet-hound-0'], walk: range('pet-hound', 2) },
+  cerberus: { idle: ['pet-cerberus-0'], walk: range('pet-cerberus', 2) },
+  twin: { idle: range('pet-twin-idle', 4), walk: range('pet-twin-walk', 4) },
+};
 
 export interface TalismanDef {
   id: TalismanId;
@@ -58,7 +76,7 @@ export const TALISMAN_CATALOG: readonly TalismanDef[] = [
     description: 'Três cabeças: morde até 3 monstros de uma vez e os atordoa.' },
   { id: 'wpn_abyss_eye', rarity: 'epic', kind: 'weapon', name: 'OLHO DO ABISMO', icon: 'apocalypse-shoot',
     description: 'Um raio gira sem parar ao seu redor queimando quem tocar.' },
-  { id: 'pet_twin', rarity: 'legendary', kind: 'pet', name: 'GÊMEA SOMBRIA', icon: 'pet-twin-0',
+  { id: 'pet_twin', rarity: 'legendary', kind: 'pet', name: 'GÊMEA SOMBRIA', icon: 'pet-twin-idle-0',
     description: 'Uma sombra sua anda ao seu lado e copia os seus disparos.' },
   { id: 'wpn_hell_pillar', rarity: 'legendary', kind: 'weapon', name: 'PILAR DO INFERNO', icon: 'infernal-meteor',
     description: 'Colunas de fogo caem nos monstros mais fortes da tela.' },

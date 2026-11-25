@@ -1265,4 +1265,4 @@ The flame gets the same 3-pixel white outline as the character.
 
 Se só a cor sair diferente, me mande assim mesmo: eu repinto o fogo no recorte com essas 4 cores, igual nos 4 quadros.
 
-**Onde salvar:** `art-source/novos/gemea-sombria.png` (ou `.jpg`). Eu recorto com o mesmo método dos pets e ligo: parada quando ela não anda, andar quando segue a heroína, ataque a cada disparo, virando para o monstro alvo.
+**Já gerado e no jogo, sem a animação de ataque** (decisão do dono: ela só atira, então o gesto não compensa). Usamos só as linhas 1 (parada) e 2 (andando) de `art-source/novos/gemea-sombria.jpg`, e o tiro dela é uma imagem à parte, `art-source/novos/gemea-tiro.webp` (chama roxa com rastro, cabeça para a direita, fundo verde). Para trocar, rode `python scripts/cut-twin.py <folha> <tiro> public/assets/sprites/pets`. O jogo vira a Gêmea para o monstro a cada tiro.

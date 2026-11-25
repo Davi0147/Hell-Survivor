@@ -907,7 +907,9 @@ export const TALISMAN_BALANCE = {
     /** Longe demais da heroína: o pet larga o alvo e volta. */
     leashRange: 340,
     /** Quadros por segundo da animação de andar (2 quadros; o tamanho já vem certo do recorte). */
-    walkFps: { bat: 9, slime: 5, hound: 8, cerberus: 7, twin: 6 },
+    walkFps: { bat: 9, slime: 5, hound: 8, cerberus: 7, twin: 8 },
+    /** Respiração parada (só a Gêmea tem mais de um quadro parado). */
+    idleFps: 4,
     /** Gêmea e Slime seguem com folga: voltam a andar acima de `startPx`, param a `stopPx`. */
     looseFollow: { startPx: 52, stopPx: 14 },
     bat: { scale: 1, orbitSpeed: 2.2, pullEveryMs: 1400, pullRadius: 150, peckEveryMs: 900, peckRange: 70, peckDamage: 7 },
@@ -916,7 +918,11 @@ export const TALISMAN_BALANCE = {
     hound: { scale: 1, speed: 230, biteEveryMs: 520, biteRange: 26, biteDamage: 18, seekRange: 300, targets: 1, stunMs: 0, restAngle: 0.8 },
     cerberus: { scale: 1, speed: 250, biteEveryMs: 600, biteRange: 34, biteDamage: 30, seekRange: 320, targets: 3, stunMs: 300, restAngle: -0.6 },
     /** Gêmea Sombria: cópia do Disparo de Almas da heroína, mais fraca, saindo dela. */
-    twin: { scale: 1, followSpeed: 230, alpha: 0.9, damageFraction: 0.6, cooldownFraction: 1.1, offsetX: -30, offsetY: 14 },
+    /**
+     * `shootOffsetY`: o tiro sai do peito dela, não dos pés.
+     * `bolt`: tiro próprio (twin-bolt.png, 34x12); colisão = círculo na cabeça da chama.
+     */
+    twin: { scale: 1, followSpeed: 230, shootOffsetY: -8, bolt: { scale: 1, radius: 5, offsetX: 23, offsetY: 1 }, alpha: 1, damageFraction: 0.6, cooldownFraction: 1.1, offsetX: -30, offsetY: 14 },
   },
 
   weapons: {

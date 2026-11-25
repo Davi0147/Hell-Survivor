@@ -3,7 +3,7 @@ import { GAME_ICON_KEYS, GAME_ICON_FOLDERS } from '../config/iconKeys';
 import { CH1_DECOR_FILES } from '../config/sceneryCatalog';
 import Phaser from 'phaser';
 import { DIRECTIONS_8, ENEMY_BALANCE, TALISMAN_BALANCE } from '../config/balance';
-import { PET_SPRITES } from '../systems/TalismanCatalog';
+import { PET_ANIM_FRAMES, PET_SPRITES, TWIN_BOLT_TEXTURE } from '../systems/TalismanCatalog';
 import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
@@ -388,12 +388,12 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
-    // 14.0.1. Pets dos talismãs: de lado (virados para a direita), 2 quadros de andar.
-    // Recortados de art-source/novos/pets-talismas.jpg por scripts/cut-pets.py.
-    for (const pet of PET_SPRITES) {
-      for (let i = 0; i < 2; i++) {
-        this.load.image(`pet-${pet}-${i}`, `assets/sprites/pets/pet-${pet}-${i}.png?t=${cacheBuster}`);
-      }
+    // 14.0.1. Pets dos talismãs (de lado, virados para a direita) e o tiro da Gêmea.
+    // Recortados por scripts/cut-pets.py e scripts/cut-twin.py (art-source/novos/).
+    const petKeys = new Set(PET_SPRITES.flatMap((pet) => [...PET_ANIM_FRAMES[pet].idle, ...PET_ANIM_FRAMES[pet].walk]));
+    petKeys.add(TWIN_BOLT_TEXTURE);
+    for (const key of petKeys) {
+      this.load.image(key, `assets/sprites/pets/${key}.png?t=${cacheBuster}`);
     }
 
     // 14.1. Carregar sprites da Múmia (Idle nos 8 ângulos e caminhada em 4 eixos x 9 frames)
@@ -729,17 +729,19 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // Pets dos talismãs: andar alterna os 2 quadros; parado fica no primeiro
+    // Pets dos talismãs: `pet-<nome>-walk` e `pet-<nome>-idle` (quadros em PET_ANIM_FRAMES)
     for (const pet of PET_SPRITES) {
-      if (this.anims.exists(`pet-${pet}-walk`)) this.anims.remove(`pet-${pet}-walk`);
-      if (this.anims.exists(`pet-${pet}-idle`)) this.anims.remove(`pet-${pet}-idle`);
-      this.anims.create({
-        key: `pet-${pet}-walk`,
-        frames: [{ key: `pet-${pet}-0` }, { key: `pet-${pet}-1` }],
-        frameRate: TALISMAN_BALANCE.pets.walkFps[pet],
-        repeat: -1
-      });
-      this.anims.create({ key: `pet-${pet}-idle`, frames: [{ key: `pet-${pet}-0` }], frameRate: 1, repeat: -1 });
+      const frames = PET_ANIM_FRAMES[pet];
+      for (const kind of ['walk', 'idle'] as const) {
+        const key = `pet-${pet}-${kind}`;
+        if (this.anims.exists(key)) this.anims.remove(key);
+        this.anims.create({
+          key,
+          frames: frames[kind].map((k) => ({ key: k })),
+          frameRate: kind === 'walk' ? TALISMAN_BALANCE.pets.walkFps[pet] : TALISMAN_BALANCE.pets.idleFps,
+          repeat: -1
+        });
+      }
     }
 
     // Registrar animações da Múmia (9 frames de caminhada arrastada e 8 direções de idle)

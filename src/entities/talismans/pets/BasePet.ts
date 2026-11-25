@@ -114,6 +114,11 @@ export abstract class BasePet implements TalismanEffect {
     }
   }
 
+  /** Vira para um ponto sem mudar a animação (ex.: ao atirar parada). */
+  protected faceToward(x: number): void {
+    this.sprite.setFlipX(x < this.x);
+  }
+
   /** Chamar ao fim de `update` para o contorno seguir o quadro, o lado e a posição. */
   protected syncOutline(): void {
     const s = this.sprite;

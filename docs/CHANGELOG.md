@@ -9,11 +9,13 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 #### Resumo para o Jogador
 - **Pets novos de verdade:** Morcego Coletor, Slime Saltador, Cão de Guarda, Cérbero Filhote e Gêmea Sombria ganharam desenho próprio (roxo, coleira dourada, contorno branco). Antes eles usavam o sprite dos monstros encolhido e dava para confundir aliado com inimigo.
 - Eles andam de lado e viram para o lado em que vão; a carta de cada talismã mostra o pet novo.
+- **Gêmea Sombria nova:** desenho próprio que respira quando está parada e anda com passo completo. Ela atira uma **chama roxa própria** que sai do peito dela, e se vira para o monstro a cada tiro. Ela também já aparece ao seu lado (antes ficava escondida atrás de você).
 - **Gêmea e Slime menos grudados:** ficam parados perto de você e só vão atrás quando você se afasta um pouco. Some o tranco da Gêmea, que trocava entre parada e andando a cada quadro.
 
 #### Técnico
 - `scripts/cut-pets.py` recorta `art-source/novos/pets-talismas.jpg` (fundo verde, linhas achadas pelas faixas vazias) em `public/assets/sprites/pets/pet-<nome>-0/1.png`, já no tamanho final (escala 1).
 - `BasePet` recebe o nome do pet (`PET_SPRITES` em `TalismanCatalog.ts`), anima `pet-<nome>-walk/idle` e espelha com `flipX` (o contorno acompanha). `TALISMAN_BALANCE.pets.walkFps`; saiu `TALISMAN_THEME.twinTint` (a Gêmea não é mais a heroína pintada).
+- Gêmea: `scripts/cut-twin.py` (linhas 1-2 de `art-source/novos/gemea-sombria.jpg`, janela comum ancorada no chão para não tremer; tiro de `gemea-tiro.webp`). `PET_ANIM_FRAMES` define os quadros de cada pet; `SoulBoltWeapon.skin` / `onFire` e `SoulBoltSkin` no projétil; `TALISMAN_BALANCE.pets.twin.bolt`/`shootOffsetY`, `idleFps`; alpha da Gêmea 1 (com 0,9 o contorno branco vazava pelo corpo). Recorte comum em `scripts/spritecut.py`.
 - `BasePet.followLoose` + `pets/looseFollow.ts` (testado): anda acima de `looseFollow.startPx` (52), para a `stopPx` (14); `followSpeed` da Gêmea (230) e do Slime (210).
 
 ### Escudo contra congelamento e atualização sem cache

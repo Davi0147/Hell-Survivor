@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BaseWeapon } from './BaseWeapon';
-import { SoulBoltProjectile } from './SoulBoltProjectile';
+import { SoulBoltProjectile, type SoulBoltSkin } from './SoulBoltProjectile';
 import { BaseEnemy } from '../enemies/BaseEnemy';
 import { BALANCE } from '../../config/balance';
 import { SoundManager } from '../../systems/SoundManager';
@@ -13,6 +13,10 @@ export class SoulBoltWeapon extends BaseWeapon {
   public level: number = 1;
   public readonly maxLevel: number = 5;
   private player?: BaseCharacter;
+  /** Aparência própria dos tiros (a Gêmea Sombria usa a dela). */
+  public skin?: SoulBoltSkin;
+  /** Avisado a cada disparo (a Gêmea vira para o alvo). */
+  public onFire?: (target: BaseEnemy) => void;
 
   constructor(scene: Phaser.Scene, player?: BaseCharacter) {
     const cfg = BALANCE.SOUL_BOLT;
@@ -96,9 +100,11 @@ export class SoulBoltWeapon extends BaseWeapon {
         this.projectileSpeed,
         effectiveDamage,
         effectivePierce,
-        this.isEvolved
+        this.isEvolved,
+        this.skin
       );
     }
+    this.onFire?.(target);
 
     // Efeito sonoro procedural retrô de disparo de magia espiritual
     SoundManager.getInstance().playSoulBoltFire();
