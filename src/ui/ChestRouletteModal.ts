@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { InputHint } from './InputHint';
-import type { UpgradeCard, UpgradeGameScene } from '../systems/UpgradeCatalog';
+import { CHEST_ROULETTE_THEME as TH, FONTS } from '../config/theme';
+import { CARD_ICON_KEYS, type UpgradeCard, type UpgradeGameScene } from '../systems/UpgradeCatalog';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 
 /** O que a roleta usa da GameScene: pausar/retomar e dar a imunidade de saída. */
@@ -12,7 +13,26 @@ export type IChestRouletteGameScene = UpgradeGameScene & {
   grantChestSafetyGrace?: () => void;
 };
 
-/** Modal da roleta de bênção do Baú do Abismo (instância por UIScene). */
+/** Quantos ícones passam antes do prêmio (quanto mais, mais longa a corrida). */
+const REEL_ITEMS_BEFORE_PRIZE = 26;
+/** Ícones depois do prêmio, para a faixa não terminar vazia à direita dele. */
+const REEL_ITEMS_AFTER_PRIZE = 4;
+const SPIN_MS = 3400;
+const COLLECT_LOCK_MS = 220;
+
+/** Arte da carta; null quando ela não tem (aí o espaço mostra o rótulo curto da carta). */
+function iconOf(s: Phaser.Scene, card: UpgradeCard | null): string | null {
+  if (!card) return s.textures.exists('item-chalice') ? 'item-chalice' : null;
+  const key = CARD_ICON_KEYS[card.id];
+  return key && s.textures.exists(key) ? key : null;
+}
+
+/**
+ * Roleta do Baú do Abismo (instância por UIScene): uma faixa de ícones das bênçãos
+ * possíveis corre da direita para a esquerda, desacelera com um estalo a cada ícone
+ * que passa pelo centro e para no prêmio, que cresce e brilha.
+ * Tocar durante a corrida pula direto para o prêmio; o toque seguinte coleta.
+ */
 export class ChestRouletteModal {
   /** Verdadeiro enquanto a roleta está na tela (bloqueia pausa e level up). */
   public isOpen = false;
@@ -25,358 +45,221 @@ export class ChestRouletteModal {
     if (this.resolver) this.resolver();
   }
 
-  /**
-   * Roleta Minimalista de Bênçãos do Baú do Abismo:
-   * Sem painéis pesados, caixas ou bordas geométricas.
-   * Os nomes sobem continuamente na vertical com estalos satisfatórios (playRouletteTick),
-   * desaceleram, e revelam a bênção com fanfarra de prêmio (playRouletteJackpot),
-   * "BÊNÇÃO CONCEDIDA" no topo, descrição limpa e prompt sutil de coleta.
-   */
   public show(availableCards: UpgradeCard[], player: BaseCharacter, gameScene: IChestRouletteGameScene | null): void {
     const s = this.ui;
     const { width, height } = s.scale;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+    const cx = width / 2;
+    const cy = height / 2;
 
-    // 1. Pausa total do GameScene (física e loop de atualização para impedir spawns acumulados)
+    // Pausa total do combate enquanto a roleta está aberta
     this.isOpen = true;
-    if (gameScene) {
-      if (gameScene.physics) gameScene.physics.pause();
-      if (gameScene.scene) gameScene.scene.pause();
-    }
+    gameScene?.physics?.pause();
+    gameScene?.scene?.pause();
 
-    const modal = s.add.container(0, 0);
-    modal.setDepth(3400);
-
-    // 2. Fundo escuro suave translúcido (sem caixas ou molduras)
-    const backdrop = s.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78);
-    backdrop.setInteractive({ useHandCursor: true });
+    const modal = s.add.container(0, 0).setDepth(3400);
+    const backdrop = s.add.rectangle(cx, cy, width, height, TH.backdrop, TH.backdropAlpha).setInteractive({ useHandCursor: true });
     modal.add(backdrop);
 
-    const centerX = width / 2;
-    const centerY = height / 2;
+    // Prêmio: evolução tem prioridade; sem cartas, cura total
+    const pool = availableCards;
+    const evo = pool.filter((c) => c.isEvolution);
+    const prize: UpgradeCard | null = evo.length > 0 ? Phaser.Math.RND.pick(evo) : pool.length > 0 ? Phaser.Math.RND.pick(pool) : null;
 
-    // Ícone do Baú flutuante no topo
-    let chestSprite: Phaser.GameObjects.Image | undefined;
-    if (s.textures.exists('item-chest')) {
-      chestSprite = s.add.image(centerX, centerY - 82, 'item-chest');
-      chestSprite.setScale(1.4);
-      modal.add(chestSprite);
+    // Tamanho medido pela tela: no celular o jogo é encolhido inteiro
+    const slot = Math.round(Math.min(height * 0.17, 120));
+    const gap = Math.round(slot * 0.18);
+    const step = slot + gap;
+    const stripW = Math.min(width * 0.86, step * 7);
+    const font = (f: number): string => `${Math.max(10, Math.round(slot * f))}px`;
 
-      s.tweens.add({
-        targets: chestSprite,
-        y: chestSprite.y - 6,
-        duration: 480,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
-    }
-
-    // Texto superior de status ("BÊNÇÃO CONCEDIDA" ou "SORTEANDO BÊNÇÃO...")
-    const headerText = s.add.text(centerX, centerY - 40, 'SORTEANDO BÊNÇÃO...', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ff4d6d',
-      letterSpacing: 2
+    const header = s.add.text(cx, cy - slot * 1.05, 'SORTEANDO BÊNÇÃO...', {
+      fontFamily: FONTS.body, fontSize: font(0.16), color: TH.header, stroke: TH.stroke, strokeThickness: 3,
     }).setOrigin(0.5);
-    modal.add(headerText);
+    modal.add(header);
 
-    // Container dedicado onde os nomes vão subir
-    const reelContainer = s.add.container(centerX, centerY);
-    modal.add(reelContainer);
+    // Trilho escuro com moldura dourada atrás da faixa
+    const rail = s.add.graphics();
+    rail.fillStyle(TH.stripFill, 0.92).fillRect(cx - stripW / 2, cy - slot * 0.68, stripW, slot * 1.36);
+    rail.lineStyle(2, TH.stripBorder, 1).strokeRect(cx - stripW / 2, cy - slot * 0.68, stripW, slot * 1.36);
+    modal.add(rail);
 
-    // Texto descritivo breve
-    const descText = s.add.text(centerX, centerY + 40, '', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#e2e8f0',
-      align: 'center',
-      wordWrap: { width: Math.min(width - 60, 460) }
+    // Faixa: ícones sorteados, o prêmio na posição REEL_ITEMS_BEFORE_PRIZE
+    const reel = s.add.container(0, cy);
+    const items: Phaser.GameObjects.Container[] = [];
+    const total = REEL_ITEMS_BEFORE_PRIZE + 1 + REEL_ITEMS_AFTER_PRIZE;
+    for (let i = 0; i < total; i++) {
+      const card = i === REEL_ITEMS_BEFORE_PRIZE ? prize : pool.length > 0 ? Phaser.Math.RND.pick(pool) : null;
+      const item = s.add.container(i * step, 0);
+      const plate = s.add.graphics();
+      plate.fillStyle(TH.slotFill, 1).fillRect(-slot / 2, -slot / 2, slot, slot);
+      const border = card?.isEvolution ? TH.slotEvolutionBorder : card?.glowColor ?? TH.slotBorder;
+      plate.lineStyle(2, border, 1).strokeRect(-slot / 2, -slot / 2, slot, slot);
+      item.add(plate);
+      const key = iconOf(s, card);
+      if (key) {
+        const icon = s.add.image(0, 0, key);
+        icon.setScale(Math.min((slot * 0.72) / icon.width, (slot * 0.72) / icon.height));
+        item.add(icon);
+      } else {
+        // Carta sem arte: o rótulo curto dela ("METEORO", "ALMAS"), na cor da raridade
+        const label = s.add.text(0, 0, card?.icon ?? '', {
+          fontFamily: FONTS.body, fontSize: font(0.13), color: card?.rarityColor ?? TH.collect,
+          stroke: TH.stroke, strokeThickness: 3, align: 'center', wordWrap: { width: slot - 8 },
+        }).setOrigin(0.5);
+        item.add(label);
+      }
+      reel.add(item);
+      items.push(item);
+    }
+    modal.add(reel);
+
+    // Ponteiros dourados em cima e embaixo do centro
+    const pointer = s.add.graphics();
+    pointer.fillStyle(TH.pointer, 1);
+    const top = cy - slot * 0.68;
+    const bottom = cy + slot * 0.68;
+    pointer.fillTriangle(cx - 9, top - 12, cx + 9, top - 12, cx, top + 2);
+    pointer.fillTriangle(cx - 9, bottom + 12, cx + 9, bottom + 12, cx, bottom - 2);
+    pointer.lineStyle(2, TH.pointer, 0.9).strokeRect(cx - slot * 0.58, cy - slot * 0.58, slot * 1.16, slot * 1.16);
+    modal.add(pointer);
+
+    const nameText = s.add.text(cx, cy + slot * 0.95, '', {
+      fontFamily: FONTS.body, fontSize: font(0.2), color: TH.prizeName, stroke: TH.stroke, strokeThickness: 4,
     }).setOrigin(0.5).setVisible(false);
-    modal.add(descText);
-
-    // Texto minimalista de coleta (sem formas nem quadrados ao redor!)
-    const collectPrompt = s.add.text(centerX, centerY + 86, '[ COLETAR BÊNÇÃO ]', {
-      fontFamily: pixelFont,
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5).setVisible(false);
-    collectPrompt.setInteractive({ useHandCursor: true });
-    modal.add(collectPrompt);
-
-    // Atalho com o ícone do botão do aparelho em uso (espaço/clique, A, cruz, toque)
-    const keyHint = new InputHint(s, centerX, centerY + 112, ['advance', { text: 'COLETAR' }], {
-      glyphHeight: 20,
-      fontSize: 9,
-      align: 'center',
+    const descText = s.add.text(cx, cy + slot * 1.25, '', {
+      fontFamily: FONTS.body, fontSize: font(0.12), color: TH.desc, align: 'center', wordWrap: { width: Math.min(width - 60, stripW) },
+    }).setOrigin(0.5, 0).setVisible(false);
+    const collectPrompt = s.add.text(cx, cy + slot * 1.9, '[ COLETAR BÊNÇÃO ]', {
+      fontFamily: FONTS.body, fontSize: font(0.15), color: TH.collect, stroke: TH.stroke, strokeThickness: 2,
+    }).setOrigin(0.5).setVisible(false).setInteractive({ useHandCursor: true });
+    const keyHint = new InputHint(s, cx, cy + slot * 2.15, ['advance', { text: 'COLETAR' }], {
+      glyphHeight: 20, fontSize: 9, align: 'center',
     }).container.setVisible(false);
-    modal.add(keyHint);
-
-    // Animação de pulso suave no texto de coleta
-    s.tweens.add({
-      targets: collectPrompt,
-      alpha: 0.6,
-      duration: 550,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-
+    modal.add([nameText, descText, collectPrompt, keyHint]);
+    s.tweens.add({ targets: collectPrompt, alpha: 0.6, duration: 550, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     collectPrompt.on('pointerover', () => {
-      collectPrompt.setColor('#ffffff');
+      collectPrompt.setColor(TH.collectHover);
       SoundManager.getInstance().playMenuHover();
     });
-    collectPrompt.on('pointerout', () => {
-      collectPrompt.setColor('#f3d17a');
+    collectPrompt.on('pointerout', () => collectPrompt.setColor(TH.collect));
+
+    // Começa com o primeiro ícone entrando pela borda direita; termina com o prêmio no centro
+    const startX = cx + stripW / 2 + slot / 2;
+    const endX = cx - REEL_ITEMS_BEFORE_PRIZE * step;
+    reel.x = startX;
+
+    /** Ícones perto do centro crescem; perto das bordas somem (a faixa não tem máscara). */
+    const layout = (): void => {
+      for (let i = 0; i < items.length; i++) {
+        const sx = reel.x + i * step;
+        const d = Math.abs(sx - cx);
+        const it = items[i];
+        it.setScale(1 + Math.max(0, 1 - d / step) * 0.25);
+        // Some antes de a borda do ícone passar da moldura
+        it.setAlpha(Phaser.Math.Clamp((stripW / 2 - slot * 0.55 - d) / (slot * 0.5), 0, 1));
+      }
+    };
+    layout();
+
+    let lastIndex = -1;
+    let finished = false;
+    let collected = false;
+    let canCollectAt = 0;
+
+    const spin = s.tweens.add({
+      targets: reel,
+      x: endX,
+      duration: SPIN_MS,
+      ease: 'Quart.easeOut',
+      onUpdate: (tw) => {
+        layout();
+        // Um estalo por ícone que passa pelo centro, mais agudo conforme desacelera
+        const idx = Math.round((cx - reel.x) / step);
+        if (idx !== lastIndex && idx >= 0) {
+          lastIndex = idx;
+          SoundManager.getInstance().playRouletteTick(0.95 + tw.progress * 0.4);
+        }
+      },
+      onComplete: () => reveal(),
     });
 
-    // Lista de nomes para a animação da roleta
-    const dummyNames = [
-      'LÂMINAS ORBITAIS',
-      'ADAGAS DE SANGUE',
-      'CADEIAS ABISSAIS',
-      'METEORO INFERNAL',
-      'FÚRIA INFERNAL',
-      'PULMÕES DO DEMÔNIO',
-      'ALMA EXTRA',
-      'PERFURAÇÃO MÍSTICA',
-      'CELERIDADE ABISSAL',
-      'ÍMÃ DE ALMAS',
-      'VITALIDADE SANGRENTA',
-      'DRENO VITAL',
-      'REGENERAÇÃO SOMBRIA'
-    ];
+    const reveal = (): void => {
+      if (finished || collected) return;
+      finished = true;
+      canCollectAt = s.time.now + COLLECT_LOCK_MS;
+      spin.stop();
+      reel.x = endX;
+      layout();
 
-    const pool = availableCards.length > 0 ? availableCards : [];
-    const evoCards = pool.filter((c) => c.isEvolution);
-    const chosenCard =
-      evoCards.length > 0
-        ? Phaser.Math.RND.pick(evoCards)
-        : pool.length > 0
-          ? Phaser.Math.RND.pick(pool)
-          : null;
+      const winner = items[REEL_ITEMS_BEFORE_PRIZE];
+      s.tweens.add({ targets: winner, scale: 1.45, duration: 180, ease: 'Back.easeOut' });
+      const glow = s.add.circle(cx, cy, slot * 0.8, TH.winnerGlow, 0.35).setBlendMode(Phaser.BlendModes.ADD);
+      modal.addAt(glow, modal.getIndex(reel));
+      s.tweens.add({ targets: glow, scale: { from: 0.6, to: 1.15 }, alpha: { from: 0.55, to: 0.25 }, duration: 600, yoyo: true, repeat: -1 });
 
-    // Curva de desaceleração (14 passos progressivos simulando carretel de slot)
-    const stepDelays = [40, 45, 50, 55, 65, 75, 90, 110, 140, 180, 230, 290, 370, 480];
-    let stepIndex = 0;
-    let currentSlotText: Phaser.GameObjects.Text | null = null;
-    let rollTimer: Phaser.Time.TimerEvent | null = null;
-    let isFinishedRolling = false;
-    let canCollectAt = 0;
-    let collected = false;
-
-    const revealPrizeNow = () => {
-      if (collected || isFinishedRolling) return;
-      isFinishedRolling = true;
-      canCollectAt = Date.now() + 180;
-
-      if (rollTimer) {
-        rollTimer.destroy();
-        rollTimer = null;
-      }
-
-      // Interrompe tweens e limpa textos anteriores da roleta
-      s.tweens.killTweensOf(reelContainer);
-      if (currentSlotText && currentSlotText.scene) {
-        s.tweens.killTweensOf(currentSlotText);
-      }
-      reelContainer.removeAll(true);
-      currentSlotText = null;
-
-      // Cria o texto definitivo no centro (0, 0)
-      const finalDisplayName = chosenCard ? chosenCard.title : 'RESTAURAÇÃO TOTAL';
-      const prizeText = s.add.text(0, 0, finalDisplayName, {
-        fontFamily: pixelFont,
-        fontSize: '18px',
-        fontStyle: 'bold',
-        color: '#ffe600',
-        stroke: '#000000',
-        strokeThickness: 4
-      }).setOrigin(0.5);
-      reelContainer.add(prizeText);
-
-      // Fanfarra triunfante e flash de câmera
       SoundManager.getInstance().playRouletteJackpot();
-      if (s.cameras && s.cameras.main) {
-        s.cameras.main.flash(220, 255, 215, 0);
-      }
-
-      // Altera o cabeçalho superior para "BÊNÇÃO CONCEDIDA"
-      if (headerText.scene) {
-        headerText.setText('BÊNÇÃO CONCEDIDA').setColor('#00f5d4');
-      }
-
-      // Formata descrição limpa
-      let cleanDesc: string;
-      if (chosenCard) {
-        cleanDesc = chosenCard.description
-          .replace(/\n\n/g, ' — ')
-          .replace(/\n/g, ' ');
-      } else {
-        cleanDesc = 'Sua vitalidade foi 100% regenerada pelo fogo abissal.';
-      }
-      if (descText.scene) {
-        descText.setText(cleanDesc).setVisible(true).setAlpha(1).setY(centerY + 36);
-      }
-
-      // Exibe botões/prompts de confirmação e coleta
-      if (collectPrompt.scene) {
-        collectPrompt.setVisible(true).setAlpha(1);
-      }
-      if (keyHint.scene) {
-        keyHint.setVisible(true).setAlpha(1);
-      }
+      s.cameras.main.flash(220, 255, 215, 0);
+      header.setText('BÊNÇÃO CONCEDIDA').setColor(TH.headerDone);
+      nameText.setText(prize ? prize.title : 'RESTAURAÇÃO TOTAL').setVisible(true);
+      const desc = prize
+        ? prize.description.replace(/\n\n/g, ' — ').replace(/\n/g, ' ')
+        : 'Sua vitalidade foi 100% regenerada pelo fogo abissal.';
+      descText.setText(desc).setVisible(true);
+      collectPrompt.setVisible(true);
+      keyHint.setVisible(true);
     };
 
-    const rollNextName = () => {
-      if (collected || isFinishedRolling || !modal.scene || !headerText.scene) return;
-
-      const isFinal = stepIndex >= stepDelays.length;
-      if (isFinal) {
-        revealPrizeNow();
-        return;
-      }
-
-      // Nome a ser exibido neste passo
-      const displayName = pool.length > 0
-        ? Phaser.Math.RND.pick(pool).title
-        : Phaser.Math.RND.pick(dummyNames);
-
-      // Novo texto nascendo de baixo (+28px)
-      const nextSlotText = s.add.text(0, 28, displayName, {
-        fontFamily: pixelFont,
-        fontSize: '15px',
-        fontStyle: 'bold',
-        color: '#ffd700',
-        stroke: '#000000',
-        strokeThickness: 3
-      }).setOrigin(0.5);
-      nextSlotText.setAlpha(0);
-      reelContainer.add(nextSlotText);
-
-      const animDuration = Math.max(30, stepDelays[stepIndex] * 0.75);
-
-      // O texto atual sobe (-28px) e desaparece
-      if (currentSlotText && currentSlotText.active) {
-        const oldText = currentSlotText;
-        s.tweens.add({
-          targets: oldText,
-          y: -28,
-          alpha: 0,
-          duration: animDuration,
-          ease: 'Quad.easeOut',
-          onComplete: () => {
-            if (oldText.scene) oldText.destroy();
-          }
-        });
-      }
-
-      // O novo texto sobe para o centro (0) e ganha opacidade
-      s.tweens.add({
-        targets: nextSlotText,
-        y: 0,
-        alpha: 1,
-        duration: animDuration,
-        ease: 'Quad.easeOut'
-      });
-
-      currentSlotText = nextSlotText;
-
-      // Toca o barulhinho satisfatório de clique místico
-      const pitchProgress = 0.95 + (stepIndex / stepDelays.length) * 0.35;
-      SoundManager.getInstance().playRouletteTick(pitchProgress);
-
-      const delay = stepDelays[stepIndex];
-      stepIndex++;
-      rollTimer = s.time.delayedCall(delay, rollNextName);
-    };
-
-    // Finalização e Coleta com suporte a pular (skip) e confirmação em qualquer área
-    const finalizeCollection = () => {
+    const collect = (): void => {
       if (collected) return;
       collected = true;
-
-      if (rollTimer) {
-        rollTimer.destroy();
-        rollTimer = null;
-      }
-
       window.removeEventListener('keydown', onKey);
       this.resolver = null;
       SoundManager.getInstance().playMenuClick();
+      if (prize && gameScene) prize.apply(player, gameScene);
+      else player.heal(player.maxHp);
 
-      // Aplica a bênção
-      if (chosenCard && gameScene) {
-        chosenCard.apply(player, gameScene);
-      } else {
-        player.heal(player.maxHp);
-      }
-
-      // Fecha o modal e retoma o jogo com imunidade de proteção
       this.isOpen = false;
       modal.destroy();
       if (gameScene && !gameScene.isGameOver && !gameScene.isChapterCompleted) {
-        if (gameScene.scene) gameScene.scene.resume();
-        if (gameScene.physics) gameScene.physics.resume();
-        if (typeof gameScene.grantChestSafetyGrace === 'function') {
-          gameScene.grantChestSafetyGrace();
-        }
+        gameScene.scene?.resume();
+        gameScene.physics?.resume();
+        gameScene.grantChestSafetyGrace?.();
       }
     };
 
-    const handleInteraction = () => {
+    const handleInteraction = (): void => {
       if (collected) return;
-      if (!isFinishedRolling) {
-        // Se ainda estiver girando, pula a animação diretamente para o prêmio sorteado
-        revealPrizeNow();
+      if (!finished) {
+        reveal();
         return;
       }
-      // Anti-missclick / debounce curto para não coletar sem o jogador ver
-      if (Date.now() < canCollectAt) {
-        return;
-      }
-      finalizeCollection();
+      // Anti-toque duplo: não coleta sem o jogador ver o prêmio
+      if (s.time.now < canCollectAt) return;
+      collect();
     };
 
-    // Interações: botão dedicado, clique no fundo escuro (fora), e bot autônomo [F3]
     collectPrompt.on('pointerdown', handleInteraction);
     backdrop.on('pointerdown', handleInteraction);
     this.resolver = handleInteraction;
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'Enter') {
-        handleInteraction();
-      }
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.code === 'Space' || e.code === 'Enter') handleInteraction();
     };
     window.addEventListener('keydown', onKey);
 
-    // Controle: A pula a roleta e depois coleta (a GameScene está pausada, então lemos aqui)
-    // Lê uma vez já ao abrir: um A que vinha apertado do combate não conta como aperto novo
+    // Controle: A pula e depois coleta. Lê uma vez ao abrir: um A apertado no combate não conta
     GamepadManager.getInstance().getMenuNavigation(s);
-    const onUpdate = () => {
+    const onUpdate = (): void => {
       if (GamepadManager.getInstance().getMenuNavigation(s).confirm) handleInteraction();
     };
     s.events.on(Phaser.Scenes.Events.UPDATE, onUpdate);
 
-    // Garante limpeza caso o modal seja destruído por shutdown da cena
     modal.once(Phaser.GameObjects.Events.DESTROY, () => {
       window.removeEventListener('keydown', onKey);
       s.events.off(Phaser.Scenes.Events.UPDATE, onUpdate);
-      if (rollTimer) {
-        rollTimer.destroy();
-        rollTimer = null;
-      }
-      if (this.resolver === handleInteraction) {
-        this.resolver = null;
-      }
+      spin.stop();
+      if (this.resolver === handleInteraction) this.resolver = null;
       this.isOpen = false;
     });
-
-    // Inicia o primeiro giro após breve suspense (100ms)
-    rollTimer = s.time.delayedCall(100, rollNextName);
   }
 }

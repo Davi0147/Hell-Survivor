@@ -4,6 +4,15 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Roleta do baú nova
+
+#### Resumo para o Jogador
+- **Baú do Abismo com faixa de ícones:** em vez dos nomes subindo, agora os **ícones das bênçãos** correm da direita para a esquerda numa faixa com moldura dourada, com um estalo a cada ícone que passa pelo centro. A faixa vai **desacelerando** e para no prêmio, que **cresce e brilha** entre as duas setas douradas. Depois aparecem o nome e a descrição.
+- A borda de cada ícone tem a cor da carta (as evoluções têm borda dourada). Tocar durante a corrida pula direto para o prêmio, como antes.
+
+#### Técnico
+- `ChestRouletteModal` reescrito: faixa com o prêmio numa posição fixa e um tween `Quart.easeOut`; o estalo sai quando o índice no centro muda. Cores em `CHEST_ROULETTE_THEME` (12 cores a menos fora do tema; catraca travada em 941).
+
 ### Ícones de botão no lugar das dicas escritas
 
 #### Resumo para o Jogador

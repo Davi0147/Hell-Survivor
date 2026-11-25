@@ -507,6 +507,26 @@ export const MODAL_THEME = {
   }
 } as const;
 
+/** Roleta do Baú do Abismo: faixa de ícones que corre da direita para a esquerda. */
+export const CHEST_ROULETTE_THEME = {
+  backdrop: 0x000000,
+  backdropAlpha: 0.8,
+  slotFill: 0x12040a,
+  slotBorder: 0x5a1020,
+  slotEvolutionBorder: 0xffe600,
+  stripFill: 0x0b0208,
+  stripBorder: 0xc59b27,
+  pointer: 0xffd700,
+  winnerGlow: 0xffd700,
+  header: '#ff4d6d',
+  headerDone: '#00f5d4',
+  prizeName: '#ffe600',
+  desc: '#e2e8f0',
+  collect: '#f3d17a',
+  collectHover: '#ffffff',
+  stroke: '#000000',
+} as const;
+
 /**
  * Talismãs (prêmio do minichefe): cor de cada raridade, moldura da carta, item no chão,
  * contorno branco dos pets e efeitos das armas únicas.
