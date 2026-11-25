@@ -73,7 +73,10 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    assetsInlineLimit: 0
+    assetsInlineLimit: 0,
+    // Mapas sem referência no código: o jogador não baixa nada a mais, e com o build local
+    // (mesmo hash do publicado) dá para traduzir a linha de um erro mostrado pelo CrashGuard
+    sourcemap: 'hidden'
   },
   plugins: [
     buildVersionPlugin()

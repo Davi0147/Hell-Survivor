@@ -4,6 +4,16 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Escudo contra congelamento e atualização sem cache
+
+#### Resumo para o Jogador
+- **O jogo não congela mais de vez:** quando dava um erro no meio de um quadro, o jogo parava para sempre (tela amarela no level up, tela branca ao entrar no Infinito). Agora o erro é contornado, o jogo continua, e uma mensagem pequena em vermelho aparece no canto inferior esquerdo. **Se ela aparecer, mande um print**: ela diz exatamente o que quebrou.
+- **Atualização sempre limpa:** o jogo instalado não guarda mais cópia de si mesmo. Toda vez que abre, ele busca a versão mais nova e apaga caches antigos, sem o aviso de "recarregar". (Sem internet, o jogo não abre.)
+
+#### Técnico
+- `src/systems/CrashGuard.ts`: embrulha o `game.loop.callback` (o Phaser liga o laço logo depois do READY); erro vai para console, `DebugSessionLogger` e um texto no DOM. Build com `sourcemap: 'hidden'` para traduzir a linha.
+- `public/sw.js` mínimo: `skipWaiting` + apaga caches `hell-survivor*`; página sempre `no-store`; o resto sem interceptar. `.claude/launch.json` ganhou `hell-survivor-prod` (`vite preview`) para testar a versão compilada.
+
 ### Correção de verdade do travamento no altar
 
 #### Resumo para o Jogador

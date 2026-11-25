@@ -496,6 +496,13 @@ export const MODAL_THEME = {
   }
 } as const;
 
+/** Aviso de erro na tela (CrashGuard): texto solto no canto, sem caixa. */
+export const CRASH_THEME = {
+  text: '#ff4d6d',
+  detail: '#f3d17a',
+  shadow: '#000000',
+} as const;
+
 /** Roleta do Baú do Abismo: só ícones correndo da direita para a esquerda e duas setas no centro. */
 export const CHEST_ROULETTE_THEME = {
   backdrop: 0x000000,
