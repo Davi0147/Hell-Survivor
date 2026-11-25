@@ -4,6 +4,18 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Cartas com moldura própria de cada raridade
+
+#### Resumo para o Jogador
+- **Molduras novas, uma por raridade:** Comum (ossos de catacumba), Incomum (bronze e fogo de alma verde), Rara (correntes espectrais azuis), Épica (obsidiana com runas e chifres) e Suprema (ouro, rubis, asas e fogo do inferno). Bateu o olho, sabe o quão rara é a carta.
+- **Acabou o "gelo sem gelo":** as molduras antigas de gelo, veneno etc. caíam em cartas sem nada a ver. Agora todas seguem o tema do inferno, e a cor do nome da raridade combina com a moldura.
+- **Talismãs também:** a carta do talismã usa as mesmas molduras (Lendária = Suprema), e o talismã no chão mostra a moldura dourada nova.
+- **Mais nítidas:** a arte nova tem o dobro da resolução das antigas.
+
+#### Técnico
+- `UpgradeCard.rarity` substitui `cardSpriteKey`/`rarityLabel`/`rarityColor`; `CARD_RARITY_THEME` e `CARD_FRAME_KEYS` em `theme.ts` (`CARD_RARITY_COLORS` removido; `TALISMAN_THEME.rarity` lê dele).
+- `scripts/cut-card-frames.py` recorta a folha em `public/assets/sprites/cards/card-*.png` (240x400, mesma escala, centradas pela janela). As 8 molduras antigas foram apagadas. Posições de texto e ícone na `UpgradeScene` refeitas para as janelas novas.
+
 ### Altar de Ascensão aparece quando a arma chega ao máximo
 
 #### Resumo para o Jogador

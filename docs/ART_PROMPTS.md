@@ -31,7 +31,7 @@ top-down 3/4 view game asset, transparent background, centered, no text, no wate
 | Efeito de ataque pequeno | 64x64 por quadro |
 | Efeito de área grande | 128x128 ou 192x192 por quadro |
 | Retrato de diálogo | 200x200 (ou maior, mesma proporção) |
-| Moldura de carta | 120x200 |
+| Moldura de carta | 240x400 (unidade 120x200, gere 5x maior) |
 
 Para **animações**, peça sempre uma *sprite sheet* horizontal: todos os quadros lado a lado, mesmo tamanho, mesma posição do centro. Exemplo: `horizontal sprite sheet, 8 frames, each frame 64x64, evenly spaced, consistent center`.
 
@@ -1082,3 +1082,19 @@ Do not use transparency checkerboard; use flat #FF00FF only.
 **Se o gerador errar** (letras trocadas, células grudadas, tamanhos diferentes): gere em 3 imagens de `canvas 2048x512, 8 columns x 2 rows of 256x256 cells`, colando o estilo, as duas formas base e só duas linhas por vez (1–2, 3–4, 5–6). Letra torta numa tecla não é problema grave: as teclas vazias (linha 3) existem justamente para eu escrever a letra por cima com a fonte do jogo se precisar.
 
 **Já gerado e no jogo** (`art-source/novos/botoes-controle.webp`). Para trocar, gere de novo na mesma ordem e rode `python scripts/cut-button-glyphs.py <imagem> public/assets/sprites/ui/buttons 48`. O script acha as peças sozinho e para com erro se a contagem por linha não bater com a lista acima. Qual ícone cada ação usa fica em `src/config/inputGlyphs.ts`.
+
+## 19. Molduras de carta (uma por raridade)
+
+Antes eram 8 molduras escolhidas carta por carta (gelo numa carta de velocidade, veneno numa de vida). Agora são **5, uma por raridade**, todas no tema inferno e catacumbas: a moldura diz o quão rara a carta é; o tema vem do ícone no encaixe do meio. Os talismãs usam as mesmas (Lendária = Suprema).
+
+| Raridade | Moldura |
+|---|---|
+| Comum | Ossos e pedra de catacumba, sem brilho |
+| Incomum | Ossos com bronze e fogo de alma verde |
+| Rara | Ferro e correntes espectrais azuis, caveira encapuzada |
+| Épica | Obsidiana com runas violeta e chifres |
+| Suprema | Ouro barroco, rubis, asas e fogo do inferno |
+
+Medidas que a arte precisa respeitar (unidade 120x200): pilares em x 0–24 e 96–120; janela de cima x 25–95, y 19–104, lisa e escura (raridade, nome, nível); faixa do meio y 105–127 com encaixe redondo vazio no centro (ícone); janela de baixo x 25–95, y 128–179, lisa e escura (descrição). As 5 com a mesma silhueta e o mesmo layout; fundo magenta `#ff00ff`; 5 lado a lado, da comum à suprema, sem texto.
+
+**Já gerado e no jogo** (`art-source/novos/molduras-cartas.webp`). Para trocar, gere de novo na mesma ordem e rode `python scripts/cut-card-frames.py <imagem> public/assets/sprites/cards`. O script acha as 5 sozinho, reduz todas na mesma escala e centra pela janela, então o texto do jogo continua caindo no lugar. As posições do texto ficam em `UpgradeScene.createCard`; a raridade de cada carta, em `UpgradeCatalog.ts` (`rarity`); moldura, nome e cor de cada raridade, em `CARD_RARITY_THEME` (`theme.ts`).

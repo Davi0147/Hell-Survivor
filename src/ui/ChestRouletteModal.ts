@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { InputHint } from './InputHint';
-import { CHEST_ROULETTE_THEME as TH, FONTS } from '../config/theme';
+import { CARD_RARITY_THEME, CHEST_ROULETTE_THEME as TH, FONTS } from '../config/theme';
 import { CARD_ICON_KEYS, type UpgradeCard, type UpgradeGameScene } from '../systems/UpgradeCatalog';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 
@@ -92,7 +92,7 @@ export class ChestRouletteModal {
       } else {
         // Carta sem arte: o rótulo curto dela ("METEORO", "ALMAS"), na cor da raridade
         const label = s.add.text(0, 0, card?.icon ?? '', {
-          fontFamily: FONTS.body, fontSize: font(0.13), color: card?.rarityColor ?? TH.collect,
+          fontFamily: FONTS.body, fontSize: font(0.13), color: card ? CARD_RARITY_THEME[card.rarity].text : TH.collect,
           stroke: TH.stroke, strokeThickness: 3, align: 'center', wordWrap: { width: slot - 8 },
         }).setOrigin(0.5);
         item.add(label);

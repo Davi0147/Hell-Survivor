@@ -317,14 +317,22 @@ export const ACTION_BUTTON_THEME = {
   heal: '#4ade80',
 } as const;
 
-/** Cor do rótulo de raridade nas cartas novas (as antigas ainda usam literais no catálogo). */
-export const CARD_RARITY_COLORS = {
-  rare: '#facc15',
-  epic: '#ff4d6d',
-  cool: '#38bdf8',
-  mystic: '#c084fc',
-  warm: '#fb923c',
-} as const;
+export type CardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'supreme';
+
+/**
+ * Raridade das cartas: moldura (uma por raridade, docs/ART_PROMPTS.md §19), nome e cor do nome.
+ * A cor segue a moldura: cinza osso, verde alma, azul espectral, violeta abissal, ouro.
+ */
+export const CARD_RARITY_THEME: Record<CardRarity, { frame: string; label: string; text: string; color: number }> = {
+  common: { frame: 'card-frame-common', label: 'COMUM', text: '#e2e8f0', color: 0xcbd5e1 },
+  uncommon: { frame: 'card-frame-uncommon', label: 'INCOMUM', text: '#4ade80', color: 0x4ade80 },
+  rare: { frame: 'card-frame-rare', label: 'RARO', text: '#38bdf8', color: 0x38bdf8 },
+  epic: { frame: 'card-frame-epic', label: 'ÉPICO', text: '#c084fc', color: 0xc084fc },
+  supreme: { frame: 'card-frame-supreme', label: 'SUPREMO', text: '#ffd700', color: 0xffd700 },
+};
+
+/** Todas as molduras, na ordem de raridade (carga, galeria). */
+export const CARD_FRAME_KEYS = (Object.keys(CARD_RARITY_THEME) as CardRarity[]).map((r) => CARD_RARITY_THEME[r].frame);
 
 export const BOSS_TELEGRAPH = {
   /** Cor carmesim principal de advertência (valor padrão Succubus: 0xff0055) */
@@ -513,11 +521,12 @@ export const CHEST_ROULETTE_THEME = {
  */
 export const TALISMAN_THEME = {
   rarity: {
-    common: { color: 0xcbd5e1, text: '#e2e8f0', card: 'card-base', label: 'COMUM' },
-    uncommon: { color: 0x4ade80, text: '#4ade80', card: 'card-green', label: 'INCOMUM' },
-    rare: { color: 0x38bdf8, text: '#38bdf8', card: 'card-ice', label: 'RARA' },
-    epic: { color: 0xc084fc, text: '#c084fc', card: 'card-mystic', label: 'ÉPICA' },
-    legendary: { color: 0xffd700, text: '#ffd700', card: 'card-gold', label: 'LENDÁRIA' },
+    common: { color: CARD_RARITY_THEME.common.color, text: CARD_RARITY_THEME.common.text, card: CARD_RARITY_THEME.common.frame, label: 'COMUM' },
+    uncommon: { color: CARD_RARITY_THEME.uncommon.color, text: CARD_RARITY_THEME.uncommon.text, card: CARD_RARITY_THEME.uncommon.frame, label: 'INCOMUM' },
+    rare: { color: CARD_RARITY_THEME.rare.color, text: CARD_RARITY_THEME.rare.text, card: CARD_RARITY_THEME.rare.frame, label: 'RARA' },
+    epic: { color: CARD_RARITY_THEME.epic.color, text: CARD_RARITY_THEME.epic.text, card: CARD_RARITY_THEME.epic.frame, label: 'ÉPICA' },
+    // Lendária usa a moldura do Supremo (ouro e fogo do inferno)
+    legendary: { color: CARD_RARITY_THEME.supreme.color, text: CARD_RARITY_THEME.supreme.text, card: CARD_RARITY_THEME.supreme.frame, label: 'LENDÁRIA' },
   },
   textStroke: '#0e0208',
   hint: '#94a3b8',

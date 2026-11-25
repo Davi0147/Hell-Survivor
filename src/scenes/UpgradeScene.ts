@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON, CARD_ICON_KEYS } from '../systems/UpgradeCatalog';
 import { shouldAutoCloseAltarScreen } from '../systems/altarRules';
-import { COLORS, ACTION_BUTTON_THEME, PICK_LOCK_BAR_THEME, CARD_FOCUS_THEME } from '../config/theme';
+import { COLORS, ACTION_BUTTON_THEME, PICK_LOCK_BAR_THEME, CARD_FOCUS_THEME, CARD_RARITY_THEME } from '../config/theme';
 import { ActionKeyButton } from '../ui/ActionKeyButton';
 import { InputHint } from '../ui/InputHint';
 import type { UpgradeCard, RichTextSegment, UpgradeGameScene } from '../systems/UpgradeCatalog';
@@ -425,19 +425,19 @@ export class UpgradeScene extends Phaser.Scene {
 
     const glowColor = card.glowColor ?? card.badgeColor ?? 0xfacc15;
 
-    // 1. Sprite da Moldura da Carta (120x200px escalada por cardScale = 2.2 -> 264x440)
+    // 1. Moldura da raridade (textura 240x400 = o dobro da unidade 120x200, por isso cardScale / 2 -> 264x440)
     // Sem formas semitransparentes ou bordas brancas atrás, destacando a arte da moldura
-    const spriteKey = card.cardSpriteKey && this.textures.exists(card.cardSpriteKey)
-      ? card.cardSpriteKey
-      : 'card-base';
+    const rarity = CARD_RARITY_THEME[card.rarity];
+    const spriteKey = rarity.frame;
+    const frameScale = cardScale / 2;
 
     if (this.textures.exists(spriteKey)) {
       const cardSprite = this.add.image(0, 0, spriteKey);
-      cardSprite.setScale(cardScale);
+      cardSprite.setScale(frameScale);
       floatContainer.add(cardSprite);
       rootContainer.setData('frameSprite', cardSprite);
       // Cópia somada por cima: acende e apaga quando a carta está selecionada (tint não clareia além do original)
-      frameGlow = this.add.image(0, 0, spriteKey).setScale(cardScale).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      frameGlow = this.add.image(0, 0, spriteKey).setScale(frameScale).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       floatContainer.add(frameGlow);
     } else {
       // Fallback caso alguma textura ainda não tenha carregado
@@ -449,21 +449,17 @@ export class UpgradeScene extends Phaser.Scene {
       floatContainer.add(fallbackBg);
     }
 
-    // Largura interna estritamente segura (evita invadir as colunas de ossos e correntes laterais)
-    // Na imagem 120x200, o vão livre vai de X=25 até X=95 (70px * 2.2 = 154px -> usamos 134px com folga)
-    const SAFE_INNER_WIDTH = 134;
+    // Largura interna segura: a janela mais estreita é a da Suprema (~128px na tela, entre as asas)
+    const SAFE_INNER_WIDTH = 120;
 
     // =========================================================================
-    // JANELA SUPERIOR DA CARTA (Y entre -120px e +8px)
+    // JANELA SUPERIOR DA CARTA (Y entre -117px e -14px nas 5 molduras)
     // Contém: RARIDADE no topo superior + NOME DA CARTA central ampliado + NÍVEL discreto abaixo
     // =========================================================================
-    const rarityStr = (card.rarityLabel || 'RARO').toUpperCase();
-    const rarityCol = card.rarityColor || '#facc15';
-
-    const rarityText = this.add.text(0, -112, rarityStr, {
+    const rarityText = this.add.text(0, -100, rarity.label, {
       fontFamily: this.cardFont,
-      fontSize: '26px',
-      color: rarityCol,
+      fontSize: '24px',
+      color: rarity.text,
       stroke: '#000000',
       strokeThickness: 4,
       align: 'center'
@@ -477,7 +473,7 @@ export class UpgradeScene extends Phaser.Scene {
     const cardTitleStr = (card.cardName || card.icon || card.title).toUpperCase();
     const cardTitleCol = card.cardNameColor || C_WEAPON;
 
-    const nameText = this.add.text(0, -64, cardTitleStr, {
+    const nameText = this.add.text(0, -62, cardTitleStr, {
       fontFamily: this.cardFont,
       fontSize: '38px',
       color: cardTitleCol,
@@ -492,7 +488,7 @@ export class UpgradeScene extends Phaser.Scene {
     floatContainer.add(nameText);
 
     if (card.levelLabel) {
-      const lvlText = this.add.text(0, -18, card.levelLabel.toUpperCase(), {
+      const lvlText = this.add.text(0, -28, card.levelLabel.toUpperCase(), {
         fontFamily: this.cardFont,
         fontSize: '16px',
         color: '#cbd5e1',
@@ -508,25 +504,24 @@ export class UpgradeScene extends Phaser.Scene {
     }
 
     // =========================================================================
-    // JANELA INFERIOR DA CARTA (Y entre +62px e +156px, centro em Y = +109px)
+    // JANELA INFERIOR DA CARTA (Y entre +26px e +137px nas 5 molduras, centro em Y = +82px)
     // Contém: Descrição em linhas com palavras-chave coloridas (Dano, Arma, Vida, etc.)
     // =========================================================================
     const richLines: RichTextSegment[][] = card.richLines || [
       [{ text: card.description.toUpperCase(), color: C_WHITE }]
     ];
 
-    this.renderRichDescriptionBox(floatContainer, richLines, 109, SAFE_INNER_WIDTH, 92);
+    this.renderRichDescriptionBox(floatContainer, richLines, 82, SAFE_INNER_WIDTH, 100);
 
-    // Ícone de arte da carta, cravado na faixa de ossos entre as duas janelas
+    // Ícone de arte da carta, dentro do encaixe redondo entre as duas janelas (~50px de vão)
     const iconKey = CARD_ICON_KEYS[card.id];
     if (iconKey && this.textures.exists(iconKey)) {
-      const iconGlow = this.add.circle(0, 35, 31, glowColor, 0.35);
+      const ICON_Y = 5;
+      const iconGlow = this.add.circle(0, ICON_Y, 23, glowColor, 0.35);
       iconGlow.setBlendMode(Phaser.BlendModes.ADD);
-      const iconBack = this.add.circle(0, 35, 27, COLORS.bgDark, 0.92);
-      iconBack.setStrokeStyle(2, glowColor, 1);
-      const icon = this.add.image(0, 35, iconKey);
-      icon.setDisplaySize(52, 52);
-      floatContainer.add([iconGlow, iconBack, icon]);
+      const icon = this.add.image(0, ICON_Y, iconKey);
+      icon.setDisplaySize(42, 42);
+      floatContainer.add([iconGlow, icon]);
       this.tweens.add({
         targets: iconGlow,
         scale: { from: 0.9, to: 1.18 },

@@ -33,8 +33,7 @@ export class TalismanDrop {
     scene.tweens.add({ targets: this.glow, alpha: { from: 0.3, to: 0.7 }, scale: { from: 0.9, to: 1.2 }, duration: 600, yoyo: true, repeat: -1 });
 
     // Moldura dourada: a escura sumia no chão de pedra
-    const cardKey = scene.textures.exists('card-gold') ? 'card-gold' : 'card-base';
-    this.card = scene.add.image(x, y - 14, cardKey).setDisplaySize(CARD_W, CARD_H).setDepth(DROP_DEPTH);
+    this.card = scene.add.image(x, y - 14, th.rarity.legendary.card).setDisplaySize(CARD_W, CARD_H).setDepth(DROP_DEPTH);
 
     this.parts.push(beamOuter, beamInner, this.glow, this.card);
 

@@ -7,6 +7,7 @@ import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
 import { InputDeviceTracker } from '../systems/InputDeviceTracker';
+import { CARD_FRAME_KEYS } from '../config/theme';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -148,14 +149,7 @@ export class BootScene extends Phaser.Scene {
     if (this.textures.exists('void-scythe')) this.textures.remove('void-scythe');
     if (this.textures.exists('blood-dagger')) this.textures.remove('blood-dagger');
     if (this.textures.exists('infernal-meteor')) this.textures.remove('infernal-meteor');
-    if (this.textures.exists('card-base')) this.textures.remove('card-base');
-    if (this.textures.exists('card-fire')) this.textures.remove('card-fire');
-    if (this.textures.exists('card-gold')) this.textures.remove('card-gold');
-    if (this.textures.exists('card-green')) this.textures.remove('card-green');
-    if (this.textures.exists('card-ice')) this.textures.remove('card-ice');
-    if (this.textures.exists('card-inferno')) this.textures.remove('card-inferno');
-    if (this.textures.exists('card-mystic')) this.textures.remove('card-mystic');
-    if (this.textures.exists('card-obsidian')) this.textures.remove('card-obsidian');
+    for (const key of CARD_FRAME_KEYS) if (this.textures.exists(key)) this.textures.remove(key);
     if (this.textures.exists('altar-1')) this.textures.remove('altar-1');
     if (this.textures.exists('altar-2')) this.textures.remove('altar-2');
     if (this.textures.exists('altar-3')) this.textures.remove('altar-3');
@@ -516,15 +510,10 @@ export class BootScene extends Phaser.Scene {
     this.load.image('soul-shoot', `assets/sprites/items/Soul%20Shoot.png?t=${cacheBuster}`);
     this.load.image('apocalypse-shoot', `assets/sprites/items/Apocalypse%20Shoot.png?t=${cacheBuster}`);
 
-    // Molduras de Cartas de Bênçãos (120x200px)
-    this.load.image('card-base', `assets/sprites/cards/Base%20Card.png?t=${cacheBuster}`);
-    this.load.image('card-fire', `assets/sprites/cards/Fire%20Card.png?t=${cacheBuster}`);
-    this.load.image('card-gold', `assets/sprites/cards/Gold%20Card.png?t=${cacheBuster}`);
-    this.load.image('card-green', `assets/sprites/cards/Green%20Card.png?t=${cacheBuster}`);
-    this.load.image('card-ice', `assets/sprites/cards/Ice%20Card.png?t=${cacheBuster}`);
-    this.load.image('card-inferno', `assets/sprites/cards/Inferno%20Card.png?t=${cacheBuster}`);
-    this.load.image('card-mystic', `assets/sprites/cards/Mystic%20Card.png?t=${cacheBuster}`);
-    this.load.image('card-obsidian', `assets/sprites/cards/Obsidian%20Card.png?t=${cacheBuster}`);
+    // Molduras das cartas, uma por raridade (240x400, o dobro da unidade 120x200; scripts/cut-card-frames.py)
+    for (const key of CARD_FRAME_KEYS) {
+      this.load.image(key, `assets/sprites/cards/${key.replace('card-frame-', 'card-')}.png?t=${cacheBuster}`);
+    }
 
     // Sprites do Altar de Ascensão / Evolução (200x200px)
     this.load.image('altar-1', `assets/sprites/items/Altar%201.png?t=${cacheBuster}`);

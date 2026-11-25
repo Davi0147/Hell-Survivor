@@ -261,7 +261,7 @@ export class TestShowroomSystem {
           { name: 'Frasco de Fúria', texture: 'item-fury', scale: 1.0 },
           { name: 'Relíquia Dourada', texture: 'item-relic', scale: 1.0 },
           { name: 'Alma Corrompida', texture: 'item-soul', scale: 1.0 },
-          { name: 'Talismã (chão)', texture: 'card-gold', scale: 0.12 }
+          { name: 'Talismã (chão)', texture: 'card-frame-supreme', scale: 0.09 }
         ]
       },
 
@@ -313,14 +313,12 @@ export class TestShowroomSystem {
         accentColor: '#e879f9',
         y: cy + 200,
         items: [
-          { name: 'Base Card', texture: 'card-base', scale: 0.45 },
-          { name: 'Fire Card', texture: 'card-fire', scale: 0.45 },
-          { name: 'Gold Card', texture: 'card-gold', scale: 0.45 },
-          { name: 'Green Card', texture: 'card-green', scale: 0.45 },
-          { name: 'Ice Card', texture: 'card-ice', scale: 0.45 },
-          { name: 'Inferno Card', texture: 'card-inferno', scale: 0.45 },
-          { name: 'Mystic Card', texture: 'card-mystic', scale: 0.45 },
-          { name: 'Obsidian Card', texture: 'card-obsidian', scale: 0.45 }
+          // Texturas 240x400 (o dobro das antigas): metade da escala dá o mesmo tamanho na galeria
+          { name: 'Comum', texture: 'card-frame-common', scale: 0.225 },
+          { name: 'Incomum', texture: 'card-frame-uncommon', scale: 0.225 },
+          { name: 'Rara', texture: 'card-frame-rare', scale: 0.225 },
+          { name: 'Épica', texture: 'card-frame-epic', scale: 0.225 },
+          { name: 'Suprema', texture: 'card-frame-supreme', scale: 0.225 }
         ]
       },
 

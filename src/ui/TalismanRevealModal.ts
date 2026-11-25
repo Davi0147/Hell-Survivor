@@ -95,7 +95,7 @@ export class TalismanRevealModal {
     const paint = (r: TalismanRarity): void => {
       const look = th.rarity[r];
       const tier = rarityIndex(r);
-      card.setTexture(s.textures.exists(look.card) ? look.card : 'card-base').setDisplaySize(cardW, cardH);
+      card.setTexture(s.textures.exists(look.card) ? look.card : th.rarity.common.card).setDisplaySize(cardW, cardH);
       back.setColor(look.text);
       rarityText.setText(look.label).setColor(look.text);
       aura.setFillStyle(look.color, 0.16 + tier * 0.08).setRadius(110 + tier * 18);
