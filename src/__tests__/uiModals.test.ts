@@ -81,6 +81,14 @@ vi.mock('../systems/GamepadManager', () => {
   };
 });
 
+// A dica de botões depende do rastreador de aparelho (EventEmitter do Phaser real)
+vi.mock('../ui/InputHint', () => ({
+  InputHint: class {
+    public container = { setAlpha: vi.fn().mockReturnThis(), setVisible: vi.fn().mockReturnThis(), setDepth: vi.fn().mockReturnThis() };
+    public displayWidth = 0;
+  }
+}));
+
 import { createModalFrame } from '../ui/ModalFrame';
 import { PauseMenu, IPauseGameScene, IPauseMenuHost } from '../ui/PauseMenu';
 import { GameOverModal, IGameOverModalHost } from '../ui/GameOverModal';
@@ -110,6 +118,7 @@ function createFakeHost() {
   const host = {
     scale: { width: 1280, height: 720 },
     textures: { exists: vi.fn(() => true) },
+    tweens: { add: vi.fn(), addCounter: vi.fn() },
     isChestRouletteOpen: false,
     isGameOverModalOpen: false,
     sandboxPanel: { isOpen: false, togglePanel: vi.fn() },
@@ -147,6 +156,7 @@ function createFakeHost() {
       }),
       rectangle: vi.fn(() => ({
         setInteractive: vi.fn().mockReturnThis(),
+        setAlpha: vi.fn().mockReturnThis(),
         on: vi.fn().mockReturnThis()
       })),
       image: vi.fn(() => ({
@@ -165,13 +175,25 @@ function createFakeHost() {
         strokeRoundedRect: vi.fn().mockReturnThis(),
         lineBetween: vi.fn().mockReturnThis(),
         fillCircle: vi.fn().mockReturnThis(),
-        strokeCircle: vi.fn().mockReturnThis()
+        strokeCircle: vi.fn().mockReturnThis(),
+        fillRect: vi.fn().mockReturnThis(),
+        fillPoints: vi.fn().mockReturnThis(),
+        setAlpha: vi.fn().mockReturnThis()
       })),
       text: vi.fn((_x: number, _y: number, initialText: string) => {
         const t = {
           text: initialText,
           width: 100,
+          x: 0,
+          y: 0,
+          displayWidth: 100,
+          displayHeight: 20,
           setOrigin: vi.fn().mockReturnThis(),
+          setAlpha: vi.fn().mockReturnThis(),
+          setY: vi.fn().mockReturnThis(),
+          setPosition: vi.fn().mockReturnThis(),
+          setInteractive: vi.fn().mockReturnThis(),
+          on: vi.fn().mockReturnThis(),
           setScale: vi.fn().mockReturnThis(),
           setWordWrapWidth: vi.fn().mockReturnThis(),
           setAlign: vi.fn().mockReturnThis(),

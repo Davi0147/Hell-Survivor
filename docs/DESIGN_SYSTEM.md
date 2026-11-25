@@ -5,6 +5,14 @@ Conforme a **Regra 5 e Regra 14 de `AGENTS.md`**, novos elementos visuais devem 
 
 ---
 
+## 0. Regra de ouro: minimalista e transparente (decisão do dono, 2026-11-25)
+
+- **Sem barras, placas ou caixas escuras** atrás de dicas de controle, botões e legendas. Texto e ícone vão direto sobre o jogo; a leitura vem do contorno (`stroke`).
+- **Sem linhas decorativas, molduras e formas coloridas** (caixas atrás de ícones, círculos de brilho, ornamentos de linha).
+- Seleção se mostra pela **cor do texto, uma seta e no máximo um traço fino embaixo** do item escolhido.
+- Telas cheias (fim de partida, prêmios) usam só um **véu escuro sobre o jogo**, sem painel com moldura.
+- Exemplos: roleta do baú (só ícones e as duas setas do centro), Fim da Jornada, Re-rolar/Canalizar, rodapé do menu.
+
 ## 1. Modelo de Entrada de Padrão
 
 Toda especificação de componente no Design System segue este esquema:

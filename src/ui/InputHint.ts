@@ -13,25 +13,20 @@ export interface InputHintOptions {
   color?: string;
   /** Onde fica o ponto (x, y): na ponta esquerda, no meio ou na ponta direita da linha. */
   align?: 'left' | 'center' | 'right';
-  /** Placa escura atrás (para ler por cima do mapa). */
-  plate?: boolean;
   /** Espaço entre um ícone e o texto dele (padrão 6) e entre um texto e o próximo ícone (padrão 18). */
   innerGap?: number;
   outerGap?: number;
 }
-
-const PLATE_PAD_X = 10;
-const PLATE_PAD_Y = 5;
 
 /**
  * Linha de dica de controle feita de ícones de botão e textos, por exemplo
  * `[WASD] Mover  [Shift] Sprint`. Troca os ícones sozinha quando o jogador passa do
  * teclado para o controle (ou para um controle de outra marca). Ação sem ícone naquele
  * aparelho (ex.: esquiva no toque) some junto com o texto que vem logo depois.
+ * Sem placa de fundo (decisão do dono, 2026-11-25): a leitura vem do contorno do texto.
  */
 export class InputHint {
   public readonly container: Phaser.GameObjects.Container;
-  private readonly plate?: Phaser.GameObjects.Graphics;
   private readonly texts = new Map<number, Phaser.GameObjects.Text>();
   private glyphs: Phaser.GameObjects.Image[] = [];
   private width = 0;
@@ -44,10 +39,6 @@ export class InputHint {
     private readonly opts: InputHintOptions = {}
   ) {
     this.container = scene.add.container(x, y);
-    if (opts.plate) {
-      this.plate = scene.add.graphics();
-      this.container.add(this.plate);
-    }
     parts.forEach((part, i) => {
       if (typeof part === 'string') return;
       const text = scene.add.text(0, 0, part.text, {
@@ -131,16 +122,5 @@ export class InputHint {
     const align = this.opts.align ?? 'left';
     const shift = align === 'center' ? -x / 2 : align === 'right' ? -x : 0;
     for (const p of placed) p.obj.setX(Math.round(p.obj.x + shift));
-
-    // Visibilidade do container fica com quem usa (a HUD esconde e mostra tudo junto)
-    if (this.plate) {
-      const h = Math.max(this.opts.glyphHeight ?? 24, ...placed.map((p) => p.obj.displayHeight)) + PLATE_PAD_Y * 2;
-      this.plate.clear();
-      if (placed.length === 0) return;
-      this.plate.fillStyle(T.plate, T.plateAlpha);
-      this.plate.fillRect(shift - PLATE_PAD_X, -h / 2, x + PLATE_PAD_X * 2, h);
-      this.plate.lineStyle(1, T.plateBorder, 1);
-      this.plate.strokeRect(shift - PLATE_PAD_X, -h / 2, x + PLATE_PAD_X * 2, h);
-    }
   }
 }

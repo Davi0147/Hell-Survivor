@@ -223,23 +223,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.updateMenuVisuals();
 
-    // 8. Barra de Rodapé Estilizada em Pedra Gótica ("USE O TECLADO OU MOUSE PARA SELECIONAR")
+    // 8. Rodapé: só os ícones dos botões, direto sobre o cenário (sem barra de fundo; decisão do dono)
     const bottomBarY = height - 42;
-    const barW = 540;
-    const barH = 34;
-
-    const barG = this.add.graphics();
-    barG.setDepth(20);
-
-    // Fundo da barra
-    barG.fillStyle(0x13070b, 0.88);
-    barG.fillRoundedRect(width / 2 - barW / 2, bottomBarY - barH / 2, barW, barH, 8);
-
-    // Borda dupla em bronze e dourado infernal
-    barG.lineStyle(2, 0x6e2d1d, 0.9);
-    barG.strokeRoundedRect(width / 2 - barW / 2, bottomBarY - barH / 2, barW, barH, 8);
-    barG.lineStyle(1, 0xc59b27, 0.5);
-    barG.strokeRoundedRect(width / 2 - barW / 2 + 2, bottomBarY - barH / 2 + 2, barW - 4, barH - 4, 6);
 
     // Ícones dos botões do aparelho em uso (setas/direcional, Enter/A/cruz, ESC/B/círculo)
     new InputHint(this, width / 2, bottomBarY, [

@@ -118,22 +118,16 @@ export class ActionKeyButton {
   }
 
   private redraw(): void {
-    const { width: w, height: h } = this.opts;
-    const border = !this.enabled ? T.borderDisabled : this.hovered ? T.borderHover : T.border;
+    const w = this.opts.width;
+    // Sem caixa de fundo (decisão do dono, 2026-11-25): só ícone, nome e botão sobre a tela.
+    // Selecionado: traço dourado embaixo do nome.
     const g = this.bg;
     g.clear();
-    if (!this.opts.bare) {
-      // Moldura dupla com cantos reforçados (mesma linguagem da barra de armas)
-      g.fillStyle(!this.enabled ? T.fillDisabled : this.hovered ? T.fillHover : T.fill, 0.94);
-      g.fillRect(-w / 2, -h / 2, w, h);
-      g.lineStyle(1, T.innerBorder, this.enabled ? 1 : 0.4);
-      g.strokeRect(-w / 2 + 3, -h / 2 + 3, w - 6, h - 6);
-      g.lineStyle(2, border, 1);
-      g.strokeRect(-w / 2, -h / 2, w, h);
-      g.fillStyle(border, 1);
-      for (const [cx, cy] of [[-w / 2, -h / 2], [w / 2, -h / 2], [-w / 2, h / 2], [w / 2, h / 2]]) {
-        g.fillRect(cx - 3, cy - 3, 6, 6);
-      }
+    if (!this.opts.bare && this.hovered && this.enabled) {
+      const lx = this.labelText.x;
+      const ly = this.labelText.y + this.labelText.height / 2 + 3;
+      g.fillStyle(T.borderHover, 1);
+      g.fillRect(lx, ly, this.labelText.width, 2);
     }
 
     this.labelText.setColor(!this.enabled ? T.labelDisabled : this.hovered ? T.labelHover : T.label);

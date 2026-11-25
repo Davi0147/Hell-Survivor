@@ -4,6 +4,16 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Interface mais limpa: sem barras de fundo
+
+#### Resumo para o Jogador
+- **Sem barras pretas:** as dicas de controle do menu e da partida e os botões Re-rolar/Canalizar não têm mais caixa de fundo. Ficam só os ícones e os nomes; o selecionado acende com um traço dourado embaixo.
+- **Roleta do baú mais limpa:** sem moldura, sem caixas coloridas e sem o quadrado do centro. Só os ícones correndo e as duas setas douradas marcando o prêmio.
+- **Fim da Jornada novo:** sem a caixa. O jogo escurece com uma vinheta vermelha, o título cai grande na tela, e os números (tempo, abates, nível, maior combo, almas) aparecem **lado a lado contando do zero**, com o recorde embaixo (**NOVO RECORDE!** pisca em dourado). As opções são só texto, com seta e traço na escolhida.
+
+#### Técnico
+- Regra registrada no topo de `docs/DESIGN_SYSTEM.md`. `InputHint` perdeu a opção `plate`; `ActionKeyButton` não desenha caixa. Tokens sem uso removidos de `INPUT_HINT_THEME`, `ACTION_BUTTON_THEME`, `CHEST_ROULETTE_THEME` e `MODAL_THEME.gameOver`.
+
 ### Roleta do baú nova
 
 #### Resumo para o Jogador

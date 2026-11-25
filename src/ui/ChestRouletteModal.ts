@@ -77,24 +77,13 @@ export class ChestRouletteModal {
     }).setOrigin(0.5);
     modal.add(header);
 
-    // Trilho escuro com moldura dourada atrás da faixa
-    const rail = s.add.graphics();
-    rail.fillStyle(TH.stripFill, 0.92).fillRect(cx - stripW / 2, cy - slot * 0.68, stripW, slot * 1.36);
-    rail.lineStyle(2, TH.stripBorder, 1).strokeRect(cx - stripW / 2, cy - slot * 0.68, stripW, slot * 1.36);
-    modal.add(rail);
-
-    // Faixa: ícones sorteados, o prêmio na posição REEL_ITEMS_BEFORE_PRIZE
+    // Faixa (sem trilho, caixas ou molduras: só os ícones e as setas; decisão do dono): ícones sorteados, o prêmio na posição REEL_ITEMS_BEFORE_PRIZE
     const reel = s.add.container(0, cy);
     const items: Phaser.GameObjects.Container[] = [];
     const total = REEL_ITEMS_BEFORE_PRIZE + 1 + REEL_ITEMS_AFTER_PRIZE;
     for (let i = 0; i < total; i++) {
       const card = i === REEL_ITEMS_BEFORE_PRIZE ? prize : pool.length > 0 ? Phaser.Math.RND.pick(pool) : null;
       const item = s.add.container(i * step, 0);
-      const plate = s.add.graphics();
-      plate.fillStyle(TH.slotFill, 1).fillRect(-slot / 2, -slot / 2, slot, slot);
-      const border = card?.isEvolution ? TH.slotEvolutionBorder : card?.glowColor ?? TH.slotBorder;
-      plate.lineStyle(2, border, 1).strokeRect(-slot / 2, -slot / 2, slot, slot);
-      item.add(plate);
       const key = iconOf(s, card);
       if (key) {
         const icon = s.add.image(0, 0, key);
@@ -120,7 +109,6 @@ export class ChestRouletteModal {
     const bottom = cy + slot * 0.68;
     pointer.fillTriangle(cx - 9, top - 12, cx + 9, top - 12, cx, top + 2);
     pointer.fillTriangle(cx - 9, bottom + 12, cx + 9, bottom + 12, cx, bottom - 2);
-    pointer.lineStyle(2, TH.pointer, 0.9).strokeRect(cx - slot * 0.58, cy - slot * 0.58, slot * 1.16, slot * 1.16);
     modal.add(pointer);
 
     const nameText = s.add.text(cx, cy + slot * 0.95, '', {
@@ -193,9 +181,6 @@ export class ChestRouletteModal {
 
       const winner = items[REEL_ITEMS_BEFORE_PRIZE];
       s.tweens.add({ targets: winner, scale: 1.45, duration: 180, ease: 'Back.easeOut' });
-      const glow = s.add.circle(cx, cy, slot * 0.8, TH.winnerGlow, 0.35).setBlendMode(Phaser.BlendModes.ADD);
-      modal.addAt(glow, modal.getIndex(reel));
-      s.tweens.add({ targets: glow, scale: { from: 0.6, to: 1.15 }, alpha: { from: 0.55, to: 0.25 }, duration: 600, yoyo: true, repeat: -1 });
 
       SoundManager.getInstance().playRouletteJackpot();
       s.cameras.main.flash(220, 255, 215, 0);

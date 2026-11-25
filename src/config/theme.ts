@@ -301,9 +301,6 @@ export const INPUT_HINT_THEME = {
   text: '#e0aaff',
   /** "AVANÇAR ▶" dos diálogos e cenas de história. */
   prompt: '#f3d17a',
-  plate: 0x0a0306,
-  plateAlpha: 0.93,
-  plateBorder: 0x3d1a52,
 } as const;
 
 /**
@@ -311,13 +308,8 @@ export const INPUT_HINT_THEME = {
  * "tecla" desenhada que muda com o controle em uso.
  */
 export const ACTION_BUTTON_THEME = {
-  fill: 0x12040a,
-  fillHover: 0x2a0912,
-  fillDisabled: 0x0b0b0e,
-  border: 0xc59b27,
+  /** Traço embaixo do nome quando selecionado (o botão não tem caixa de fundo). */
   borderHover: 0xffe600,
-  borderDisabled: 0x33333c,
-  innerBorder: 0x5a1020,
   label: '#f3d17a',
   labelHover: '#ffffff',
   labelDisabled: '#55555f',
@@ -459,28 +451,22 @@ export const MODAL_THEME = {
     btnTextFocus: '#ffd60a',
     btnFocusOutline: 0xffd60a
   },
+  /** Fim da Jornada: sem painel; véu escuro com vinheta carmesim e conteúdo solto. */
   gameOver: {
-    backdropAlpha: 0.90,
-    panelFill: 0x180208,
-    panelAlpha: 0.98,
-    outerBorderColor: 0xff0055,
-    outerBorderWidth: 3,
-    outerRadius: 14,
-    innerBorderColor: 0xf3d17a,
-    innerBorderWidth: 1.5,
-    innerBorderAlpha: 0.7,
-    innerRadius: 11,
+    veil: 0x07010a,
+    veilAlpha: 0.9,
+    vignette: 0x5a0014,
     titleColor: '#ff0055',
+    titleStroke: '#2a0010',
     subtitleColor: '#e0aaff',
     subtitleStroke: '#100306',
+    statValue: '#ffffff',
+    statLabel: '#c59b27',
+    statSub: '#a78bba',
     newRecordColor: '#ffd60a',
-    btnRetryHoverFill: 0xff0055,
-    btnRetryIdleFill: 0x720012,
-    btnRetryIdleBorder: 0xf3d17a,
-    btnMenuHoverFill: 0x240046,
-    btnMenuIdleFill: 0x10002b,
-    btnMenuHoverBorder: 0x00f5d4,
-    btnMenuIdleBorder: 0x7b2cbf
+    optionIdle: '#8a7a96',
+    optionActive: '#ffd60a',
+    optionUnderline: 0xffd60a,
   },
   victory: {
     backdropAlpha: 0.88,
@@ -507,17 +493,11 @@ export const MODAL_THEME = {
   }
 } as const;
 
-/** Roleta do Baú do Abismo: faixa de ícones que corre da direita para a esquerda. */
+/** Roleta do Baú do Abismo: só ícones correndo da direita para a esquerda e duas setas no centro. */
 export const CHEST_ROULETTE_THEME = {
   backdrop: 0x000000,
   backdropAlpha: 0.8,
-  slotFill: 0x12040a,
-  slotBorder: 0x5a1020,
-  slotEvolutionBorder: 0xffe600,
-  stripFill: 0x0b0208,
-  stripBorder: 0xc59b27,
   pointer: 0xffd700,
-  winnerGlow: 0xffd700,
   header: '#ff4d6d',
   headerDone: '#00f5d4',
   prizeName: '#ffe600',

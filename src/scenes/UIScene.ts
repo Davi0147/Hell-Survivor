@@ -246,7 +246,7 @@ export class UIScene
       'dash', { text: 'Esquiva' },
       'ultimate', { text: 'Suprema' },
       'pause', { text: 'Pausa' },
-    ], { glyphHeight: 22, plate: true });
+    ], { glyphHeight: 22 });
 
     // ==========================================
     // SISTEMA DE DIÁLOGOS ESTILO PERSONA 5 (Renderizado em 1:1 sem zoom da câmera)
