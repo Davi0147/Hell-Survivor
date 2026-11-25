@@ -1212,7 +1212,8 @@ export class Chapter1EndScene extends Phaser.Scene {
     }
 
     // Grava progresso da partida
-    const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
+    // A luta já bancou as almas e mandou o total em runStats; soma algo que tenha sobrado
+    const soulsEarned = (this.runStats.soulsEarned ?? 0) + MetaProgressManager.getInstance().finalizeRunSouls();
     MetaProgressManager.getInstance().recordRun(
       this.runStats.timeSec,
       this.runStats.kills,

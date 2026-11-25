@@ -11,6 +11,8 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 - **Botão PULAR das cenas:** sem a caixa e sem o ícone; só o nome e a tecla, que ficou maior e em pixel art (o "B" do controle parecia uma linha).
 - **Cartas de nível:** ao abrir, escolher carta e re-rolar ficam travados por pouco mais de 1 segundo, com uma barrinha embaixo do título. Um botão apertado no combate não escolhe mais uma carta sem você ver.
 - **Baú de bênção:** o A do controle agora pula a roleta e coleta a bênção.
+- **Altar de Bênçãos no controle:** direcional/setas andam pelas bênçãos e pelos botões de baixo (moldura dourada mostra onde você está), A/Enter compra, B/ESC volta. Na confirmação do reembolso o cursor começa em CANCELAR e o B fecha só a confirmação.
+- **Corrigido:** o fim de capítulo mostrava "ALMAS PEGAS: +0" mesmo pegando almas. As almas já iam para o saldo; só a contagem da tela estava zerada.
 
 #### Técnico
 - `src/ui/pixelFrame.ts`: molduras em degrau só com retângulos (substitui `strokeRoundedRect` nas telas novas); usada no menu de capítulos, na tecla do `ActionKeyButton` e na barra da trava.

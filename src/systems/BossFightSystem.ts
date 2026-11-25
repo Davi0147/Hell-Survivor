@@ -336,7 +336,10 @@ export class BossFightSystem {
       this.scene.cameras.main.once('camerafadeoutcomplete', () => {
         SoundManager.getInstance().stopMusic();
         this.scene.scene.stop('UIScene');
-        this.scene.scene.start('Chapter1EndScene', { runStats, chapter });
+        // Banca as almas aqui: ao trocar de cena a GameScene zera o contador da partida,
+        // e a cena de desfecho mostrava "ALMAS PEGAS: +0"
+        const soulsEarned = MetaProgressManager.getInstance().finalizeRunSouls();
+        this.scene.scene.start('Chapter1EndScene', { runStats: { ...runStats, soulsEarned }, chapter });
       });
     });
   }

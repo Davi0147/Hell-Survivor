@@ -24,6 +24,8 @@ export class MenuScene extends Phaser.Scene {
   private modalContainer?: Phaser.GameObjects.Container;
   /** Navegação do modal aberto (teclado e controle); modais sem foco próprio deixam vazio. */
   private modalNav?: (action: ModalNavAction) => void;
+  /** Voltar (B/ESC) de uma caixa por cima do modal; sem ela, voltar fecha o modal. */
+  private modalBack?: () => void;
 
   constructor() {
     super('MenuScene');
@@ -347,9 +349,9 @@ export class MenuScene extends Phaser.Scene {
     this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', confirm);
 
     this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on('down', () => {
-      if (this.isModalOpen) {
-        this.closeModal();
-      }
+      if (!this.isModalOpen) return;
+      if (this.modalBack) this.modalBack();
+      else this.closeModal();
     });
   }
 
@@ -407,8 +409,47 @@ export class MenuScene extends Phaser.Scene {
     const contentContainer = this.add.container(0, 0);
     this.modalContainer.add(contentContainer);
 
+    // Foco para teclado e controle: 0-5 = bênçãos (grade 2x3), 6 = reembolsar, 7 = voltar.
+    // Sobrevive ao re-render de compra/reembolso para o cursor não pular de lugar.
+    interface FocusTarget { x: number; y: number; w: number; h: number; activate: () => void; setHover?: (h: boolean) => void }
+    const REFUND = 6;
+    const CLOSE = 7;
+    let focusIdx = 0;
+    let targets: FocusTarget[] = [];
+    let focusG: Phaser.GameObjects.Graphics | undefined;
+    const paintFocus = () => {
+      targets.forEach((t, i) => t.setHover?.(i === focusIdx));
+      const t = targets[focusIdx];
+      if (!focusG || !t) return;
+      focusG.clear();
+      drawPixelOutline(focusG, t.x - t.w / 2 - 8, t.y - t.h / 2 - 8, t.w + 16, t.h + 16, MODAL_THEME.chapterSelect.btnFocusOutline, 1, 4);
+    };
+    const setFocus = (i: number) => {
+      if (i === focusIdx) return;
+      focusIdx = i;
+      SoundManager.getInstance().playMenuHover();
+      paintFocus();
+    };
+    this.modalNav = (action) => {
+      if (action === 'confirm') { targets[focusIdx]?.activate(); return; }
+      let next = focusIdx;
+      if (focusIdx < REFUND) {
+        const col = focusIdx % 2;
+        const row = Math.floor(focusIdx / 2);
+        if (action === 'left' || action === 'right') next = row * 2 + (1 - col);
+        else if (action === 'up' && row > 0) next = focusIdx - 2;
+        else if (action === 'down') next = row < 2 ? focusIdx + 2 : (col === 0 ? REFUND : CLOSE);
+      } else if (action === 'left' || action === 'right') {
+        next = focusIdx === REFUND ? CLOSE : REFUND;
+      } else if (action === 'up') {
+        next = focusIdx === REFUND ? 4 : 5;
+      }
+      setFocus(next);
+    };
+
     const renderContent = () => {
       contentContainer.removeAll(true);
+      targets = [];
       const meta = MetaProgressManager.getInstance();
       const currentSouls = meta.getSouls();
       const totalSpent = meta.getTotalSpentSouls();
@@ -525,6 +566,17 @@ export class MenuScene extends Phaser.Scene {
         const btnBuyX = cardX + cardW / 2 - btnBuyW / 2 - 12;
         const btnBuyY = cardY + 12;
 
+        const buy = () => {
+          if (!canAfford || isMax) return;
+          if (meta.upgradeBlessing(bId)) {
+            SoundManager.getInstance().playLevelUp();
+            this.updateMenuSoulsDisplay();
+            renderContent();
+          }
+        };
+        const target: FocusTarget = { x: cardX, y: cardY, w: cardW, h: cardH, activate: buy };
+        targets[idx] = target;
+
         if (isMax) {
           const maxBadge = this.add.text(btnBuyX, btnBuyY, 'MAX', {
             fontFamily: pixelFont,
@@ -557,6 +609,7 @@ export class MenuScene extends Phaser.Scene {
             buyBtnG.strokeRoundedRect(btnBuyX - btnBuyW / 2, btnBuyY - btnBuyH / 2, btnBuyW, btnBuyH, 6);
           };
           renderBuyBtn(false);
+          target.setHover = renderBuyBtn;
           contentContainer.add(buyBtnG);
 
           const buyLabel = this.add.text(btnBuyX, btnBuyY, 'UPGRADE', {
@@ -571,19 +624,8 @@ export class MenuScene extends Phaser.Scene {
             const buyZone = this.add.zone(btnBuyX, btnBuyY, btnBuyW, btnBuyH).setInteractive({ useHandCursor: true });
             contentContainer.add(buyZone);
 
-            buyZone.on('pointerover', () => {
-              renderBuyBtn(true);
-              SoundManager.getInstance().playMenuHover();
-            });
-            buyZone.on('pointerout', () => renderBuyBtn(false));
-            buyZone.on('pointerdown', () => {
-              const ok = meta.upgradeBlessing(bId);
-              if (ok) {
-                SoundManager.getInstance().playLevelUp();
-                this.updateMenuSoulsDisplay();
-                renderContent();
-              }
-            });
+            buyZone.on('pointerover', () => setFocus(idx));
+            buyZone.on('pointerdown', buy);
           }
         }
       });
@@ -607,6 +649,12 @@ export class MenuScene extends Phaser.Scene {
       };
       renderRefundBtn(false);
       contentContainer.add(refundBtnG);
+      const openRefund = () => {
+        if (!hasSpent) return;
+        SoundManager.getInstance().playMenuClick();
+        this.openRefundConfirmationModal(renderContent);
+      };
+      targets[REFUND] = { x: refundBtnX, y: bottomY, w: refundBtnW, h: refundBtnH, activate: openRefund, setHover: renderRefundBtn };
 
       const refundLabel = this.add.text(refundBtnX, bottomY, 'REEMBOLSAR (70%)', {
         fontFamily: pixelFont,
@@ -620,15 +668,8 @@ export class MenuScene extends Phaser.Scene {
         const refundZone = this.add.zone(refundBtnX, bottomY, refundBtnW, refundBtnH).setInteractive({ useHandCursor: true });
         contentContainer.add(refundZone);
 
-        refundZone.on('pointerover', () => {
-          renderRefundBtn(true);
-          SoundManager.getInstance().playMenuHover();
-        });
-        refundZone.on('pointerout', () => renderRefundBtn(false));
-        refundZone.on('pointerdown', () => {
-          SoundManager.getInstance().playMenuClick();
-          this.openRefundConfirmationModal(renderContent);
-        });
+        refundZone.on('pointerover', () => setFocus(REFUND));
+        refundZone.on('pointerdown', openRefund);
       }
 
       // Botão Fechar
@@ -658,16 +699,18 @@ export class MenuScene extends Phaser.Scene {
       const closeZone = this.add.zone(closeBtnX, bottomY, closeBtnW, closeBtnH).setInteractive({ useHandCursor: true });
       contentContainer.add(closeZone);
 
-      closeZone.on('pointerover', () => {
-        renderCloseBtn(true);
-        SoundManager.getInstance().playMenuHover();
-      });
-      closeZone.on('pointerout', () => renderCloseBtn(false));
-      closeZone.on('pointerdown', () => {
+      const close = () => {
         SoundManager.getInstance().playMenuClick();
         this.updateMenuSoulsDisplay();
         this.closeModal();
-      });
+      };
+      targets[CLOSE] = { x: closeBtnX, y: bottomY, w: closeBtnW, h: closeBtnH, activate: close, setHover: renderCloseBtn };
+      closeZone.on('pointerover', () => setFocus(CLOSE));
+      closeZone.on('pointerdown', close);
+
+      focusG = this.add.graphics();
+      contentContainer.add(focusG);
+      paintFocus();
     };
 
     renderContent();
@@ -754,15 +797,15 @@ export class MenuScene extends Phaser.Scene {
 
     const z1 = this.add.zone(btn1X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
     confirmContainer.add(z1);
-    z1.on('pointerover', () => { renderB1(true); SoundManager.getInstance().playMenuHover(); });
-    z1.on('pointerout', () => renderB1(false));
-    z1.on('pointerdown', () => {
+    const confirmRefund = () => {
       meta.refundBlessings();
       SoundManager.getInstance().playLevelUp();
       this.updateMenuSoulsDisplay();
       confirmContainer.destroy();
       onRefundSuccess();
-    });
+    };
+    z1.on('pointerover', () => setChoice(0));
+    z1.on('pointerdown', confirmRefund);
 
     // Cancelar
     const b2G = this.add.graphics();
@@ -786,11 +829,33 @@ export class MenuScene extends Phaser.Scene {
 
     const z2 = this.add.zone(btn2X, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
     confirmContainer.add(z2);
-    z2.on('pointerover', () => { renderB2(true); SoundManager.getInstance().playMenuHover(); });
-    z2.on('pointerout', () => renderB2(false));
-    z2.on('pointerdown', () => {
+    const cancel = () => {
       SoundManager.getInstance().playMenuClick();
       confirmContainer.destroy();
+    };
+    z2.on('pointerover', () => setChoice(1));
+    z2.on('pointerdown', cancel);
+
+    // Teclado e controle: começa em CANCELAR (reembolso é destrutivo); B/ESC fecha só esta caixa
+    let choice = 1;
+    function setChoice(next: number): void {
+      if (next === choice) return;
+      choice = next;
+      SoundManager.getInstance().playMenuHover();
+      renderB1(choice === 0);
+      renderB2(choice === 1);
+    }
+    renderB2(true);
+    const prevNav = this.modalNav;
+    const prevBack = this.modalBack;
+    this.modalNav = (action) => {
+      if (action === 'confirm') (choice === 0 ? confirmRefund : cancel)();
+      else if (action === 'left' || action === 'right') setChoice(1 - choice);
+    };
+    this.modalBack = cancel;
+    confirmContainer.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.modalNav = prevNav;
+      this.modalBack = prevBack;
     });
   }
 
@@ -1380,6 +1445,7 @@ export class MenuScene extends Phaser.Scene {
       this.modalContainer = undefined;
     }
     this.modalNav = undefined;
+    this.modalBack = undefined;
     this.isModalOpen = false;
   }
 
@@ -1418,8 +1484,12 @@ export class MenuScene extends Phaser.Scene {
       }
     } else {
       if (nav.cancel) {
-        SoundManager.getInstance().playMenuClick();
-        this.closeModal();
+        if (this.modalBack) {
+          this.modalBack();
+        } else {
+          SoundManager.getInstance().playMenuClick();
+          this.closeModal();
+        }
         return;
       }
       if (nav.up) this.modalNav?.('up');
