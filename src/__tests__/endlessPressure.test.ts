@@ -60,6 +60,16 @@ describe('Pressão do Abismo', () => {
     expect(sys.secondsStill).toBe(0);
   });
 
+  it('capturando o altar não conta como parado, e a contagem recomeça ao sair', () => {
+    const sys = new IdlePressureSystem();
+    sys.update(16, 0, 0);
+    for (let i = 0; i < 30; i++) sys.update(1000, 0, 0, true); // 30 s em cima do altar
+    expect(sys.bonus).toBe(0);
+    expect(sys.secondsStill).toBe(0);
+    sys.update(5000, 0, 0); // saiu do altar e ficou parado 5 s
+    expect(sys.secondsStill).toBe(5);
+  });
+
   it('reset volta ao zero', () => {
     const sys = new IdlePressureSystem();
     sys.update(16, 0, 0);

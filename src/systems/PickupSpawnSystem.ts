@@ -5,6 +5,7 @@ import { MapItem, MapItemType, pickWeightedMapItem } from '../entities/items/Map
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAltarEvolutionCards, UpgradeGameScene } from './UpgradeCatalog';
+import { altarCompletionAction } from './altarRules';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { GemReserve } from './GemReserve';
 import { BALANCE, PERFORMANCE_LIMITS, getChapterConfig } from '../config/balance';
@@ -22,6 +23,8 @@ export interface IPickupSpawnContext {
   readonly sandboxAutoSpawn: boolean;
   altarInstance: EvolutionAltar | null;
   clampToArena(x: number, y: number, margin?: number): { x: number; y: number };
+  /** Aviso no topo da tela (altar que virou baú). */
+  showWaveAlert?(message: string, durationMs?: number): void;
 }
 
 const GEM_XP: Record<GemType, number> = BALANCE.XP.gemValues;
@@ -290,6 +293,16 @@ export class PickupSpawnSystem {
   private handleAltarCompleted(altar: EvolutionAltar): void {
     if (this.ctx.isGameOver || this.ctx.isChapterCompleted) return;
     if (this.scene.scene.isActive('UpgradeScene')) return;
+
+    // Sem arma para evoluir: vira um Baú do Abismo no chão, sem pausar (antes travava)
+    if (altarCompletionAction(getAltarEvolutionCards(this.ctx.player, this.scene).length) === 'fallback-reward') {
+      DebugSessionLogger.getInstance().log('ALTAR', 'WARN', 'Altar completado sem evolução disponível: virou Baú do Abismo.');
+      altar.explodeAndDestroy();
+      if (this.ctx.altarInstance === altar) this.ctx.altarInstance = null;
+      this.spawnMapItem(altar.x, altar.y, 'chest');
+      this.ctx.showWaveAlert?.('ALTAR SEM EVOLUÇÃO\nVIROU UM BAÚ DO ABISMO!', 2600);
+      return;
+    }
 
     DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Altar de Ascensão completado 100%! Abrindo seleção suprema...');
     this.scene.cameras.main.flash(300, 255, 230, 0);

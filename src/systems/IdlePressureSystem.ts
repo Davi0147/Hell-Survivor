@@ -26,8 +26,17 @@ export class IdlePressureSystem {
     return this.stillMs / 1000;
   }
 
-  /** Chamar a cada quadro de jogo (não roda com o jogo pausado). */
-  public update(deltaMs: number, x: number, y: number): void {
+  /**
+   * Chamar a cada quadro de jogo (não roda com o jogo pausado).
+   * @param onObjective parado de propósito num objetivo (capturando o Altar de Ascensão):
+   *   não conta como parado, e a contagem recomeça do zero quando ele sair.
+   */
+  public update(deltaMs: number, x: number, y: number, onObjective: boolean = false): void {
+    if (onObjective) {
+      this.setAnchor(x, y);
+      this.stillMs = 0;
+      return;
+    }
     if (!this.hasAnchor) {
       this.setAnchor(x, y);
       return;

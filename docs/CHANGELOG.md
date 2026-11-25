@@ -4,6 +4,16 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Correção: jogo travava no Altar de Ascensão
+
+#### Resumo para o Jogador
+- **Corrigido o travamento do altar:** se a arma já tinha evoluído por outro caminho (o Baú do Abismo dá preferência a evoluções) enquanto o altar estava no mapa, completar o altar pausava o jogo e abria uma escolha vazia, deixando a tela laranja para sempre. Agora, sem evolução disponível, o **altar vira um Baú do Abismo**, então o esforço não é perdido.
+- **"Parada demais!" não conta no altar:** ficar dentro do círculo do Altar de Ascensão não fortalece mais a horda; a contagem recomeça quando você sai.
+
+#### Técnico
+- `src/systems/altarRules.ts` (testado em `altarRules.test.ts`); `PickupSpawnSystem.handleAltarCompleted` troca a tela por um baú; `UpgradeScene` fecha sozinha se abrir no modo altar sem carta (rede de segurança).
+- `IdlePressureSystem.update(..., onObjective)`; `GameScene.isPlayerCapturingAltar()`.
+
 ### Interface mais limpa: sem barras de fundo
 
 #### Resumo para o Jogador

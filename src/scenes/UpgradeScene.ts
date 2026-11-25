@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON, CARD_ICON_KEYS } from '../systems/UpgradeCatalog';
+import { shouldAutoCloseAltarScreen } from '../systems/altarRules';
 import { COLORS, ACTION_BUTTON_THEME, PICK_LOCK_BAR_THEME, CARD_FOCUS_THEME } from '../config/theme';
 import { ActionKeyButton } from '../ui/ActionKeyButton';
 import { InputHint } from '../ui/InputHint';
@@ -137,6 +138,17 @@ export class UpgradeScene extends Phaser.Scene {
 
     // 3. Renderização das Cartas Flutuantes
     this.dealCards(false);
+
+    // Rede de segurança: tela do altar sem carta nenhuma não tem como fechar; devolve o jogo
+    if (shouldAutoCloseAltarScreen(this.isAltar, this.cardContainers.length)) {
+      this.onAltarChosen?.();
+      this.time.delayedCall(0, () => {
+        this.scene.stop('UpgradeScene');
+        this.gameScene.scene.resume();
+        this.gameScene.physics.resume();
+      });
+      return;
+    }
 
     // 4. Barra Tática Inferior: Botões de Re-rolar e Pular (apenas no Level-Up)
     this.createTacticalFooter(width, height);

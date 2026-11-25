@@ -741,9 +741,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     this.survivalTimeMs += delta;
 
-    // Pressão do Abismo: ficar plantado no Infinito fortalece a horda (travas de cena não contam)
+    // Pressão do Abismo: ficar plantado no Infinito fortalece a horda (travas de cena não contam;
+    // capturar o Altar de Ascensão exige ficar parado, então também não conta)
     if (this.gameMode === 'endless' && !this.isPlayerMovementLocked) {
-      this.idlePressure.update(delta, this.player.x, this.player.y);
+      this.idlePressure.update(delta, this.player.x, this.player.y, this.isPlayerCapturingAltar());
     }
 
     // 1. Controles (teclado, gamepad, toque ou bot [F3]); travas cinematográficas zeram o movimento
@@ -922,6 +923,19 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public spawnSoulItem(x: number, y: number, value: number = 1): void {
     this.pickupSpawner.spawnSoulItem(x, y, value);
+  }
+
+  /** A heroína está dentro do círculo de captura do Altar de Ascensão? */
+  private isPlayerCapturingAltar(): boolean {
+    const a = this.altarInstance;
+    if (!a || !a.active || a.isDestroyed || a.isCompleted) return false;
+    return Math.hypot(this.player.x - a.x, this.player.y - a.y) <= a.captureRadius;
+  }
+
+  /** Aviso no topo da tela (encaminha para a UIScene). */
+  public showWaveAlert(message: string, durationMs: number = 2500): void {
+    const ui = this.scene.get('UIScene') as UIScene | undefined;
+    ui?.showWaveAlert(message, durationMs);
   }
 
   public spawnMapItem(x: number, y: number, type?: MapItemType): MapItem {
