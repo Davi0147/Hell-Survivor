@@ -1,7 +1,10 @@
 import type { TalismanRarity } from './talismanRules';
 
-/** Pet (ajudante que anda com a heroína) ou arma única (dispara sozinha). */
-export type TalismanKind = 'pet' | 'weapon';
+/**
+ * Pet (ajudante que anda com a heroína), arma única (dispara o tempo todo) ou
+ * habilidade (dispara sozinha quando a situação pede, com recarga longa).
+ */
+export type TalismanKind = 'pet' | 'weapon' | 'active';
 
 export type TalismanId =
   | 'pet_bat'
@@ -13,7 +16,12 @@ export type TalismanId =
   | 'wpn_bone_spikes'
   | 'wpn_frost_ring'
   | 'wpn_abyss_eye'
-  | 'wpn_hell_pillar';
+  | 'wpn_hell_pillar'
+  | 'act_shadow_burst'
+  | 'act_bone_shield'
+  | 'act_vortex'
+  | 'act_blood_heart'
+  | 'act_meteor_rain';
 
 export interface TalismanDef {
   id: TalismanId;
@@ -50,6 +58,16 @@ export const TALISMAN_CATALOG: readonly TalismanDef[] = [
     description: 'Uma sombra sua anda ao seu lado e copia os seus disparos.' },
   { id: 'wpn_hell_pillar', rarity: 'legendary', kind: 'weapon', name: 'PILAR DO INFERNO', icon: 'infernal-meteor',
     description: 'Colunas de fogo caem nos monstros mais fortes da tela.' },
+  { id: 'act_shadow_burst', rarity: 'common', kind: 'active', name: 'EXPLOSÃO SOMBRIA', icon: 'item-bomb',
+    description: 'Quando os monstros te cercam, explode e empurra todos para longe.' },
+  { id: 'act_bone_shield', rarity: 'uncommon', kind: 'active', name: 'ESCUDO DE OSSOS', icon: 'item-hourglass',
+    description: 'Um escudo segura um golpe inteiro. Depois de quebrar, volta sozinho.' },
+  { id: 'act_vortex', rarity: 'rare', kind: 'active', name: 'VÓRTICE DO ABISMO', icon: 'item-magnet',
+    description: 'Com muitos monstros na tela, um buraco suga todos para o meio e explode.' },
+  { id: 'act_blood_heart', rarity: 'epic', kind: 'active', name: 'CORAÇÃO SANGRENTO', icon: 'item-chalice',
+    description: 'Com a vida baixa, cura um terço da vida e solta uma onda de sangue.' },
+  { id: 'act_meteor_rain', rarity: 'legendary', kind: 'active', name: 'CHUVA DE METEOROS', icon: 'infernal-meteor',
+    description: 'Quando a horda cresce, 12 meteoros caem sobre os monstros da tela.' },
 ];
 
 export function getTalismanDef(id: string): TalismanDef | undefined {

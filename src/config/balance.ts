@@ -916,5 +916,22 @@ export const TALISMAN_BALANCE = {
     abyssEye: { length: 230, turnSpeed: 1.6, tickMs: 250, damage: 11, hitWidth: 14 },
     hellPillar: { everyMs: 3000, damage: 150, targets: 2, radius: 62, warnMs: 450, range: 420 },
   },
+
+  /**
+   * Habilidades: disparam sozinhas quando a situação pede (decisão do dono, 2026-11-25),
+   * com recarga longa. `trigger*` = quando disparam.
+   */
+  actives: {
+    /** Cercada: explosão que empurra os monstros de perto. */
+    shadowBurst: { cooldownMs: 12000, triggerCount: 7, triggerRadius: 85, radius: 140, damage: 30, pushPx: 70 },
+    /** Escudo que segura um golpe inteiro; recarrega depois de quebrar. */
+    boneShield: { cooldownMs: 18000, invulnerableMs: 900 },
+    /** Muitos monstros na tela: buraco que suga todos para um ponto e explode. */
+    vortex: { cooldownMs: 18000, triggerCount: 14, pullMs: 1500, radius: 190, pullSpeed: 240, damage: 70 },
+    /** Vida baixa: cura e onda de sangue. */
+    bloodHeart: { cooldownMs: 45000, hpFraction: 0.35, healFraction: 0.35, radius: 170, damage: 45 },
+    /** Horda grande: chuva de meteoros nos monstros da tela. */
+    meteorRain: { cooldownMs: 24000, triggerCount: 10, meteors: 12, spanMs: 2000, radius: 55, damage: 95 },
+  },
 } as const;
 

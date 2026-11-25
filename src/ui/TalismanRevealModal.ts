@@ -15,7 +15,7 @@ export interface ITalismanRevealGameScene {
   grantChestSafetyGrace?: () => void;
 }
 
-const KIND_LABEL = { pet: 'PET AJUDANTE', weapon: 'ARMA ÚNICA' } as const;
+const KIND_LABEL = { pet: 'PET AJUDANTE', weapon: 'ARMA ÚNICA', active: 'HABILIDADE' } as const;
 
 /**
  * Tela da carta do talismã. A carta começa COMUM; cada toque pode subir de raridade

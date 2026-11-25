@@ -60,6 +60,7 @@ function createTalismanContext(gs: GameScene): ITalismanSystemContext {
     get gemsGroup() { return gs.gemsGroup; },
     get isGameOver() { return gs.isGameOver; },
     registerSoulBoltOverlap: (w) => gs.registerSoulBoltOverlap(w),
+    grantInvulnerability: (ms) => gs.grantInvulnerability(ms),
     openTalismanReveal: (def, onCollected) => {
       const ui = gs.scene.get('UIScene') as UIScene | undefined;
       if (ui && gs.scene.isActive('UIScene')) ui.showTalismanReveal(def, gs, onCollected);

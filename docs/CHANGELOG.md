@@ -27,6 +27,13 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
   - Épica: **Cérbero Filhote** (morde até 3 e atordoa) e **Olho do Abismo** (raio girando em volta de você).
   - Lendária: **Gêmea Sombria** (uma sombra sua que copia seus disparos) e **Pilar do Inferno** (colunas de fogo nos monstros mais fortes).
 - **Pets com contorno branco**, para não se confundirem com os monstros.
+- **5 habilidades que disparam sozinhas** quando a hora chega (o nome aparece sobre a Nixy):
+  - Comum: **Explosão Sombria**, quando os monstros te cercam, explode e empurra todos.
+  - Incomum: **Escudo de Ossos**, que segura um golpe inteiro e volta depois de um tempo.
+  - Rara: **Vórtice do Abismo**, com muitos monstros na tela, suga todos para o meio e explode.
+  - Épica: **Coração Sangrento**, com a vida baixa, cura um terço e solta uma onda de sangue.
+  - Lendária: **Chuva de Meteoros**, quando a horda cresce, 12 meteoros caem nos monstros.
+  Agora são 15 talismãs.
 - No Modo História cada capítulo tem um minichefe (1 talismã). No Infinito cada Círculo traz um minichefe, então dá para juntar todos.
 
 #### Técnico

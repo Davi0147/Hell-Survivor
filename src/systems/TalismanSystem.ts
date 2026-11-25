@@ -13,6 +13,11 @@ import { BoneSpikesWeapon } from '../entities/talismans/weapons/BoneSpikesWeapon
 import { FrostRingWeapon } from '../entities/talismans/weapons/FrostRingWeapon';
 import { AbyssEyeWeapon } from '../entities/talismans/weapons/AbyssEyeWeapon';
 import { HellPillarWeapon } from '../entities/talismans/weapons/HellPillarWeapon';
+import { ShadowBurstActive } from '../entities/talismans/actives/ShadowBurstActive';
+import { BoneShieldActive } from '../entities/talismans/actives/BoneShieldActive';
+import { VortexActive } from '../entities/talismans/actives/VortexActive';
+import { BloodHeartActive } from '../entities/talismans/actives/BloodHeartActive';
+import { MeteorRainActive } from '../entities/talismans/actives/MeteorRainActive';
 
 /** O que o sistema precisa da cena: o contexto dos efeitos e a tela da carta. */
 export interface ITalismanSystemContext extends ITalismanContext {
@@ -109,6 +114,11 @@ export class TalismanSystem {
       case 'wpn_frost_ring': return new FrostRingWeapon(c);
       case 'wpn_abyss_eye': return new AbyssEyeWeapon(c);
       case 'wpn_hell_pillar': return new HellPillarWeapon(c);
+      case 'act_shadow_burst': return new ShadowBurstActive(c);
+      case 'act_bone_shield': return new BoneShieldActive(c);
+      case 'act_vortex': return new VortexActive(c);
+      case 'act_blood_heart': return new BloodHeartActive(c);
+      case 'act_meteor_rain': return new MeteorRainActive(c);
     }
   }
 

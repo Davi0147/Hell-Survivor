@@ -267,10 +267,19 @@ export abstract class BaseCharacter extends Phaser.Physics.Arcade.Sprite {
     return true;
   }
 
+  /** Golpes que um escudo ainda segura (talismã Escudo de Ossos). */
+  public damageShields: number = 0;
+
   public takeDamage(amount: number, bypassGodMode: boolean = false): void {
     if (this.isDashInvulnerable && !bypassGodMode) return;
     const gs = this.scene as Phaser.Scene & { sandboxGodMode?: boolean };
     if (gs && gs.sandboxGodMode && !bypassGodMode) {
+      return;
+    }
+    // Escudo (talismã Escudo de Ossos): segura o golpe inteiro
+    if (amount > 0 && this.damageShields > 0 && !bypassGodMode) {
+      this.damageShields--;
+      this.emit('shield-broken');
       return;
     }
     const minHp = gs && gs.sandboxGodMode ? 1 : 0;

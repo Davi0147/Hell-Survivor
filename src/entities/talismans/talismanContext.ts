@@ -11,6 +11,18 @@ export interface ITalismanContext {
   readonly gemsGroup?: Phaser.GameObjects.Group;
   /** Liga os tiros de um Disparo de Almas extra (Gêmea Sombria) aos monstros. */
   registerSoulBoltOverlap(weapon: SoulBoltWeapon): void;
+  /** Imunidade curta de contato (escudo quebrado). */
+  grantInvulnerability(ms: number): void;
+}
+
+/** Empurra o monstro para longe de (x, y); chefes e pesados não se mexem. */
+export function pushEnemyFrom(enemy: BaseEnemy, x: number, y: number, px: number): void {
+  if (enemy.isBoss || enemy.isHeavy) return;
+  const dx = enemy.x - x;
+  const dy = enemy.y - y;
+  const d = Math.hypot(dx, dy) || 1;
+  enemy.x += (dx / d) * px;
+  enemy.y += (dy / d) * px;
 }
 
 /** Um efeito de talismã ativo: atualizado a cada quadro e destruído no fim da partida. */

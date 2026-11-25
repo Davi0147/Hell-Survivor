@@ -48,6 +48,14 @@ describe('Talismãs: sem repetição', () => {
     expect(pickTalisman(TALISMAN_CATALOG, owned, 'common', 0)).toBeNull();
   });
 
+  it('cada tipo (pet, arma, habilidade) tem um talismã em cada raridade', () => {
+    for (const kind of ['pet', 'weapon', 'active'] as const) {
+      for (const r of TALISMAN_RARITIES) {
+        expect(TALISMAN_CATALOG.filter((t) => t.kind === kind && t.rarity === r)).toHaveLength(1);
+      }
+    }
+  });
+
   it('o catálogo tem ids únicos e ao menos um de cada raridade', () => {
     const ids = TALISMAN_CATALOG.map((t) => t.id);
     expect(new Set(ids).size).toBe(ids.length);

@@ -546,6 +546,14 @@ export const TALISMAN_THEME = {
     pillar: 0xff4500,
     pillarCore: 0xffe600,
     slimeSplash: 0x4ade80,
+    shadowBurst: 0x7c3aed,
+    shadowBurstCore: 0xe9d5ff,
+    shield: 0xf5f0e1,
+    vortex: 0x6d28d9,
+    vortexCore: 0x00f5d4,
+    blood: 0xe11d48,
+    bloodCore: 0xffb3c8,
+    meteor: 0xff7b00,
   },
 } as const;
 
