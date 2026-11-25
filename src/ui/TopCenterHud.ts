@@ -26,17 +26,15 @@ export interface ITopCenterHudWorld {
 type PlateMode = 'none' | 'purify' | 'timer' | 'boss' | 'bossTimer';
 
 const W = HUD_SIZES.objective.w;
-const H = HUD_SIZES.objective.h;
 const BOSS_W = HUD_SIZES.objective.bossW;
 
 /**
- * Topo central da HUD: uma placa de obsidiana com moldura dourada que mostra o objetivo do
+ * Topo central da HUD (sem placa de fundo, direto sobre o jogo) que mostra o objetivo do
  * momento — purificação de almas (História), relógio e recorde (Infinito) ou a vida do chefe.
  * Tudo num container escalado pelo layout (maior no celular).
  */
 export class TopCenterHud {
   private readonly container: Phaser.GameObjects.Container;
-  private readonly plate: Phaser.GameObjects.Graphics;
   private readonly bar: Phaser.GameObjects.Graphics;
   private readonly label: Phaser.GameObjects.Text;
   private readonly timerText: Phaser.GameObjects.Text;
@@ -52,7 +50,6 @@ export class TopCenterHud {
     layout: { x: number; y: number; scale: number }
   ) {
     this.container = ui.add.container(layout.x, layout.y).setScale(layout.scale).setDepth(110);
-    this.plate = ui.add.graphics();
     this.bar = ui.add.graphics();
 
     const text = (size: number, color: string, stroke: string): Phaser.Types.GameObjects.Text.TextStyle => ({
@@ -66,7 +63,7 @@ export class TopCenterHud {
     this.label = ui.add.text(0, 12, 'PURIFICAÇÃO DE ALMAS', text(12, T.label, T.labelStroke)).setOrigin(0.5);
     this.timerText = ui.add.text(0, 17, '00:00', text(20, T.timer, T.timerStroke)).setOrigin(0.5);
     this.recordText = ui.add.text(0, 36, `RECORDE: ${formattedBestRecord}`, text(10, T.label, T.labelStroke)).setOrigin(0.5);
-    const parts: Phaser.GameObjects.GameObject[] = [this.plate, this.bar, this.label, this.timerText, this.recordText];
+    const parts: Phaser.GameObjects.GameObject[] = [this.bar, this.label, this.timerText, this.recordText];
     if (ui.textures.exists('ui-icon-timer')) {
       this.timerIcon = ui.add.image(0, 17, 'ui-icon-timer').setDisplaySize(22, 22);
       parts.push(this.timerIcon);
@@ -131,26 +128,7 @@ export class TopCenterHud {
     this.timerText.setY(mode === 'bossTimer' ? 58 : 17);
     this.timerIcon?.setY(this.timerText.y);
     this.label.setY(isBoss ? 13 : 12);
-
-    const plateW = isBoss ? BOSS_W : mode === 'timer' ? 200 : W;
-    const plateH = mode === 'bossTimer' ? H + 26 : H;
-    this.drawPlate(mode === 'none' ? 0 : plateW, plateH);
-  }
-
-  private drawPlate(w: number, h: number): void {
-    const g = this.plate;
-    g.clear();
-    if (w <= 0) return;
-    const x = -w / 2;
-    g.fillStyle(T.plate, T.plateAlpha);
-    g.fillRect(x, 0, w, h);
-    g.lineStyle(1, T.innerBorder, 1);
-    g.strokeRect(x + 3, 3, w - 6, h - 6);
-    g.lineStyle(2, T.border, 1);
-    g.strokeRect(x, 0, w, h);
-    // Cantos reforçados (mesma moldura da barra de armas e das cartas)
-    g.fillStyle(T.border, 1);
-    for (const [cx, cy] of [[x, 0], [x + w, 0], [x, h], [x + w, h]]) g.fillRect(cx - 3, cy - 3, 6, 6);
+    // Sem placa de fundo (decisão do dono, 2026-11-25): relógio e barras direto sobre o jogo
   }
 
   private drawBar(w: number, y: number, ratio: number, fill: number, shine: number, h: number): void {

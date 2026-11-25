@@ -262,10 +262,8 @@ export const STATUS_PANEL_THEME = {
   hurtTint: 0xff4444,
 } as const;
 
-/** Topo da HUD: placa de abates/almas e barra fina de experiência. */
+/** Topo da HUD: abates/almas (sem placa) e barra fina de experiência. */
 export const HUD_COUNTER_THEME = {
-  plate: 0x12040a,
-  plateAlpha: 0.82,
   border: 0xc59b27,
   stroke: '#000000',
   kills: '#ffffff',
@@ -276,14 +274,11 @@ export const HUD_COUNTER_THEME = {
 } as const;
 
 /**
- * Placa do objetivo no topo central da HUD (purificação, relógio do Infinito, vida do chefe):
- * obsidiana com moldura dourada, a mesma linguagem das cartas e da barra de armas.
+ * Objetivo no topo central da HUD (purificação, relógio do Infinito, vida do chefe),
+ * direto sobre o jogo, sem placa; `border` é o contorno das barras.
  */
 export const OBJECTIVE_THEME = {
-  plate: 0x12040a,
-  plateAlpha: 0.9,
   border: 0xc59b27,
-  innerBorder: 0x5a1020,
   label: '#f3d17a',
   labelStroke: '#0e0208',
   timer: '#ffffff',

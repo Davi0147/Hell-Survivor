@@ -174,7 +174,8 @@ export class GameOverModal {
     const arrow = s.add.text(0, optY, '▶', {
       fontFamily: FONTS.body, fontSize: px(16), color: t.optionActive, stroke: COLORS.strokeBlack, strokeThickness: 3,
     }).setOrigin(1, 0.5);
-    s.tweens.add({ targets: arrow, x: '-=5', duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // O balanço da seta é recriado a cada troca: um tween antigo puxava a seta de volta
+    let arrowBob: Phaser.Tweens.Tween | null = null;
     const optTexts = options.map((o, i) => {
       const txt = s.add.text(o.x, optY, o.label, {
         fontFamily: FONTS.body, fontSize: px(17), fontStyle: 'bold', color: t.optionIdle, stroke: COLORS.strokeBlack, strokeThickness: 4,
@@ -192,7 +193,9 @@ export class GameOverModal {
       const txt = optTexts[i];
       txt.setColor(active ? t.optionActive : t.optionIdle).setScale(active ? 1.06 : 1);
       if (!active) return;
+      arrowBob?.stop();
       arrow.setPosition(txt.x - txt.displayWidth / 2 - 10 * u, optY);
+      arrowBob = s.tweens.add({ targets: arrow, x: arrow.x - 5, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       underline.clear();
       underline.fillStyle(t.optionUnderline, 1);
       underline.fillRect(txt.x - txt.displayWidth / 2, optY + txt.displayHeight / 2 + 2, txt.displayWidth, Math.max(2, 2 * u));

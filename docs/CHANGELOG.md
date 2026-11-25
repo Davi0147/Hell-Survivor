@@ -4,6 +4,12 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Topo da HUD sem placas e seta do Fim da Jornada
+
+#### Resumo para o Jogador
+- **Relógio, abates e almas sem fundo:** as placas escuras com moldura do topo saíram; os números ficam direto sobre o jogo (a barra de purificação e a vida do chefe continuam com o trilho delas).
+- **Corrigido:** no Fim da Jornada, a setinha ficava presa em TENTAR NOVAMENTE quando você passava para MENU PRINCIPAL. Agora ela acompanha a opção escolhida.
+
 ### Cartas com moldura própria de cada raridade
 
 #### Resumo para o Jogador

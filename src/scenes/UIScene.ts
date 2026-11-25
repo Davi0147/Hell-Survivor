@@ -84,7 +84,6 @@ export class UIScene
   private lastXpRatio = -1;
 
   // Topo direito: abates e almas, lado a lado
-  private killsPanelGraphics!: Phaser.GameObjects.Graphics;
   private killsIcon!: Phaser.GameObjects.Image;
   private killsText!: Phaser.GameObjects.Text;
   private soulsIcon!: Phaser.GameObjects.Image;
@@ -165,7 +164,7 @@ export class UIScene
     }
 
     // ==========================================
-    // 4. TOPO DIREITO: ABATES E ALMAS LADO A LADO, NUMA PLACA ESCURA
+    // 4. TOPO DIREITO: ABATES E ALMAS LADO A LADO, DIRETO SOBRE O JOGO (sem placa; decisão do dono)
     // ==========================================
     const c = L.counters;
     const itemW = HUD_SIZES.counters.itemW * c.scale;
@@ -174,16 +173,6 @@ export class UIScene
     const counterY = c.y;
     const killsX = c.right - itemW * 2;
     const soulsX = c.right - itemW;
-
-    this.killsPanelGraphics = this.add.graphics();
-    this.killsPanelGraphics.setDepth(59);
-    const plateH = HUD_SIZES.counters.h * c.scale;
-    this.killsPanelGraphics.fillStyle(HUD_COUNTER_THEME.plate, HUD_COUNTER_THEME.plateAlpha);
-    this.killsPanelGraphics.fillRect(killsX, counterY - plateH / 2, itemW * 2, plateH);
-    this.killsPanelGraphics.lineStyle(2, HUD_COUNTER_THEME.border, 1);
-    this.killsPanelGraphics.strokeRect(killsX, counterY - plateH / 2, itemW * 2, plateH);
-    this.killsPanelGraphics.lineStyle(1, HUD_COUNTER_THEME.border, 0.5);
-    this.killsPanelGraphics.lineBetween(soulsX, counterY - plateH / 2 + 6, soulsX, counterY + plateH / 2 - 6);
 
     const counterStyle = (color: string): Phaser.Types.GameObjects.Text.TextStyle => ({
       fontFamily: pixelFont,
@@ -272,7 +261,6 @@ export class UIScene
     this.hudElements = [
       ...this.radar.getHudElements(),
       ...this.statusPanel.getHudElements(),
-      this.killsPanelGraphics,
       this.killsIcon,
       this.killsText,
       this.soulsIcon,
