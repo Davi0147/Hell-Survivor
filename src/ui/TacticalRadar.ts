@@ -122,11 +122,11 @@ export class TacticalRadar {
       }
     }
 
-    // 4. Altar de Ascensão: "X" vermelho com contorno escuro
+    // 4. Altar de Ascensão: "X" vermelho com contorno escuro, pulsando (longe, fica preso na borda)
     const altar = world.altarInstance;
     if (altar && altar.active && !altar.isDestroyed) {
       const { bx, by } = this.toRadar(altar.x - p.x, altar.y - p.y);
-      const xArm = 4.5;
+      const xArm = 4.5 + Math.sin(this.scene.time.now * 0.009) * 1.2;
       const drawX = (): void => {
         g.beginPath();
         g.moveTo(bx - xArm, by - xArm);

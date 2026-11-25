@@ -5,7 +5,7 @@ import { MapItem, MapItemType, pickWeightedMapItem } from '../entities/items/Map
 import { EvolutionAltar } from '../entities/items/EvolutionAltar';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAltarEvolutionCards, UpgradeGameScene } from './UpgradeCatalog';
-import { altarCompletionAction } from './altarRules';
+import { altarCompletionAction, altarPresence } from './altarRules';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { GemReserve } from './GemReserve';
 import { BALANCE, PERFORMANCE_LIMITS, getChapterConfig } from '../config/balance';
@@ -104,11 +104,9 @@ export class PickupSpawnSystem {
     }
 
     const altar = this.ctx.altarInstance;
-    if (altar && altar.active && !altar.isDestroyed) {
-      altar.updateAltar(player, delta);
-    } else {
-      this.updateAltarSpawning(delta);
-    }
+    if (altar && altar.active && !altar.isDestroyed) altar.updateAltar(player, delta);
+    // Sempre: faz o altar surgir quando há arma no máximo e sumir quando não há
+    this.updateAltarSpawning(delta);
   }
 
   private getViewBounds(): ViewBounds {
@@ -245,16 +243,35 @@ export class PickupSpawnSystem {
     return !!altar && altar.active && !altar.isDestroyed;
   }
 
-  /** Altar de Ascensão periódico, só enquanto houver arma para evoluir. */
+  /**
+   * Altar de Ascensão existe enquanto houver arma pronta para evoluir: surge logo depois de
+   * uma arma chegar ao máximo e some se não sobrar nenhuma (regra em `altarRules.ts`).
+   */
   public updateAltarSpawning(delta: number): void {
     if (this.ctx.isGameOver || this.ctx.isChapterCompleted) return;
-    if (this.hasActiveAltar()) return;
-    if (getAltarEvolutionCards(this.ctx.player, this.scene).length === 0) return;
+    const hasAltar = this.hasActiveAltar();
+    // Altar já completado está abrindo a escolha: não mexe nele
+    if (hasAltar && this.ctx.altarInstance?.isCompleted) return;
 
-    this.altarSpawnTimer += delta;
-    if (this.altarSpawnTimer >= getChapterConfig(this.ctx.currentChapter).altarSpawnIntervalMs) {
-      this.altarSpawnTimer = 0;
-      this.spawnEvolutionAltar();
+    const evolvable = getAltarEvolutionCards(this.ctx.player, this.scene).length;
+    const delayMs = getChapterConfig(this.ctx.currentChapter).altarAppearDelayMs;
+    switch (altarPresence(hasAltar, evolvable, this.altarSpawnTimer, delayMs)) {
+      case 'wait':
+        this.altarSpawnTimer += delta;
+        break;
+      case 'spawn':
+        this.altarSpawnTimer = 0;
+        if (this.spawnEvolutionAltar()) this.ctx.showWaveAlert?.('ARMA NO MÁXIMO!\nUM ALTAR DE ASCENSÃO SURGIU', 2600);
+        break;
+      case 'despawn':
+        this.altarSpawnTimer = 0;
+        DebugSessionLogger.getInstance().log('ALTAR', 'INFO', 'Nenhuma arma para evoluir: Altar de Ascensão some.');
+        this.ctx.altarInstance?.fadeAway();
+        this.ctx.altarInstance = null;
+        break;
+      case 'keep':
+        this.altarSpawnTimer = 0;
+        break;
     }
   }
 

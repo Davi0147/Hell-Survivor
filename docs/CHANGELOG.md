@@ -4,6 +4,16 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Altar de Ascensão aparece quando a arma chega ao máximo
+
+#### Resumo para o Jogador
+- **Arma no máximo = altar no mapa:** antes o altar demorava até 75 segundos para aparecer. Agora, **3 segundos** depois de uma arma ficar pronta para evoluir, surge o Altar de Ascensão com o aviso "ARMA NO MÁXIMO! UM ALTAR DE ASCENSÃO SURGIU".
+- **No radar:** o X vermelho do altar pulsa e, se o altar estiver longe, fica preso na borda do radar apontando a direção (a seta na borda da tela continua mostrando a distância).
+- **Some quando não precisa:** se você evoluir a única arma pronta, o altar desaparece. Quando outra arma chegar ao máximo, ele aparece de novo.
+
+#### Técnico
+- `altarPresence()` em `src/systems/altarRules.ts` (testado); `ChapterConfig.altarSpawnIntervalMs` virou `altarAppearDelayMs` (3000). `EvolutionAltar.fadeAway()`; `PickupSpawnSystem.updateAltarSpawning` roda sempre.
+
 ### Correção: jogo travava no Altar de Ascensão
 
 #### Resumo para o Jogador

@@ -139,6 +139,20 @@ export class EvolutionAltar extends Phaser.GameObjects.Container {
     });
   }
 
+  /** Some devagar (não sobrou arma para evoluir). Sem explosão: não foi conquistado. */
+  public fadeAway(): void {
+    if (this.isDestroyed) return;
+    this.isDestroyed = true;
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 0,
+      scale: 0.6,
+      duration: 600,
+      ease: 'Quad.easeIn',
+      onComplete: () => this.destroy(),
+    });
+  }
+
   /**
    * Efeito de explosão e destruição do altar após a escolha da evolução
    */

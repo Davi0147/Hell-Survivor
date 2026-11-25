@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { altarCompletionAction, shouldAutoCloseAltarScreen } from '../systems/altarRules';
+import { altarCompletionAction, shouldAutoCloseAltarScreen, altarPresence } from '../systems/altarRules';
+
+describe('Altar existe enquanto houver arma pronta para evoluir', () => {
+  it('arma no máximo e sem altar: espera o atraso e surge', () => {
+    expect(altarPresence(false, 1, 0, 3000)).toBe('wait');
+    expect(altarPresence(false, 1, 3000, 3000)).toBe('spawn');
+  });
+
+  it('evoluiu a única arma: o altar some', () => {
+    expect(altarPresence(true, 0, 0, 3000)).toBe('despawn');
+  });
+
+  it('altar com arma pronta fica; sem arma e sem altar nada acontece', () => {
+    expect(altarPresence(true, 2, 0, 3000)).toBe('keep');
+    expect(altarPresence(false, 0, 99999, 3000)).toBe('keep');
+  });
+});
 
 describe('Altar de Ascensão sem arma para evoluir (travava o jogo)', () => {
   it('com carta de evolução, abre a escolha', () => {

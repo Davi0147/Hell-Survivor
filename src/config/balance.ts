@@ -221,30 +221,31 @@ export function getIdlePressureBonus(stillMs: number): number {
 /**
  * CONFIGURAÇÃO DE CAPÍTULOS DE HISTÓRIA:
  * Define metas de purificação de almas para invocar o chefe,
- * multiplicador de status de monstros e intervalo de surgimento do Altar de Ascensão.
+ * multiplicador de status de monstros e a espera para o Altar de Ascensão surgir.
  */
 export interface ChapterConfig {
   targetSouls: number;
   enemyStatMultiplier: number;
-  altarSpawnIntervalMs: number;
+  /** Espera entre uma arma ficar pronta para evoluir e o Altar de Ascensão surgir. */
+  altarAppearDelayMs: number;
 }
 
 export const CHAPTER_CONFIG_FALLBACK: ChapterConfig = {
   targetSouls: 900,
   enemyStatMultiplier: 1.0,
-  altarSpawnIntervalMs: 75000,
+  altarAppearDelayMs: 3000,
 };
 
 export const CHAPTER_CONFIG: Record<number, ChapterConfig> = {
   1: {
     targetSouls: 900,
     enemyStatMultiplier: 1.0,
-    altarSpawnIntervalMs: 75000,
+    altarAppearDelayMs: 3000,
   },
   2: {
     targetSouls: 1350,
     enemyStatMultiplier: 1.2,
-    altarSpawnIntervalMs: 75000,
+    altarAppearDelayMs: 3000,
   },
 };
 
