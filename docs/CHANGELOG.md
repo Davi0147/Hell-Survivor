@@ -13,6 +13,7 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 - **Carta selecionada em destaque:** as outras cartas ficam levemente escurecidas, e a selecionada balança de leve com um brilho pulsando, então dá para ver de relance qual está marcada (mouse e controle usam a mesma seleção).
 - **Baú de bênção:** o A do controle agora pula a roleta e coleta a bênção.
 - **Altar de Bênçãos no controle:** direcional/setas andam pelas bênçãos e pelos botões de baixo (moldura dourada mostra onde você está), A/Enter compra, B/ESC volta. Na confirmação do reembolso o cursor começa em CANCELAR e o B fecha só a confirmação.
+- **Lyn, a minichefe súcubo, luta do jeito dela:** antes era uma cópia da Rosalin. Agora ela fica **rodeando** você em vez de vir reto, faz um **Rasante Triplo** (três investidas curtas, cada uma com aviso rosa) e depois fica **cansada** por um instante, levando mais dano. Também solta uma **Espiral de Orbes** lenta em volta de si, que dá para atravessar pelos vãos. O salto esmagador ficou só com a Rosalin, e os golpes da serva batem menos que os da senhora.
 - **Corrigido:** o fim de capítulo mostrava "ALMAS PEGAS: +0" mesmo pegando almas. As almas já iam para o saldo; só a contagem da tela estava zerada.
 
 #### Técnico

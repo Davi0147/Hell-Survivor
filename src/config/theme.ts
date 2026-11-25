@@ -354,6 +354,16 @@ export const BOSS_TELEGRAPH = {
   crosshairThickness: 1.5
 } as const;
 
+/** Lyn (minichefe súcubo): rosa para separar dela os avisos carmesim da Rosalin. */
+export const LYN_THEME = {
+  tellTint: 0xff7ad9,
+  ghostTint: 0xff4fd8,
+  windedTint: 0xaaaaaa,
+  deathTint: 0xff0055,
+  swoopLine: 0xff4fd8,
+  swoopLineInner: 0xffffff
+} as const;
+
 /** Tela de cartas: as cartas fora de foco ficam um pouco escurecidas, então a selecionada se destaca. */
 export const CARD_FOCUS_THEME = {
   unfocusedTint: 0xb8b8b8

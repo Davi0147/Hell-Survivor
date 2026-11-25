@@ -399,6 +399,44 @@ export const ENEMY_BALANCE = {
   lyn: { hp: 2400, speed: 115, damage: 24, scale: 1.6 },
 } as const;
 
+// Lyn, a minichefe súcubo: serva da Rosalin, mas com luta própria. Em vez de perseguir em
+// linha reta e dar o salto esmagador, ela rodeia a heroína, faz rasantes curtos em sequência
+// e solta uma espiral de orbes. Golpes mais fracos e mais frequentes que os da chefe.
+export const LYN_BALANCE = {
+  /** Distância que ela tenta manter enquanto rodeia. */
+  orbitDistance: 230,
+  /** Quanto da velocidade vai para corrigir a distância (o resto é o giro em volta). */
+  orbitPull: 0.012,
+  /** De quanto em quanto tempo ela pode inverter o sentido do giro. */
+  orbitFlipMs: { min: 2500, max: 4500 },
+  swoop: {
+    count: 3,
+    telegraphMs: 480,
+    /** Mira só nesta parte inicial do aviso; depois trava (dá tempo de sair da linha). */
+    aimMs: 260,
+    dashMs: 260,
+    speed: 720,
+    damage: 16,
+    lineLength: 380,
+    gapMs: 140,
+    cooldownMs: 7500,
+    firstCooldownMs: 3500,
+    /** Cansada depois da sequência: parada e levando mais dano. */
+    windedMs: 1400,
+  },
+  spiral: {
+    tellMs: 450,
+    orbs: 16,
+    intervalMs: 75,
+    angleStep: 0.62,
+    speed: 175,
+    damage: 9,
+    cooldownMs: 6500,
+    firstCooldownMs: 6000,
+  },
+  damageTaken: { normal: 1, winded: 1.35 },
+} as const;
+
 // Regra de ouro das lutas de chefe: nenhum golpe sozinho tira mais de ~45% da vida
 // base da heroína (100 HP), e todo golpe forte é telegrafado. Quem erra duas vezes
 // seguidas ainda está vivo; quem erra sempre, morre.

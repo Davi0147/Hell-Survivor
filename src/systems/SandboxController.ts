@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { Nixy } from '../entities/characters/Nixy';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
+import { LynMiniBoss } from '../entities/enemies/LynMiniBoss';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { MapItem, type MapItemType } from '../entities/items/MapItem';
@@ -241,7 +242,7 @@ export class SandboxController {
     if (this.context.enemiesGroup) {
       const enemies = this.context.enemiesGroup.getChildren() as BaseEnemy[];
       for (const e of enemies) {
-        if ((e instanceof SuccubusBoss || e instanceof AzazelBoss || e instanceof AzazelPhantomClone) && e.active) {
+        if ((e instanceof SuccubusBoss || e instanceof LynMiniBoss || e instanceof AzazelBoss || e instanceof AzazelPhantomClone) && e.active) {
           if ('projectilesGroup' in e) {
             const pGroup = (e as { projectilesGroup?: Phaser.GameObjects.Group }).projectilesGroup;
             if (pGroup) {

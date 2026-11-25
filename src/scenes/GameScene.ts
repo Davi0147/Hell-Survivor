@@ -5,6 +5,7 @@ import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy, PoisonPuddle } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
+import { LynMiniBoss } from '../entities/enemies/LynMiniBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
@@ -781,6 +782,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
         } else if (e instanceof AzazelPhantomClone) {
           // Clones espectrais são atualizados diretamente pelo AzazelBoss pai
         } else if (e instanceof SuccubusBoss) {
+          e.updateBoss(this.player, delta);
+        } else if (e instanceof LynMiniBoss) {
           e.updateBoss(this.player, delta);
         } else if (e instanceof SkullSlime) {
           e.updateSlime(this.player, delta);

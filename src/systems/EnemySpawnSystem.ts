@@ -4,7 +4,7 @@ import { ZombieDog } from '../entities/enemies/ZombieDog';
 import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy } from '../entities/enemies/MummyEnemy';
-import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
+import { LynMiniBoss } from '../entities/enemies/LynMiniBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { TransporterEnemy } from '../entities/enemies/TransporterEnemy';
 import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
@@ -638,13 +638,11 @@ export class EnemySpawnSystem {
     const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
     const { x, y } = pos;
 
-    const lyn = new SuccubusBoss(this.scene, x, y);
-    lyn.setDepth(21);
+    const lyn = new LynMiniBoss(this.scene, x, y);
     this.ctx.enemiesGroup.add(lyn);
 
     const stats = ENEMY_BALANCE.lyn;
     lyn.spawn(x, y, Math.round(stats.hp * hpMultiplier), stats.speed, stats.damage, stats.scale);
-    lyn.useLynSprites();
 
     lyn.on('boss-defeated', () => {
       this.ctx.killCount++;

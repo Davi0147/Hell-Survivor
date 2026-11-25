@@ -54,9 +54,6 @@ export class SuccubusBoss extends BaseEnemy {
   private readonly SLAM_MAX_RADIUS = ATK.slamRadius;
   private readonly SLAM_RECOVERY_DURATION = ATK.slamRecoveryMs; // Janela de dano livre
 
-  /** Conjunto de sprites: 'succubus' (Rosalin, 8 direções) ou 'lyn' (minichefe, 4 eixos). */
-  private spritePrefix: 'succubus' | 'lyn' = 'succubus';
-
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'succubus-idle-south');
 
@@ -581,33 +578,9 @@ export class SuccubusBoss extends BaseEnemy {
     else if (deg >= 247.5 && deg < 292.5) dir = 'north';
     else dir = 'north-east';
 
-    // A Lyn só tem voo nos 4 eixos: usa o eixo mais próximo
-    if (this.spritePrefix === 'lyn') {
-      dir = deg >= 45 && deg < 135 ? 'south' : deg >= 135 && deg < 225 ? 'west' : deg >= 225 && deg < 315 ? 'north' : 'east';
-    }
-    const animKey = `${this.spritePrefix}-fly-${dir}`;
+    const animKey = `succubus-fly-${dir}`;
     if (this.anims.currentAnim?.key !== animKey) {
       this.play(animKey, true);
-      if (this.spritePrefix === 'lyn') this.fitLynBody();
     }
-  }
-
-  /**
-   * Visual da Lyn (minichefe súcubo): arte própria em vez da Rosalin pintada de rosa.
-   * Chamar logo depois de `spawn`. Os golpes continuam os da súcubo.
-   */
-  public useLynSprites(): void {
-    this.spritePrefix = 'lyn';
-    this.clearTint();
-    this.play('lyn-fly-south', true);
-    this.fitLynBody();
-  }
-
-  /** Quadros da Lyn: 56px parada, 76px voando. Colisão centrada no corpo. */
-  private fitLynBody(): void {
-    const body = this.body as Phaser.Physics.Arcade.Body | null;
-    if (!body) return;
-    body.setSize(26, 34, false);
-    body.setOffset((this.width - 26) / 2, (this.height - 34) / 2 + 4);
   }
 }
