@@ -1239,4 +1239,30 @@ outline, none with a ground shadow.
 
 **Se o gerador errar:** peça uma linha por vez (`canvas 2048x512, 1 row x 4 columns of 512x512 cells`), anexando a folha dos pets e colando tudo menos as linhas das outras animações.
 
+**Correção só do ataque** (as linhas 1 e 2 saíram boas; o fogo mudava de cor a cada quadro e o cometa voava longe da mão, o que duplicaria o tiro que o jogo já desenha). Anexe a folha gerada e peça:
+
+```text
+Edit the attached sprite sheet. Keep rows 1 and 2 EXACTLY as they are (pixel for pixel).
+Redraw ONLY row 3 (the 4 attack frames), same character, same white outline, same size,
+same baseline, same green #00FF00 background, facing right.
+
+The magic effect in row 3 must use EXACTLY this 4-color palette and nothing else, identical
+in all 4 frames: dark #4b1673, mid #7b2cbf, bright #c77dff, core #f3e8ff. No pink, no
+magenta, no blue, no other purples. The effect is a soul flame: dark at the edges, mid
+around it, bright inside, a small core at the center.
+The effect always stays at or touching her FRONT hand (the arm closer to the viewer); it
+never flies away from the hand (the game draws the flying projectile itself).
+ frame 1 WIND-UP: front arm pulled back behind her hip, a small flame (fist size) lit in
+   that hand.
+ frame 2 CHARGE: front arm still back, the flame grows to the size of her head, flame tongues
+   pointing up, her eye glows bright.
+ frame 3 RELEASE: front arm thrust straight forward to the right, open palm; a short flame
+   burst at the palm, stretched forward like a cone, about one head long, with a thin ring
+   of the same colors around the wrist.
+ frame 4 RECOVER: arm lowering, 3 small flame wisps of the same colors rising from the palm.
+The flame gets the same 3-pixel white outline as the character.
+```
+
+Se só a cor sair diferente, me mande assim mesmo: eu repinto o fogo no recorte com essas 4 cores, igual nos 4 quadros.
+
 **Onde salvar:** `art-source/novos/gemea-sombria.png` (ou `.jpg`). Eu recorto com o mesmo método dos pets e ligo: parada quando ela não anda, andar quando segue a heroína, ataque a cada disparo, virando para o monstro alvo.
