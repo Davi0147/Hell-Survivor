@@ -5,6 +5,8 @@ import Phaser from 'phaser';
 import { DIRECTIONS_8, ENEMY_BALANCE } from '../config/balance';
 import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
+import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
+import { InputDeviceTracker } from '../systems/InputDeviceTracker';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -319,6 +321,13 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
+    // 8.9. Ícones de botão (teclado, mouse, toque e controles) num atlas só
+    this.load.atlas(
+      BUTTON_GLYPH_ATLAS,
+      `${BUTTON_GLYPH_PATH}.png?t=${cacheBuster}`,
+      `${BUTTON_GLYPH_PATH}.json?t=${cacheBuster}`
+    );
+
     // 9. Carregar retratos de UI da Nixy (novas versões atualizadas: Idle UI e Damage UI)
     this.load.image('nixy-portrait-idle', `assets/sprites/nixy/UI/Idle UI.png?t=${cacheBuster}`);
     this.load.image('nixy-portrait-damage', `assets/sprites/nixy/UI/Damage UI.png?t=${cacheBuster}`);
@@ -619,6 +628,8 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     SoundManager.getInstance().setScene(this);
+    // Detector único de teclado / controle / toque para as dicas de botão
+    InputDeviceTracker.getInstance().attach(this.game);
 
     // 1. Textura do chão: fallback procedural apenas caso a imagem não exista
     if (!this.textures.exists('floor-tile')) {

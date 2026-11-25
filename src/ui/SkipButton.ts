@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
 import { ActionKeyButton } from './ActionKeyButton';
 
-export type SkipControlScheme = 'keyboard' | 'gamepad' | 'touch';
-
 /** Tamanho em pixels do jogo. No celular o jogo inteiro é encolhido para ~45%, então o botão cresce. */
 const SIZE = {
   desktop: { w: 250, h: 40, font: 15, margin: 18 },
@@ -38,20 +36,16 @@ export class SkipButton {
       label,
       labelFontSize: s.font,
       bare: true,
+      // ESC / B / círculo, conforme o aparelho; nenhum no toque
+      action: 'skip',
       // O som do clique fica com a cena (o ESC e o botão B passam pelo mesmo caminho)
       onClick: onSkip,
     });
     this.button.container.setDepth(depth).setScrollFactor(0);
-    this.setScheme(isTouchDevice(scene) ? 'touch' : 'keyboard');
   }
 
   public get container(): Phaser.GameObjects.Container {
     return this.button.container;
-  }
-
-  /** Mostra a tecla do controle em uso (ESC, B) ou nenhuma no toque. */
-  public setScheme(scheme: SkipControlScheme): void {
-    this.button.setKey(scheme === 'keyboard' ? 'ESC' : scheme === 'gamepad' ? 'B' : '');
   }
 
   public setVisible(visible: boolean): void {

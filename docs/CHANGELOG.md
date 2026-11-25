@@ -4,6 +4,17 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Ícones de botão no lugar das dicas escritas
+
+#### Resumo para o Jogador
+- As dicas de controle agora mostram **o desenho do botão** em vez de texto tipo `[Espaço]` ou `(A)`: barra de controles da partida, tecla da Suprema, diálogos, intro, fim de capítulo, menu principal, escolha de capítulo, tela de cartas (Re-rolar, Canalizar, Altar) e roleta do baú.
+- O jogo percebe sozinho o que você está usando e troca os ícones na hora: **teclado e mouse**, **controle de Xbox** (A/B/X/Y) ou **controle de PlayStation** (cruz, círculo, quadrado, triângulo). No celular aparecem só os ícones de toque onde fazem sentido.
+
+#### Técnico
+- Folha `art-source/novos/botoes-controle.webp` recortada por `scripts/cut-button-glyphs.py` num atlas único (`public/assets/sprites/ui/buttons/button-glyphs.png` + `.json`, 44 ícones).
+- `src/config/inputGlyphs.ts` diz qual ícone cada ação usa em cada aparelho; `InputDeviceTracker` é a fonte única do aparelho em uso (antes cada cena repetia a detecção); `src/ui/InputHint.ts` desenha linhas de ícone + texto e se atualiza sozinho.
+- `ActionKeyButton` e `SkipButton` usam o ícone em vez da tecla desenhada por código. Teste novo `inputGlyphs.test.ts` (inclui o caso "Xbox Wireless Controller", que seria lido como PlayStation).
+
 ### Talismãs: prêmio do minichefe que sobe de raridade
 
 #### Resumo para o Jogador

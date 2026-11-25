@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
+import { InputHint } from './InputHint';
 import type { UpgradeCard, UpgradeGameScene } from '../systems/UpgradeCatalog';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 
@@ -107,11 +108,12 @@ export class ChestRouletteModal {
     collectPrompt.setInteractive({ useHandCursor: true });
     modal.add(collectPrompt);
 
-    const keyHint = s.add.text(centerX, centerY + 106, '(ou pressione Espaço)', {
-      fontFamily: pixelFont,
-      fontSize: '8px',
-      color: '#64748b'
-    }).setOrigin(0.5).setVisible(false);
+    // Atalho com o ícone do botão do aparelho em uso (espaço/clique, A, cruz, toque)
+    const keyHint = new InputHint(s, centerX, centerY + 112, ['advance', { text: 'COLETAR' }], {
+      glyphHeight: 20,
+      fontSize: 9,
+      align: 'center',
+    }).container.setVisible(false);
     modal.add(keyHint);
 
     // Animação de pulso suave no texto de coleta
@@ -226,7 +228,7 @@ export class ChestRouletteModal {
         collectPrompt.setVisible(true).setAlpha(1);
       }
       if (keyHint.scene) {
-        keyHint.setText('(ou pressione Espaço / A no controle / clique na tela)').setVisible(true).setAlpha(1);
+        keyHint.setVisible(true).setAlpha(1);
       }
     };
 

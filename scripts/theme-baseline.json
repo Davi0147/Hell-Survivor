@@ -1,5 +1,5 @@
 {
-  "maxHexLiterals": 968,
-  "distinctColors": 313,
+  "maxHexLiterals": 953,
+  "distinctColors": 312,
   "description": "Catraca de cores do Hell Survivor. Nenhuma cor hex nova pode ser adicionada em src/ fora de src/config/theme.ts."
 }

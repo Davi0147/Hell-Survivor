@@ -3,8 +3,9 @@ import { SoundManager } from '../systems/SoundManager';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { GamepadManager } from '../systems/GamepadManager';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
-import { CHAPTER2_END_FALLBACK } from '../config/theme';
+import { CHAPTER2_END_FALLBACK, INPUT_HINT_THEME } from '../config/theme';
 import { SkipButton } from '../ui/SkipButton';
+import { InputHint } from '../ui/InputHint';
 
 interface DialogueStep {
   bgKey: string;
@@ -40,7 +41,7 @@ export class Chapter1EndScene extends Phaser.Scene {
   // Efeitos de Tela e Câmera
   private blackOverlay!: Phaser.GameObjects.Rectangle;
   private slashGraphics!: Phaser.GameObjects.Graphics;
-  private cutPromptText!: Phaser.GameObjects.Text;
+  private cutPrompt!: InputHint;
   private skipButton!: SkipButton;
 
   // Caixa de Diálogo Estilo Persona 5 / Visual Novel
@@ -49,7 +50,7 @@ export class Chapter1EndScene extends Phaser.Scene {
   private nameplateGraphics!: Phaser.GameObjects.Graphics;
   private nameText!: Phaser.GameObjects.Text;
   private dialogueText!: Phaser.GameObjects.Text;
-  private promptText!: Phaser.GameObjects.Text;
+  private promptHint!: InputHint;
 
   private readonly BOX_W = 920;
   private readonly BOX_H = 145;
@@ -66,7 +67,6 @@ export class Chapter1EndScene extends Phaser.Scene {
   private isWaitingAfterCut: boolean = false;
   private hasSlashExecuted: boolean = false;
   private lastAdvanceTime: number = 0;
-  private currentControlScheme: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
 
   // Tela de Vitória Pós-Cena (Sem fundo, alinhada à direita)
   private victoryContainer?: Phaser.GameObjects.Container;
@@ -134,17 +134,16 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.blackOverlay.setDepth(40);
 
     // Texto de prompt no escuro após o corte
-    this.cutPromptText = this.add.text(width / 2, height - 70, 'ESPAÇO P/ CONTINUAR ▶', {
-      fontFamily: pixelFont,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#ffd60a',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(46).setVisible(false);
+    this.cutPrompt = new InputHint(this, width / 2, height - 70, ['advance', { text: 'CONTINUAR ▶' }], {
+      glyphHeight: 28,
+      fontSize: 13,
+      color: INPUT_HINT_THEME.prompt,
+      align: 'center',
+    });
+    this.cutPrompt.container.setDepth(46).setVisible(false);
 
     this.tweens.add({
-      targets: this.cutPromptText,
+      targets: this.cutPrompt.container,
       alpha: 0.35,
       duration: 550,
       yoyo: true,
@@ -184,17 +183,16 @@ export class Chapter1EndScene extends Phaser.Scene {
     });
     this.boxContainer.add(this.dialogueText);
 
-    this.promptText = this.add.text(this.BOX_W - 25, this.BOX_H - 18, 'ESPAÇO ▶', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      color: '#f3d17a',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(1, 0.5);
-    this.boxContainer.add(this.promptText);
+    this.promptHint = new InputHint(this, this.BOX_W - 25, this.BOX_H - 20, ['advance', { text: 'AVANÇAR ▶' }], {
+      glyphHeight: 24,
+      fontSize: 11,
+      color: INPUT_HINT_THEME.prompt,
+      align: 'right',
+    });
+    this.boxContainer.add(this.promptHint.container);
 
     this.tweens.add({
-      targets: this.promptText,
+      targets: this.promptHint.container,
       alpha: 0.3,
       duration: 500,
       yoyo: true,
@@ -284,28 +282,9 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.skipButton = new SkipButton(this, 'PULAR CENA', () => this.skipScene(), 60);
   }
 
-  private updateControlPrompts(): void {
-    this.skipButton.setScheme(this.currentControlScheme);
-    if (this.currentControlScheme === 'gamepad') {
-      this.promptText.setText('(A) AVANÇAR ▶');
-      this.cutPromptText.setText('(A) AVANÇAR ▶');
-    } else if (this.currentControlScheme === 'touch') {
-      this.promptText.setText('TOQUE P/ AVANÇAR ▶');
-      this.cutPromptText.setText('TOQUE P/ AVANÇAR ▶');
-    } else {
-      this.promptText.setText('ESPAÇO ▶');
-      this.cutPromptText.setText('ESPAÇO P/ CONTINUAR ▶');
-    }
-  }
-
   private setupInputs(): void {
-    // Teclado
+    // Teclado (os ícones de botão trocam sozinhos com o aparelho em uso)
     this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
-      if (this.currentControlScheme !== 'keyboard') {
-        this.currentControlScheme = 'keyboard';
-        this.updateControlPrompts();
-      }
-
       if (this.isEnding) {
         if (this.isVictoryButtonsReady && this.victoryButtons.length > 0) {
           if (event.code === 'ArrowLeft' || event.code === 'KeyA' || event.code === 'ArrowUp' || event.code === 'KeyW') {
@@ -337,11 +316,6 @@ export class Chapter1EndScene extends Phaser.Scene {
 
     // Touch / Clique
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.wasTouch && this.currentControlScheme !== 'touch') {
-        this.currentControlScheme = 'touch';
-        this.updateControlPrompts();
-      }
-
       if (this.isEnding || this.isSlashCutPlaying) return;
 
       // Toque no botão Pular é dele. Antes havia uma "área morta" maior que o botão em volta
@@ -353,28 +327,6 @@ export class Chapter1EndScene extends Phaser.Scene {
   }
 
   update(): void {
-    const pad = GamepadManager.getInstance().getActivePad(this);
-    const isTouch = Boolean(this.sys.game.device.input.touch && !this.sys.game.device.os.desktop);
-
-    if (pad && pad.connected) {
-      let btnActive = false;
-      for (let i = 0; i < pad.buttons.length; i++) {
-        if (pad.buttons[i] && pad.buttons[i].pressed) {
-          btnActive = true;
-          break;
-        }
-      }
-      if (btnActive || Math.abs(pad.leftStick.x) > 0.15 || Math.abs(pad.leftStick.y) > 0.15) {
-        if (this.currentControlScheme !== 'gamepad') {
-          this.currentControlScheme = 'gamepad';
-          this.updateControlPrompts();
-        }
-      }
-    } else if (isTouch && this.currentControlScheme !== 'touch') {
-      this.currentControlScheme = 'touch';
-      this.updateControlPrompts();
-    }
-
     const nav = GamepadManager.getInstance().getMenuNavigation(this);
     if (!this.isEnding && !this.isSlashCutPlaying) {
       if (nav.confirm) {
@@ -1007,12 +959,12 @@ export class Chapter1EndScene extends Phaser.Scene {
         this.time.delayedCall(450, () => {
           this.isSlashCutPlaying = false;
           this.isWaitingAfterCut = true;
-          this.cutPromptText.setVisible(true);
+          this.cutPrompt.container.setVisible(true);
 
           // Função que será chamada quando o jogador apertar
           this.onCutConfirmed = () => {
             this.isWaitingAfterCut = false;
-            this.cutPromptText.setVisible(false);
+            this.cutPrompt.container.setVisible(false);
 
             // Abre a imagem 4 com transição suave da escuridão
             this.tweens.add({
@@ -1199,7 +1151,7 @@ export class Chapter1EndScene extends Phaser.Scene {
     if (this.typeTimer) this.typeTimer.remove();
     this.boxContainer.setVisible(false);
     this.skipButton.setVisible(false);
-    this.cutPromptText.setVisible(false);
+    this.cutPrompt.container.setVisible(false);
     this.tweens.killTweensOf(this.leftBust);
     this.tweens.killTweensOf(this.rightBust);
     this.leftBust.setAlpha(0);

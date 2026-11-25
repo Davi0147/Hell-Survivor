@@ -179,7 +179,7 @@ export class MapItem extends Phaser.Physics.Arcade.Sprite {
         if (filled) player.gainUltimateCharge(player.maxUltimateCharge * 4);
         SoundManager.getInstance().playFrenzyStart();
         this.scene.cameras.main.flash(220, 255, 0, 85);
-        uiScene?.showWaveAlert(filled ? 'FRASCO DE FÚRIA!\nSUPREMA PRONTA [E]' : 'FRASCO DE FÚRIA!\nA SUPREMA JÁ ESTÁ ATIVA', 2500);
+        uiScene?.showWaveAlert(filled ? 'FRASCO DE FÚRIA!\nSUPREMA PRONTA!' : 'FRASCO DE FÚRIA!\nA SUPREMA JÁ ESTÁ ATIVA', 2500);
         break;
       }
 

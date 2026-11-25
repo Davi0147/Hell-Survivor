@@ -3,6 +3,7 @@ import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON, CARD_ICON_KEYS } from '../systems/UpgradeCatalog';
 import { COLORS, ACTION_BUTTON_THEME, PICK_LOCK_BAR_THEME, CARD_FOCUS_THEME } from '../config/theme';
 import { ActionKeyButton } from '../ui/ActionKeyButton';
+import { InputHint } from '../ui/InputHint';
 import type { UpgradeCard, RichTextSegment, UpgradeGameScene } from '../systems/UpgradeCatalog';
 export type { UpgradeCard, RichTextSegment } from '../systems/UpgradeCatalog';
 import { SoundManager } from '../systems/SoundManager';
@@ -138,7 +139,7 @@ export class UpgradeScene extends Phaser.Scene {
     this.dealCards(false);
 
     // 4. Barra Tática Inferior: Botões de Re-rolar e Pular (apenas no Level-Up)
-    this.createTacticalFooter(width, height, this.uiFont);
+    this.createTacticalFooter(width, height);
 
     // 5. Atalhos de Teclado (R para Re-rolar, Espaço para Canalizar/Skip)
     const onKeyDownR = () => {
@@ -205,18 +206,16 @@ export class UpgradeScene extends Phaser.Scene {
     }
   }
 
-  private createTacticalFooter(width: number, height: number, pixelFont: string): void {
+  private createTacticalFooter(width: number, height: number): void {
     const footerY = height - 36;
 
     if (this.isAltar) {
-      this.add.text(width / 2, footerY, '[ TOQUE OU CLIQUE EM UMA DAS CARTAS PARA DESPERTAR SEU PODER MÁXIMO ]', {
-        fontFamily: pixelFont,
-        fontSize: '10px',
-        fontStyle: 'bold',
-        color: '#ffe600',
-        stroke: '#000000',
-        strokeThickness: 2.5
-      }).setOrigin(0.5);
+      new InputHint(this, width / 2, footerY, ['pick', { text: 'ESCOLHA UMA CARTA PARA DESPERTAR SEU PODER MÁXIMO' }], {
+        glyphHeight: 28,
+        fontSize: 11,
+        color: COLORS.goldTextAccent,
+        align: 'center',
+      });
       return;
     }
 
@@ -230,6 +229,7 @@ export class UpgradeScene extends Phaser.Scene {
       label: 'RE-ROLAR',
       badge: `${this.player.rerollsRemaining}`,
       badgeColor: ACTION_BUTTON_THEME.count,
+      action: 'reroll',
       onHover: () => SoundManager.getInstance().playCardHover(),
       onClick: () => this.handleReroll()
     });
@@ -242,12 +242,12 @@ export class UpgradeScene extends Phaser.Scene {
       label: 'CANALIZAR',
       badge: `+${Math.round(UPGRADE_SKIP_BALANCE.healFractionOfMaxHp * 100)}%`,
       badgeColor: ACTION_BUTTON_THEME.heal,
+      action: 'channel',
       onHover: () => SoundManager.getInstance().playCardHover(),
       onClick: () => this.handleSkipAndHeal()
     });
     this.updateRerollButtonVisual();
     this.updateSkipButtonVisual();
-    this.updateActionKeys();
   }
 
   private get skipLockRemainingMs(): number {
@@ -292,14 +292,6 @@ export class UpgradeScene extends Phaser.Scene {
     this.skipButton.setBadge(remaining > 0
       ? formatSkipLockBadge(remaining)
       : `+${Math.round(UPGRADE_SKIP_BALANCE.healFractionOfMaxHp * 100)}%`);
-  }
-
-  /** Mostra nas teclas o atalho do controle em uso (some no toque). */
-  private updateActionKeys(): void {
-    const ui = this.scene.get('UIScene') as { controlScheme?: 'keyboard' | 'gamepad' | 'touch' } | null;
-    const scheme = ui?.controlScheme ?? 'keyboard';
-    this.rerollButton?.setKey(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'X' : 'R');
-    this.skipButton?.setKey(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'B' : 'ESPAÇO');
   }
 
   private updateRerollButtonVisual(): void {
@@ -802,7 +794,6 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    this.updateActionKeys();
     if (this.isClosing) return;
     this.updateSkipButtonVisual();
     this.updateRerollButtonVisual();

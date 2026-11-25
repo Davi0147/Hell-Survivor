@@ -212,7 +212,6 @@ export const WEAPON_SLOT_THEME = {
   ultReadyBorder: 0xff0055,
   ultShade: 0x000000,
   ultShadeAlpha: 0.7,
-  keyText: '#ffd60a',
   levelText: '#f3d17a',
 } as const;
 
@@ -297,6 +296,16 @@ export const OBJECTIVE_THEME = {
   bossName: '#ff2255',
 } as const;
 
+/** Dicas de controle com ícone de botão (barra da partida, diálogos, menus). */
+export const INPUT_HINT_THEME = {
+  text: '#e0aaff',
+  /** "AVANÇAR ▶" dos diálogos e cenas de história. */
+  prompt: '#f3d17a',
+  plate: 0x0a0306,
+  plateAlpha: 0.93,
+  plateBorder: 0x3d1a52,
+} as const;
+
 /**
  * Botões de ação com tecla (Re-rolar e Canalizar na tela de cartas): ícone, nome e uma
  * "tecla" desenhada que muda com o controle em uso.
@@ -314,9 +323,6 @@ export const ACTION_BUTTON_THEME = {
   labelDisabled: '#55555f',
   count: '#00f5d4',
   heal: '#4ade80',
-  keyCapFill: 0x2a0d16,
-  keyCapShadow: 0x050103,
-  keyCapText: '#ffd60a',
 } as const;
 
 /** Cor do rótulo de raridade nas cartas novas (as antigas ainda usam literais no catálogo). */

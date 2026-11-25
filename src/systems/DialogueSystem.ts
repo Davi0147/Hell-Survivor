@@ -3,6 +3,8 @@ import { SoundManager } from './SoundManager';
 import { enableCensoredTextHighlight } from './TextHighlight';
 import { GamepadManager } from './GamepadManager';
 import { SkipButton } from '../ui/SkipButton';
+import { InputHint } from '../ui/InputHint';
+import { INPUT_HINT_THEME } from '../config/theme';
 
 export interface DialogueLine {
   speaker: string; // 'nixy', 'succubus', ou futuros NPCs
@@ -21,8 +23,6 @@ export class DialogueSystem {
   private typeTimer?: Phaser.Time.TimerEvent;
   private onCompleteCallback?: () => void;
   private lastAdvanceTime: number = 0;
-  private currentControlScheme: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
-  private wasKeyboardPressed: boolean = false;
 
   // Elementos Visuais Principais
   private container!: Phaser.GameObjects.Container;
@@ -35,7 +35,7 @@ export class DialogueSystem {
   private nameplateGraphics!: Phaser.GameObjects.Graphics;
   private nameText!: Phaser.GameObjects.Text;
   private dialogueText!: Phaser.GameObjects.Text;
-  private promptText!: Phaser.GameObjects.Text;
+  private promptHint!: InputHint;
   /** Pular a conversa inteira (antes só existia no ESC e no B do controle; no celular não havia). */
   private skipButton!: SkipButton;
 
@@ -125,20 +125,18 @@ export class DialogueSystem {
     enableCensoredTextHighlight(this.dialogueText, '#ffd700');
     this.balloonContainer.add(this.dialogueText);
 
-    // 4.5 Prompt de Avançar [ESPAÇO / CLIQUE]
-    this.promptText = this.scene.add.text(this.BALLOON_W - 25, this.BALLOON_H - 16, '▶ ESPAÇO / CLIQUE', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#f3d17a',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(1, 0.5);
-    this.balloonContainer.add(this.promptText);
+    // 4.5 Prompt de Avançar: ícone do botão do aparelho em uso (espaço/clique, A, cruz, toque)
+    this.promptHint = new InputHint(this.scene, this.BALLOON_W - 25, this.BALLOON_H - 18, ['advance', { text: 'AVANÇAR ▶' }], {
+      glyphHeight: 24,
+      fontSize: 11,
+      color: INPUT_HINT_THEME.prompt,
+      align: 'right',
+    });
+    this.balloonContainer.add(this.promptHint.container);
 
     // Efeito de pulso no prompt
     this.scene.tweens.add({
-      targets: this.promptText,
+      targets: this.promptHint.container,
       alpha: 0.35,
       duration: 500,
       yoyo: true,
@@ -159,9 +157,6 @@ export class DialogueSystem {
     });
 
     if (this.scene.input.keyboard) {
-      this.scene.input.keyboard.on('keydown', () => {
-        this.wasKeyboardPressed = true;
-      });
       this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', () => {
         if (this.container.visible) this.handleAdvance();
       });
@@ -513,43 +508,7 @@ export class DialogueSystem {
   public update(_delta: number): void {
     if (!this.container.visible) return;
 
-    const pad = GamepadManager.getInstance().getActivePad(this.scene);
-    const isTouch = Boolean(this.scene.sys.game.device.input.touch && !this.scene.sys.game.device.os.desktop);
-
-    if (pad && pad.connected) {
-      const stickActive =
-        Math.abs(pad.leftStick.x) > 0.15 ||
-        Math.abs(pad.leftStick.y) > 0.15 ||
-        pad.left || pad.right || pad.up || pad.down;
-
-      let btnActive = false;
-      for (let i = 0; i < pad.buttons.length; i++) {
-        if (pad.buttons[i] && pad.buttons[i].pressed) {
-          btnActive = true;
-          break;
-        }
-      }
-
-      if (stickActive || btnActive) {
-        if (this.currentControlScheme !== 'gamepad') {
-          this.currentControlScheme = 'gamepad';
-          if (this.promptText) this.promptText.setText('▶ (A) AVANÇAR');
-          this.skipButton.setScheme('gamepad');
-        }
-      }
-    } else if (isTouch && this.currentControlScheme !== 'touch') {
-      this.currentControlScheme = 'touch';
-      if (this.promptText) this.promptText.setText('▶ TOQUE P/ AVANÇAR');
-      this.skipButton.setScheme('touch');
-    }
-
-    if (this.wasKeyboardPressed && this.currentControlScheme !== 'keyboard') {
-      this.currentControlScheme = 'keyboard';
-      this.wasKeyboardPressed = false;
-      if (this.promptText) this.promptText.setText('▶ ESPAÇO / CLIQUE');
-      this.skipButton.setScheme('keyboard');
-    }
-
+    // Os ícones de botão (avançar e pular) trocam sozinhos com o aparelho em uso
     const nav = GamepadManager.getInstance().getMenuNavigation(this.scene);
     if (nav.confirm) {
       this.handleAdvance();

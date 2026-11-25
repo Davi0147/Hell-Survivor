@@ -98,6 +98,7 @@ flowchart TD
 | [`DamageTextSystem.ts`](../src/systems/DamageTextSystem.ts) | Estático | Exibe números flutuantes animados sobre entidades atingidas. |
 | [`TextHighlight.ts`](../src/systems/TextHighlight.ts) | Utilitário | Aplica coloração dourada automática na palavra `[CENSURADO]`. |
 | [`GamepadManager.ts`](../src/systems/GamepadManager.ts) | Singleton | Leitura de controles/gamepads físicos para gameplay e navegação de menus. |
+| [`InputDeviceTracker.ts`](../src/systems/InputDeviceTracker.ts) | Singleton | Aparelho em uso (teclado, Xbox, PlayStation, toque); avisa a troca. As dicas com ícone de botão (`ui/InputHint.ts`, mapa em `config/inputGlyphs.ts`) escutam ele. |
 | [`TouchControls.ts`](../src/ui/TouchControls.ts) | Instância por `UIScene` | Joystick virtual e botões de ação para navegação e combate em dispositivos móveis. |
 | [`ModalFrame.ts`](../src/ui/ModalFrame.ts) | Utilitário UI | Constrói a moldura gótica compartilhada (container, backdrop bloqueante e painel de borda dupla) consumindo `MODAL_THEME` de `src/config/theme.ts`. |
 | [`TacticalRadar.ts`](../src/ui/TacticalRadar.ts) | Instância por `UIScene` | Minimapa circular: moldura fixa e blips de inimigos, itens, cristais de Azazel, altares e ponteiro da heroína. Lê a `GameScene` pelo contrato `RadarWorld` (`radarTypes.ts`). |

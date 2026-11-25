@@ -8,7 +8,7 @@ import { DevSandboxPanel } from '../systems/DevSandboxPanel';
 import { isDevSandboxEnabled } from '../config/balance';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { TouchControls } from '../ui/TouchControls';
-import { GamepadManager } from '../systems/GamepadManager';
+import { InputHint } from '../ui/InputHint';
 import { STORAGE_KEYS } from '../config/storageKeys';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 import { PauseMenu, IPauseGameScene, IPauseMenuHost } from '../ui/PauseMenu';
@@ -90,16 +90,8 @@ export class UIScene
   private soulsIcon!: Phaser.GameObjects.Image;
   private soulsText!: Phaser.GameObjects.Text;
 
-  // Controles e Legenda Dinâmica (Teclado vs Gamepad)
-  private controlsText!: Phaser.GameObjects.Text;
-  private currentControlScheme: 'keyboard' | 'gamepad' = 'keyboard';
-
-  /** Último método de entrada usado (as telas mostram a tecla ou o botão certo). */
-  public get controlScheme(): 'keyboard' | 'gamepad' | 'touch' {
-    if (this.touchControls?.isActive) return 'touch';
-    return this.currentControlScheme;
-  }
-  private wasKeyboardKeyPressed: boolean = false;
+  // Legenda de controles com ícones de botão (troca sozinha entre teclado e controle)
+  private controlsHint!: InputHint;
   private keyEsc?: Phaser.Input.Keyboard.Key;
 
   // Radar tático (canto superior esquerdo)
@@ -132,7 +124,6 @@ export class UIScene
   init(): void {
     this.isHUDVisibleState = true;
     this.hudElements = [];
-    this.wasKeyboardKeyPressed = false;
     this.sandboxPanel = undefined;
     this.idlePressureHud = undefined;
   }
@@ -235,11 +226,8 @@ export class UIScene
       });
     }
 
-    // Captura qualquer tecla pressionada para restaurar a legenda para o Teclado e tecla ESC unificada
+    // Tecla ESC unificada (pausa)
     if (this.input.keyboard) {
-      this.input.keyboard.on('keydown', () => {
-        this.wasKeyboardKeyPressed = true;
-      });
       this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
       this.keyEsc.on('down', () => {
         const gs = this.scene.get('GameScene') as GameScene | undefined;
@@ -252,14 +240,13 @@ export class UIScene
     // ==========================================
     // 6. CANTO INFERIOR ESQUERDO: CONTROLES
     // ==========================================
-    this.controlsText = this.add.text(20, height - 36,
-      '[WASD] Mover  |  [Shift] Sprint  |  [Espaço] Esquiva  |  [E] Ultimate  |  [ESC] Pausa', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      color: '#e0aaff',
-      backgroundColor: '#0a0306ee',
-      padding: { x: 10, y: 6 }
-    });
+    this.controlsHint = new InputHint(this, 30, height - 26, [
+      'move', { text: 'Mover' },
+      'sprint', { text: 'Sprint' },
+      'dash', { text: 'Esquiva' },
+      'ultimate', { text: 'Suprema' },
+      'pause', { text: 'Pausa' },
+    ], { glyphHeight: 22, plate: true });
 
     // ==========================================
     // SISTEMA DE DIÁLOGOS ESTILO PERSONA 5 (Renderizado em 1:1 sem zoom da câmera)
@@ -291,7 +278,7 @@ export class UIScene
       this.soulsIcon,
       this.soulsText,
       ...this.topCenterHud.getHudElements(),
-      this.controlsText,
+      this.controlsHint.container,
       this.xpBarBg,
       this.xpBarFill
     ];
@@ -416,8 +403,6 @@ export class UIScene
     if (gameScene.combatFeel) {
       this.comboHud.update(gameScene.combatFeel.combo);
     }
-    const scheme = this.controlScheme;
-    this.weaponSlots.setUltimateKeyLabel(scheme === 'touch' ? '' : scheme === 'gamepad' ? 'Y' : 'E');
     this.weaponSlots.update(p, gameScene.weapons);
 
     // Barra fina de experiência (redesenha só quando muda)
@@ -625,48 +610,10 @@ export class UIScene
     this.pauseMenu?.cleanupCursor();
   }
 
-  /**
-   * Atualiza a legenda de controles no canto inferior esquerdo dinamicamente
-   * Alterna entre Teclado e Gamepad conforme a última entrada detectada
-   */
+  /** No toque a legenda não ajuda e ocupa o canto do joystick (os ícones já somem sozinhos no toque). */
   private updateControlsHint(): void {
-    if (!this.controlsText) return;
-    // No toque a legenda de teclado/controle não ajuda e ocupa o canto do joystick
+    if (!this.controlsHint) return;
     const isTouch = this.touchControls?.isActive || this.touchControls?.forceEnabled;
-    this.controlsText.setAlpha(isTouch ? 0 : 1);
-    if (isTouch) return;
-
-    const pad = GamepadManager.getInstance().getActivePad(this);
-    let isGamepadInput = false;
-
-    if (pad && pad.connected) {
-      const stickActive =
-        Math.abs(pad.leftStick.x) > 0.15 ||
-        Math.abs(pad.leftStick.y) > 0.15 ||
-        pad.left || pad.right || pad.up || pad.down;
-
-      let btnActive = false;
-      for (let i = 0; i < pad.buttons.length; i++) {
-        if (pad.buttons[i] && pad.buttons[i].pressed) {
-          btnActive = true;
-          break;
-        }
-      }
-
-      if (stickActive || btnActive) {
-        isGamepadInput = true;
-      }
-    }
-
-    if (isGamepadInput && this.currentControlScheme !== 'gamepad') {
-      this.currentControlScheme = 'gamepad';
-      this.controlsText.setText('[LS] Mover  |  [LT/RT / (B)] Sprint  |  [(A)/LB] Esquiva  |  [(Y)/(X)] Ultimate  |  [Start] Pausa');
-    } else if (!isGamepadInput && this.currentControlScheme === 'gamepad') {
-      if (this.wasKeyboardKeyPressed) {
-        this.currentControlScheme = 'keyboard';
-        this.wasKeyboardKeyPressed = false;
-        this.controlsText.setText('[WASD] Mover  |  [Shift] Sprint  |  [Espaço] Esquiva  |  [E] Ultimate  |  [ESC] Pausa');
-      }
-    }
+    this.controlsHint.container.setAlpha(isTouch ? 0 : 1);
   }
 }

@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { FONTS, COLORS, ACTION_BUTTON_THEME as T } from '../config/theme';
+import type { InputAction } from '../config/inputGlyphs';
+import { INPUT_DEVICE_CHANGED, InputDeviceTracker } from '../systems/InputDeviceTracker';
+import { InputHint } from './InputHint';
 
-import { drawPixelFrame } from './pixelFrame';
-
-const KEYCAP_H = 24;
-const KEYCAP_H_BARE = 32;
+const GLYPH_H = 26;
+const GLYPH_H_BARE = 32;
 
 export interface ActionKeyButtonOptions {
   x: number;
@@ -13,6 +14,8 @@ export interface ActionKeyButtonOptions {
   height: number;
   iconKey: string;
   label: string;
+  /** Ação do atalho: o ícone do botão certo aparece à direita (some no toque). */
+  action: InputAction;
   /** Número pequeno no canto do ícone (cargas, cura). */
   badge?: string;
   badgeColor?: string;
@@ -20,13 +23,13 @@ export interface ActionKeyButtonOptions {
   onHover?: () => void;
   /** Tamanho da fonte do nome (padrão 15). Maior no celular, onde o jogo é encolhido. */
   labelFontSize?: number;
-  /** Sem moldura e sem ícone: só o nome e a tecla, alinhados à direita (ex.: PULAR nas cutscenes). */
+  /** Sem moldura e sem ícone: só o nome e o botão, alinhados à direita (ex.: PULAR nas cutscenes). */
   bare?: boolean;
 }
 
 /**
- * Botão de ação minimalista: ícone, nome e uma "tecla" desenhada à direita que mostra
- * o atalho do controle em uso (R / X / ...). No toque a tecla some (o próprio botão é o toque).
+ * Botão de ação minimalista: ícone, nome e, à direita, o ícone do botão do aparelho em
+ * uso (R, X, quadrado...). No toque o ícone some (o próprio botão é o toque).
  */
 export class ActionKeyButton {
   public readonly container: Phaser.GameObjects.Container;
@@ -34,13 +37,11 @@ export class ActionKeyButton {
   private readonly icon?: Phaser.GameObjects.Image;
   private readonly labelText: Phaser.GameObjects.Text;
   private readonly badgeText: Phaser.GameObjects.Text;
-  private readonly keyCap: Phaser.GameObjects.Graphics;
-  private readonly keyText: Phaser.GameObjects.Text;
+  private readonly glyph: InputHint;
   private hovered = false;
   private enabled = true;
-  private keyLabel = '';
 
-  constructor(private readonly scene: Phaser.Scene, private readonly opts: ActionKeyButtonOptions) {
+  constructor(scene: Phaser.Scene, private readonly opts: ActionKeyButtonOptions) {
     const { width: w, height: h } = opts;
     this.container = scene.add.container(opts.x, opts.y);
     this.bg = scene.add.graphics();
@@ -71,16 +72,12 @@ export class ActionKeyButton {
     }).setOrigin(opts.bare ? 1 : 0, 0.5);
     this.container.add(this.labelText);
 
-    this.keyCap = scene.add.graphics();
-    this.keyText = scene.add.text(0, -1, '', {
-      fontFamily: FONTS.body,
-      fontSize: opts.bare ? '16px' : '12px',
-      fontStyle: 'bold',
-      color: T.keyCapText,
-      stroke: COLORS.strokeBlack,
-      strokeThickness: 2,
-    }).setOrigin(0.5);
-    this.container.add([this.keyCap, this.keyText]);
+    // Sem moldura o botão encosta na borda; com moldura fica um pouco para dentro
+    this.glyph = new InputHint(scene, w / 2 - (opts.bare ? 0 : 10), 0, [opts.action], {
+      glyphHeight: opts.bare ? GLYPH_H_BARE : GLYPH_H,
+      align: 'right',
+    });
+    this.container.add(this.glyph.container);
 
     this.container.setSize(w, h);
     // A área de toque de um Container conta a partir do canto de cima à esquerda (o Phaser soma
@@ -101,13 +98,11 @@ export class ActionKeyButton {
       if (this.enabled) opts.onClick();
     });
 
-    this.redraw();
-  }
+    // O ícone muda de largura com o aparelho (ESC x círculo): o nome acompanha
+    const tracker = InputDeviceTracker.getInstance();
+    tracker.on(INPUT_DEVICE_CHANGED, this.redraw, this);
+    this.container.once(Phaser.GameObjects.Events.DESTROY, () => tracker.off(INPUT_DEVICE_CHANGED, this.redraw, this));
 
-  /** Atalho mostrado na tecla ('' esconde). */
-  public setKey(label: string): void {
-    if (label === this.keyLabel) return;
-    this.keyLabel = label;
     this.redraw();
   }
 
@@ -145,29 +140,11 @@ export class ActionKeyButton {
     this.icon?.setAlpha(this.enabled ? 1 : 0.35);
     this.badgeText.setAlpha(this.enabled ? 1 : 0.5);
 
-    // Tecla: largura acompanha o texto (R, X, ESPAÇO...)
-    this.keyText.setText(this.keyLabel);
-    const showKey = this.keyLabel !== '' && this.enabled;
-    this.keyCap.setVisible(showKey);
-    this.keyText.setVisible(showKey);
-    this.keyCap.clear();
-    // Sem moldura a tecla é o único destaque, então fica maior para ler de longe
-    const capH = this.opts.bare ? KEYCAP_H_BARE : KEYCAP_H;
-    const px = this.opts.bare ? 4 : 2;
-    const capW = Math.max(capH, Math.ceil((this.keyText.width + 16) / px) * px);
-    // Sem moldura a tecla encosta na borda; o nome fica logo à esquerda dela
-    const capX = w / 2 - (this.opts.bare ? 0 : 10) - capW / 2;
-    if (this.opts.bare) this.labelText.setX(showKey ? capX - capW / 2 - 12 : w / 2);
-    if (!showKey) return;
-    this.keyText.setX(capX);
-    const left = Math.round(capX - capW / 2);
-    const top = Math.round(-capH / 2);
-    // Tecla em pixel art: sombra em bloco por baixo e moldura em degrau
-    drawPixelFrame(this.keyCap, left, top + px, capW, capH, { fill: T.keyCapShadow, border: T.keyCapShadow, px });
-    drawPixelFrame(this.keyCap, left, top, capW, capH, {
-      fill: T.keyCapFill,
-      border: this.hovered ? T.borderHover : T.border,
-      px
-    });
+    const glyphW = this.glyph.displayWidth;
+    const showGlyph = glyphW > 0 && this.enabled;
+    this.glyph.container.setAlpha(showGlyph ? 1 : 0);
+    // Aceso no hover, como a tecla desenhada fazia
+    this.glyph.container.setScale(this.hovered ? 1.08 : 1);
+    if (this.opts.bare) this.labelText.setX(showGlyph ? w / 2 - glyphW - 12 : w / 2);
   }
 }

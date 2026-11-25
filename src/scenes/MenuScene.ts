@@ -5,6 +5,7 @@ import { MetaProgressManager, BLESSINGS_CATALOG, BlessingId } from '../systems/M
 import { GamepadManager } from '../systems/GamepadManager';
 import { FONTS, MODAL_THEME } from '../config/theme';
 import { drawPixelFrame, drawPixelOutline } from '../ui/pixelFrame';
+import { InputHint } from '../ui/InputHint';
 
 type ModalNavAction = 'up' | 'down' | 'left' | 'right' | 'confirm';
 
@@ -240,14 +241,12 @@ export class MenuScene extends Phaser.Scene {
     barG.lineStyle(1, 0xc59b27, 0.5);
     barG.strokeRoundedRect(width / 2 - barW / 2 + 2, bottomBarY - barH / 2 + 2, barW - 4, barH - 4, 6);
 
-    this.add.text(width / 2, bottomBarY, 'USE O TECLADO (W/S/ENTER) OU MOUSE PARA SELECIONAR', {
-      fontFamily: pixelFont,
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#e2cfb4',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5).setDepth(21);
+    // Ícones dos botões do aparelho em uso (setas/direcional, Enter/A/cruz, ESC/B/círculo)
+    new InputHint(this, width / 2, bottomBarY, [
+      'navigate', { text: 'ESCOLHER' },
+      'confirm', { text: 'SELECIONAR' },
+      'back', { text: 'VOLTAR' },
+    ], { glyphHeight: 22, fontSize: 10, align: 'center' }).container.setDepth(21);
 
     // 9. Suporte a Teclado (W/S, Cima/Baixo, Enter, Espaço, ESC)
     this.setupKeyboardInput();
@@ -1396,14 +1395,12 @@ export class MenuScene extends Phaser.Scene {
     backZone.on('pointerover', () => setFocus(BACK));
     backZone.on('pointerdown', () => activate(BACK));
 
-    const hint = this.add.text(cx, top + 562, 'SETAS: ESCOLHER   ENTER / A: JOGAR   ESC / B: VOLTAR', {
-      fontFamily: FONTS.body,
-      fontSize: '10px',
-      color: T.hintColor,
-      stroke: T.textStroke,
-      strokeThickness: 2
-    }).setOrigin(0.5);
-    modal.add([hint, arrow]);
+    const hint = new InputHint(this, cx, top + 562, [
+      'navigate', { text: 'ESCOLHER' },
+      'confirm', { text: 'JOGAR' },
+      'back', { text: 'VOLTAR' },
+    ], { glyphHeight: 22, fontSize: 10, color: T.hintColor, align: 'center' });
+    modal.add([hint.container, arrow]);
 
     // Foco: 0 e 1 = capítulos, 2 = voltar. Mouse, teclado e controle usam o mesmo caminho.
     const BACK = cards.length;

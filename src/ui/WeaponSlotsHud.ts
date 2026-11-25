@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
-import { FONTS, COLORS, WEAPON_SLOT_THEME as T } from '../config/theme';
+import { WEAPON_SLOT_THEME as T } from '../config/theme';
 import { HUD_SIZES } from '../config/hudLayout';
+import { InputHint } from './InputHint';
 
 // Medidas compartilhadas com o layout da HUD (que confere se nada se sobrepõe)
 const SLOT = HUD_SIZES.weapons.slot;
@@ -45,10 +46,9 @@ export class WeaponSlotsHud {
   private readonly ultFrame: Phaser.GameObjects.Graphics;
   private readonly ultIcon?: Phaser.GameObjects.Image;
   private readonly ultShade: Phaser.GameObjects.Graphics;
-  private readonly ultKey: Phaser.GameObjects.Text;
-  private readonly ultKeyCap: Phaser.GameObjects.Graphics;
+  /** Ícone do botão da Suprema (E, Y, triângulo...); vazio no toque, onde já existe o botão na tela. */
+  private readonly ultKey: InputHint;
   private readonly slots: Slot[] = [];
-  private keyLabelHidden = false;
 
   constructor(private readonly ui: Phaser.Scene, layout: WeaponSlotsLayout, onUltimateClick?: () => void) {
     this.container = ui.add.container(layout.x + (ULT / 2) * layout.scale, layout.y);
@@ -62,17 +62,8 @@ export class WeaponSlotsHud {
       this.container.add(this.ultIcon);
     }
     this.container.add(this.ultShade);
-    // Tecla da Suprema: centralizada na borda de baixo do ícone, sem invadir os espaços vizinhos
-    this.ultKeyCap = ui.add.graphics();
-    this.ultKeyCap.setPosition(0, ULT / 2);
-    this.ultKey = ui.add.text(0, ULT / 2 - 1, 'E', {
-      fontFamily: FONTS.display,
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: T.keyText,
-      stroke: COLORS.strokeBlack,
-      strokeThickness: 3,
-    }).setOrigin(0.5);
+    // Botão da Suprema: centralizado na borda de baixo do ícone, sem invadir os espaços vizinhos
+    this.ultKey = new InputHint(ui, 0, ULT / 2, ['ultimate'], { glyphHeight: KEYCAP, align: 'center' });
 
     if (onUltimateClick) {
       const zone = ui.add.zone(0, 0, ULT, ULT).setInteractive({ useHandCursor: true });
@@ -92,18 +83,12 @@ export class WeaponSlotsHud {
     }
 
     // Por último, para ficar por cima de tudo
-    this.container.add([this.ultKeyCap, this.ultKey]);
+    this.container.add(this.ultKey.container);
   }
 
   /** Some junto com o resto da HUD. */
   public getHudElement(): Phaser.GameObjects.Container {
     return this.container;
-  }
-
-  /** Atalho da Suprema conforme o controle em uso ('' esconde, no toque já existe o botão na tela). */
-  public setUltimateKeyLabel(label: string): void {
-    if (this.ultKey.text !== label) this.ultKey.setText(label);
-    this.keyLabelHidden = label === '';
   }
 
   public update(player: IWeaponSlotsPlayer, weapons: ReadonlyArray<BaseWeapon>): void {
@@ -161,15 +146,9 @@ export class WeaponSlotsHud {
     }
     this.ultIcon?.setScale(((ULT - 8) / (this.ultIcon.width || 1)) * (isReady ? 1 + pulse * 0.07 : 1));
 
-    // A tecla aparece sempre; pronta, ela cresce, acende e pulsa
-    const showKey = !this.keyLabelHidden && !isActive;
-    this.ultKey.setVisible(showKey);
-    this.ultKeyCap.setVisible(showKey);
+    // O botão aparece sempre (menos durante a Suprema); pronta, ele cresce, acende e pulsa
     const keyScale = isReady ? 1.15 + pulse * 0.08 : 1;
-    this.ultKey.setScale(keyScale).setAlpha(isReady ? 1 : 0.7);
-    this.ultKeyCap.setScale(keyScale).setAlpha(isReady ? 1 : 0.7);
-    // Mesma moldura quadrada dos espaços (e a mesma cor de borda do ícone da Suprema)
-    this.drawFrame(this.ultKeyCap, isReady ? T.ultReadyBorder : T.border, false, 0, KEYCAP);
+    this.ultKey.container.setVisible(!isActive).setScale(keyScale).setAlpha(isReady ? 1 : 0.7);
   }
 
   private drawFrame(g: Phaser.GameObjects.Graphics, border: number, isEmpty: boolean, glow: number = 0, size: number = SLOT): void {

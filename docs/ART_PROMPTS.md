@@ -950,3 +950,135 @@ pieces. Do not use transparency checkerboard; use flat #FF00FF only.
 **Já gerado e no jogo** (`art-source/novos/hud-status-violeta.jpg`). Para trocar a arte, gere de novo e rode `python scripts/cut-hud-status.py <imagem> public/assets/sprites/items 460`. Se a moldura mudar de formato, ajuste as janelas em `FRAME_ART` (`src/ui/StatusPanelHud.ts`) com os números que o script imprime.
 
 Salve como `art-source/novos/hud-status-violeta.png` e me avise. Eu recorto, deixo as janelas transparentes, encaixo vida e estamina atrás da moldura, coloco o nível no lugar reservado e ajusto o tamanho para o celular.
+
+---
+
+## 18. Folha de botões (teclado, mouse, toque e controles)
+
+Hoje as dicas de controle são texto (`[Espaço] Esquiva`, `ENTER / A: JOGAR`, `ESPAÇO ▶`, a tecla `E` da suprema). Esta folha troca tudo por **ícones de botão** desenhados. O jogo já sabe se o jogador está no teclado ou no controle; com a folha ele também mostra os símbolos do controle certo (letras A/B/X/Y ou formas cruz/círculo/quadrado/triângulo).
+
+Lista fechada (48 células, grade 8x6). As teclas largas ocupam 2 células.
+
+| Linha | Peças |
+|---|---|
+| 1 | W, A, S, D, E, R, M, ESC |
+| 2 | Seta cima, baixo, esquerda, direita, ESPAÇO (larga), ENTER (larga) |
+| 3 | SHIFT (larga), tecla vazia, tecla larga vazia, grupo de setas, clique do mouse, toque do dedo |
+| 4 | Controle tipo 1: A, B, X, Y, LB, RB, LT, RT |
+| 5 | Controle tipo 2: cruz, círculo, quadrado, triângulo, L1, R1, L2, R2 |
+| 6 | Menu/Start, Visualizar/Select, Options, Create/Share, analógico esquerdo, analógico direito, direcional, grupo WASD |
+
+Prompt único — copiar e colar inteiro:
+
+```text
+Create ONE image: a pixel art BUTTON PROMPT ICON sprite sheet (input glyphs) for a dark
+gothic hell-themed 2D action roguelite game. These icons replace on-screen hint text like
+"press SPACE to dodge", so each one must be instantly readable at tiny size (shown in game
+at 24 to 40 px tall).
+
+=== GLOBAL STYLE (applies to every icon) ===
+16-bit pixel art, hand-placed pixels, crisp hard edges, NO anti-aliasing, NO blur, NO soft
+airbrush gradients, NO photorealism, NO 3D render look, NO glossy plastic. Dark gothic
+demonic fantasy: every key and button looks like a small relic carved from dark violet
+obsidian, with a thin glowing magenta rim. Strong 2-pixel near-black purple outline
+(#12020a) around every icon. Light always from the upper left.
+Palette: near-black purple (#0b0208, #12061a), dark violet stone (#2a1238, #3d1a52), deep
+violet (#6a1fa0, #9b5de5), neon magenta glow (#d61cff, #ff4df0), white-pink highlight
+(#ffd6ff), bone white for glyphs (#efe6d8), small crimson accents (#ff0055, #8a0f2a).
+Extra colors ONLY on the face buttons where stated below.
+CHUNKY UNIFORM PIXEL GRID: draw every small icon as if it were 32x32 art pixels scaled up
+8 times (each art pixel = an 8x8 block of identical color), wide icons as 64x32 art pixels
+scaled 8 times. Same pixel size on every icon, no fine detail mixed with big blocks.
+Glyphs (letters, arrows, symbols) are BIG, bold, blocky, bone white with a 1-pixel dark
+outline, centered on the button, filling about 55% of the button face. Use simple blocky
+pixel letters, NOT decorative gothic letters: readability first.
+NO brand logos, NO company names, NO trademarks anywhere. No watermark, no signature.
+No text other than the exact glyph written for each cell.
+
+=== TWO BASE SHAPES (keep them identical across the sheet) ===
+KEYCAP (keyboard keys): a square keycap seen slightly from the front: flat top face of
+dark violet stone (#3d1a52), a thicker darker front edge at the bottom (#12061a) showing
+depth (about 3 art pixels tall), a 1-pixel magenta glowing line along the top-left edges,
+tiny crack details. Square corners slightly cut (chamfered). Wide keycaps have the exact
+same height, depth and style, just twice as wide.
+ORB BUTTON (controller face buttons): a round button like a polished demonic gem set in a
+thin dark obsidian ring with 4 tiny spikes at the diagonals, a 2x2 white-pink highlight on
+the upper left, darker shade on the lower right.
+SHOULDER BUTTONS: a short horizontal rounded bumper plate (bumpers LB/RB/L1/R1) or a taller
+curved trigger shape (triggers LT/RT/L2/R2), same obsidian style with magenta rim.
+
+=== CANVAS AND BACKGROUND ===
+Canvas 2048x1536 pixels, landscape. The ENTIRE background is solid flat pure magenta
+#FF00FF, one single color, no texture, no vignette, no shadow on it, no glow bleeding onto
+it, no transparency checkerboard. Invisible grid of 8 columns x 6 rows of 256x256 cells.
+Each icon centered in its cell, filling about 70% of the cell height, at least 32 px of
+pure #FF00FF around every icon, never touching another cell. Wide icons span exactly 2
+cells (512x256) and are centered on those two cells. All icons same baseline, same height
+for same kind, same outline thickness, same lighting: they must look like ONE set.
+
+=== ROW 1 — LETTER KEYCAPS (8 cells) ===
+1 keycap "W"   2 keycap "A"   3 keycap "S"   4 keycap "D"
+5 keycap "E" (this one has a faint magenta inner glow on the top face: it is the ultimate key)
+6 keycap "R"   7 keycap "M"   8 keycap "ESC" (three small blocky letters, they must fit)
+
+=== ROW 2 — ARROWS AND WIDE KEYS ===
+cells 1-4: four keycaps with one thick blocky arrow each: UP, DOWN, LEFT, RIGHT.
+cells 5-6: ONE WIDE keycap SPACE BAR: empty top face with only a small blocky
+  "under-bracket" symbol (a horizontal line with short upturned ends) in the center.
+cells 7-8: ONE WIDE keycap ENTER: a big blocky "return" arrow (line going down then
+  pointing left) in the center, no letters.
+
+=== ROW 3 — WIDE KEYS, BLANKS, MOUSE, TOUCH ===
+cells 1-2: ONE WIDE keycap SHIFT: a big hollow blocky upward arrow (outlined arrow with a
+  stem) in the center, no letters.
+cell 3: EMPTY keycap, same as row 1 but with NOTHING on the top face (blank, for any key).
+cells 4-5: EMPTY WIDE keycap, same as SPACE but completely blank.
+cell 6: ARROW KEYS CLUSTER: four mini keycaps in an inverted T (one on top, three below),
+  each with a tiny arrow, all together fitting in one cell.
+cell 7: MOUSE LEFT CLICK: a small dark obsidian computer mouse seen from above, the LEFT
+  button glowing neon magenta, the right button dark, a short magenta "click" spark of 3
+  tiny lines next to the left button.
+cell 8: TOUCH TAP: a bone-white pointing hand / index finger tapping down, with two thin
+  magenta concentric ripple arcs under the fingertip.
+
+=== ROW 4 — CONTROLLER TYPE 1 (letter face buttons) ===
+1 orb "A" with emerald green gem (#1fbf5a, highlight #8affb0)
+2 orb "B" with crimson red gem (#d90429, highlight #ff8095)
+3 orb "X" with sapphire blue gem (#1f6fd6, highlight #8ac4ff)
+4 orb "Y" with amber yellow gem (#e0a90f, highlight #ffe58a)
+(Letters bone white with dark outline, gems still dark and gothic, not toy-like.)
+5 bumper "LB"   6 bumper "RB"   7 trigger "LT"   8 trigger "RT"
+(left ones tilt slightly left, right ones slightly right; glyphs bone white)
+
+=== ROW 5 — CONTROLLER TYPE 2 (shape face buttons) ===
+1 orb, dark obsidian gem, glyph: a CROSS "X" shape drawn as a symbol, light blue (#7fb2ff)
+2 orb, dark obsidian gem, glyph: a hollow CIRCLE, light red (#ff6b6b)
+3 orb, dark obsidian gem, glyph: a hollow SQUARE, pink (#ff8ad8)
+4 orb, dark obsidian gem, glyph: a hollow TRIANGLE, teal green (#4fe0b0)
+(Here the gem is dark and only the thick hollow symbol is colored.)
+5 bumper "L1"   6 bumper "R1"   7 trigger "L2"   8 trigger "R2"
+
+=== ROW 6 — SYSTEM BUTTONS, STICKS, D-PAD, WASD ===
+1 MENU / START: small round-cornered pill button with three short horizontal lines.
+2 VIEW / SELECT: small pill button with two overlapping small squares.
+3 OPTIONS: small vertical pill button with three short horizontal lines, narrower than 1.
+4 SHARE / CREATE: small vertical pill button with a tiny upward arrow above a short line.
+5 LEFT STICK: a round thumbstick seen from above, concave top with a ring of grip dots,
+  bone white letter "L" in the middle, four tiny magenta arrow marks around it.
+6 RIGHT STICK: same as 5 with the letter "R".
+7 D-PAD: a plus-shaped directional pad of dark obsidian with a small arrow notch on each
+  arm and a tiny magenta gem in the center.
+8 WASD CLUSTER: four mini keycaps in an inverted T with tiny letters W (top), A, S, D
+  (bottom row), all fitting in one cell.
+
+=== DO NOT ===
+Do not draw a full controller or a full keyboard. Do not add hands (except the touch icon),
+frames, cards, labels, captions or any text outside the buttons. Do not change the glyph
+written for any cell. Do not use brand logos or the exact look of any real console
+controller. Do not merge icons, do not let wide keys spill out of their two cells.
+Do not use transparency checkerboard; use flat #FF00FF only.
+```
+
+**Se o gerador errar** (letras trocadas, células grudadas, tamanhos diferentes): gere em 3 imagens de `canvas 2048x512, 8 columns x 2 rows of 256x256 cells`, colando o estilo, as duas formas base e só duas linhas por vez (1–2, 3–4, 5–6). Letra torta numa tecla não é problema grave: as teclas vazias (linha 3) existem justamente para eu escrever a letra por cima com a fonte do jogo se precisar.
+
+**Já gerado e no jogo** (`art-source/novos/botoes-controle.webp`). Para trocar, gere de novo na mesma ordem e rode `python scripts/cut-button-glyphs.py <imagem> public/assets/sprites/ui/buttons 48`. O script acha as peças sozinho e para com erro se a contagem por linha não bater com a lista acima. Qual ícone cada ação usa fica em `src/config/inputGlyphs.ts`.
