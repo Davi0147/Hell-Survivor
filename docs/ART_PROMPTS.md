@@ -1171,44 +1171,72 @@ No text, labels, numbers, frames or backgrounds. Exactly 10 sprites, all facing 
 
 A Gêmea dispara um Disparo de Almas mais fraco quase a cada 1 segundo, mas só tinha o andar: parecia uma estátua do lado da heroína. Esta folha dá a ela respiração parada e um gesto de ataque, que o jogo toca **cada vez que ela atira**, virada para o monstro.
 
-**Grade:** 4 colunas x 3 linhas. Linha 1 = parada (4 quadros), linha 2 = andando (4 quadros), linha 3 = ataque (4 quadros). Todas de perfil, viradas para a **direita** (a esquerda sai espelhando). Anexe a folha dos pets (`art-source/novos/pets-talismas.jpg`) como referência de estilo.
+**Grade:** 4 colunas x 3 linhas. Linha 1 = parada, linha 2 = andando, linha 3 = ataque (4 quadros cada). Todas de perfil, viradas para a **direita** (a esquerda sai espelhando). Anexe a folha dos pets (`art-source/novos/pets-talismas.jpg`) como referência de estilo. A primeira tentativa veio sem contorno, com sombra no chão e com o ataque fraco (esfera trocando de mão, estrela rosa no fim); este prompt corrige os três.
 
 ```text
-Create ONE image: a pixel art animation sprite sheet of a single character, the SHADOW TWIN
-from the attached pet sheet (bottom row): a slim demon girl with small curved horns and long
-hair, whole body made of dark violet shadow with lighter violet edges, glowing violet eye,
-shadow smoke wisps trailing behind her, small gold rune on the chest, thin white outline.
-Keep EXACTLY the same design, colors, proportions, outline and pixel density as the attached
-image. Same 16-bit pixel art style: hand-placed pixels, hard edges, NO blur, NO glow halos,
-NO anti-aliasing.
+Create ONE image: a pixel art animation sprite sheet of ONE character, the SHADOW TWIN from
+the bottom row of the attached pet sheet. Copy her design EXACTLY from that reference.
 
-CAMERA: pure SIDE VIEW (profile), facing RIGHT, in every frame. Never front or back view.
+=== CHARACTER ===
+A slim demon girl made entirely of living shadow: dark violet body (#2a1240 to #4b1673) with
+lighter violet edge highlights (#7b2cbf), two small curved horns, long flowing hair that
+dissolves into shadow smoke wisps behind her, one glowing violet eye (#c77dff), a small
+antique gold rune (#f3d17a) on the chest. Same proportions in every frame, about 400 px tall.
 
-LAYOUT: landscape canvas 2048x1536. Grid of exactly 4 COLUMNS x 3 ROWS of equal 512x512
-cells, no grid lines. Same character size in every cell (about 400 px tall), feet on the
-same baseline (about 90% down the cell), centered, nothing touches or crosses another cell,
-at least 40 px of empty background between frames.
- Row 1 - IDLE, 4 frames, a calm breathing loop: shoulders and chest rise slightly, hair and
-   shadow smoke wisps drift gently, eye glow pulses brighter in frame 3. Feet do not move.
- Row 2 - WALK, 4 frames, smooth walk cycle to the right: frame 1 right leg forward, frame 2
-   legs passing, frame 3 left leg forward, frame 4 legs passing; arms swing opposite to the
-   legs, hair and smoke trail behind.
- Row 3 - ATTACK (casting a soul bolt forward), 4 frames:
-   frame 1 wind-up: body leans back, right arm pulled back, a small violet soul orb forming
-     in the hand;
-   frame 2 charge: orb bright violet and bigger in the hand, eye glowing strongly;
-   frame 3 release: arm thrust fully forward to the right, open palm, small violet burst
-     flash at the palm (the orb leaves; do NOT draw a flying projectile far away);
-   frame 4 recover: arm coming back down, faint violet sparks fading at the hand.
-   The attack must read clearly as a quick throwing gesture.
+=== OUTLINE (very important, same as the attached pet sheet) ===
+Every sprite has a clean, continuous, pure white (#FFFFFF) pixel outline, 3 pixels thick,
+hugging the outer silhouette: around the horns, hair, smoke wisps, arms, legs and the magic
+effects. Hard pixel edges, no glow, no blur, no gaps in the outline.
 
-BACKGROUND: fill the entire background with ONE solid flat color, pure chroma green
-RGB (0, 255, 0) / #00FF00, perfectly uniform, no texture, no noise, no gradient, no shadow,
-no ground, no grid lines. Pure green must not appear anywhere on the character.
-No text, labels, numbers or frames. Exactly 12 sprites.
+=== NO SHADOW ===
+NO ground shadow, NO oval under the feet, NO floor, NO cast shadow of any kind. The character
+floats on the plain background; only her feet mark the baseline.
+
+=== STYLE ===
+16-bit pixel art, hand-placed pixels, hard edges, NO blur, NO soft glow halos, NO
+anti-aliasing, same chunky pixel density as the attached image.
+
+=== CAMERA ===
+Pure SIDE VIEW (profile), facing and moving to the RIGHT in every frame. Never front or back.
+
+=== LAYOUT ===
+Landscape canvas 2048x1536. Grid of exactly 4 COLUMNS x 3 ROWS of equal 512x512 cells, no grid
+lines. Character centered in each cell, feet on the same baseline (about 90% down the cell),
+same size in every cell, at least 40 px of empty background between frames, nothing crosses
+into another cell.
+
+Row 1 - IDLE (4 frames, calm breathing loop): frame 1 neutral; frame 2 chest and shoulders
+  rise 2 px; frame 3 highest point, eye glow brighter; frame 4 coming back down. Feet do not
+  move. Hair tips and smoke wisps drift a little differently in each frame.
+
+Row 2 - WALK (4 frames, smooth loop to the right): frame 1 right leg forward, frame 2 legs
+  passing under the body, frame 3 left leg forward, frame 4 legs passing. Arms swing opposite
+  to the legs. Body stays upright (no leaning back and forth). Hair and smoke trail behind.
+
+Row 3 - ATTACK, a fast shadow-magic throw. ALWAYS the FRONT arm (the arm closer to the
+  viewer), the same arm in all 4 frames:
+  frame 1 WIND-UP: she twists back, front arm pulled behind her hip, a small swirl of dark
+    violet shadow smoke gathering around that hand;
+  frame 2 CHARGE: the smoke condenses into a soul flame orb in that hand: a violet-magenta
+    fireball (#9b5de5 outer flame, #e0aaff hot core) with flickering flame tongues trailing
+    back, the size of her head; her eye flares bright;
+  frame 3 RELEASE: front arm thrust straight forward to the right, open palm; the soul flame
+    leaves the palm as a stretched comet shape with 3 short speed streaks behind it, and a
+    thin violet ring shockwave around the wrist (no star burst, no pink sparkle);
+  frame 4 RECOVER: arm coming back to the side, 3 or 4 small violet flame wisps fading
+    upward from the palm.
+  The orb and comet use only the violet-magenta flame colors above and also get the white
+  outline.
+
+=== BACKGROUND ===
+Fill the entire background with ONE solid flat color, pure chroma green RGB (0, 255, 0) /
+#00FF00, perfectly uniform: no texture, no noise, no gradient, no vignette, no shadow, no
+grid lines. Pure green must not appear anywhere on the character or the effects.
+
+No text, labels, numbers or frames. Exactly 12 sprites, all facing right, all with the white
+outline, none with a ground shadow.
 ```
 
-**Se o gerador errar:** peça uma linha por vez (`canvas 2048x512, 1 row x 4 columns of 512x512 cells`), anexando a folha dos pets e colando o bloco de estilo e só a linha daquela animação.
+**Se o gerador errar:** peça uma linha por vez (`canvas 2048x512, 1 row x 4 columns of 512x512 cells`), anexando a folha dos pets e colando tudo menos as linhas das outras animações.
 
 **Onde salvar:** `art-source/novos/gemea-sombria.png` (ou `.jpg`). Eu recorto com o mesmo método dos pets e ligo: parada quando ela não anda, andar quando segue a heroína, ataque a cada disparo, virando para o monstro alvo.
-
