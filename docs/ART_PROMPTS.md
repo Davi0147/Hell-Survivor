@@ -1165,3 +1165,50 @@ No text, labels, numbers, frames or backgrounds. Exactly 10 sprites, all facing 
 
 **Já gerado e no jogo** (`art-source/novos/pets-talismas.jpg`, feito no Gemini com fundo verde `#00FF00` e borda branca fina). Para trocar, gere de novo na mesma ordem (morcego, slime, cão, cérbero, gêmea; passo A à esquerda) e rode `python scripts/cut-pets.py <imagem> public/assets/sprites/pets`. O script tira o verde, acha as 5 linhas pelos espaços vazios e salva `pet-<nome>-0/1.png` no tamanho final; as alturas de cada pet ficam no topo do script. O contorno branco de 1 pixel em volta vem do código (`BasePet`).
 
+---
+
+## 21. Gêmea Sombria: folha própria (parada, andando e atacando)
+
+A Gêmea dispara um Disparo de Almas mais fraco quase a cada 1 segundo, mas só tinha o andar: parecia uma estátua do lado da heroína. Esta folha dá a ela respiração parada e um gesto de ataque, que o jogo toca **cada vez que ela atira**, virada para o monstro.
+
+**Grade:** 4 colunas x 3 linhas. Linha 1 = parada (4 quadros), linha 2 = andando (4 quadros), linha 3 = ataque (4 quadros). Todas de perfil, viradas para a **direita** (a esquerda sai espelhando). Anexe a folha dos pets (`art-source/novos/pets-talismas.jpg`) como referência de estilo.
+
+```text
+Create ONE image: a pixel art animation sprite sheet of a single character, the SHADOW TWIN
+from the attached pet sheet (bottom row): a slim demon girl with small curved horns and long
+hair, whole body made of dark violet shadow with lighter violet edges, glowing violet eye,
+shadow smoke wisps trailing behind her, small gold rune on the chest, thin white outline.
+Keep EXACTLY the same design, colors, proportions, outline and pixel density as the attached
+image. Same 16-bit pixel art style: hand-placed pixels, hard edges, NO blur, NO glow halos,
+NO anti-aliasing.
+
+CAMERA: pure SIDE VIEW (profile), facing RIGHT, in every frame. Never front or back view.
+
+LAYOUT: landscape canvas 2048x1536. Grid of exactly 4 COLUMNS x 3 ROWS of equal 512x512
+cells, no grid lines. Same character size in every cell (about 400 px tall), feet on the
+same baseline (about 90% down the cell), centered, nothing touches or crosses another cell,
+at least 40 px of empty background between frames.
+ Row 1 - IDLE, 4 frames, a calm breathing loop: shoulders and chest rise slightly, hair and
+   shadow smoke wisps drift gently, eye glow pulses brighter in frame 3. Feet do not move.
+ Row 2 - WALK, 4 frames, smooth walk cycle to the right: frame 1 right leg forward, frame 2
+   legs passing, frame 3 left leg forward, frame 4 legs passing; arms swing opposite to the
+   legs, hair and smoke trail behind.
+ Row 3 - ATTACK (casting a soul bolt forward), 4 frames:
+   frame 1 wind-up: body leans back, right arm pulled back, a small violet soul orb forming
+     in the hand;
+   frame 2 charge: orb bright violet and bigger in the hand, eye glowing strongly;
+   frame 3 release: arm thrust fully forward to the right, open palm, small violet burst
+     flash at the palm (the orb leaves; do NOT draw a flying projectile far away);
+   frame 4 recover: arm coming back down, faint violet sparks fading at the hand.
+   The attack must read clearly as a quick throwing gesture.
+
+BACKGROUND: fill the entire background with ONE solid flat color, pure chroma green
+RGB (0, 255, 0) / #00FF00, perfectly uniform, no texture, no noise, no gradient, no shadow,
+no ground, no grid lines. Pure green must not appear anywhere on the character.
+No text, labels, numbers or frames. Exactly 12 sprites.
+```
+
+**Se o gerador errar:** peça uma linha por vez (`canvas 2048x512, 1 row x 4 columns of 512x512 cells`), anexando a folha dos pets e colando o bloco de estilo e só a linha daquela animação.
+
+**Onde salvar:** `art-source/novos/gemea-sombria.png` (ou `.jpg`). Eu recorto com o mesmo método dos pets e ligo: parada quando ela não anda, andar quando segue a heroína, ataque a cada disparo, virando para o monstro alvo.
+
