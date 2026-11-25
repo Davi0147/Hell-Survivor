@@ -3,6 +3,7 @@ import { TALISMAN_BALANCE } from '../../../config/balance';
 import { TALISMAN_THEME } from '../../../config/theme';
 import type { PetSprite } from '../../../systems/TalismanCatalog';
 import type { ITalismanContext, TalismanEffect } from '../talismanContext';
+import { shouldFollow } from './looseFollow';
 
 const OUTLINE_OFFSETS: ReadonlyArray<[number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 const PET_DEPTH = 21;
@@ -16,6 +17,8 @@ const PET_DEPTH = 21;
 export abstract class BasePet implements TalismanEffect {
   protected readonly sprite: Phaser.GameObjects.Sprite;
   private readonly outline: Phaser.GameObjects.Sprite[] = [];
+  /** `followLoose`: está andando para alcançar o ponto. */
+  private following = false;
 
   constructor(
     protected readonly ctx: ITalismanContext,
@@ -77,6 +80,21 @@ export abstract class BasePet implements TalismanEffect {
     this.sprite.y += (dy / dist) * step;
     this.playAnim(true, dx);
     return false;
+  }
+
+  /**
+   * Segue um ponto com folga: fica parado enquanto estiver perto e só volta a andar quando
+   * o ponto se afasta além de `looseFollow.startPx`; aí anda até ficar a `stopPx`.
+   * Sem essa folga o pet anda colado e alterna parado/andando a cada quadro (dá um tranco).
+   */
+  protected followLoose(tx: number, ty: number, speed: number, deltaMs: number): void {
+    const { startPx, stopPx } = TALISMAN_BALANCE.pets.looseFollow;
+    this.following = shouldFollow(this.following, Math.hypot(tx - this.x, ty - this.y), startPx, stopPx);
+    if (this.following) {
+      if (this.moveToward(tx, ty, speed, deltaMs, stopPx)) this.following = false;
+    } else {
+      this.playAnim(false, 0);
+    }
   }
 
   /** Coloca o pet direto num ponto (pulos e órbitas). */

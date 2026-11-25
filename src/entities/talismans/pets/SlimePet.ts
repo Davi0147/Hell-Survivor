@@ -23,7 +23,7 @@ export class SlimePet extends BasePet {
       this.updateJump(deltaMs);
     } else {
       const rest = this.restPoint(Math.PI * 0.8);
-      this.moveToward(rest.x, rest.y, 200, deltaMs, 8);
+      this.followLoose(rest.x, rest.y, cfg.followSpeed, deltaMs);
       this.jumpTimer -= deltaMs;
       if (this.jumpTimer <= 0) {
         const target = nearestEnemy(this.ctx, this.x, this.y, cfg.jumpRange);

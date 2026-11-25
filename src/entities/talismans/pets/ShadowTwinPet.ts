@@ -26,7 +26,7 @@ export class ShadowTwinPet extends BasePet {
   public update(deltaMs: number): void {
     const cfg = TALISMAN_BALANCE.pets.twin;
     const p = this.ctx.player;
-    this.moveToward(p.x + cfg.offsetX, p.y + cfg.offsetY, 320, deltaMs, 3);
+    this.followLoose(p.x + cfg.offsetX, p.y + cfg.offsetY, cfg.followSpeed, deltaMs);
     this.weapon.updateWeapon(deltaMs, this.x, this.y, this.ctx.enemiesGroup);
     this.syncOutline();
   }

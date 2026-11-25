@@ -9,10 +9,12 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 #### Resumo para o Jogador
 - **Pets novos de verdade:** Morcego Coletor, Slime Saltador, Cão de Guarda, Cérbero Filhote e Gêmea Sombria ganharam desenho próprio (roxo, coleira dourada, contorno branco). Antes eles usavam o sprite dos monstros encolhido e dava para confundir aliado com inimigo.
 - Eles andam de lado e viram para o lado em que vão; a carta de cada talismã mostra o pet novo.
+- **Gêmea e Slime menos grudados:** ficam parados perto de você e só vão atrás quando você se afasta um pouco. Some o tranco da Gêmea, que trocava entre parada e andando a cada quadro.
 
 #### Técnico
 - `scripts/cut-pets.py` recorta `art-source/novos/pets-talismas.jpg` (fundo verde, linhas achadas pelas faixas vazias) em `public/assets/sprites/pets/pet-<nome>-0/1.png`, já no tamanho final (escala 1).
 - `BasePet` recebe o nome do pet (`PET_SPRITES` em `TalismanCatalog.ts`), anima `pet-<nome>-walk/idle` e espelha com `flipX` (o contorno acompanha). `TALISMAN_BALANCE.pets.walkFps`; saiu `TALISMAN_THEME.twinTint` (a Gêmea não é mais a heroína pintada).
+- `BasePet.followLoose` + `pets/looseFollow.ts` (testado): anda acima de `looseFollow.startPx` (52), para a `stopPx` (14); `followSpeed` da Gêmea (230) e do Slime (210).
 
 ### Escudo contra congelamento e atualização sem cache
 
