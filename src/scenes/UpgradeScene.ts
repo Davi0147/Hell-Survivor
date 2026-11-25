@@ -78,6 +78,11 @@ export class UpgradeScene extends Phaser.Scene {
     this.cardContainers = [];
     this.currentCardIds = [];
     this.isClosing = false;
+    // A cena é reaproveitada: botões da abertura anterior (level up) já foram destruídos.
+    // Sem zerar, a tela do altar (que não cria botões) tentava pintar o botão morto no
+    // primeiro quadro, quebrava e o jogo ficava pausado atrás do clarão do altar.
+    this.rerollButton = undefined;
+    this.skipButton = undefined;
     // Relógio do jogo, não da cena: o da cena começa em 0 (ou parado no último valor)
     // até o primeiro quadro, e a trava parecia já vencida na primeira abertura
     this.openedAtMs = this.game.loop.time;

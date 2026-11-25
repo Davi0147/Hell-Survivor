@@ -253,6 +253,11 @@ export function getChapterConfig(chapter: number): ChapterConfig {
   return CHAPTER_CONFIG[chapter] ?? CHAPTER_CONFIG_FALLBACK;
 }
 
+/** Altar de Ascensão: depois de usar um, o próximo (para outra arma pronta) espera 3 min. */
+export const ALTAR_BALANCE = {
+  cooldownAfterUseMs: 180000,
+} as const;
+
 /**
  * FLAG MESTRE DO MODO DE TESTE (SANDBOX & DEBUG):
  * - Em desenvolvimento local: deixe `true` para exibir "MODO DE TESTE" diretamente no Menu Principal.

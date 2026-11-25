@@ -8,7 +8,7 @@ import { getAltarEvolutionCards, UpgradeGameScene } from './UpgradeCatalog';
 import { altarCompletionAction, altarPresence } from './altarRules';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { GemReserve } from './GemReserve';
-import { BALANCE, PERFORMANCE_LIMITS, getChapterConfig } from '../config/balance';
+import { BALANCE, PERFORMANCE_LIMITS, getChapterConfig, ALTAR_BALANCE } from '../config/balance';
 
 /** Contrato mínimo que a cena de jogo expõe para o PickupSpawnSystem. */
 export interface IPickupSpawnContext {
@@ -47,6 +47,8 @@ export class PickupSpawnSystem {
   private altarSpawnTimer = 0;
   /** Altar a 100% esperando a vez de abrir a escolha (depois dos level ups da fila). */
   private completedAltar: EvolutionAltar | null = null;
+  /** Recarga depois de usar um altar (ALTAR_BALANCE.cooldownAfterUseMs). */
+  private altarCooldownMs = 0;
   private mapItemSpawnTimer = 0;
   private gemSyncTimer = 0;
   private readonly gemReserve = new GemReserve(PERFORMANCE_LIMITS.MAX_STORED_GEMS);
@@ -258,11 +260,14 @@ export class PickupSpawnSystem {
     // Altar já completado está abrindo a escolha: não mexe nele
     if (hasAltar && this.ctx.altarInstance?.isCompleted) return;
 
+    // Recarga depois de usar um altar: o próximo só vem 3 min depois
+    if (!hasAltar && this.altarCooldownMs > 0) this.altarCooldownMs = Math.max(0, this.altarCooldownMs - delta);
+
     const evolvable = getAltarEvolutionCards(this.ctx.player, this.scene).length;
     const delayMs = getChapterConfig(this.ctx.currentChapter).altarAppearDelayMs;
-    switch (altarPresence(hasAltar, evolvable, this.altarSpawnTimer, delayMs)) {
+    switch (altarPresence(hasAltar, evolvable, this.altarSpawnTimer, delayMs, this.altarCooldownMs)) {
       case 'wait':
-        this.altarSpawnTimer += delta;
+        if (this.altarCooldownMs <= 0) this.altarSpawnTimer += delta;
         break;
       case 'spawn':
         this.altarSpawnTimer = 0;
@@ -364,6 +369,8 @@ export class PickupSpawnSystem {
         if (this.ctx.altarInstance === altar) {
           this.ctx.altarInstance = null;
         }
+        this.altarCooldownMs = ALTAR_BALANCE.cooldownAfterUseMs;
+        this.altarSpawnTimer = 0;
       }
     });
   }

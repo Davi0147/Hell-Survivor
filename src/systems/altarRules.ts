@@ -18,9 +18,17 @@ export type AltarPresence = 'spawn' | 'despawn' | 'wait' | 'keep';
  * sobra nenhuma (evoluiu a única). Upar outra até o máximo faz ele voltar.
  * `waitedMs` = quanto tempo já existe arma pronta sem altar no mapa.
  */
-export function altarPresence(hasAltar: boolean, evolvable: number, waitedMs: number, delayMs: number): AltarPresence {
+export function altarPresence(
+  hasAltar: boolean,
+  evolvable: number,
+  waitedMs: number,
+  delayMs: number,
+  /** Recarga depois de usar um altar (o próximo só surge quando ela zera). */
+  cooldownLeftMs: number = 0
+): AltarPresence {
   if (hasAltar) return evolvable > 0 ? 'keep' : 'despawn';
   if (evolvable === 0) return 'keep';
+  if (cooldownLeftMs > 0) return 'wait';
   return waitedMs >= delayMs ? 'spawn' : 'wait';
 }
 

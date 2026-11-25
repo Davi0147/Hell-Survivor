@@ -1,4 +1,6 @@
 import type { GameScene } from './GameScene';
+import { DebugSessionLogger } from '../systems/DebugSessionLogger';
+import { tickPauseGuard } from '../systems/pauseGuard';
 import Phaser from 'phaser';
 import { DialogueSystem, DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
@@ -74,6 +76,9 @@ export class UIScene
 
   /** Onde fica cada peça da HUD (config/hudLayout.ts): maior e com botões no polegar no celular. */
   private layout!: HudLayout;
+
+  /** Tempo da partida pausada sem nenhuma tela aberta (guarda anti-travamento). */
+  private orphanPauseMs = 0;
 
   // Painel de status (topo esquerdo)
   private statusPanel!: StatusPanelHud;
@@ -331,6 +336,8 @@ export class UIScene
       this.sandboxPanel.update(delta);
     }
 
+    this.guardAgainstStuckPause(delta);
+
     // 1. Atualização da Legenda Dinâmica de Controles (Teclado vs Gamepad)
     this.updateControlsHint();
 
@@ -440,6 +447,30 @@ export class UIScene
 
     // Atualizar Indicador Direcional de Borda para o Altar de Ascensão (quando fora da tela)
     this.altarEdgeIndicator.update(p, gameScene);
+  }
+
+  /** Partida pausada sem nenhuma tela que explique a pausa: retoma sozinha (ver `pauseGuard.ts`). */
+  private guardAgainstStuckPause(delta: number): void {
+    const gs = this.scene.get('GameScene') as GameScene | undefined;
+    if (!gs || !this.scene.isActive('GameScene') && !this.scene.isPaused('GameScene')) {
+      this.orphanPauseMs = 0;
+      return;
+    }
+    const r = tickPauseGuard(this.orphanPauseMs, {
+      gamePaused: this.scene.isPaused('GameScene'),
+      upgradeScreenActive: this.scene.isActive('UpgradeScene'),
+      rewardModalOpen: this.isChestRouletteOpen,
+      pauseMenuOpen: this.isPaused,
+      dialogueActive: this.isDialogueActive(),
+      gameOverOrChapterEnd: gs.isGameOver || gs.isChapterCompleted || this.isGameOverModalOpen,
+    }, delta);
+    this.orphanPauseMs = r.orphanMs;
+    if (!r.recover) return;
+    DebugSessionLogger.getInstance().log('ANOMALY', 'ERROR', 'Partida pausada sem nenhuma tela aberta: retomada pela guarda anti-travamento.');
+    gs.isUpgradeSceneOpening = false;
+    this.scene.resume('GameScene');
+    gs.physics.resume();
+    gs.grantChestSafetyGrace();
   }
 
   public setHUDVisible(visible: boolean): void {

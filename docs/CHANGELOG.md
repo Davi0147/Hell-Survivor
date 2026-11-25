@@ -4,6 +4,16 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Correção de verdade do travamento no altar
+
+#### Resumo para o Jogador
+- **Corrigido:** subir de nível e depois completar o Altar de Ascensão travava o jogo com a tela amarela. A tela de cartas reaproveitava os botões Re-rolar/Pular do level up anterior (já destruídos) e quebrava ao abrir a escolha do altar. A correção anterior não pegava esse caso.
+- **Guarda anti-travamento:** se a partida ficar pausada sem nenhuma tela aberta por mais de 1,5 segundo, ela volta sozinha (e o caso fica registrado no log do Modo de Teste).
+- **Um altar por vez, com recarga:** com mais de uma arma no máximo, você escolhe qual evoluir; o próximo altar, para a outra arma, aparece **3 minutos depois**. Isso se repete até não sobrar arma para evoluir.
+
+#### Técnico
+- `UpgradeScene.create` zera `rerollButton`/`skipButton`. `src/systems/pauseGuard.ts` (testado) + `UIScene.guardAgainstStuckPause`. `ALTAR_BALANCE.cooldownAfterUseMs` (180000) e `altarPresence(..., cooldownLeftMs)`.
+
 ### Topo da HUD sem placas e seta do Fim da Jornada
 
 #### Resumo para o Jogador
