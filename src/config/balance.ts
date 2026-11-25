@@ -182,6 +182,12 @@ export const UPGRADE_SKIP_BALANCE = {
    * esquiva: quem esquivava quando o nível subiu pulava a carta sem nem ver as opções.
    */
   lockMs: 5000,
+  /**
+   * Tempo em que escolher carta e RE-ROLAR ficam travados ao abrir a tela. Quem apertava
+   * o botão de ação bem quando o nível subia escolhia uma carta sem ver. Curto de propósito:
+   * só cobre o aperto acidental, sem fazer quem já decidiu esperar.
+   */
+  pickLockMs: 1200,
 } as const;
 
 export const LIFE_STEAL_BALANCE = {

@@ -17,7 +17,7 @@ export function isTouchDevice(scene: Phaser.Scene): boolean {
 
 /**
  * Botão "PULAR" das cenas de história (intro, fim de capítulo, diálogos no meio da partida).
- * Mesmo visual dos botões com tecla da tela de cartas; no celular fica grande o bastante para o
+ * Só o nome e a tecla (sem moldura nem ícone, para não tapar a cena); no celular fica grande o bastante para o
  * dedo, e a cena deve ignorar toques que caem nele (`containsPointer`) para não avançar o texto.
  */
 export class SkipButton {
@@ -37,6 +37,7 @@ export class SkipButton {
       iconKey: 'ui-icon-skip',
       label,
       labelFontSize: s.font,
+      bare: true,
       // O som do clique fica com a cena (o ESC e o botão B passam pelo mesmo caminho)
       onClick: onSkip,
     });

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON, CARD_ICON_KEYS } from '../systems/UpgradeCatalog';
-import { COLORS, ACTION_BUTTON_THEME } from '../config/theme';
+import { COLORS, ACTION_BUTTON_THEME, PICK_LOCK_BAR_THEME } from '../config/theme';
 import { ActionKeyButton } from '../ui/ActionKeyButton';
 import type { UpgradeCard, RichTextSegment, UpgradeGameScene } from '../systems/UpgradeCatalog';
 export type { UpgradeCard, RichTextSegment } from '../systems/UpgradeCatalog';
@@ -9,7 +9,8 @@ import { SoundManager } from '../systems/SoundManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { UPGRADE_SKIP_BALANCE } from '../config/balance';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { getSkipLockRemainingMs, formatSkipLockBadge } from '../systems/UpgradeSkipLock';
+import { getSkipLockRemainingMs, getPickLockRemainingMs, formatSkipLockBadge } from '../systems/UpgradeSkipLock';
+import { drawPixelFrame } from '../ui/pixelFrame';
 
 /** Cena de jogo que abriu a tela de cartas: além das armas, sinaliza a reabertura da fila de níveis. */
 export type UpgradeHostScene = UpgradeGameScene & { isUpgradeSceneOpening?: boolean; survivalTimeMs?: number };
@@ -34,6 +35,8 @@ export class UpgradeScene extends Phaser.Scene {
   private isClosing: boolean = false;
   /** Quando a tela abriu (relógio do jogo): base da trava do CANALIZAR. */
   private openedAtMs: number = 0;
+  /** Barrinha sob o título que enche durante a trava de escolher carta; some ao liberar. */
+  private pickLockBar?: Phaser.GameObjects.Graphics;
 
   public getCardContainers(): Phaser.GameObjects.Container[] {
     return this.cardContainers;
@@ -126,6 +129,10 @@ export class UpgradeScene extends Phaser.Scene {
       stroke: '#2b0914',
       strokeThickness: 3
     }).setOrigin(0.5);
+
+    // 2.1. Barrinha da trava de escolha (aperto acidental ao subir de nível não escolhe carta)
+    this.pickLockBar = this.add.graphics().setDepth(5);
+    this.drawPickLockBar();
 
     // 3. Renderização das Cartas Flutuantes
     this.dealCards(false);
@@ -247,6 +254,36 @@ export class UpgradeScene extends Phaser.Scene {
     return getSkipLockRemainingMs(this.openedAtMs, this.game.loop.time);
   }
 
+  private get pickLockRemainingMs(): number {
+    return getPickLockRemainingMs(this.openedAtMs, this.game.loop.time);
+  }
+
+  /** Enche da esquerda para a direita durante a trava; ao liberar, some. */
+  private drawPickLockBar(): void {
+    const bar = this.pickLockBar;
+    if (!bar || !bar.visible) return;
+    const remaining = this.pickLockRemainingMs;
+    if (remaining <= 0) {
+      bar.setVisible(false);
+      return;
+    }
+    const w = 240;
+    const h = 16;
+    const x = Math.round(this.scale.width / 2 - w / 2);
+    const y = 74;
+    const px = 4;
+    const progress = 1 - remaining / UPGRADE_SKIP_BALANCE.pickLockMs;
+    bar.clear();
+    drawPixelFrame(bar, x, y, w, h, { fill: PICK_LOCK_BAR_THEME.track, border: PICK_LOCK_BAR_THEME.border, px });
+    // Enche em passos de 4 px para manter a cara de pixel art
+    const innerW = w - 4 * px;
+    const filled = Math.floor((innerW * progress) / px) * px;
+    if (filled > 0) {
+      bar.fillStyle(PICK_LOCK_BAR_THEME.fill, 1);
+      bar.fillRect(x + 2 * px, y + px, filled, h - 2 * px);
+    }
+  }
+
   /** Travado: botão apagado com a contagem no lugar da cura. Liberado: volta a mostrar a cura. */
   private updateSkipButtonVisual(): void {
     if (!this.skipButton) return;
@@ -268,10 +305,10 @@ export class UpgradeScene extends Phaser.Scene {
   private updateRerollButtonVisual(): void {
     const charges = this.player.rerollsRemaining;
     this.rerollButton?.setBadge(`${charges}`);
-    this.rerollButton?.setEnabled(charges > 0);
+    this.rerollButton?.setEnabled(charges > 0 && this.pickLockRemainingMs <= 0);
   }
   private handleReroll(): void {
-    if (this.isClosing || this.player.rerollsRemaining <= 0) return;
+    if (this.isClosing || this.player.rerollsRemaining <= 0 || this.pickLockRemainingMs > 0) return;
     this.player.rerollsRemaining--;
     SoundManager.getInstance().playCasinoLevelUp();
     this.updateRerollButtonVisual();
@@ -516,7 +553,8 @@ export class UpgradeScene extends Phaser.Scene {
     });
 
     rootContainer.on('pointerdown', () => {
-      if (this.isClosing) return;
+      // Trava curta ao abrir: o aperto que estava em curso no combate não escolhe carta
+      if (this.isClosing || this.pickLockRemainingMs > 0) return;
       this.isClosing = true;
 
       // 1. Som viciante de Cash / Prêmio ("KA-CHING!")
@@ -708,6 +746,8 @@ export class UpgradeScene extends Phaser.Scene {
     this.updateActionKeys();
     if (this.isClosing) return;
     this.updateSkipButtonVisual();
+    this.updateRerollButtonVisual();
+    this.drawPickLockBar();
 
     if (AutoPlayTestAgent.getInstance().isEnabled) {
       AutoPlayTestAgent.getInstance().checkAndResolveUpgradeModal(this, delta);

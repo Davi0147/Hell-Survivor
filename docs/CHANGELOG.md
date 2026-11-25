@@ -4,6 +4,19 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-24
 
+### Menu de capítulos novo e controle em mais telas
+
+#### Resumo para o Jogador
+- **Escolha de capítulo redesenhada:** duas cartas lado a lado com o chefe de cada capítulo, na moldura pixel art do menu de pausa. Agora dá para escolher **com o controle e com o teclado** (setas/analógico, A ou Enter para jogar, B ou ESC para voltar).
+- **Botão PULAR das cenas:** sem a caixa e sem o ícone; só o nome e a tecla, que ficou maior e em pixel art (o "B" do controle parecia uma linha).
+- **Cartas de nível:** ao abrir, escolher carta e re-rolar ficam travados por pouco mais de 1 segundo, com uma barrinha embaixo do título. Um botão apertado no combate não escolhe mais uma carta sem você ver.
+- **Baú de bênção:** o A do controle agora pula a roleta e coleta a bênção.
+
+#### Técnico
+- `src/ui/pixelFrame.ts`: molduras em degrau só com retângulos (substitui `strokeRoundedRect` nas telas novas); usada no menu de capítulos, na tecla do `ActionKeyButton` e na barra da trava.
+- `ActionKeyButton` ganhou o modo `bare`; `MenuScene` ganhou `modalNav` (foco de modal para teclado e controle).
+- `UPGRADE_SKIP_BALANCE.pickLockMs` + `getPickLockRemainingMs`, testados em `upgradeSkipLock.test.ts`. Tokens novos: `MODAL_THEME.chapterSelect`, `PICK_LOCK_BAR_THEME`.
+
 ### HUD nova, pensada para o celular
 
 #### Resumo para o Jogador

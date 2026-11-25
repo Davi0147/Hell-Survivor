@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../systems/SoundManager';
+import { GamepadManager } from '../systems/GamepadManager';
 import type { UpgradeCard, UpgradeGameScene } from '../systems/UpgradeCatalog';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 
@@ -225,7 +226,7 @@ export class ChestRouletteModal {
         collectPrompt.setVisible(true).setAlpha(1);
       }
       if (keyHint.scene) {
-        keyHint.setText('(ou pressione Espaço / clique na tela)').setVisible(true).setAlpha(1);
+        keyHint.setText('(ou pressione Espaço / A no controle / clique na tela)').setVisible(true).setAlpha(1);
       }
     };
 
@@ -351,9 +352,18 @@ export class ChestRouletteModal {
     };
     window.addEventListener('keydown', onKey);
 
+    // Controle: A pula a roleta e depois coleta (a GameScene está pausada, então lemos aqui)
+    // Lê uma vez já ao abrir: um A que vinha apertado do combate não conta como aperto novo
+    GamepadManager.getInstance().getMenuNavigation(s);
+    const onUpdate = () => {
+      if (GamepadManager.getInstance().getMenuNavigation(s).confirm) handleInteraction();
+    };
+    s.events.on(Phaser.Scenes.Events.UPDATE, onUpdate);
+
     // Garante limpeza caso o modal seja destruído por shutdown da cena
     modal.once(Phaser.GameObjects.Events.DESTROY, () => {
       window.removeEventListener('keydown', onKey);
+      s.events.off(Phaser.Scenes.Events.UPDATE, onUpdate);
       if (rollTimer) {
         rollTimer.destroy();
         rollTimer = null;

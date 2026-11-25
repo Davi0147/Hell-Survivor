@@ -354,6 +354,13 @@ export const BOSS_TELEGRAPH = {
   crosshairThickness: 1.5
 } as const;
 
+/** Barrinha da tela de cartas que enche enquanto a escolha está travada. */
+export const PICK_LOCK_BAR_THEME = {
+  track: 0x0b0208,
+  fill: 0xf3d17a,
+  border: 0x6e2d1d
+} as const;
+
 export const MODAL_THEME = {
   backdropColor: 0x000000,
   /** Menu de pausa: mesma linguagem violeta do painel de status (obsidiana + magenta). */
@@ -396,6 +403,34 @@ export const MODAL_THEME = {
     btnMenuBg: 0x241030,
     btnMenuBorder: 0x9b5de5,
     btnHoverBorder: 0xffffff
+  },
+  /** Seleção de capítulo do Modo História (menu principal): cartas lado a lado com o retrato do chefe. */
+  chapterSelect: {
+    backdropAlpha: 0.86,
+    panelFill: 0x120616,
+    panelAlpha: 0.97,
+    titleColor: '#ffd6ff',
+    titleStroke: '#3d0a52',
+    cardFill: 0x1c0b26,
+    cardFillFocus: 0x2b1040,
+    cardHighlight: 0x3a1a52,
+    cardShade: 0x0b0410,
+    cardBorderFocus: 0xffd60a,
+    portraitBackdrop: 0x0b0208,
+    portraitBorder: 0x4a2066,
+    nameColor: '#ffffff',
+    nameColorFocus: '#ffd60a',
+    infoLabelColor: '#c9a8e0',
+    infoValueColor: '#f3d17a',
+    textStroke: '#12020a',
+    hintColor: '#c9a8e0',
+    accentCh1: 0xff2a55,
+    accentCh1Text: '#ff4d6d',
+    accentCh2: 0x9d4edd,
+    accentCh2Text: '#c77dff',
+    btnTextColor: '#ffffff',
+    btnTextFocus: '#ffd60a',
+    btnFocusOutline: 0xffd60a
   },
   gameOver: {
     backdropAlpha: 0.90,

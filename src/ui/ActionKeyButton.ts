@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
 import { FONTS, COLORS, ACTION_BUTTON_THEME as T } from '../config/theme';
 
+import { drawPixelFrame } from './pixelFrame';
+
 const KEYCAP_H = 24;
+const KEYCAP_H_BARE = 32;
 
 export interface ActionKeyButtonOptions {
   x: number;
@@ -17,6 +20,8 @@ export interface ActionKeyButtonOptions {
   onHover?: () => void;
   /** Tamanho da fonte do nome (padrão 15). Maior no celular, onde o jogo é encolhido. */
   labelFontSize?: number;
+  /** Sem moldura e sem ícone: só o nome e a tecla, alinhados à direita (ex.: PULAR nas cutscenes). */
+  bare?: boolean;
 }
 
 /**
@@ -42,7 +47,7 @@ export class ActionKeyButton {
     this.container.add(this.bg);
 
     const iconX = -w / 2 + h / 2 + 2;
-    if (scene.textures.exists(opts.iconKey)) {
+    if (!opts.bare && scene.textures.exists(opts.iconKey)) {
       this.icon = scene.add.image(iconX, 0, opts.iconKey).setDisplaySize(h - 6, h - 6);
       this.container.add(this.icon);
     }
@@ -63,13 +68,13 @@ export class ActionKeyButton {
       color: T.label,
       stroke: COLORS.strokeBlack,
       strokeThickness: 3,
-    }).setOrigin(0, 0.5);
+    }).setOrigin(opts.bare ? 1 : 0, 0.5);
     this.container.add(this.labelText);
 
     this.keyCap = scene.add.graphics();
     this.keyText = scene.add.text(0, -1, '', {
       fontFamily: FONTS.body,
-      fontSize: '12px',
+      fontSize: opts.bare ? '16px' : '12px',
       fontStyle: 'bold',
       color: T.keyCapText,
       stroke: COLORS.strokeBlack,
@@ -122,16 +127,18 @@ export class ActionKeyButton {
     const border = !this.enabled ? T.borderDisabled : this.hovered ? T.borderHover : T.border;
     const g = this.bg;
     g.clear();
-    // Moldura dupla com cantos reforçados (mesma linguagem da barra de armas)
-    g.fillStyle(!this.enabled ? T.fillDisabled : this.hovered ? T.fillHover : T.fill, 0.94);
-    g.fillRect(-w / 2, -h / 2, w, h);
-    g.lineStyle(1, T.innerBorder, this.enabled ? 1 : 0.4);
-    g.strokeRect(-w / 2 + 3, -h / 2 + 3, w - 6, h - 6);
-    g.lineStyle(2, border, 1);
-    g.strokeRect(-w / 2, -h / 2, w, h);
-    g.fillStyle(border, 1);
-    for (const [cx, cy] of [[-w / 2, -h / 2], [w / 2, -h / 2], [-w / 2, h / 2], [w / 2, h / 2]]) {
-      g.fillRect(cx - 3, cy - 3, 6, 6);
+    if (!this.opts.bare) {
+      // Moldura dupla com cantos reforçados (mesma linguagem da barra de armas)
+      g.fillStyle(!this.enabled ? T.fillDisabled : this.hovered ? T.fillHover : T.fill, 0.94);
+      g.fillRect(-w / 2, -h / 2, w, h);
+      g.lineStyle(1, T.innerBorder, this.enabled ? 1 : 0.4);
+      g.strokeRect(-w / 2 + 3, -h / 2 + 3, w - 6, h - 6);
+      g.lineStyle(2, border, 1);
+      g.strokeRect(-w / 2, -h / 2, w, h);
+      g.fillStyle(border, 1);
+      for (const [cx, cy] of [[-w / 2, -h / 2], [w / 2, -h / 2], [-w / 2, h / 2], [w / 2, h / 2]]) {
+        g.fillRect(cx - 3, cy - 3, 6, 6);
+      }
     }
 
     this.labelText.setColor(!this.enabled ? T.labelDisabled : this.hovered ? T.labelHover : T.label);
@@ -144,15 +151,23 @@ export class ActionKeyButton {
     this.keyCap.setVisible(showKey);
     this.keyText.setVisible(showKey);
     this.keyCap.clear();
+    // Sem moldura a tecla é o único destaque, então fica maior para ler de longe
+    const capH = this.opts.bare ? KEYCAP_H_BARE : KEYCAP_H;
+    const px = this.opts.bare ? 4 : 2;
+    const capW = Math.max(capH, Math.ceil((this.keyText.width + 16) / px) * px);
+    // Sem moldura a tecla encosta na borda; o nome fica logo à esquerda dela
+    const capX = w / 2 - (this.opts.bare ? 0 : 10) - capW / 2;
+    if (this.opts.bare) this.labelText.setX(showKey ? capX - capW / 2 - 12 : w / 2);
     if (!showKey) return;
-    const capW = Math.max(KEYCAP_H, this.keyText.width + 14);
-    const capX = w / 2 - 10 - capW / 2;
     this.keyText.setX(capX);
-    this.keyCap.fillStyle(T.keyCapShadow, 1);
-    this.keyCap.fillRoundedRect(capX - capW / 2, -KEYCAP_H / 2 + 3, capW, KEYCAP_H, 4);
-    this.keyCap.fillStyle(T.keyCapFill, 1);
-    this.keyCap.fillRoundedRect(capX - capW / 2, -KEYCAP_H / 2, capW, KEYCAP_H, 4);
-    this.keyCap.lineStyle(2, this.hovered ? T.borderHover : T.border, 1);
-    this.keyCap.strokeRoundedRect(capX - capW / 2, -KEYCAP_H / 2, capW, KEYCAP_H, 4);
+    const left = Math.round(capX - capW / 2);
+    const top = Math.round(-capH / 2);
+    // Tecla em pixel art: sombra em bloco por baixo e moldura em degrau
+    drawPixelFrame(this.keyCap, left, top + px, capW, capH, { fill: T.keyCapShadow, border: T.keyCapShadow, px });
+    drawPixelFrame(this.keyCap, left, top, capW, capH, {
+      fill: T.keyCapFill,
+      border: this.hovered ? T.borderHover : T.border,
+      px
+    });
   }
 }

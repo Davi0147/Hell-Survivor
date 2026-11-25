@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getSkipLockRemainingMs, formatSkipLockBadge } from '../systems/UpgradeSkipLock';
+import { getSkipLockRemainingMs, getPickLockRemainingMs, formatSkipLockBadge } from '../systems/UpgradeSkipLock';
 import { UPGRADE_SKIP_BALANCE } from '../config/balance';
 
 describe('Trava do CANALIZAR na tela de cartas', () => {
@@ -23,5 +23,21 @@ describe('Trava do CANALIZAR na tela de cartas', () => {
     expect(formatSkipLockBadge(5000)).toBe('5s');
     expect(formatSkipLockBadge(4001)).toBe('5s');
     expect(formatSkipLockBadge(1)).toBe('1s');
+  });
+});
+
+describe('Trava de escolher carta na tela de cartas', () => {
+  const pick = UPGRADE_SKIP_BALANCE.pickLockMs;
+
+  it('é curta, mas cobre um aperto acidental, e acaba antes da trava do CANALIZAR', () => {
+    expect(pick).toBeGreaterThanOrEqual(800);
+    expect(pick).toBeLessThan(UPGRADE_SKIP_BALANCE.lockMs);
+  });
+
+  it('trava ao abrir e libera depois do tempo', () => {
+    expect(getPickLockRemainingMs(500, 500)).toBe(pick);
+    expect(getPickLockRemainingMs(500, 500 + pick - 1)).toBe(1);
+    expect(getPickLockRemainingMs(500, 500 + pick)).toBe(0);
+    expect(getPickLockRemainingMs(500, 500 + pick * 4)).toBe(0);
   });
 });

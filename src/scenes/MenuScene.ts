@@ -3,6 +3,10 @@ import { SoundManager } from '../systems/SoundManager';
 import { isDevSandboxEnabled } from '../config/balance';
 import { MetaProgressManager, BLESSINGS_CATALOG, BlessingId } from '../systems/MetaProgressManager';
 import { GamepadManager } from '../systems/GamepadManager';
+import { FONTS, MODAL_THEME } from '../config/theme';
+import { drawPixelFrame, drawPixelOutline } from '../ui/pixelFrame';
+
+type ModalNavAction = 'up' | 'down' | 'left' | 'right' | 'confirm';
 
 interface MenuItem {
   label: string;
@@ -18,6 +22,8 @@ export class MenuScene extends Phaser.Scene {
   private menuSoulsText?: Phaser.GameObjects.Text;
   private isModalOpen: boolean = false;
   private modalContainer?: Phaser.GameObjects.Container;
+  /** Navegação do modal aberto (teclado e controle); modais sem foco próprio deixam vazio. */
+  private modalNav?: (action: ModalNavAction) => void;
 
   constructor() {
     super('MenuScene');
@@ -303,7 +309,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Navegação para Cima
     const moveUp = () => {
-      if (this.isModalOpen) return;
+      if (this.isModalOpen) { this.modalNav?.('up'); return; }
       this.selectedIndex = (this.selectedIndex - 1 + this.menuItems.length) % this.menuItems.length;
       SoundManager.getInstance().playMenuHover();
       this.updateMenuVisuals();
@@ -311,7 +317,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Navegação para Baixo
     const moveDown = () => {
-      if (this.isModalOpen) return;
+      if (this.isModalOpen) { this.modalNav?.('down'); return; }
       this.selectedIndex = (this.selectedIndex + 1) % this.menuItems.length;
       SoundManager.getInstance().playMenuHover();
       this.updateMenuVisuals();
@@ -319,10 +325,17 @@ export class MenuScene extends Phaser.Scene {
 
     // Confirmação
     const confirm = () => {
-      if (this.isModalOpen) return;
+      if (this.isModalOpen) { this.modalNav?.('confirm'); return; }
       SoundManager.getInstance().playMenuClick();
       this.menuItems[this.selectedIndex].action();
     };
+
+    const moveLeft = () => { if (this.isModalOpen) this.modalNav?.('left'); };
+    const moveRight = () => { if (this.isModalOpen) this.modalNav?.('right'); };
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT).on('down', moveLeft);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A).on('down', moveLeft);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT).on('down', moveRight);
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D).on('down', moveRight);
 
     this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP).on('down', moveUp);
     this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W).on('down', moveUp);
@@ -1140,138 +1153,225 @@ export class MenuScene extends Phaser.Scene {
     if (this.isModalOpen) return;
     this.isModalOpen = true;
 
+    const T = MODAL_THEME.chapterSelect;
     const { width, height } = this.scale;
-    const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
+    const cx = width / 2;
+    const cy = height / 2;
 
-    this.modalContainer = this.add.container(0, 0);
-    this.modalContainer.setDepth(100);
+    const modal = this.add.container(0, 0).setDepth(100);
+    this.modalContainer = modal;
 
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.84);
+    const overlay = this.add.rectangle(cx, cy, width, height, MODAL_THEME.backdropColor, T.backdropAlpha);
     overlay.setInteractive();
-    this.modalContainer.add(overlay);
+    modal.add(overlay);
 
-    const panelW = 680;
-    const panelH = 400;
-    const panelX = width / 2;
-    const panelY = height / 2;
-
+    // Painel: mesma moldura pixel art do menu de pausa (o fundo é pintado por baixo dela)
+    const panelW = 820;
+    const panelH = 600;
+    const top = cy - panelH / 2;
     const panelG = this.add.graphics();
-    panelG.fillStyle(0x130309, 0.98);
-    panelG.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    panelG.lineStyle(3, 0xc59b27, 0.95);
-    panelG.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 14);
-    panelG.lineStyle(1.5, 0x9d4edd, 0.65);
-    panelG.strokeRoundedRect(panelX - panelW / 2 + 4, panelY - panelH / 2 + 4, panelW - 8, panelH - 8, 10);
-    this.modalContainer.add(panelG);
+    panelG.fillStyle(T.panelFill, T.panelAlpha);
+    panelG.fillRect(cx - panelW / 2, top, panelW, panelH);
+    modal.add(panelG);
+    if (this.textures.exists('ui-pause-frame')) {
+      modal.add(this.add.image(cx, cy, 'ui-pause-frame').setOrigin(0.5, 0.4935));
+    }
 
-    const title = this.add.text(panelX, panelY - panelH / 2 + 38, 'SELECIONAR CAPÍTULO DA HISTÓRIA', {
-      fontFamily: pixelFont,
-      fontSize: '18px',
+    const titleY = top + 46;
+    if (this.textures.exists('ui-pause-title')) {
+      modal.add(this.add.image(cx, titleY, 'ui-pause-title').setDisplaySize(360, 80));
+    }
+    const title = this.add.text(cx, titleY, 'ESCOLHA O CAPÍTULO', {
+      fontFamily: FONTS.body,
+      fontSize: '16px',
       fontStyle: 'bold',
-      color: '#ffd60a',
-      stroke: '#300207',
+      color: T.titleColor,
+      stroke: T.titleStroke,
       strokeThickness: 4
     }).setOrigin(0.5);
-    this.modalContainer.add(title);
+    modal.add(title);
 
     const chapters = [
       {
         chapter: 1 as const,
-        title: 'CAPÍTULO 1: O DESPERTAR NO ABISMO',
-        subtitle: 'Boss: Rosalin (A Dama do Submundo) • Meta: 900 Almas Purificadas',
-        accent: 0xff2a55,
-        y: panelY - 48
+        label: 'CAPÍTULO I',
+        name: 'O DESPERTAR\nNO ABISMO',
+        portrait: 'succubus-idle-south',
+        accent: T.accentCh1,
+        accentText: T.accentCh1Text,
+        info: [['CHEFE', 'ROSALIN'], ['META', '900 ALMAS']]
       },
       {
         chapter: 2 as const,
-        title: 'CAPÍTULO 2: O DOMÍNIO DE AZAZEL',
-        subtitle: 'Boss: Azazel (3 Fases + Dimensão Abissal) • Monstros +20% • Meta: 1.350 Almas',
-        accent: 0x9d4edd,
-        y: panelY + 52
+        label: 'CAPÍTULO II',
+        name: 'O DOMÍNIO\nDE AZAZEL',
+        portrait: 'azazel-idle-south',
+        accent: T.accentCh2,
+        accentText: T.accentCh2Text,
+        info: [['CHEFE', 'AZAZEL - 3 FASES'], ['META', '1.350 ALMAS'], ['PERIGO', 'MONSTROS +20%']]
       }
     ];
 
-    chapters.forEach((chap) => {
-      const cardW = 600;
-      const cardH = 82;
-      const cardG = this.add.graphics();
-      const renderCard = (hover: boolean) => {
-        cardG.clear();
-        cardG.fillStyle(hover ? 0x2a081c : 0x190510, 0.96);
-        cardG.fillRoundedRect(panelX - cardW / 2, chap.y - cardH / 2, cardW, cardH, 8);
-        cardG.lineStyle(2, hover ? 0xffd60a : chap.accent, 0.95);
-        cardG.strokeRoundedRect(panelX - cardW / 2, chap.y - cardH / 2, cardW, cardH, 8);
-      };
-      renderCard(false);
-      this.modalContainer?.add(cardG);
+    // Tudo em múltiplos de 4 px para os "pixels" das molduras caírem certinhos
+    const cardW = 340;
+    const cardH = 300;
+    const cardGap = 40;
+    const cardY = top + 164 + cardH / 2;
+    const portraitH = 128;
+    const PX = 4;
 
-      const cTitle = this.add.text(panelX, chap.y - 12, chap.title, {
-        fontFamily: pixelFont,
-        fontSize: '14px',
+    // Seta de foco (mesmo sprite do menu principal), passeia entre as cartas e o VOLTAR
+    const arrow = this.add.image(0, 0, 'ui-menu-arrow').setScale(0.75).setDepth(1);
+    let arrowTween: Phaser.Tweens.Tween | undefined;
+    const pointArrowAt = (x: number, y: number) => {
+      arrowTween?.stop();
+      arrow.setPosition(x, y);
+      arrowTween = this.tweens.add({ targets: arrow, x: x + 6, duration: 380, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    };
+
+    interface ChapterCard { render: (focus: boolean) => void }
+    const cards: ChapterCard[] = chapters.map((chap, i) => {
+      const x = cx + (i === 0 ? -1 : 1) * (cardW / 2 + cardGap / 2);
+      const left = x - cardW / 2;
+      const cTop = cardY - cardH / 2;
+      const g = this.add.graphics();
+      modal.add(g);
+
+      // Janela do retrato: sprite de jogo do chefe, de corpo inteiro
+      const winW = cardW - 40;
+      const winTop = cTop + 44;
+      let portrait: Phaser.GameObjects.Image | undefined;
+      if (this.textures.exists(chap.portrait)) {
+        portrait = this.add.image(x, winTop + portraitH - 8, chap.portrait).setOrigin(0.5, 1);
+        portrait.setScale(Math.max(1, Math.floor(((portraitH - 16) / portrait.height) * 2) / 2));
+      }
+
+      const label = this.add.text(x, cTop + 24, chap.label, {
+        fontFamily: FONTS.body,
+        fontSize: '16px',
         fontStyle: 'bold',
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 3
+        color: chap.accentText,
+        stroke: T.textStroke,
+        strokeThickness: 4
       }).setOrigin(0.5);
-      this.modalContainer?.add(cTitle);
 
-      const cSub = this.add.text(panelX, chap.y + 16, chap.subtitle, {
-        fontFamily: pixelFont,
-        fontSize: '9px',
-        color: '#e0aaff'
+      const nameY = winTop + portraitH + 32;
+      const name = this.add.text(x, nameY, chap.name, {
+        fontFamily: FONTS.body,
+        fontSize: '16px',
+        fontStyle: 'bold',
+        color: T.nameColor,
+        stroke: T.textStroke,
+        strokeThickness: 4,
+        align: 'center',
+        lineSpacing: 6
       }).setOrigin(0.5);
-      this.modalContainer?.add(cSub);
 
-      const zone = this.add.zone(panelX, chap.y, cardW, cardH).setInteractive({ useHandCursor: true });
-      this.modalContainer?.add(zone);
+      const infoTop = nameY + 40;
+      const infoTexts: Phaser.GameObjects.Text[] = [];
+      chap.info.forEach(([k, v], row) => {
+        const ry = infoTop + row * 18;
+        infoTexts.push(
+          this.add.text(x - 6, ry, `${k}:`, { fontFamily: FONTS.body, fontSize: '10px', color: T.infoLabelColor }).setOrigin(1, 0.5),
+          this.add.text(x, ry, v, { fontFamily: FONTS.body, fontSize: '10px', fontStyle: 'bold', color: T.infoValueColor }).setOrigin(0, 0.5)
+        );
+      });
+      modal.add([...(portrait ? [portrait] : []), label, name, ...infoTexts]);
 
-      zone.on('pointerover', () => {
-        renderCard(true);
-        cTitle.setColor('#ffd60a');
-        SoundManager.getInstance().playMenuHover();
-      });
-      zone.on('pointerout', () => {
-        renderCard(false);
-        cTitle.setColor('#ffffff');
-      });
-      zone.on('pointerdown', () => {
-        SoundManager.getInstance().playMenuClick();
-        this.closeModal();
-        this.startGame('story', chap.chapter);
-      });
+      const render = (focus: boolean) => {
+        g.clear();
+        if (focus) drawPixelOutline(g, left - 2 * PX, cTop - 2 * PX, cardW + 4 * PX, cardH + 4 * PX, chap.accent, 0.6, PX);
+        drawPixelFrame(g, left, cTop, cardW, cardH, {
+          fill: focus ? T.cardFillFocus : T.cardFill,
+          border: focus ? T.cardBorderFocus : chap.accent,
+          highlight: T.cardHighlight,
+          shade: T.cardShade,
+          px: PX
+        });
+        drawPixelFrame(g, x - winW / 2, winTop, winW, portraitH, {
+          fill: T.portraitBackdrop,
+          border: focus ? chap.accent : T.portraitBorder,
+          px: PX
+        });
+        name.setColor(focus ? T.nameColorFocus : T.nameColor);
+        portrait?.setAlpha(focus ? 1 : 0.5);
+        if (focus) pointArrowAt(x - label.width / 2 - 26, cTop + 24);
+      };
+
+      const zone = this.add.zone(x, cardY, cardW, cardH).setInteractive({ useHandCursor: true });
+      modal.add(zone);
+      zone.on('pointerover', () => setFocus(i));
+      zone.on('pointerdown', () => activate(i));
+
+      return { render };
     });
 
-    // Botão Voltar
-    const closeY = panelY + panelH / 2 - 42;
-    const closeW = 240;
-    const closeH = 36;
-    const closeG = this.add.graphics();
-    const renderClose = (hover: boolean) => {
-      closeG.clear();
-      closeG.fillStyle(hover ? 0xff4500 : 0x3d0a15, 1);
-      closeG.fillRoundedRect(panelX - closeW / 2, closeY - closeH / 2, closeW, closeH, 6);
-      closeG.lineStyle(1.5, hover ? 0xffffff : 0xc59b27, 1);
-      closeG.strokeRoundedRect(panelX - closeW / 2, closeY - closeH / 2, closeW, closeH, 6);
-    };
-    renderClose(false);
-    this.modalContainer.add(closeG);
-
-    const closeTxt = this.add.text(panelX, closeY, 'VOLTAR AO MENU', {
-      fontFamily: pixelFont,
-      fontSize: '11px',
+    // Botão Voltar: arte do botão MENU da pausa
+    const backY = top + 512;
+    const backW = 200;
+    const backH = 56;
+    if (this.textures.exists('ui-pause-btn-menu')) {
+      modal.add(this.add.image(cx, backY, 'ui-pause-btn-menu').setDisplaySize(backW, backH));
+    }
+    const backTxt = this.add.text(cx, backY, 'VOLTAR', {
+      fontFamily: FONTS.body,
+      fontSize: '16px',
       fontStyle: 'bold',
-      color: '#ffffff'
+      color: T.btnTextColor,
+      stroke: T.textStroke,
+      strokeThickness: 4
     }).setOrigin(0.5);
-    this.modalContainer.add(closeTxt);
+    modal.add(backTxt);
+    const renderBack = (focus: boolean) => {
+      backTxt.setColor(focus ? T.btnTextFocus : T.btnTextColor);
+      if (focus) pointArrowAt(cx - backW / 2 - 24, backY);
+    };
+    const backZone = this.add.zone(cx, backY, backW, backH).setInteractive({ useHandCursor: true });
+    modal.add(backZone);
+    backZone.on('pointerover', () => setFocus(BACK));
+    backZone.on('pointerdown', () => activate(BACK));
 
-    const closeZone = this.add.zone(panelX, closeY, closeW, closeH).setInteractive({ useHandCursor: true });
-    this.modalContainer.add(closeZone);
-    closeZone.on('pointerover', () => { renderClose(true); SoundManager.getInstance().playMenuHover(); });
-    closeZone.on('pointerout', () => renderClose(false));
-    closeZone.on('pointerdown', () => {
+    const hint = this.add.text(cx, top + 562, 'SETAS: ESCOLHER   ENTER / A: JOGAR   ESC / B: VOLTAR', {
+      fontFamily: FONTS.body,
+      fontSize: '10px',
+      color: T.hintColor,
+      stroke: T.textStroke,
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    modal.add([hint, arrow]);
+
+    // Foco: 0 e 1 = capítulos, 2 = voltar. Mouse, teclado e controle usam o mesmo caminho.
+    const BACK = cards.length;
+    let focus = 0;
+    let lastCard = 0;
+    const paint = () => {
+      cards.forEach((c, idx) => c.render(idx === focus));
+      renderBack(focus === BACK);
+    };
+    const setFocus = (next: number) => {
+      if (next === focus) return;
+      focus = next;
+      if (focus < BACK) lastCard = focus;
+      SoundManager.getInstance().playMenuHover();
+      paint();
+    };
+    const activate = (idx: number) => {
       SoundManager.getInstance().playMenuClick();
       this.closeModal();
-    });
+      if (idx < BACK) this.startGame('story', chapters[idx].chapter);
+    };
+
+    this.modalNav = (action) => {
+      if (action === 'confirm') activate(focus);
+      else if (action === 'left' || action === 'right') {
+        if (focus === BACK) return;
+        setFocus((focus + (action === 'left' ? -1 : 1) + BACK) % BACK);
+      } else if (action === 'down') setFocus(BACK);
+      else if (action === 'up' && focus === BACK) setFocus(lastCard);
+    };
+
+    modal.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(arrow));
+    paint();
   }
 
   private closeModal(): void {
@@ -1279,6 +1379,7 @@ export class MenuScene extends Phaser.Scene {
       this.modalContainer.destroy();
       this.modalContainer = undefined;
     }
+    this.modalNav = undefined;
     this.isModalOpen = false;
   }
 
@@ -1319,7 +1420,13 @@ export class MenuScene extends Phaser.Scene {
       if (nav.cancel) {
         SoundManager.getInstance().playMenuClick();
         this.closeModal();
+        return;
       }
+      if (nav.up) this.modalNav?.('up');
+      else if (nav.down) this.modalNav?.('down');
+      if (nav.left) this.modalNav?.('left');
+      else if (nav.right) this.modalNav?.('right');
+      if (nav.confirm) this.modalNav?.('confirm');
     }
   }
 }
