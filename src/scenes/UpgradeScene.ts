@@ -413,6 +413,12 @@ export class UpgradeScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
+    // Balanço da carta selecionada (~1,7 graus para cada lado)
+    const SWAY_RAD = 0.03;
+    let swayTween: Phaser.Tweens.Tween | undefined;
+    let frameGlow: Phaser.GameObjects.Image | undefined;
+    let glowTween: Phaser.Tweens.Tween | undefined;
+
     const glowColor = card.glowColor ?? card.badgeColor ?? 0xfacc15;
 
     // 1. Sprite da Moldura da Carta (120x200px escalada por cardScale = 2.2 -> 264x440)
@@ -426,6 +432,9 @@ export class UpgradeScene extends Phaser.Scene {
       cardSprite.setScale(cardScale);
       floatContainer.add(cardSprite);
       rootContainer.setData('frameSprite', cardSprite);
+      // Cópia somada por cima: acende e apaga quando a carta está selecionada (tint não clareia além do original)
+      frameGlow = this.add.image(0, 0, spriteKey).setScale(cardScale).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      floatContainer.add(frameGlow);
     } else {
       // Fallback caso alguma textura ainda não tenha carregado
       const fallbackBg = this.add.graphics();
@@ -544,6 +553,30 @@ export class UpgradeScene extends Phaser.Scene {
       if (prev !== index) this.cardContainers[prev]?.emit('pointerout');
       this.applyCardFocusTint();
 
+      // Balanço leve de um lado para o outro enquanto está selecionada
+      swayTween?.stop();
+      floatContainer.setRotation(-SWAY_RAD);
+      swayTween = this.tweens.add({
+        targets: floatContainer,
+        rotation: SWAY_RAD,
+        duration: 700,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      if (frameGlow) {
+        glowTween?.stop();
+        frameGlow.setAlpha(0.04);
+        glowTween = this.tweens.add({
+          targets: frameGlow,
+          alpha: 0.22,
+          duration: 650,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+
       this.tweens.add({
         targets: rootContainer,
         scaleX: 1.09,
@@ -557,6 +590,16 @@ export class UpgradeScene extends Phaser.Scene {
     rootContainer.on('pointerout', () => {
       if (this.isClosing) return;
       rootContainer.setDepth(10);
+
+      // Só para de balançar quando outra carta virou a selecionada (o mouse sair não basta)
+      if (this.selectedCardIndex !== index) {
+        swayTween?.stop();
+        swayTween = undefined;
+        glowTween?.stop();
+        glowTween = undefined;
+        frameGlow?.setAlpha(0);
+        this.tweens.add({ targets: floatContainer, rotation: 0, duration: 160, ease: 'Quad.easeOut' });
+      }
 
       this.tweens.add({
         targets: rootContainer,
