@@ -354,6 +354,11 @@ export const BOSS_TELEGRAPH = {
   crosshairThickness: 1.5
 } as const;
 
+/** Tela de cartas: as cartas fora de foco ficam um pouco escurecidas, então a selecionada se destaca. */
+export const CARD_FOCUS_THEME = {
+  unfocusedTint: 0xb8b8b8
+} as const;
+
 /** Barrinha da tela de cartas que enche enquanto a escolha está travada. */
 export const PICK_LOCK_BAR_THEME = {
   track: 0x0b0208,

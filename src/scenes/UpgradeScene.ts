@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { getAvailableUpgrades, getAltarEvolutionCards, C_WHITE, C_WEAPON, CARD_ICON_KEYS } from '../systems/UpgradeCatalog';
-import { COLORS, ACTION_BUTTON_THEME, PICK_LOCK_BAR_THEME } from '../config/theme';
+import { COLORS, ACTION_BUTTON_THEME, PICK_LOCK_BAR_THEME, CARD_FOCUS_THEME } from '../config/theme';
 import { ActionKeyButton } from '../ui/ActionKeyButton';
 import type { UpgradeCard, RichTextSegment, UpgradeGameScene } from '../systems/UpgradeCatalog';
 export type { UpgradeCard, RichTextSegment } from '../systems/UpgradeCatalog';
@@ -357,6 +357,16 @@ export class UpgradeScene extends Phaser.Scene {
     return shuffled.slice(0, count);
   }
 
+  /** A carta selecionada fica com a cor cheia; as outras, levemente escurecidas. */
+  private applyCardFocusTint(): void {
+    this.cardContainers.forEach((c, i) => {
+      const frame = c.getData('frameSprite') as Phaser.GameObjects.Image | undefined;
+      if (!frame) return;
+      if (i === this.selectedCardIndex) frame.clearTint();
+      else frame.setTint(CARD_FOCUS_THEME.unfocusedTint);
+    });
+  }
+
   /**
    * Constrói uma carta usando as molduras em pixel-art (120x200px escaladas)
    * com a fonte Pixelzone, brilho traseiro, flutuação e explosão de cash ao clicar.
@@ -415,6 +425,7 @@ export class UpgradeScene extends Phaser.Scene {
       const cardSprite = this.add.image(0, 0, spriteKey);
       cardSprite.setScale(cardScale);
       floatContainer.add(cardSprite);
+      rootContainer.setData('frameSprite', cardSprite);
     } else {
       // Fallback caso alguma textura ainda não tenha carregado
       const fallbackBg = this.add.graphics();
@@ -527,6 +538,11 @@ export class UpgradeScene extends Phaser.Scene {
       if (this.isClosing) return;
       SoundManager.getInstance().playCardHover();
       rootContainer.setDepth(50);
+      // Mouse e controle dividem a mesma seleção: a carta sob o cursor vira a selecionada
+      const prev = this.selectedCardIndex;
+      this.selectedCardIndex = index;
+      if (prev !== index) this.cardContainers[prev]?.emit('pointerout');
+      this.applyCardFocusTint();
 
       this.tweens.add({
         targets: rootContainer,
