@@ -54,6 +54,28 @@ jobs:
         with:
           path: './dist'
 
+      # O GitHub às vezes ainda não "enxerga" o pacote recém-enviado e o deploy falha com
+      # "No artifacts named github-pages" (intermitente, mesmo com tudo operacional).
+      # Espera e tenta de novo até duas vezes antes de desistir.
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Wait before retry (1)
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+
+      - name: Deploy to GitHub Pages (retry 1)
+        id: deployment_retry1
+        if: steps.deployment.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Wait before retry (2)
+        if: steps.deployment.outcome == 'failure' && steps.deployment_retry1.outcome == 'failure'
+        run: sleep 60
+
+      - name: Deploy to GitHub Pages (retry 2)
+        if: steps.deployment.outcome == 'failure' && steps.deployment_retry1.outcome == 'failure'
         uses: actions/deploy-pages@v5
