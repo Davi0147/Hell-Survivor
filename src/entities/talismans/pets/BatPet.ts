@@ -10,7 +10,7 @@ export class BatPet extends BasePet {
   private peckTimer = 0;
 
   constructor(ctx: ITalismanContext) {
-    super(ctx, { run: 'blood-bat-fly', idle: 'blood-bat-idle', runCardinalOnly: true }, TALISMAN_BALANCE.pets.bat.scale);
+    super(ctx, 'bat', TALISMAN_BALANCE.pets.bat.scale);
   }
 
   public update(deltaMs: number): void {
@@ -19,7 +19,7 @@ export class BatPet extends BasePet {
     const p = this.restPoint(this.angle);
     // Balança um pouco para cima e para baixo, como um morcego voando
     const bob = Math.sin(this.angle * 3) * 4;
-    this.placeAt(p.x, p.y - 14 + bob, true, p.x - this.x, p.y - this.y);
+    this.placeAt(p.x, p.y - 14 + bob, true, p.x - this.x);
 
     this.pullTimer -= deltaMs;
     if (this.pullTimer <= 0) {

@@ -4,6 +4,16 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Pets dos talismãs com arte própria
+
+#### Resumo para o Jogador
+- **Pets novos de verdade:** Morcego Coletor, Slime Saltador, Cão de Guarda, Cérbero Filhote e Gêmea Sombria ganharam desenho próprio (roxo, coleira dourada, contorno branco). Antes eles usavam o sprite dos monstros encolhido e dava para confundir aliado com inimigo.
+- Eles andam de lado e viram para o lado em que vão; a carta de cada talismã mostra o pet novo.
+
+#### Técnico
+- `scripts/cut-pets.py` recorta `art-source/novos/pets-talismas.jpg` (fundo verde, linhas achadas pelas faixas vazias) em `public/assets/sprites/pets/pet-<nome>-0/1.png`, já no tamanho final (escala 1).
+- `BasePet` recebe o nome do pet (`PET_SPRITES` em `TalismanCatalog.ts`), anima `pet-<nome>-walk/idle` e espelha com `flipX` (o contorno acompanha). `TALISMAN_BALANCE.pets.walkFps`; saiu `TALISMAN_THEME.twinTint` (a Gêmea não é mais a heroína pintada).
+
 ### Escudo contra congelamento e atualização sem cache
 
 #### Resumo para o Jogador

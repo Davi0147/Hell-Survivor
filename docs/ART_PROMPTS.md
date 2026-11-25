@@ -1098,3 +1098,70 @@ Antes eram 8 molduras escolhidas carta por carta (gelo numa carta de velocidade,
 Medidas que a arte precisa respeitar (unidade 120x200): pilares em x 0–24 e 96–120; janela de cima x 25–95, y 19–104, lisa e escura (raridade, nome, nível); faixa do meio y 105–127 com encaixe redondo vazio no centro (ícone); janela de baixo x 25–95, y 128–179, lisa e escura (descrição). As 5 com a mesma silhueta e o mesmo layout; fundo magenta `#ff00ff`; 5 lado a lado, da comum à suprema, sem texto.
 
 **Já gerado e no jogo** (`art-source/novos/molduras-cartas.webp`). Para trocar, gere de novo na mesma ordem e rode `python scripts/cut-card-frames.py <imagem> public/assets/sprites/cards`. O script acha as 5 sozinho, reduz todas na mesma escala e centra pela janela, então o texto do jogo continua caindo no lugar. As posições do texto ficam em `UpgradeScene.createCard`; a raridade de cada carta, em `UpgradeCatalog.ts` (`rarity`); moldura, nome e cor de cada raridade, em `CARD_RARITY_THEME` (`theme.ts`).
+
+---
+
+## 20. Folha dos 5 pets dos talismãs (de lado, andar em 2 quadros)
+
+Hoje os pets usam o sprite dos inimigos encolhido (morcego, slime, cão zumbi), e o jogador confunde aliado com monstro. Esta folha dá a cada pet uma cara própria de **aliado**: coleira ou marca dourada, olhos violeta, nada de vermelho-sangue.
+
+**Uma direção só:** todos de perfil, virados para a **direita**. A esquerda o jogo faz espelhando.
+
+**Grade:** 5 linhas (um pet por linha) e 2 colunas (passo A e passo B). Feito no ChatGPT, que já entrega fundo transparente. Se já houver uma versão anterior da folha, **anexe a imagem como referência** para manter o mesmo desenho dos pets.
+
+```text
+Create ONE image: a pixel art sprite sheet of 5 pet companions for a dark gothic 16-bit
+survival game. TRANSPARENT BACKGROUND (no color, no checkerboard, no floor, no shadow shapes
+except the small oval ground shadow under each pet).
+If an image is attached, keep EXACTLY the same 5 character designs, colors and collars from
+it; only change the camera angle and poses as described below.
+
+LAYOUT: portrait canvas 1024x1536. Grid of exactly 5 ROWS x 2 COLUMNS of equal cells
+(512 wide x 307 tall), no grid lines. One ROW = one pet. Column 1 = walk frame A,
+column 2 = walk frame B. Each sprite centered in its cell, all feet on the same baseline
+(about 85% down the cell), generous empty margin, nothing touches or crosses another cell.
+
+CAMERA: every pet in pure SIDE VIEW (profile), facing and walking to the RIGHT, slight
+top-down tilt like a 16-bit action RPG. All 10 sprites face RIGHT. Never front or back view.
+
+ANIMATION: frames A and B of the same pet are identical in size, colors, outline and
+position; only legs, wings and body bounce change, so A-B-A-B loops as a smooth walk.
+
+STYLE: 16-bit pixel art, hand-placed pixels, crisp hard edges, NO anti-aliasing, NO blur,
+same chunky pixel density for all 5 pets, hard 1-pixel near-black outline (#12020a),
+upper-left light, subtle violet rim light (#c77dff). Friendly ALLIED familiars of a demon
+heroine, cute-but-infernal, readable silhouettes, eyes glowing violet (never red), each with
+an antique gold (#f3d17a) collar with a small violet gem. Palette: deep violet (#4b1673,
+#7b2cbf, #9b5de5), antique gold, bone white (#efe6d8), near-black purple (#1a0a1f), ember
+orange only inside mouths. No blood red on the bodies.
+
+RELATIVE SIZE (same pixel density; the Shadow Twin is the size reference, filling about 85%
+of its cell height):
+ Row 1 - COLLECTOR BAT, small (about 35% of the Twin's height). Chubby dark violet bat with big
+   ears, gold collar, glowing violet soul orb held in its feet, seen from the side flying
+   right. Frame A wings raised up, frame B wings pushed down. It floats above its shadow.
+ Row 2 - HOPPING SLIME, small (about 30% of the Twin's height). Translucent violet jelly blob,
+   small bone skull inside, gold ring around it, two cute eyes on the right side of the body.
+   Frame A squashed wide and low on the ground, frame B stretched tall and leaning right.
+ Row 3 - GUARD HOUND, medium (about 50% of the Twin's height at the shoulder). Lean dark violet
+   hellhound pup, bone-white muzzle, chest and paws, small curved horns, glowing mouth, spiked
+   gold collar, tail up. Side-view trot: frame A front leg reaching forward and back leg
+   pushing back, frame B legs passing under the body.
+ Row 4 - CERBERUS PUP, medium-large (about 65% of the Twin's height at the shoulder). Same breed
+   and colors as the Guard Hound but bigger and stockier, THREE heads seen in profile, one
+   behind the other, staggered so all three snouts are visible pointing right; one gold
+   collar. Same trot as row 3.
+ Row 5 - SHADOW TWIN, a slim demon girl with small horns and long hair, whole body made of
+   dark violet shadow with lighter violet edges, glowing violet eye, shadow smoke wisps
+   trailing behind her, small gold rune on the chest. Profile walk to the right: frame A
+   front leg forward, frame B legs together mid-step, arms swinging.
+
+No text, labels, numbers, frames or backgrounds. Exactly 10 sprites, all facing right.
+```
+
+**Se o ChatGPT errar a grade ou virar algum pet de frente:** peça um pet por imagem (`canvas 1024x512, 1 row x 2 columns`), colando o bloco STYLE e a linha daquele pet.
+
+**Gêmea Sombria (linha 5):** se ficar estranha, eu uso o sprite da própria Nixy pintado de sombra no jogo e essa linha não faz falta.
+
+**Já gerado e no jogo** (`art-source/novos/pets-talismas.jpg`, feito no Gemini com fundo verde `#00FF00` e borda branca fina). Para trocar, gere de novo na mesma ordem (morcego, slime, cão, cérbero, gêmea; passo A à esquerda) e rode `python scripts/cut-pets.py <imagem> public/assets/sprites/pets`. O script tira o verde, acha as 5 linhas pelos espaços vazios e salva `pet-<nome>-0/1.png` no tamanho final; as alturas de cada pet ficam no topo do script. O contorno branco de 1 pixel em volta vem do código (`BasePet`).
+

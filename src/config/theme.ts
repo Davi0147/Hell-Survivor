@@ -544,7 +544,6 @@ export const TALISMAN_THEME = {
   edgeBadge: 0x1f0a2b,
   edgeText: '#ffd700',
   petOutline: 0xffffff,
-  twinTint: 0x7c3aed,
   fx: {
     spark: 0x7df9ff,
     sparkCore: 0xffffff,

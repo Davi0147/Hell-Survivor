@@ -106,8 +106,8 @@ export class TalismanSystem {
     switch (id) {
       case 'pet_bat': return new BatPet(c);
       case 'pet_slime': return new SlimePet(c);
-      case 'pet_hound': return new HoundPet(c, TALISMAN_BALANCE.pets.hound);
-      case 'pet_cerberus': return new HoundPet(c, TALISMAN_BALANCE.pets.cerberus);
+      case 'pet_hound': return new HoundPet(c, TALISMAN_BALANCE.pets.hound, 'hound');
+      case 'pet_cerberus': return new HoundPet(c, TALISMAN_BALANCE.pets.cerberus, 'cerberus');
       case 'pet_twin': return new ShadowTwinPet(c);
       case 'wpn_chain_spark': return new ChainSparkWeapon(c);
       case 'wpn_bone_spikes': return new BoneSpikesWeapon(c);

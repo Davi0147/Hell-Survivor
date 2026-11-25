@@ -1,36 +1,29 @@
 import Phaser from 'phaser';
 import { TALISMAN_BALANCE } from '../../../config/balance';
 import { TALISMAN_THEME } from '../../../config/theme';
+import type { PetSprite } from '../../../systems/TalismanCatalog';
 import type { ITalismanContext, TalismanEffect } from '../talismanContext';
-
-/** Animações do pet: `<run>-<direção>` e `<idle>-<direção>`. */
-export interface PetAnimSet {
-  run: string;
-  idle: string;
-  /** A animação de corrida só existe nas 4 direções principais. */
-  runCardinalOnly: boolean;
-}
 
 const OUTLINE_OFFSETS: ReadonlyArray<[number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 const PET_DEPTH = 21;
 
 /**
- * Base dos pets: sprite com contorno branco (para não se confundir com os monstros),
- * caminhada até um ponto e escolha da animação pela direção.
+ * Base dos pets: sprite de lado com contorno branco (para não se confundir com os monstros),
+ * caminhada até um ponto e virada para o lado em que anda.
+ * A arte é desenhada virada para a direita; para a esquerda o sprite é espelhado.
  * O contorno são 4 cópias do sprite pintadas de branco, 1 pixel para cada lado, atrás dele.
  */
 export abstract class BasePet implements TalismanEffect {
   protected readonly sprite: Phaser.GameObjects.Sprite;
   private readonly outline: Phaser.GameObjects.Sprite[] = [];
-  private facing = 'south';
 
   constructor(
     protected readonly ctx: ITalismanContext,
-    private readonly anims: PetAnimSet,
+    private readonly pet: PetSprite,
     scale: number
   ) {
     const { scene, player } = ctx;
-    const startKey = `${anims.idle}-south`;
+    const startKey = `pet-${pet}-0`;
     this.sprite = scene.add.sprite(player.x, player.y + 20, startKey);
     this.sprite.setScale(scale).setDepth(PET_DEPTH);
     for (let i = 0; i < OUTLINE_OFFSETS.length; i++) {
@@ -38,7 +31,7 @@ export abstract class BasePet implements TalismanEffect {
       o.setScale(scale).setDepth(PET_DEPTH - 0.1).setTintFill(TALISMAN_THEME.petOutline);
       this.outline.push(o);
     }
-    this.playAnim(false, 0, 1);
+    this.playAnim(false, 0);
     this.syncOutline();
   }
 
@@ -74,7 +67,7 @@ export abstract class BasePet implements TalismanEffect {
     const dy = ty - this.y;
     const dist = Math.hypot(dx, dy);
     if (dist <= stopAt) {
-      this.playAnim(false, dx, dy);
+      this.playAnim(false, dx);
       return true;
     }
     // Muito longe (heroína correu ou teleportou): acelera para não ficar para trás
@@ -82,27 +75,28 @@ export abstract class BasePet implements TalismanEffect {
     const step = Math.min(dist - stopAt, speed * boost * (deltaMs / 1000));
     this.sprite.x += (dx / dist) * step;
     this.sprite.y += (dy / dist) * step;
-    this.playAnim(true, dx, dy);
+    this.playAnim(true, dx);
     return false;
   }
 
   /** Coloca o pet direto num ponto (pulos e órbitas). */
-  protected placeAt(x: number, y: number, moving: boolean, dx: number, dy: number): void {
+  protected placeAt(x: number, y: number, moving: boolean, dx: number): void {
     this.sprite.setPosition(x, y);
-    this.playAnim(moving, dx, dy);
+    this.playAnim(moving, dx);
   }
 
-  protected playAnim(moving: boolean, dx: number, dy: number): void {
-    if (dx !== 0 || dy !== 0) this.facing = this.directionOf(dx, dy, moving && this.anims.runCardinalOnly);
-    const key = `${moving ? this.anims.run : this.anims.idle}-${this.facing}`;
-    const fallback = `${this.anims.idle}-south`;
-    const animKey = this.sprite.scene.anims.exists(key) ? key : fallback;
-    if (this.sprite.anims.currentAnim?.key !== animKey && this.sprite.scene.anims.exists(animKey)) {
-      this.sprite.play(animKey, true);
+  /** Anda ou fica parado e vira para o lado do movimento (só o horizontal decide). */
+  protected playAnim(moving: boolean, dx: number): void {
+    // Uma folga de 0,5 px evita o pet ficar virando de um lado para o outro quando quase parado
+    if (dx > 0.5) this.sprite.setFlipX(false);
+    else if (dx < -0.5) this.sprite.setFlipX(true);
+    const key = `pet-${this.pet}-${moving ? 'walk' : 'idle'}`;
+    if (this.sprite.anims.currentAnim?.key !== key && this.sprite.scene.anims.exists(key)) {
+      this.sprite.play(key, true);
     }
   }
 
-  /** Chamar ao fim de `update` para o contorno seguir o quadro e a posição. */
+  /** Chamar ao fim de `update` para o contorno seguir o quadro, o lado e a posição. */
   protected syncOutline(): void {
     const s = this.sprite;
     for (let i = 0; i < this.outline.length; i++) {
@@ -110,20 +104,10 @@ export abstract class BasePet implements TalismanEffect {
       const [ox, oy] = OUTLINE_OFFSETS[i];
       o.setPosition(s.x + ox, s.y + oy);
       o.setScale(s.scaleX, s.scaleY);
+      o.setFlipX(s.flipX);
       o.setAlpha(s.alpha);
       o.setVisible(s.visible);
       if (o.texture.key !== s.texture.key || o.frame.name !== s.frame.name) o.setTexture(s.texture.key, s.frame.name);
     }
-  }
-
-  private directionOf(dx: number, dy: number, cardinalOnly: boolean): string {
-    if (cardinalOnly) {
-      if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'east' : 'west';
-      return dy > 0 ? 'south' : 'north';
-    }
-    const dirs = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
-    const a = Math.atan2(dy, dx);
-    const idx = (Math.round(a / (Math.PI / 4)) + 8) % 8;
-    return dirs[idx];
   }
 }

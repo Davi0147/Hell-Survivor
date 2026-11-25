@@ -23,6 +23,10 @@ export type TalismanId =
   | 'act_blood_heart'
   | 'act_meteor_rain';
 
+/** Sprites dos pets (`pet-<nome>-0/1`, de lado, virados para a direita). */
+export const PET_SPRITES = ['bat', 'slime', 'hound', 'cerberus', 'twin'] as const;
+export type PetSprite = (typeof PET_SPRITES)[number];
+
 export interface TalismanDef {
   id: TalismanId;
   rarity: TalismanRarity;
@@ -38,23 +42,23 @@ export interface TalismanDef {
  * Números em `TALISMAN_BALANCE` (src/config/balance.ts).
  */
 export const TALISMAN_CATALOG: readonly TalismanDef[] = [
-  { id: 'pet_bat', rarity: 'common', kind: 'pet', name: 'MORCEGO COLETOR', icon: 'blood-bat-idle-south',
+  { id: 'pet_bat', rarity: 'common', kind: 'pet', name: 'MORCEGO COLETOR', icon: 'pet-bat-0',
     description: 'Voa ao seu redor, puxa as gemas de perto e bica os monstros.' },
   { id: 'wpn_chain_spark', rarity: 'common', kind: 'weapon', name: 'FAÍSCA ENCADEADA', icon: 'soul-shoot',
     description: 'Um raio acerta o monstro mais perto e pula para mais 3.' },
-  { id: 'pet_slime', rarity: 'uncommon', kind: 'pet', name: 'SLIME SALTADOR', icon: 'skull-slime-idle-south',
+  { id: 'pet_slime', rarity: 'uncommon', kind: 'pet', name: 'SLIME SALTADOR', icon: 'pet-slime-0',
     description: 'Pula em cima dos monstros e esmaga tudo em volta ao cair.' },
   { id: 'wpn_bone_spikes', rarity: 'uncommon', kind: 'weapon', name: 'ESPINHOS DE OSSO', icon: 'blood-dagger',
     description: 'Espinhos brotam do chão embaixo de 3 monstros de uma vez.' },
-  { id: 'pet_hound', rarity: 'rare', kind: 'pet', name: 'CÃO DE GUARDA', icon: 'zombie-dog-idle-south',
+  { id: 'pet_hound', rarity: 'rare', kind: 'pet', name: 'CÃO DE GUARDA', icon: 'pet-hound-0',
     description: 'Corre atrás dos monstros perto de você e morde sem parar.' },
   { id: 'wpn_frost_ring', rarity: 'rare', kind: 'weapon', name: 'ANEL DE GELO NEGRO', icon: 'void-scythe',
     description: 'Uma onda de gelo congela os monstros ao seu redor por um instante.' },
-  { id: 'pet_cerberus', rarity: 'epic', kind: 'pet', name: 'CÉRBERO FILHOTE', icon: 'zombie-dog-idle-south',
+  { id: 'pet_cerberus', rarity: 'epic', kind: 'pet', name: 'CÉRBERO FILHOTE', icon: 'pet-cerberus-0',
     description: 'Três cabeças: morde até 3 monstros de uma vez e os atordoa.' },
   { id: 'wpn_abyss_eye', rarity: 'epic', kind: 'weapon', name: 'OLHO DO ABISMO', icon: 'apocalypse-shoot',
     description: 'Um raio gira sem parar ao seu redor queimando quem tocar.' },
-  { id: 'pet_twin', rarity: 'legendary', kind: 'pet', name: 'GÊMEA SOMBRIA', icon: 'nixy-idle-south',
+  { id: 'pet_twin', rarity: 'legendary', kind: 'pet', name: 'GÊMEA SOMBRIA', icon: 'pet-twin-0',
     description: 'Uma sombra sua anda ao seu lado e copia os seus disparos.' },
   { id: 'wpn_hell_pillar', rarity: 'legendary', kind: 'weapon', name: 'PILAR DO INFERNO', icon: 'infernal-meteor',
     description: 'Colunas de fogo caem nos monstros mais fortes da tela.' },

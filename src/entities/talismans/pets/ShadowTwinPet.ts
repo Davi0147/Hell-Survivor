@@ -1,5 +1,4 @@
 import { TALISMAN_BALANCE, BALANCE } from '../../../config/balance';
-import { TALISMAN_THEME } from '../../../config/theme';
 import { SoulBoltWeapon } from '../../weapons/SoulBoltWeapon';
 import { BasePet } from './BasePet';
 import type { ITalismanContext } from '../talismanContext';
@@ -13,10 +12,9 @@ export class ShadowTwinPet extends BasePet {
 
   constructor(ctx: ITalismanContext) {
     const cfg = TALISMAN_BALANCE.pets.twin;
-    const prefix = ctx.player.characterId;
-    super(ctx, { run: `${prefix}-run`, idle: `${prefix}-idle`, runCardinalOnly: false }, cfg.scale);
-    // Mesmo tamanho da heroína; logo abaixo dela na ordem de desenho
-    this.sprite.setTint(TALISMAN_THEME.twinTint).setAlpha(cfg.alpha).setScale(ctx.player.scaleX * cfg.scale);
+    super(ctx, 'twin', cfg.scale);
+    // A arte já é a sombra (não pinta por cima); logo abaixo da heroína na ordem de desenho
+    this.sprite.setAlpha(cfg.alpha);
     this.sprite.setDepth(ctx.player.depth - 1);
 
     this.weapon = new SoulBoltWeapon(ctx.scene, ctx.player);

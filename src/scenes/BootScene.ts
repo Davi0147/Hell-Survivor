@@ -2,7 +2,8 @@ import { ensurePlaceholderItemTextures } from '../systems/PlaceholderItemTexture
 import { GAME_ICON_KEYS, GAME_ICON_FOLDERS } from '../config/iconKeys';
 import { CH1_DECOR_FILES } from '../config/sceneryCatalog';
 import Phaser from 'phaser';
-import { DIRECTIONS_8, ENEMY_BALANCE } from '../config/balance';
+import { DIRECTIONS_8, ENEMY_BALANCE, TALISMAN_BALANCE } from '../config/balance';
+import { PET_SPRITES } from '../systems/TalismanCatalog';
 import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
@@ -387,6 +388,14 @@ export class BootScene extends Phaser.Scene {
       }
     }
 
+    // 14.0.1. Pets dos talismãs: de lado (virados para a direita), 2 quadros de andar.
+    // Recortados de art-source/novos/pets-talismas.jpg por scripts/cut-pets.py.
+    for (const pet of PET_SPRITES) {
+      for (let i = 0; i < 2; i++) {
+        this.load.image(`pet-${pet}-${i}`, `assets/sprites/pets/pet-${pet}-${i}.png?t=${cacheBuster}`);
+      }
+    }
+
     // 14.1. Carregar sprites da Múmia (Idle nos 8 ângulos e caminhada em 4 eixos x 9 frames)
     for (const dir of DIRECTIONS_8) {
       this.load.image(
@@ -718,6 +727,19 @@ export class BootScene extends Phaser.Scene {
         frameRate: 1,
         repeat: -1
       });
+    }
+
+    // Pets dos talismãs: andar alterna os 2 quadros; parado fica no primeiro
+    for (const pet of PET_SPRITES) {
+      if (this.anims.exists(`pet-${pet}-walk`)) this.anims.remove(`pet-${pet}-walk`);
+      if (this.anims.exists(`pet-${pet}-idle`)) this.anims.remove(`pet-${pet}-idle`);
+      this.anims.create({
+        key: `pet-${pet}-walk`,
+        frames: [{ key: `pet-${pet}-0` }, { key: `pet-${pet}-1` }],
+        frameRate: TALISMAN_BALANCE.pets.walkFps[pet],
+        repeat: -1
+      });
+      this.anims.create({ key: `pet-${pet}-idle`, frames: [{ key: `pet-${pet}-0` }], frameRate: 1, repeat: -1 });
     }
 
     // Registrar animações da Múmia (9 frames de caminhada arrastada e 8 direções de idle)

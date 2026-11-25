@@ -14,8 +14,8 @@ export class HoundPet extends BasePet {
   private biteTimer = 0;
   private seekTimer = 0;
 
-  constructor(ctx: ITalismanContext, private readonly cfg: HoundConfig) {
-    super(ctx, { run: 'zombie-dog-run', idle: 'zombie-dog-idle', runCardinalOnly: true }, cfg.scale);
+  constructor(ctx: ITalismanContext, private readonly cfg: HoundConfig, pet: 'hound' | 'cerberus') {
+    super(ctx, pet, cfg.scale);
   }
 
   public update(deltaMs: number): void {

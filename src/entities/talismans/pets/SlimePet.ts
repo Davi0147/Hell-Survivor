@@ -13,7 +13,7 @@ export class SlimePet extends BasePet {
 
   constructor(ctx: ITalismanContext) {
     const scale = TALISMAN_BALANCE.pets.slime.scale;
-    super(ctx, { run: 'skull-slime-run', idle: 'skull-slime-idle', runCardinalOnly: true }, scale);
+    super(ctx, 'slime', scale);
     this.baseScale = scale;
   }
 
@@ -45,7 +45,7 @@ export class SlimePet extends BasePet {
     const arc = Math.sin(j.t * Math.PI);
     const x = Phaser.Math.Linear(j.fromX, j.toX, j.t);
     const y = Phaser.Math.Linear(j.fromY, j.toY, j.t) - arc * 46;
-    this.placeAt(x, y, true, j.toX - j.fromX, j.toY - j.fromY);
+    this.placeAt(x, y, true, j.toX - j.fromX);
     this.sprite.setScale(this.baseScale * (1 + arc * 0.35));
     if (j.t >= 1) {
       this.sprite.setScale(this.baseScale);
