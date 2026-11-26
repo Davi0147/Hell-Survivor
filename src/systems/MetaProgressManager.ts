@@ -5,6 +5,7 @@
  */
 
 import { STORAGE_KEYS } from '../config/storageKeys';
+import { improvesBestTime, type ChapterRecord } from './chapterProgress';
 
 export type BlessingId = 'vitality' | 'might' | 'magnetism' | 'agility' | 'reroll' | 'revival';
 
@@ -32,6 +33,32 @@ export interface MetaSaveData {
     /** Maior sequência de abates já feita numa partida. */
     bestCombo: number;
   };
+  /** Modo História: capítulos vencidos e melhor tempo de cada um (chave = número do capítulo). */
+  chapters: Record<number, ChapterRecord>;
+}
+
+/**
+ * Save antigo (versão 1) não sabia quais capítulos foram vencidos: o Capítulo 2 era livre.
+ * Para ninguém perder o que já jogava, conta o 1 como vencido se já derrotou algum chefe ou
+ * já morreu para o Azazel (só existe no Capítulo 2). Sem tempo (não havia registro).
+ */
+export function migrateChapterRecords(stats: { bossesDefeated: number; bossDeaths: Record<string, number> }): Record<number, ChapterRecord> {
+  const reachedChapter2 = stats.bossesDefeated > 0 || (stats.bossDeaths.azazel ?? 0) > 0;
+  return reachedChapter2 ? { 1: { completed: true, bestTimeSec: 0 } } : {};
+}
+
+/** Lê o mapa de capítulos de um save, descartando o que estiver estragado. */
+export function sanitizeChapterRecords(raw: unknown): Record<number, ChapterRecord> {
+  const out: Record<number, ChapterRecord> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const n = Number(key);
+    if (!Number.isInteger(n) || n < 1 || n > 99 || !value || typeof value !== 'object') continue;
+    const v = value as { completed?: unknown; bestTimeSec?: unknown };
+    const best = typeof v.bestTimeSec === 'number' && isFinite(v.bestTimeSec) && v.bestTimeSec > 0 ? Math.floor(v.bestTimeSec) : 0;
+    out[n] = { completed: v.completed === true, bestTimeSec: best };
+  }
+  return out;
 }
 
 export const BLESSINGS_CATALOG: Record<BlessingId, BlessingConfig> = {
@@ -89,7 +116,8 @@ export class MetaProgressManager {
   private static instance: MetaProgressManager;
   private readonly STORAGE_KEY = STORAGE_KEYS.META_SAVE;
   private readonly BACKUP_STORAGE_KEY = STORAGE_KEYS.META_SAVE_BACKUP;
-  public static readonly CURRENT_SAVE_VERSION = 1;
+  /** 2: capítulos vencidos e melhor tempo (`chapters`). */
+  public static readonly CURRENT_SAVE_VERSION = 2;
 
   private data: MetaSaveData;
   public runSoulsCollected: number = 0;
@@ -285,6 +313,26 @@ export class MetaProgressManager {
   }
 
   // =========================================================================
+  // CAPÍTULOS (MODO HISTÓRIA)
+  // =========================================================================
+
+  /** Venceu o chefe do capítulo: libera o próximo e guarda o tempo se for recorde. */
+  public recordChapterCompleted(chapter: number, timeSec: number): { newRecord: boolean } {
+    const prev = this.data.chapters[chapter] ?? { completed: false, bestTimeSec: 0 };
+    const newRecord = improvesBestTime(prev.bestTimeSec, timeSec);
+    this.data.chapters[chapter] = {
+      completed: true,
+      bestTimeSec: newRecord ? Math.floor(timeSec) : prev.bestTimeSec,
+    };
+    this.save();
+    return { newRecord };
+  }
+
+  public getChapterRecords(): Readonly<Record<number, ChapterRecord>> {
+    return { ...this.data.chapters };
+  }
+
+  // =========================================================================
   // PERSISTÊNCIA (LOCALSTORAGE)
   // =========================================================================
 
@@ -319,7 +367,8 @@ export class MetaProgressManager {
         storyDeathCount: 0,
         bossDeaths: {},
         bestCombo: 0
-      }
+      },
+      chapters: {}
     };
 
     try {
@@ -328,9 +377,9 @@ export class MetaProgressManager {
         if (raw) {
           const parsed = JSON.parse(raw);
 
-          // Antes de migrar save legado (sem saveVersion), salva cópia de segurança
+          // Antes de migrar save legado (sem saveVersion) ou de versão antiga, salva cópia de segurança
           const isLegacy = typeof parsed.saveVersion !== 'number';
-          if (isLegacy) {
+          if (isLegacy || parsed.saveVersion < MetaProgressManager.CURRENT_SAVE_VERSION) {
             try {
               window.localStorage.setItem(this.BACKUP_STORAGE_KEY, raw);
             } catch (err) {
@@ -365,24 +414,28 @@ export class MetaProgressManager {
             }
           }
 
+          const stats = {
+            totalKills: sanitizeNum(rawStats.totalKills, 0),
+            totalRuns: sanitizeNum(rawStats.totalRuns, 0),
+            highestEndlessTimeSec: sanitizeNum(rawStats.highestEndlessTimeSec, 0),
+            bossesDefeated: sanitizeNum(rawStats.bossesDefeated, 0),
+            totalSoulsCollected: sanitizeNum(rawStats.totalSoulsCollected, 0),
+            storyDeathCount: sanitizeNum(rawStats.storyDeathCount, 0),
+            bossDeaths: sanitizedBossDeaths,
+            bestCombo: sanitizeNum(rawStats.bestCombo, 0)
+          };
+          // Versão 1 (ou legado) não tinha capítulos: deduz do que já foi jogado
+          const isBeforeChapters = isLegacy || parsed.saveVersion < 2;
           const migratedData: MetaSaveData = {
             saveVersion: MetaProgressManager.CURRENT_SAVE_VERSION,
             corruptedSouls: sanitizeNum(parsed.corruptedSouls, 0),
             blessings: sanitizedBlessings,
-            stats: {
-              totalKills: sanitizeNum(rawStats.totalKills, 0),
-              totalRuns: sanitizeNum(rawStats.totalRuns, 0),
-              highestEndlessTimeSec: sanitizeNum(rawStats.highestEndlessTimeSec, 0),
-              bossesDefeated: sanitizeNum(rawStats.bossesDefeated, 0),
-              totalSoulsCollected: sanitizeNum(rawStats.totalSoulsCollected, 0),
-              storyDeathCount: sanitizeNum(rawStats.storyDeathCount, 0),
-              bossDeaths: sanitizedBossDeaths,
-              bestCombo: sanitizeNum(rawStats.bestCombo, 0)
-            }
+            stats,
+            chapters: isBeforeChapters ? migrateChapterRecords(stats) : sanitizeChapterRecords(parsed.chapters)
           };
 
-          // Se migrou de save legado, persiste o formato com saveVersion atualizado
-          if (isLegacy) {
+          // Se migrou de save legado ou da versão 1, persiste o formato com saveVersion atualizado
+          if (isBeforeChapters) {
             try {
               window.localStorage.setItem(this.STORAGE_KEY, JSON.stringify(migratedData));
             } catch (err) {

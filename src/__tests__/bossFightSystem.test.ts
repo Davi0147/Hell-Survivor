@@ -125,7 +125,7 @@ const sound = {
 vi.mock('../systems/SoundManager', () => ({ SoundManager: { getInstance: () => sound } }));
 vi.mock('../systems/DebugSessionLogger', () => ({ DebugSessionLogger: { getInstance: () => ({ log: vi.fn() }) } }));
 
-const meta = { getDeathsToBoss: vi.fn(() => 0), collectRunSoul: vi.fn() };
+const meta = { getDeathsToBoss: vi.fn(() => 0), collectRunSoul: vi.fn(), recordChapterCompleted: vi.fn(() => ({ newRecord: true })) };
 vi.mock('../systems/MetaProgressManager', () => ({ MetaProgressManager: { getInstance: () => meta } }));
 vi.mock('../config/mapData', () => ({ MapStorageManager: { getActiveMap: () => ({}) } }));
 vi.mock('../config/dialogues', () => ({
@@ -323,6 +323,8 @@ describe('BossFightSystem', () => {
       (ctx.bossInstance as unknown as { emit(e: string): void }).emit('boss-defeated');
       expect(ctx.isChapterCompleted).toBe(true);
       expect(meta.collectRunSoul).toHaveBeenCalledTimes(1);
+      // Libera o Capítulo 2 e guarda o tempo da vitória
+      expect(meta.recordChapterCompleted).toHaveBeenCalledWith(1, Math.floor(ctx.survivalTimeMs / 1000));
     });
 
     it('derrota no Modo de Teste solta o prêmio e a partida continua', () => {

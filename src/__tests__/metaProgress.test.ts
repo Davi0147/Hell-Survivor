@@ -217,7 +217,7 @@ describe('MetaProgressManager (Lógica Pura de Meta-Progressão e Economia)', ()
   });
 
   describe('Migração com Backup e Sanitização de Save', () => {
-    it('save legado sem saveVersion é migrado com backup automático prévio e campo saveVersion: 1', async () => {
+    it('save legado sem saveVersion é migrado com backup automático prévio e saveVersion atual', async () => {
       const legacySave = {
         corruptedSouls: 75,
         blessings: { vitality: 2, might: 1 },
@@ -238,10 +238,32 @@ describe('MetaProgressManager (Lógica Pura de Meta-Progressão e Economia)', ()
       expect(backupRaw).not.toBeNull();
       expect(JSON.parse(backupRaw!).corruptedSouls).toBe(75);
 
-      // Save ativo no storage foi persistido com saveVersion: 1
+      // Save ativo no storage foi persistido na versão atual (2: com capítulos)
       const activeRaw = memoryStorage.getItem('hell_survivor_meta_save_v1');
       expect(activeRaw).not.toBeNull();
-      expect(JSON.parse(activeRaw!).saveVersion).toBe(1);
+      expect(JSON.parse(activeRaw!).saveVersion).toBe(2);
+      expect(JSON.parse(activeRaw!).chapters).toEqual({});
+    });
+
+    it('save da versão 1 de quem já venceu um chefe vira versão 2 com o Capítulo 2 liberado (e backup)', async () => {
+      const v1 = { saveVersion: 1, corruptedSouls: 10, blessings: {}, stats: { bossesDefeated: 2, totalRuns: 9 } };
+      memoryStorage.setItem('hell_survivor_meta_save_v1', JSON.stringify(v1));
+
+      const manager = await getFreshManager();
+
+      expect(manager.getChapterRecords()[1]?.completed).toBe(true);
+      expect(JSON.parse(memoryStorage.getItem('hell_survivor_meta_save_v1')!).saveVersion).toBe(2);
+      expect(JSON.parse(memoryStorage.getItem('hell_survivor_meta_save_v1_backup')!).saveVersion).toBe(1);
+    });
+
+    it('vencer um capítulo libera o próximo e guarda só o menor tempo', async () => {
+      const manager = await getFreshManager();
+      expect(manager.recordChapterCompleted(1, 700).newRecord).toBe(true);
+      expect(manager.recordChapterCompleted(1, 800).newRecord).toBe(false);
+      expect(manager.recordChapterCompleted(1, 650).newRecord).toBe(true);
+      expect(manager.getChapterRecords()[1]).toEqual({ completed: true, bestTimeSec: 650 });
+      const saved = JSON.parse(memoryStorage.getItem('hell_survivor_meta_save_v1')!);
+      expect(saved.chapters['1']).toEqual({ completed: true, bestTimeSec: 650 });
     });
 
     it('sanitiza valores corrompidos (NaN, negativos, tipos inválidos) revertendo para zero', async () => {

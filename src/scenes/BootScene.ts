@@ -8,7 +8,8 @@ import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
 import { InputDeviceTracker } from '../systems/InputDeviceTracker';
-import { CARD_FRAME_KEYS, TALISMAN_THEME } from '../config/theme';
+import { CARD_FRAME_KEYS, CHAPTER_UI_PIECES, TALISMAN_THEME, chapterUiKey } from '../config/theme';
+import { CHAPTERS } from '../config/chapterCatalog';
 
 /** Arquivos em public/assets/sprites/enemies/Azazel/Projectiles (texturas `azazel-proj-<nome>`). */
 const AZAZEL_PROJECTILE_ART = ['comet', 'orb-glossy', 'orb-spiral', 'needle'] as const;
@@ -408,6 +409,14 @@ export class BootScene extends Phaser.Scene {
       for (const key of [look.art, look.openArt]) {
         this.load.image(key, `assets/sprites/talismans/${key}.png?t=${cacheBuster}`);
       }
+    }
+    // Arte de fundo de cada capítulo (tela de escolha); sem arquivo, a tela usa o sprite do chefe
+    for (const c of CHAPTERS) {
+      if (c.art) this.load.image(`chapter-art-${c.number}`, `assets/sprites/chapters/${c.art}?t=${cacheBuster}`);
+    }
+    // Molduras, placas, cadeado... da tela de capítulos (scripts/cut-chapter-ui.py)
+    for (const piece of CHAPTER_UI_PIECES) {
+      this.load.image(chapterUiKey(piece), `assets/sprites/chapters/ui/${piece}.png?t=${cacheBuster}`);
     }
     for (const def of TALISMAN_CATALOG) {
       this.load.image(def.icon, `assets/sprites/talismans/${def.icon.replace('talisman-', '')}.png?t=${cacheBuster}`);

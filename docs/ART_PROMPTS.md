@@ -1451,3 +1451,124 @@ No text, letters, numbers, labels or borders. Exactly 10 sprites in the 2 x 5 gr
 **Depois de gerar:** salve como `art-source/novos/talisma-evolucao.png` (ou `.jpg`) e me avise.
 
 **Já gerado e no jogo** (`art-source/novos/talisma-evolucao.jpg`, fundo magenta). Para trocar, gere de novo na mesma ordem e rode `python -I scripts/cut-talismans.py` (recorta esta folha e a dos ícones).
+
+---
+
+## 24. Tela de escolha de capítulo (10 painéis lado a lado)
+
+A tela nova já está no jogo. Arte de fundo: Capítulos I e II prontos. Molduras e peças ainda desenhadas por código. São duas coisas para gerar:
+
+- **A) A arte de fundo de cada capítulo** (você faz, uma por capítulo).
+- **B) Uma folha de peças da interface** (moldura, cadeado, selo, placa do tempo), para trocar o que hoje é desenhado por código.
+
+### A) Arte de fundo de cada capítulo
+
+**Como a tela usa:** o painel aberto mostra a imagem inteira (cerca de 430 x 470 na tela); fechado, mostra só uma **faixa vertical do meio** (uns 18% da largura). Então:
+
+- **Tamanho:** paisagem 16:9, como as dos Capítulos I e II (2000 x 1116 funciona bem). O jogo usa a mesma imagem no fundo da tela inteira e recortada dentro do painel.
+- **O rosto e o tronco do chefe ficam na faixa central** (o meio da imagem, de cima a baixo). É o que aparece com o painel fechado.
+- **Topo (10%) escuro e limpo:** ali entra o "CAPÍTULO II".
+- **Metade de baixo mais escura e com menos detalhe:** ali entram nome, chefe, resumo e melhor tempo por cima.
+- Sem texto, sem moldura (a moldura é da tela), fundo pintado (não transparente).
+- Salve em `art-source/novos/capitulos/capitulo-01.png` ... `capitulo-10.png` (o número com 2 dígitos).
+
+Prompt (troque o trecho em MAIÚSCULAS pelo chefe do capítulo):
+
+```text
+Pixel art key art for a chapter select screen of a dark gothic 16-bit survival game set in hell.
+LANDSCAPE canvas 2000x1116 (16:9). One boss character, dramatic and menacing, shown from the waist or
+knees up, facing the viewer, centered horizontally.
+
+COMPOSITION (strict, the game crops this image):
+- The boss's head and chest sit exactly in the MIDDLE VERTICAL STRIP of the image (the central
+  20% of the width), between 15% and 55% of the height. Wings, arms, weapons and hair may spread
+  to the sides, but the face is never off-center.
+- Top 10% of the image: dark and empty (only sky / smoke / ceiling).
+- Bottom 45%: darker and calmer (shadowed floor, fog, the lower body fading into darkness), with
+  no bright details, because text is printed over it.
+- Strong rim light from behind the boss in the chapter's signature color, dark vignette in the
+  corners, a few floating embers or particles.
+
+BOSS: DESCRIBE THE BOSS HERE (example: "Empress Rosalin, a succubus queen with long silver-violet
+hair, curved horns, large bat wings in deep crimson, black and violet outfit, confident smirk,
+pink-crimson rim light, gothic catacomb pillars behind her").
+
+STYLE: 16-bit pixel art, hand-placed pixels, big readable pixels, crisp hard edges, NO
+anti-aliasing, NO blur, NO soft airbrush gradients (use dithering and stepped shading instead),
+limited palette: crimson (#ff0055), deep violet (#4b1673, #7b2cbf, #9b5de5), antique gold
+(#f3d17a), bone white (#efe6d8), near-black purple (#12020a) and the chapter's accent color.
+Painted background (not transparent). No text, no letters, no logo, no frame, no border.
+```
+
+Exemplos de trecho do chefe para os dois capítulos que já existem:
+
+- **Capítulo I (Rosalin):** `Empress Rosalin, a succubus queen with long silver-violet hair, curved horns, large bat wings with crimson membranes, black and violet outfit, confident smirk, pink-crimson rim light, ruined gothic catacomb pillars and candles behind her`
+- **Capítulo II (Azazel):** `Azazel the fallen angel, tall and gaunt, pale skeletal face with a crown of black horns, tattered dark robes and broken black-feathered wings, glowing violet eyes, a giant skeletal hand raised, violet and teal rim light, floating skulls and a pitch-black void behind him`
+
+### B) Folha única com todas as peças da interface (16 peças)
+
+As artes de fundo de cada capítulo já estão no jogo (`capitulo-01.jpg` e `capitulo-02.jpg`, formato paisagem, chefe no meio). Esta folha troca **tudo** que hoje é desenhado por código: molduras, placas, cadeado, selo, botões, setas e o fundo dos capítulos que ainda não saíram.
+
+```text
+Create ONE image: a professional pixel art UI kit sheet for the CHAPTER SELECT screen of a dark
+gothic 16-bit survival game set in hell (same art direction as Castlevania / Blasphemous menus:
+ornate, heavy, carved iron and antique gold, demonic details). Landscape canvas 2400x1600.
+16 separate pieces in THREE ROWS. Every piece is separated from its neighbours by a WIDE empty gap
+(at least 80 px of background). Nothing touches, nothing overlaps. NO TEXT, NO LETTERS, NO NUMBERS
+anywhere: every plate and button is EMPTY (the game writes the text on top).
+
+=== ROW 1 (top, five TALL pieces, each 320 wide x 880 tall, side by side) ===
+ 1. PANEL FRAME - NORMAL: a tall vertical frame, ONLY THE BORDER is drawn, the whole inside is
+    EMPTY background green. Border 28 px thick: blackened iron with a deep violet (#4b1673) bevel and
+    a thin lighter violet (#9b5de5) inner line. The 4 CORNERS have gothic ornaments (thorn curls and a
+    tiny bat wing) that fit inside a 72x72 square at each corner. The 4 STRAIGHT EDGES between the
+    corners are plain and identical all along (they will be stretched), no ornament in the middle.
+ 2. PANEL FRAME - SELECTED: exactly the same shape and thickness as piece 1, but polished antique
+    gold (#f3d17a, #ffd60a) with small crimson (#ff0055) gems set in the 4 corner ornaments and a
+    short crimson glow line just outside the border. Inside EMPTY. Plain straight edges.
+ 3. PANEL FRAME - LOCKED: same shape and thickness as piece 1, but rusted grey iron, cold and dull,
+    with short broken chain links hanging from the 4 corners. Inside EMPTY. Plain straight edges.
+ 4. COMING SOON BACKGROUND: a fully painted (opaque) vertical panel 320x880: dark carved stone wall
+    of a hell cathedral, a large faint engraved demonic sigil in the middle, cracks with very dim
+    violet light, darker toward the bottom. No border (the frame goes on top).
+ 5. SEALED CHAINS: two heavy dark iron chains crossing in a big X from corner to corner of the
+    320x880 area, with a large demonic padlock where they cross (in the upper middle). Only the
+    chains and the padlock are drawn, the rest is background green.
+
+=== ROW 2 (middle, four WIDE plates, all EMPTY inside) ===
+ 6. SCREEN TITLE PLAQUE: wide ornate horizontal plaque 760x150, dark violet stone with an antique gold
+    border, a horned skull with small bat wings on top center, gothic points on the left and right
+    ends. Empty middle.
+ 7. CHAPTER HEADING RIBBON: horizontal banner 520x110, crimson cloth (#8a0f2e, #ff0055 highlights)
+    with folded ends and a thin gold trim; empty middle.
+ 8. BEST TIME PLATE: small horizontal plate 440x90, dark violet with thin gold border and a small gold
+    hourglass with red sand on its LEFT end; rest empty.
+ 9. TEXT PANEL: wide dark translucent-looking plate 500x260 (paint it as solid very dark violet
+    #12061b with a carved gothic gold top border and plain bottom), where the chapter summary sits.
+
+=== ROW 3 (bottom, seven SMALL pieces) ===
+10. BUTTON - NORMAL: hexagonal gothic button 380x100, dark violet with silver-violet border, empty.
+11. BUTTON - SELECTED: same button, gold border, inner crimson glow, empty.
+12. NUMERAL BADGE - UNLOCKED: small shield-shaped badge 130x130, antique gold border, dark crimson
+    center, empty (a roman numeral goes on it).
+13. NUMERAL BADGE - LOCKED: the same badge in dull grey iron with a dark grey center, empty.
+14. PADLOCK: large demonic padlock 170x190, front view, blackened iron, a glowing violet keyhole
+    shaped like an inverted drop, a small horned skull engraved on the body.
+15. CLEARED SEAL: round crimson wax seal 160x160 stamped with a horned skull, gold rim, one wax drip.
+16. ARROW: one ornate gold arrow pointing RIGHT, 90x130, gothic spear-tip shape with a small crimson
+    gem (the game mirrors it for left).
+
+STYLE (all pieces): 16-bit pixel art, hand-placed pixels, crisp hard edges, NO anti-aliasing,
+NO blur, NO soft gradients (use dithering and stepped shading), hard near-black outline (#12020a)
+around every piece, light from the upper left. Limited palette: deep violet (#4b1673, #7b2cbf,
+#9b5de5), antique gold (#f3d17a, #ffd60a), crimson (#8a0f2e, #ff0055), iron greys, bone white
+(#efe6d8), near-black purple (#12020a). All pieces share the same pixel size and the same light.
+
+BACKGROUND: fill the entire background with ONE solid flat color, pure chroma green RGB (0, 255, 0)
+/ #00FF00, perfectly uniform: no texture, no noise, no gradient, no shadow, no grid lines. Pure green
+must not appear anywhere on the pieces (the insides of the three frames are background green).
+```
+
+**Se o gerador errar a grade ou juntar peças:** peça uma linha por vez (`canvas 2400x1000, only ROW 1` / `canvas 2400x500, only ROW 2` / `canvas 2400x400, only ROW 3`), colando a linha pedida, STYLE e BACKGROUND.
+
+**Depois de gerar:** salve a folha como `art-source/novos/capitulos-ui.png` e as artes como `art-source/novos/capitulos/capitulo-NN.png`, e me avise. Eu recorto, troco as molduras desenhadas por código pelas peças (a moldura estica só pelas bordas retas) e ligo cada arte no seu capítulo em `src/config/chapterCatalog.ts`.

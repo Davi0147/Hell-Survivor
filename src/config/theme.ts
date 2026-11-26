@@ -371,6 +371,52 @@ export const CHAINS_THEME = {
   tartarus: { aura: 0x1fa85a, core: 0xb8ff6a },
 } as const;
 
+/**
+ * Tela de escolha de capítulo (painéis lado a lado que abrem no foco). Artes opcionais (seção 24
+ * do ART_PROMPTS): sem elas, molduras e cadeado são desenhados por código com estas cores.
+ */
+export const CHAPTER_SELECT_THEME = {
+  backdrop: 0x07020b,
+  backdropAlpha: 0.96,
+  /** Fundo do painel atrás da arte (e dos não lançados). */
+  panelFill: 0x12061b,
+  panelBorder: 0x4a2066,
+  panelBorderFocus: 0xffd60a,
+  panelGlowFocus: 0xff2a55,
+  panelHighlight: 0x6b2f8f,
+  panelShade: 0x05010a,
+  /** Faixa escura atrás dos textos (sobe do pé do painel). */
+  textBand: 0x05010a,
+  lockedTint: 0x6a6470,
+  /** Moldura de arte fora de foco: levemente apagada. */
+  frameIdleTint: 0xc8c0d0,
+  numeral: '#f3d17a',
+  numeralLocked: '#6f6878',
+  title: '#ffffff',
+  titleFocus: '#ffd60a',
+  boss: '#ff4d6d',
+  summary: '#e9dcf5',
+  bestLabel: '#c9a8e0',
+  bestValue: '#ffd60a',
+  lockedText: '#a59cb0',
+  textStroke: '#12020a',
+  hint: '#c9a8e0',
+} as const;
+
+/**
+ * Peças da tela de capítulos (scripts/cut-chapter-ui.py -> public/assets/sprites/chapters/ui/).
+ * Textura = `chui-<nome do arquivo>`. Sem a peça (ou no modo Canvas, sem NineSlice) a tela
+ * desenha a versão por código.
+ */
+export const CHAPTER_UI_PIECES = [
+  'frame-normal', 'frame-selected', 'frame-locked', 'coming-soon-bg', 'sealed-chains',
+  'title-plaque', 'heading-ribbon', 'best-time-plate', 'text-panel', 'button-normal',
+  'button-selected', 'badge-unlocked', 'badge-locked', 'padlock', 'cleared-seal', 'arrow',
+  'hourglass', 'chain-strip', 'chain-lock',
+] as const;
+export type ChapterUiPiece = typeof CHAPTER_UI_PIECES[number];
+export const chapterUiKey = (piece: ChapterUiPiece): string => `chui-${piece}`;
+
 /** Lyn (minichefe súcubo): rosa para separar dela os avisos carmesim da Rosalin. */
 export const LYN_THEME = {
   tellTint: 0xff7ad9,

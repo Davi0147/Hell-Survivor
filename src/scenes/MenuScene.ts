@@ -3,11 +3,18 @@ import { SoundManager } from '../systems/SoundManager';
 import { isDevSandboxEnabled } from '../config/balance';
 import { MetaProgressManager, BLESSINGS_CATALOG, BlessingId } from '../systems/MetaProgressManager';
 import { GamepadManager } from '../systems/GamepadManager';
-import { FONTS, MODAL_THEME } from '../config/theme';
-import { drawPixelFrame, drawPixelOutline } from '../ui/pixelFrame';
+import { MODAL_THEME } from '../config/theme';
+import { drawPixelOutline } from '../ui/pixelFrame';
 import { InputHint } from '../ui/InputHint';
+import { ChapterSelectMenu } from '../ui/ChapterSelectMenu';
 
 type ModalNavAction = 'up' | 'down' | 'left' | 'right' | 'confirm';
+
+/**
+ * Arte de fundo do menu (main_menu_background.jpg): tamanho original e o centro do vão escuro
+ * da barra de pedra de baixo (linhas 1016 a 1052 da imagem), onde ficam os ícones dos botões.
+ */
+const MENU_ART = { width: 1920, height: 1072, footerSlotY: 1034 / 1072 } as const;
 
 interface MenuItem {
   label: string;
@@ -223,8 +230,11 @@ export class MenuScene extends Phaser.Scene {
 
     this.updateMenuVisuals();
 
-    // 8. Rodapé: só os ícones dos botões, direto sobre o cenário (sem barra de fundo; decisão do dono)
-    const bottomBarY = height - 42;
+    // 8. Rodapé: os ícones dos botões dentro do vão escuro da barra de pedra da arte do menu.
+    // A arte cobre a tela (pode sobrar fora em cima e embaixo), então a altura vem da imagem.
+    const bottomBarY = this.textures.exists('menu-background')
+      ? height / 2 + (MENU_ART.footerSlotY - 0.5) * Math.max(width / MENU_ART.width, height / MENU_ART.height) * MENU_ART.height
+      : height - 42;
 
     // Ícones dos botões do aparelho em uso (setas/direcional, Enter/A/cruz, ESC/B/círculo)
     new InputHint(this, width / 2, bottomBarY, [
@@ -1196,229 +1206,23 @@ export class MenuScene extends Phaser.Scene {
   }
 
   /**
-   * Modal de Seleção de Capítulo do Modo História (Capítulo 1 ou Capítulo 2)
+   * Escolha de capítulo do Modo História: 10 painéis lado a lado (ChapterSelectMenu).
+   * Só os capítulos lançados e liberados (o anterior vencido) podem ser jogados.
    */
   private openChapterSelectModal(): void {
     if (this.isModalOpen) return;
     this.isModalOpen = true;
 
-    const T = MODAL_THEME.chapterSelect;
-    const { width, height } = this.scale;
-    const cx = width / 2;
-    const cy = height / 2;
-
-    const modal = this.add.container(0, 0).setDepth(100);
-    this.modalContainer = modal;
-
-    const overlay = this.add.rectangle(cx, cy, width, height, MODAL_THEME.backdropColor, T.backdropAlpha);
-    overlay.setInteractive();
-    modal.add(overlay);
-
-    // Painel: mesma moldura pixel art do menu de pausa (o fundo é pintado por baixo dela)
-    const panelW = 820;
-    const panelH = 600;
-    const top = cy - panelH / 2;
-    const panelG = this.add.graphics();
-    panelG.fillStyle(T.panelFill, T.panelAlpha);
-    panelG.fillRect(cx - panelW / 2, top, panelW, panelH);
-    modal.add(panelG);
-    if (this.textures.exists('ui-pause-frame')) {
-      modal.add(this.add.image(cx, cy, 'ui-pause-frame').setOrigin(0.5, 0.4935));
-    }
-
-    const titleY = top + 46;
-    if (this.textures.exists('ui-pause-title')) {
-      modal.add(this.add.image(cx, titleY, 'ui-pause-title').setDisplaySize(360, 80));
-    }
-    const title = this.add.text(cx, titleY, 'ESCOLHA O CAPÍTULO', {
-      fontFamily: FONTS.body,
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: T.titleColor,
-      stroke: T.titleStroke,
-      strokeThickness: 4
-    }).setOrigin(0.5);
-    modal.add(title);
-
-    const chapters = [
-      {
-        chapter: 1 as const,
-        label: 'CAPÍTULO I',
-        name: 'O DESPERTAR\nNO ABISMO',
-        portrait: 'succubus-idle-south',
-        accent: T.accentCh1,
-        accentText: T.accentCh1Text,
-        info: [['CHEFE', 'ROSALIN'], ['META', '900 ALMAS']]
+    const menu = new ChapterSelectMenu(this, {
+      records: MetaProgressManager.getInstance().getChapterRecords(),
+      onPlay: (chapter) => {
+        this.closeModal();
+        this.startGame('story', chapter);
       },
-      {
-        chapter: 2 as const,
-        label: 'CAPÍTULO II',
-        name: 'O DOMÍNIO\nDE AZAZEL',
-        portrait: 'azazel-idle-south',
-        accent: T.accentCh2,
-        accentText: T.accentCh2Text,
-        info: [['CHEFE', 'AZAZEL - 3 FASES'], ['META', '1.350 ALMAS'], ['PERIGO', 'MONSTROS +20%']]
-      }
-    ];
-
-    // Tudo em múltiplos de 4 px para os "pixels" das molduras caírem certinhos
-    const cardW = 340;
-    const cardH = 300;
-    const cardGap = 40;
-    const cardY = top + 164 + cardH / 2;
-    const portraitH = 128;
-    const PX = 4;
-
-    // Seta de foco (mesmo sprite do menu principal), passeia entre as cartas e o VOLTAR
-    const arrow = this.add.image(0, 0, 'ui-menu-arrow').setScale(0.75).setDepth(1);
-    let arrowTween: Phaser.Tweens.Tween | undefined;
-    const pointArrowAt = (x: number, y: number) => {
-      arrowTween?.stop();
-      arrow.setPosition(x, y);
-      arrowTween = this.tweens.add({ targets: arrow, x: x + 6, duration: 380, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    };
-
-    interface ChapterCard { render: (focus: boolean) => void }
-    const cards: ChapterCard[] = chapters.map((chap, i) => {
-      const x = cx + (i === 0 ? -1 : 1) * (cardW / 2 + cardGap / 2);
-      const left = x - cardW / 2;
-      const cTop = cardY - cardH / 2;
-      const g = this.add.graphics();
-      modal.add(g);
-
-      // Janela do retrato: sprite de jogo do chefe, de corpo inteiro
-      const winW = cardW - 40;
-      const winTop = cTop + 44;
-      let portrait: Phaser.GameObjects.Image | undefined;
-      if (this.textures.exists(chap.portrait)) {
-        portrait = this.add.image(x, winTop + portraitH - 8, chap.portrait).setOrigin(0.5, 1);
-        portrait.setScale(Math.max(1, Math.floor(((portraitH - 16) / portrait.height) * 2) / 2));
-      }
-
-      const label = this.add.text(x, cTop + 24, chap.label, {
-        fontFamily: FONTS.body,
-        fontSize: '16px',
-        fontStyle: 'bold',
-        color: chap.accentText,
-        stroke: T.textStroke,
-        strokeThickness: 4
-      }).setOrigin(0.5);
-
-      const nameY = winTop + portraitH + 32;
-      const name = this.add.text(x, nameY, chap.name, {
-        fontFamily: FONTS.body,
-        fontSize: '16px',
-        fontStyle: 'bold',
-        color: T.nameColor,
-        stroke: T.textStroke,
-        strokeThickness: 4,
-        align: 'center',
-        lineSpacing: 6
-      }).setOrigin(0.5);
-
-      const infoTop = nameY + 40;
-      const infoTexts: Phaser.GameObjects.Text[] = [];
-      chap.info.forEach(([k, v], row) => {
-        const ry = infoTop + row * 18;
-        infoTexts.push(
-          this.add.text(x - 6, ry, `${k}:`, { fontFamily: FONTS.body, fontSize: '10px', color: T.infoLabelColor }).setOrigin(1, 0.5),
-          this.add.text(x, ry, v, { fontFamily: FONTS.body, fontSize: '10px', fontStyle: 'bold', color: T.infoValueColor }).setOrigin(0, 0.5)
-        );
-      });
-      modal.add([...(portrait ? [portrait] : []), label, name, ...infoTexts]);
-
-      const render = (focus: boolean) => {
-        g.clear();
-        if (focus) drawPixelOutline(g, left - 2 * PX, cTop - 2 * PX, cardW + 4 * PX, cardH + 4 * PX, chap.accent, 0.6, PX);
-        drawPixelFrame(g, left, cTop, cardW, cardH, {
-          fill: focus ? T.cardFillFocus : T.cardFill,
-          border: focus ? T.cardBorderFocus : chap.accent,
-          highlight: T.cardHighlight,
-          shade: T.cardShade,
-          px: PX
-        });
-        drawPixelFrame(g, x - winW / 2, winTop, winW, portraitH, {
-          fill: T.portraitBackdrop,
-          border: focus ? chap.accent : T.portraitBorder,
-          px: PX
-        });
-        name.setColor(focus ? T.nameColorFocus : T.nameColor);
-        portrait?.setAlpha(focus ? 1 : 0.5);
-        if (focus) pointArrowAt(x - label.width / 2 - 26, cTop + 24);
-      };
-
-      const zone = this.add.zone(x, cardY, cardW, cardH).setInteractive({ useHandCursor: true });
-      modal.add(zone);
-      zone.on('pointerover', () => setFocus(i));
-      zone.on('pointerdown', () => activate(i));
-
-      return { render };
+      onClose: () => this.closeModal(),
     });
-
-    // Botão Voltar: arte do botão MENU da pausa
-    const backY = top + 512;
-    const backW = 200;
-    const backH = 56;
-    if (this.textures.exists('ui-pause-btn-menu')) {
-      modal.add(this.add.image(cx, backY, 'ui-pause-btn-menu').setDisplaySize(backW, backH));
-    }
-    const backTxt = this.add.text(cx, backY, 'VOLTAR', {
-      fontFamily: FONTS.body,
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: T.btnTextColor,
-      stroke: T.textStroke,
-      strokeThickness: 4
-    }).setOrigin(0.5);
-    modal.add(backTxt);
-    const renderBack = (focus: boolean) => {
-      backTxt.setColor(focus ? T.btnTextFocus : T.btnTextColor);
-      if (focus) pointArrowAt(cx - backW / 2 - 24, backY);
-    };
-    const backZone = this.add.zone(cx, backY, backW, backH).setInteractive({ useHandCursor: true });
-    modal.add(backZone);
-    backZone.on('pointerover', () => setFocus(BACK));
-    backZone.on('pointerdown', () => activate(BACK));
-
-    const hint = new InputHint(this, cx, top + 562, [
-      'navigate', { text: 'ESCOLHER' },
-      'confirm', { text: 'JOGAR' },
-      'back', { text: 'VOLTAR' },
-    ], { glyphHeight: 22, fontSize: 10, color: T.hintColor, align: 'center' });
-    modal.add([hint.container, arrow]);
-
-    // Foco: 0 e 1 = capítulos, 2 = voltar. Mouse, teclado e controle usam o mesmo caminho.
-    const BACK = cards.length;
-    let focus = 0;
-    let lastCard = 0;
-    const paint = () => {
-      cards.forEach((c, idx) => c.render(idx === focus));
-      renderBack(focus === BACK);
-    };
-    const setFocus = (next: number) => {
-      if (next === focus) return;
-      focus = next;
-      if (focus < BACK) lastCard = focus;
-      SoundManager.getInstance().playMenuHover();
-      paint();
-    };
-    const activate = (idx: number) => {
-      SoundManager.getInstance().playMenuClick();
-      this.closeModal();
-      if (idx < BACK) this.startGame('story', chapters[idx].chapter);
-    };
-
-    this.modalNav = (action) => {
-      if (action === 'confirm') activate(focus);
-      else if (action === 'left' || action === 'right') {
-        if (focus === BACK) return;
-        setFocus((focus + (action === 'left' ? -1 : 1) + BACK) % BACK);
-      } else if (action === 'down') setFocus(BACK);
-      else if (action === 'up' && focus === BACK) setFocus(lastCard);
-    };
-
-    modal.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(arrow));
-    paint();
+    this.modalContainer = menu.container;
+    this.modalNav = (action) => menu.nav(action);
   }
 
   private closeModal(): void {
@@ -1431,14 +1235,15 @@ export class MenuScene extends Phaser.Scene {
     this.isModalOpen = false;
   }
 
-  private startGame(mode: 'story' | 'endless' | 'sandbox', chapter: 1 | 2 = 1): void {
+  private startGame(mode: 'story' | 'endless' | 'sandbox', chapter: number = 1): void {
     SoundManager.getInstance().playMenuClick();
     this.cameras.main.flash(200, 255, 255, 255);
     this.time.delayedCall(160, () => {
       SoundManager.getInstance().stopMusic();
       if (mode === 'story') {
-        if (chapter === 2) {
-          this.scene.start('GameScene', { mode: 'story', chapter: 2 });
+        // O Capítulo 1 começa pela cena de abertura; os outros direto na partida
+        if (chapter > 1) {
+          this.scene.start('GameScene', { mode: 'story', chapter });
         } else {
           this.scene.start('IntroScene');
         }

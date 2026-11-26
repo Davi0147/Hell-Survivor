@@ -2,6 +2,29 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — 2026-11-26
+
+### Escolha de capítulo nova (10 capítulos lado a lado)
+
+#### Resumo para o Jogador
+- **A tela de capítulos foi refeita:** os 10 capítulos ficam lado a lado como painéis com a arte do chefe de fundo. O que está em foco **abre** e mostra o título, o chefe, um mini resumo da história e o **melhor tempo**; os outros viram faixas com o número.
+- **Capítulos liberam em ordem:** o I começa aberto; cada um abre quando você vence o anterior. Os que ainda não saíram aparecem bloqueados ("EM BREVE"), cinza e apagados, com cadeado.
+- **Melhor tempo de cada capítulo** passa a ser guardado (vale a partir de agora).
+- Quem já tinha vencido um chefe (ou chegado no Azazel) continua com o Capítulo II liberado.
+- Teclado e controle: setas para escolher, confirmar para jogar, para baixo vai ao VOLTAR. Mouse: passar por cima abre, clicar joga. Toque: o primeiro toque abre, o segundo joga.
+- **Tela de cartas:** o botão do controle (R, X...) agora fica colado no nome ("RE-ROLAR", "CANALIZAR"), não lá na ponta.
+- **Arte nova na tela de capítulos:** fundo da Rosalin e do Azazel (cobrindo a tela atrás dos painéis e dentro do painel aberto), molduras douradas/violeta/ferro, fita do título, placa do resumo, placa do melhor tempo com ampulheta, escudo com o número, cadeado, selo de vencido, correntes e parede de pedra nos "em breve", setas e botão VOLTAR.
+- **Menu principal:** os ícones dos botões (ESCOLHER, SELECIONAR, VOLTAR) agora ficam dentro do vão da barra de pedra da arte.
+- "CAPÍTULO" centralizado na faixa vermelha da fita, e a ampulheta da placa do tempo não sai mais da barra.
+- Capítulos "em breve": as correntes atravessam o painel de canto a canto (antes paravam no meio) e saiu a placa dourada do texto. A placa do título ficou do tamanho do nome.
+
+#### Técnico
+- `config/chapterCatalog.ts` (10 capítulos: título, chefe, resumo, `released`, `art`), `systems/chapterProgress.ts` (estado, larguras do acordeão, tempo; testados) e `ui/ChapterSelectMenu.ts`. Arte provisória = sprite do chefe; arte final carregada de `assets/sprites/chapters/` quando `art` estiver preenchido (prompt na seção 24 do ART_PROMPTS).
+- Save versão 2: `chapters` (vencido + melhor tempo), gravado em `BossFightSystem.completeChapter`. Migração da v1 com backup; quem já derrotou chefe ou morreu para o Azazel fica com o Capítulo I vencido. `MenuScene.startGame` aceita qualquer capítulo.
+- `ActionKeyButton`: o ícone do botão segue o nome (10 px depois), sem passar da borda.
+- `scripts/cut-chapter-ui.py` recorta as 16 peças de `art-source/novos/capitulos-ui.jpg` (caixas fixas que deixam de fora os nomes que o gerador escreveu; miolo verde das molduras sai como fundo). Molduras e placa de texto são NineSlice (só WebGL; no Canvas a tela desenha por código). Artes dos capítulos em `public/assets/sprites/chapters/chapter-0N.jpg` (1400 px).
+- `MenuScene`: rodapé na altura do vão da barra (`MENU_ART.footerSlotY`, medido na imagem).
+
 ## [Não publicado] — 2026-11-25
 
 ### Suprema: o jogo congela durante a animação

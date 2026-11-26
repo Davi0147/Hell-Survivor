@@ -324,6 +324,8 @@ export class BossFightSystem {
   /** Modo História: encerra o capítulo e vai para a cena de desfecho. */
   private completeChapter(chapter: number, souls: { min: number; max: number }): void {
     MetaProgressManager.getInstance().collectRunSoul(Phaser.Math.Between(souls.min, souls.max));
+    // Libera o próximo capítulo e guarda o melhor tempo (tela de escolha de capítulo)
+    MetaProgressManager.getInstance().recordChapterCompleted(chapter, Math.floor(this.ctx.survivalTimeMs / 1000));
 
     this.ctx.isChapterCompleted = true;
     this.ctx.clearCombatSpeechBubbles();
