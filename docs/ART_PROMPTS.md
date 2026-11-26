@@ -1572,3 +1572,189 @@ must not appear anywhere on the pieces (the insides of the three frames are back
 **Se o gerador errar a grade ou juntar peças:** peça uma linha por vez (`canvas 2400x1000, only ROW 1` / `canvas 2400x500, only ROW 2` / `canvas 2400x400, only ROW 3`), colando a linha pedida, STYLE e BACKGROUND.
 
 **Depois de gerar:** salve a folha como `art-source/novos/capitulos-ui.png` e as artes como `art-source/novos/capitulos/capitulo-NN.png`, e me avise. Eu recorto, troco as molduras desenhadas por código pelas peças (a moldura estica só pelas bordas retas) e ligo cada arte no seu capítulo em `src/config/chapterCatalog.ts`.
+
+---
+
+## 25. Prompt fixo: estilo da arte (pixel art) + aparência da Nixy
+
+Referência: `art-source/referencias/estilo-cena-01-closeup.jpg`, `estilo-cena-02-escritorio-longe.jpg` e `estilo-cena-03-escritorio-perto.jpg`.
+
+**Como usar:** cole os dois blocos fixos **sempre iguais** e escreva a cena que quiser no fim. Eles não dizem onde a cena acontece, nem luz, nem câmera: isso é da cena. Se o gerador aceitar imagem de referência, anexe as 3 imagens. Cena sem a Nixy: use só o bloco ART STYLE.
+
+```text
+=== ART STYLE (fixed) ===
+High-resolution modern PIXEL ART illustration, like a key art or cutscene frame of a polished
+indie pixel-art game. The whole image is built on a visible pixel grid: one art pixel = 4x4 screen
+pixels (artwork about 480 px wide, scaled up with nearest neighbour), so every edge is a crisp
+stair-step. NO anti-aliasing, NO smooth airbrush gradients, NO painterly brush strokes, NO
+photographic or 3D texture.
+Shading uses flat clusters of color with 3 to 5 tones per material (base, shadow, deep shadow,
+highlight, rim light), and ordered checkerboard / Bayer DITHERING to blend large gradients (sky,
+walls, light glows, cloth). Clean selective outlines: dark colored outlines (not pure black) on
+characters, softer or no outlines on the background. Hair and cloth drawn as big readable clumps
+with sharp pixel highlights. Faces with an anime-influenced but slightly grotesque, darkly comedic
+look. Muted, desaturated, moody colors with strong value contrast on the main subject; saturated
+color used only where it matters. Out-of-focus foreground objects, when present, stay pixel art
+(blocky blur), never photographic blur.
+Never: text, letters, logos, watermark, signature, UI, frames or borders, extra fingers, chibi
+proportions, glossy 3D look, smooth vector look, anti-aliased edges.
+
+=== NIXY (fixed appearance, always exactly this) ===
+Nixy, a young demon woman:
+- HAIR: very long, thick, messy, voluminous magenta-purple hair (base #8a1b9a, highlights #b02ad0,
+  shadows #3a0840), wild loose strands, one big curled ahoge on top of the head, bangs falling over
+  the forehead and between the eyes.
+- HORNS: two smooth, curved, ivory-white horns (#efe6f0 with lavender-grey shading) coming out of the
+  top of the head and curving forward and outward.
+- EARS: long pointed elf-like ears, pale lavender.
+- SKIN: pale grey-lavender (#c9bccb, shadows #8f8199), with dark tired circles under the eyes.
+- EYES: completely black eyes (black sclera, no iris) with a small white X-shaped pupil in each one.
+- LOWER FACE: she has no normal mouth. The whole lower half of her face is a pure black void shaped
+  like a huge wide grin, and its upper edge is a row of sharp white zigzag triangle teeth going from
+  cheek to cheek (a jack-o-lantern grin). This black teeth grin is always visible, even when she is
+  sad or tired.
+- HANDS: white cloth gloves with wide folded cuffs, a bit wrinkled; long black claw nails can peek
+  out at the fingertips.
+- OUTFIT: glossy black high-collar bodysuit/jacket with a vertical center seam and two small round
+  silver studs at the collar, plus a deep purple cape (#640f67 / #8a1b9a) with a tall stiff collar and
+  sharp pointed spikes on the shoulders.
+- BODY: adult proportions, slim, slightly slouched posture.
+- ATTITUDE: sarcastic, burned-out, irreverent; expressive comedic body language.
+Never give her: a normal human mouth or lips, colored or white eyes, short hair, a different hair
+color, dark horns, bare hands, a different outfit unless the scene asks for it.
+
+=== SCENE (write here what you want) ===
+[[Where it happens, what she is doing, emotion, camera (close-up / medium / wide), light and
+key props. Example: "Close-up of Nixy grabbing her head with both hands in despair, in a dark
+office full of paper stacks, a faceless boss in a black suit behind her, warm lamp light from above."]]
+```
+
+**Outro personagem no mesmo estilo:** cole o bloco ART STYLE e escreva um bloco igual ao da Nixy para ele (cabelo, chifres, pele, olhos, rosto, mãos, roupa, corpo, jeito, "never give").
+
+---
+
+## 26. Prólogo: corredor do escritório (fuga do RH)
+
+**Como o jogo usa:** o corredor é horizontal e a Nixy anda **da esquerda para a direita** só pela faixa do chão, no meio. Ele é montado com **pedaços lado a lado**, porque nenhum gerador faz uma imagem de 15 mil pixels de largura. Cima e baixo ficam pretos: a imagem já vem com uma borda preta e o jogo continua o preto além dela.
+
+São **5 imagens**, todas com o mesmo prompt-base e o mesmo gerador. Se der, use a mesma *seed*, ou anexe a primeira imagem como referência nas outras:
+
+| Arquivo | O que é |
+|---|---|
+| `corredor-inicio.png` | Começo: a porta do setor da Nixy, de onde ela sai |
+| `corredor-meio-a.png`, `corredor-meio-b.png`, `corredor-meio-c.png` | Trechos do meio (o jogo repete e mistura) |
+| `corredor-fim.png` | Fim: a porta de saída, grande e ameaçadora |
+
+Salve em `art-source/novos/prologo/`.
+
+**O segredo para os pedaços encaixarem:** cada imagem tem uma **coluna de parede** (pilastra) nas bordas esquerda e direita, e todas as linhas (topo da parede, rodapé, chão) ficam **sempre na mesma altura**. A emenda fica escondida atrás da pilastra.
+
+### Prompt-base (cole sempre)
+
+```text
+TOP-DOWN 3/4 VIEW PIXEL ART GAME BACKGROUND: one SEGMENT of a long horizontal office corridor in
+HELL, for a dark comedic 16-bit survival game. The player walks left-to-right along the floor in
+the middle. Canvas EXACTLY 2048 x 1024 px (landscape 2:1). No characters, no creatures, no people.
+
+FIXED LAYOUT (identical in every segment so the segments tile side by side, measure carefully):
+- y 0-64: pure black (#000000), nothing drawn.
+- y 64-512: the BACK WALL, seen straight on (front face). Its top edge is a dark crown molding
+  at y 64-88. Its bottom edge is a dark wooden baseboard at y 488-512.
+- y 512-944: the FLOOR, seen from above at a 3/4 angle: worn dark-crimson office carpet
+  (#3a1420, #4a1a28) with a subtle repeating geometric pattern and a few scorch marks and coffee
+  stains. The floor stays EMPTY and walkable: no objects in its middle 70%, only small things
+  pushed against the walls.
+- y 944-992: the top cap of the NEAR WALL (the wall closest to the camera), seen from above: a
+  thin dark wooden ledge running the full width. Small tops of objects (plant leaves, the top of
+  a filing cabinet) may peek over it.
+- y 992-1024: pure black.
+- LEFT EDGE (x 0-96) and RIGHT EDGE (x 1952-2048): a dark wooden wall PILASTER on the back wall,
+  from crown molding to baseboard, exactly the same on both edges and in every segment.
+  The carpet pattern touches both edges at the same height so it continues seamlessly.
+
+CAMERA AND SCALE: top-down 3/4 view, about 45 degrees, the same as a classic 16-bit action RPG.
+One art pixel = 4 screen pixels everywhere (chunky uniform pixel grid). A human-sized character
+is 224 px tall in this image: doors are about 1.7x that, the back wall is 2x that.
+
+LIGHT AND MOOD: a dim, oppressive corporate office in hell. Long fluorescent ceiling lights along
+the crown molding cast cold pale-green pools of light on the wall, with darker gaps between them.
+A faint red-orange hellish glow leaks from under every closed door. Light comes from the upper
+left; right and bottom faces are darker.
+
+PALETTE: muted and darker than the characters that walk on it (gameplay readability): desaturated
+violet-gray and dark teal-gray walls (#2a2230, #3d3344, #2b3a3f), dark brown wood (#3a2418,
+#5a3a26), the carpet crimsons above, old paper ivory (#cfc3a8) only as highlights, tarnished gold
+(#8a6a2a), and small warm accents only on light sources (#ffb347, #ff5a1f). Hard dark outline on
+objects, 3 to 4 shading steps per material, crisp clusters, NO anti-aliasing, NO blur, NO smooth
+gradients (use dithering).
+
+ABSOLUTELY NO TEXT: no letters, no numbers, no words on signs, posters, doors or papers (use
+scribbles, icons and shapes instead). No UI, no frame, no border, no watermark.
+```
+
+### Trecho de cada imagem (cole depois do prompt-base)
+
+**`corredor-inicio.png`**
+
+```text
+THIS SEGMENT - THE START: in the center of the back wall, a plain office door slightly ajar with
+dim lamp light and a few flying papers spilling out (the hero's old department, she just
+escaped). Beside it a broken office chair lying on its side and a kicked-over desk drawer with
+papers scattered on the carpet near the wall. A wall clock with skull hands. A dead potted ficus
+in the corner. A framed motivational poster of a smiling skull giving a thumbs up.
+```
+
+**`corredor-meio-a.png`**
+
+```text
+THIS SEGMENT - MIDDLE A: two closed wooden office doors with frosted glass panels on the back
+wall (shadowy silhouettes behind the glass, red glow under the doors). Between them a bulletin
+board covered in pinned scribble-papers and one wanted-style drawing of a horned woman. A water
+cooler whose bottle holds bubbling orange lava, a stack of paper cups. A tall potted carnivorous
+plant against the near wall, leaves peeking over the ledge.
+```
+
+**`corredor-meio-b.png`**
+
+```text
+THIS SEGMENT - MIDDLE B: a row of grey metal filing cabinets wrapped in rusty chains and
+padlocks against the back wall, paper stacks piled on top of them almost touching the ceiling.
+A framed portrait of a grinning demon in a suit with a gold star ribbon (the employee of the
+millennium). A punch clock machine with a rack of time cards on the wall. A fire extinguisher
+hanging on the wall, ironically scorched.
+```
+
+**`corredor-meio-c.png`**
+
+```text
+THIS SEGMENT - MIDDLE C: one closed double door with a small barred window (red glow, a pair of
+glowing eyes peeking through). A coffee machine dripping black tar into a mug, a small table
+with donuts covered in flies. A framed organization chart drawn as a pyramid of tiny stick
+figures with a horned figure on top. Two framed landscape paintings of fire and brimstone.
+A small potted cactus with skull-shaped flowers by the near wall.
+```
+
+**`corredor-fim.png`**
+
+```text
+THIS SEGMENT - THE END: the corridor ends at the RIGHT side with a large heavy EXIT door on the
+back wall, the biggest door of the whole corridor: dark iron reinforced wood, red emergency
+light above it, an exit icon of a little running figure (icon only, no letters), hellish orange
+light and smoke leaking from all its edges. The fluorescent lights here flicker (some broken,
+hanging). Warning stripes on the carpet before the door. A potted dead plant on each side.
+The right edge pilaster is still there, the black frame continues.
+```
+
+### Os NPCs (para depois)
+
+Quando for gerar os funcionários, cada um sai **parado, de corpo inteiro, de frente ou de 3/4, virado para baixo/esquerda**:
+
+- Fundo verde liso (`#00FF00`), estilo do bloco ART STYLE da seção 25.
+- **224 px de altura na imagem** (a altura de uma pessoa, igual à escala do corredor). Personagem baixinho, menos.
+- Um por imagem: `art-source/novos/prologo/npc-<nome>.png`.
+
+Eu recorto, coloco no corredor e ligo as falas.
+
+### O cão do encontro (já salvo)
+
+`art-source/novos/prologo/cao-encontro-parado.jpg` e `cao-encontro-latindo.jpg`. Recortados em `public/assets/sprites/prologue/prologue-dog-idle.png` / `-bark.png` por `scripts/cut-prologue-dog.py`, que usa a mesma janela nos dois para o cão não tremer ao latir.
