@@ -134,8 +134,9 @@
 - [x] **Ritmo de Combate (v0.10.0):** combo de abates com Frenesi, esquiva com invulnerabilidade, golpes críticos e cinco cartas novas (`CombatFeelSystem.ts`).
 - [ ] **Sistema de Conquistas In-Game (Achievements):** Notificações estilo arcade aproveitando os dados de `MetaProgressManager.stats`.
 - [ ] **Capítulo 3:** Novo bioma, chefe inédito e continuação da campanha.
-- [x] **Prólogo do Capítulo I (pedido do dono em 2026-11-26):** corredor do RH (`PrologueScene`) com paredes, funcionários que conversam e porta de saída; chegada na arena pela porta, encontro com o cão, latido e horda (`StoryArrivalSystem`); ressurgir mantém a entrada antiga; PULAR a partir da 2ª vez.
-  - [ ] Arte dos funcionários (o dono vai gerar; hoje são sprites de inimigos provisórios). Quando chegar: recortar, salvar como `npc-<id>` e carregar no `PrologueScene.preload`.
+- [x] **Prólogo do Capítulo I (pedido do dono em 2026-11-26):** corredor do RH (`PrologueScene`) com paredes, funcionários que conversam e porta de saída; chegada na arena pela porta, encontro com o cão, latido e horda (`StoryArrivalSystem`); ressurgir mantém a entrada antiga; sem PULAR no corredor (decisão do dono).
+  - [x] Arte do estagiário e da dupla de fofoqueiras (2026-11-26).
+  - [ ] Arte do arquivista (sala meio-a, hoje múmia) e do segurança (sala fim, hoje ghoul). Arte nova: `art-source/novos/prologo/npc-<id>.jpg` em fundo verde, rodar `scripts/cut-prologue-npcs.py` e marcar `hasArt: true`.
   - [x] Emendas entre os pedaços: resolvido trocando a montagem lado a lado por salas (a ponta escurece e passa para a vizinha, ideia do dono).
   - [ ] Porta da arena é provisória (recorte da porta do corredor, com borda de parede). Arte própria de porta solta fica melhor.
   - [ ] Não verificado no iPhone de verdade (só no formato de celular no navegador do PC).

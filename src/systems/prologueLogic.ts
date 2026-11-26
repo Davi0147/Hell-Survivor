@@ -54,9 +54,13 @@ export function roomEntryX(cameFrom: 'prev' | 'next', entry: number): number {
   return cameFrom === 'prev' ? entry : ROOM_IMAGE.width - entry;
 }
 
-/** Mantém os pés dentro da faixa andável da sala (ao trocar de sala as faixas mudam um pouco). */
-export function clampToWalkBand(room: CorridorRoom, y: number, margin: number): number {
-  return Math.min(room.walkBottom - margin, Math.max(room.walkTop + margin, y));
+/**
+ * Mantém os pés (base do corpo) dentro da faixa andável da sala. `bodyHeight` é a altura da
+ * caixa dos pés: o TOPO dela também não pode passar do `walkTop`, senão o corpo nasce dentro da
+ * parede e a física para de empurrar (foi assim que ela subia na parede ao trocar de sala).
+ */
+export function clampToWalkBand(room: CorridorRoom, y: number, bodyHeight: number, margin: number = 0): number {
+  return Math.min(room.walkBottom - margin, Math.max(room.walkTop + bodyHeight + margin, y));
 }
 
 /** Salas que ficam na memória: a atual e as vizinhas (o iPhone tem pouca memória de vídeo). */

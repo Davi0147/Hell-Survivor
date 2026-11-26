@@ -68,11 +68,14 @@ describe('salas do corredor', () => {
     expect(fromLeft).toBeLessThan(fromRight);
   });
 
-  it('os pés entram na faixa andável da sala nova', () => {
+  it('os pés entram na faixa andável da sala nova, com o corpo inteiro fora da parede', () => {
     const room = CORRIDOR_ROOMS[1];
-    expect(clampToWalkBand(room, 0, 10)).toBe(room.walkTop + 10);
-    expect(clampToWalkBand(room, 5000, 10)).toBe(room.walkBottom - 10);
-    expect(clampToWalkBand(room, 800, 10)).toBe(800);
+    // Pés de 32 px de altura: a base fica pelo menos 32 abaixo da parede do fundo
+    expect(clampToWalkBand(room, 0, 32, 10)).toBe(room.walkTop + 42);
+    expect(clampToWalkBand(room, 5000, 32, 10)).toBe(room.walkBottom - 10);
+    expect(clampToWalkBand(room, 800, 32, 10)).toBe(800);
+    // Caso do defeito: vinha colada no alto da sala anterior (acima do walkTop desta)
+    expect(clampToWalkBand(room, room.walkTop + 24, 32) - 32).toBeGreaterThanOrEqual(room.walkTop);
   });
 
   it('guarda só a sala atual e as vizinhas na memória', () => {
@@ -120,6 +123,13 @@ describe('funcionários do corredor', () => {
         expect(talk.length).toBeGreaterThan(0);
         for (const line of talk) expect(line.text.trim()).not.toBe('');
       }
+    }
+  });
+
+  it('só quem é dupla tem falas da segunda pessoa (npc2)', () => {
+    for (const npc of PROLOGUE_NPCS) {
+      const usesSecond = (PROLOGUE_NPC_TALKS[npc.id] ?? []).some((t) => t.some((l) => l.who === 'npc2'));
+      if (usesSecond) expect(npc.speakers?.length, npc.id).toBe(2);
     }
   });
 

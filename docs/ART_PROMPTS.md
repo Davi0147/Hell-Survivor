@@ -1750,9 +1750,9 @@ Quando for gerar os funcionários, cada um sai **parado, de corpo inteiro, de fr
 
 - Fundo verde liso (`#00FF00`), estilo do bloco ART STYLE da seção 25.
 - Altura de uma pessoa nas salas do corredor: uns **200 px na imagem de 2000 px** (o jogo ajusta). Personagem baixinho, menos.
-- Um por imagem: `art-source/novos/prologo/npc-<nome>.png`.
+- Um por imagem: `art-source/novos/prologo/npc-<nome>.jpg`. Duas pessoas juntas numa imagem viram um NPC só, e cada uma fala em cima da própria cabeça.
 
-Eu recorto, coloco no corredor e ligo as falas.
+Eu recorto (`scripts/cut-prologue-npcs.py`), coloco no corredor e ligo as falas. Já entraram o estagiário e a dupla de fofoqueiras; faltam o arquivista e o segurança.
 
 ### O cão do encontro (já salvo)
 

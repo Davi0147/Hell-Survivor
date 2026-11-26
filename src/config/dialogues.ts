@@ -545,7 +545,8 @@ export function getBossRematchDialogue(bossId: string, deathsToBoss: number): Di
 
 /** Uma fala curta no corredor do prólogo (balão em cima de quem fala, sem retrato). */
 export interface PrologueTalkLine {
-  who: 'npc' | 'nixy';
+  /** `npc2`: a segunda pessoa de um NPC em dupla (ver `speakers` em config/prologueData.ts). */
+  who: 'npc' | 'npc2' | 'nixy';
   text: string;
 }
 
@@ -580,15 +581,23 @@ export const PROLOGUE_NPC_TALKS: Record<string, PrologueTalkLine[][]> = {
       { who: 'npc', text: 'E perder meu vale-refeição de enxofre? Nem pensar!' },
     ],
   ],
-  contadora: [
+  // Duas colegas juntas: 'npc' é a de cabelo preto (café na mão), 'npc2' a loira
+  fofoqueiras: [
     [
-      { who: 'npc', text: 'Fuga do expediente? Vou ter que descontar do seu salário.' },
-      { who: 'nixy', text: 'Que salário?' },
-      { who: 'npc', text: 'Exatamente.' },
+      { who: 'npc', text: 'Menina, você soube? A Nixy chutou a mesa do Chefe!' },
+      { who: 'npc2', text: 'Não acredito! Na frente de todo mundo?' },
+      { who: 'nixy', text: 'Eu tô bem aqui, viu.' },
+      { who: 'npc', text: '...Enfim. E esse café, hein? Tá horrível.' },
     ],
     [
-      { who: 'npc', text: 'Meta do trimestre: dez mil almas. Batemos três. O Chefe vai surtar.' },
-      { who: 'nixy', text: 'Que surte. Eu não vou estar aqui pra ver.' },
+      { who: 'npc2', text: 'Dizem que quem foge do RH vira ração do cachorro lá fora.' },
+      { who: 'npc', text: 'Dizem que o cachorro é do próprio RH.' },
+      { who: 'nixy', text: 'Ótimo. Mais um colega de trabalho pra eu odiar.' },
+    ],
+    [
+      { who: 'npc', text: 'Fuga do expediente? Vão descontar do seu salário.' },
+      { who: 'nixy', text: 'Que salário?' },
+      { who: 'npc2', text: 'Exatamente.' },
     ],
   ],
   seguranca: [

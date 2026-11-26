@@ -12,14 +12,17 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 - **Funcionários parados no caminho:** chegando perto aparece **FALAR** em cima da cabeça (E, Espaço, A/cruz, ou tocar no aviso). Cada um tem conversas curtas, e a próxima vez rende outra fala.
 - **Porta de saída no fim:** ela atravessa e chega na arena por uma porta, anda sozinha, dá de cara com um **cão de guarda** e conversa. O cão late, a tela treme e a horda começa. Nesse momento as armas e a Suprema ficam paradas (nada ataca sozinho).
 - **Morreu e ressurgiu:** volta do jeito de sempre (pentagrama + fala de raiva), sem corredor.
-- **Botão PULAR** no corredor a partir da segunda vez.
-- Os funcionários usam arte provisória (múmia, transportador, arqueira, ghoul) até sair a arte deles.
+- O corredor **não tem PULAR** (decisão do dono).
+- **Funcionários novos:** o estagiário de camisa branca com a papelada, e uma dupla de colegas fofocando (as duas juntas são uma conversa só; cada uma fala em cima da própria cabeça). Os funcionários ficam encostados na parede, deixando o corredor livre. A múmia e o ghoul seguem como provisórios.
+- **Corrigido:** ao entrar numa sala segurando para cima, a Nixy conseguia andar por cima da parede. Ela nascia com o corpo dentro da parede, e a caixa dos pés saía do lugar quando ela começava a correr.
 
 #### Técnico
 - `scenes/PrologueScene.ts` (sem zoom; uma sala por vez ampliada por `roomScale`, troca de sala nas pontas com escurecida, só a sala atual e as vizinhas carregadas, filtro suave na arte da sala, colisão só nos pés), `config/prologueData.ts` (pedaços, faixa de chão, móveis, NPCs, saída), `systems/prologueLogic.ts` (puro, testado em `prologue.test.ts`), `ui/WorldTalkBubble.ts`.
 - `systems/StoryArrivalSystem.ts`: chegada na `GameScene` (`shouldPlayStoryArrival`). Enquanto ativa, a `GameScene.update` só roda a cena e `triggerUltimate` é ignorada. O cão vira um Cão Zumbi no fim, e os 4 cães de abertura saem de `spawnOpeningDogs()`.
 - Arte: `scripts/cut-prologue-dog.py` e `scripts/cut-prologue-corridor.py` (corredor reduzido à metade, porta recortada do corredor-fim). O corredor é carregado e solto pela própria cena (memória de vídeo do iPhone).
-- `TouchControls.setMovementOnly()`, ação `interact` nos ícones de botão, `SoundManager.playDogBark()` (sintetizado), `STORAGE_KEYS.PROLOGUE_SEEN`, `PROLOGUE_THEME`, `PROLOGUE_BALANCE` e `STORY_ARRIVAL_BALANCE`. Porta e cão na galeria do Modo de Teste.
+- Caixa dos pés medida a partir do centro do quadro (`syncFeetBox`: os quadros da Nixy têm 64 e 84 px), entrada na sala com o corpo todo fora da parede (`clampToWalkBand` com a altura da caixa) e trava dos pés na faixa do chão a cada passo da física (`WORLD_STEP`). O Arcade para de separar um corpo que já entrou numa parede.
+- NPCs com arte própria: `scripts/cut-prologue-npcs.py` (`npc-<id>.png`), `hasArt` e `speakers` (dupla: falas `npc`/`npc2`) em `PROLOGUE_NPCS`.
+- `TouchControls.setMovementOnly()`, ação `interact` nos ícones de botão, `SoundManager.playDogBark()` (sintetizado), `PROLOGUE_THEME`, `PROLOGUE_BALANCE` e `STORY_ARRIVAL_BALANCE`. Porta e cão na galeria do Modo de Teste.
 
 ### Escolha de capítulo nova (10 capítulos lado a lado)
 

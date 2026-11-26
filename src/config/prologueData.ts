@@ -83,18 +83,28 @@ export interface PrologueNpcDef {
   x: number;
   y: number;
   /**
-   * Arte. Enquanto não existe arte própria (`npc-<id>`), usa um sprite parado do jogo como
-   * provisório.
+   * Arte própria: `public/assets/sprites/prologue/npc-<id>.png` (scripts/cut-prologue-npcs.py).
+   * Sem arte (`hasArt: false`), usa `placeholderTexture`, um sprite parado do jogo.
    */
-  texture: string;
+  hasArt: boolean;
   placeholderTexture: string;
-  /** Altura na arte original (px). A arte nova é encolhida/ampliada para isto. */
+  /** Altura na arte original (px, dos chifres aos pés). A arte é ajustada para isto. */
   displayHeight: number;
+  /**
+   * Onde sai a fala de cada pessoa da imagem, como fração da largura a partir do centro
+   * (`who: 'npc'` usa o primeiro, `'npc2'` o segundo). Imagem com duas pessoas = um NPC só.
+   */
+  speakers?: readonly number[];
 }
 
+/** Os pés ficam logo abaixo da parede do fundo (encostados nela, deixando o corredor livre). */
 export const PROLOGUE_NPCS: readonly PrologueNpcDef[] = [
-  { id: 'arquivista', room: 'meio-a', x: 940, y: 724, texture: 'npc-arquivista', placeholderTexture: 'mummy-idle-south', displayHeight: 200 },
-  { id: 'estagiario', room: 'meio-b', x: 660, y: 732, texture: 'npc-estagiario', placeholderTexture: 'transporter-idle-south', displayHeight: 184 },
-  { id: 'contadora', room: 'meio-c', x: 1120, y: 736, texture: 'npc-contadora', placeholderTexture: 'archer-idle-south', displayHeight: 192 },
-  { id: 'seguranca', room: 'fim', x: 660, y: 732, texture: 'npc-seguranca', placeholderTexture: 'ghoul-idle-south', displayHeight: 208 },
+  { id: 'arquivista', room: 'meio-a', x: 940, y: 706, hasArt: false, placeholderTexture: 'mummy-idle-south', displayHeight: 200 },
+  { id: 'estagiario', room: 'meio-b', x: 640, y: 718, hasArt: true, placeholderTexture: 'transporter-idle-south', displayHeight: 215 },
+  { id: 'fofoqueiras', room: 'meio-c', x: 1020, y: 714, hasArt: true, placeholderTexture: 'archer-idle-south', displayHeight: 235, speakers: [-0.23, 0.2] },
+  { id: 'seguranca', room: 'fim', x: 660, y: 698, hasArt: false, placeholderTexture: 'ghoul-idle-south', displayHeight: 208 },
 ];
+
+export function npcTextureKey(id: string): string {
+  return `npc-${id}`;
+}

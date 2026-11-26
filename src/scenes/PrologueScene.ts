@@ -3,7 +3,6 @@ import { Nixy } from '../entities/characters/Nixy';
 import { PROLOGUE_BALANCE, isDevSandboxEnabled } from '../config/balance';
 import { PROLOGUE_THEME } from '../config/theme';
 import { getHudLayout } from '../config/hudLayout';
-import { STORAGE_KEYS } from '../config/storageKeys';
 import {
   CORRIDOR_ROOMS,
   PROLOGUE_EXIT_ZONE,
@@ -13,6 +12,7 @@ import {
   ROOM_EDGE,
   ROOM_EXPORT_SCALE,
   ROOM_IMAGE,
+  npcTextureKey,
   type PrologueNpcDef,
 } from '../config/prologueData';
 import { PROLOGUE_NPC_TALKS, type PrologueTalkLine } from '../config/dialogues';
@@ -32,12 +32,17 @@ import { GamepadManager } from '../systems/GamepadManager';
 import { SoundManager } from '../systems/SoundManager';
 import { TouchControls } from '../ui/TouchControls';
 import { InputHint } from '../ui/InputHint';
-import { SkipButton, isTouchDevice } from '../ui/SkipButton';
+import { isTouchDevice } from '../ui/SkipButton';
 import { WorldTalkBubble } from '../ui/WorldTalkBubble';
 
-/** Pés da Nixy na textura de 64 px (a caixa de colisão do prólogo é só os pés). */
-const FEET_BOX = { offsetX: 18, offsetY: 52, w: 28, h: 8 } as const;
-const TEXTURE_HALF = 32;
+/**
+ * Caixa dos pés (só os pés colidem no prólogo), em px da textura. Os quadros da Nixy têm
+ * tamanhos diferentes (64 parada, 84 correndo) com ela centralizada, então a caixa é medida a
+ * partir do CENTRO do quadro: `belowCenter` = do centro até o topo da caixa.
+ */
+const FEET_BOX = { w: 28, h: 8, belowCenter: 20 } as const;
+/** Do centro do quadro até a cabeça (px da textura), para as falas. */
+const HEAD_ABOVE_CENTER = 36;
 const ROOM_DEPTH = 0;
 const ACTOR_DEPTH = 10;
 /** Folga (px originais) ao encaixar os pés na faixa andável da sala nova. */
@@ -84,7 +89,6 @@ export class PrologueScene extends Phaser.Scene {
   private bubble!: WorldTalkBubble;
   private prompt!: Phaser.GameObjects.Container;
   private touch?: TouchControls;
-  private skipButton?: SkipButton;
   private debugGfx?: Phaser.GameObjects.Graphics;
   private keys!: Record<'w' | 'a' | 's' | 'd' | 'up' | 'left' | 'down' | 'right' | 'shift', Phaser.Input.Keyboard.Key | undefined>;
 
@@ -103,13 +107,21 @@ export class PrologueScene extends Phaser.Scene {
     this.isLeaving = false;
     this.isChangingRoom = false;
     this.touch = undefined;
-    this.skipButton = undefined;
     this.debugGfx = undefined;
   }
 
   preload(): void {
     // Só a primeira sala e a vizinha; as outras chegam conforme ela anda (memória do iPhone)
     for (const i of roomsToKeep(0, CORRIDOR_ROOMS.length)) this.queueRoomTexture(i);
+    // Funcionários com arte própria (pequenos: todos de uma vez)
+    for (const def of PROLOGUE_NPCS) {
+      const key = npcTextureKey(def.id);
+      if (!def.hasArt || this.textures.exists(key)) continue;
+      this.load.image(key, `assets/sprites/prologue/${key}.png`);
+      this.load.once(`filecomplete-image-${key}`, () => {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+      });
+    }
   }
 
   create(): void {
@@ -128,11 +140,18 @@ export class PrologueScene extends Phaser.Scene {
     this.player.baseSpeed *= speedMult;
     this.player.sprintSpeed *= speedMult;
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    body.setSize(FEET_BOX.w, FEET_BOX.h).setOffset(FEET_BOX.offsetX, FEET_BOX.offsetY);
+    body.setSize(FEET_BOX.w, FEET_BOX.h);
+    this.syncFeetBox();
+    // Troca de quadro (parada 64 px / correndo 84 px): a caixa volta para os pés na hora
+    this.player.on(Phaser.Animations.Events.ANIMATION_UPDATE, this.syncFeetBox, this);
+    this.player.on(Phaser.Animations.Events.ANIMATION_START, this.syncFeetBox, this);
 
     // 2. Paredes da sala atual (refeitas a cada troca de sala)
     this.wallGroup = this.physics.add.staticGroup();
     this.physics.add.collider(this.player, this.wallGroup);
+    // Rede de segurança: a física do Phaser para de empurrar um corpo que já entrou numa parede
+    // (canto entre dois obstáculos, troca de sala). A cada passo, os pés voltam para o chão.
+    this.physics.world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, this.keepFeetOnFloor, this);
     this.buildRoom(0);
     this.placeFeet(PROLOGUE_START.x * this.s, PROLOGUE_START.y * this.s);
     this.snapCamera();
@@ -149,9 +168,6 @@ export class PrologueScene extends Phaser.Scene {
     this.setupPointer();
     this.touch = new TouchControls(this, getHudLayout(width, height, touchDevice).touch);
     this.touch.setMovementOnly();
-    if (hasSeenPrologue()) {
-      this.skipButton = new SkipButton(this, 'PULAR', () => this.leave(true), 1500);
-    }
 
     // Modo de Teste: tecla C mostra as paredes e os pés (para ajustar config/prologueData.ts)
     if (isDevSandboxEnabled()) {
@@ -171,10 +187,6 @@ export class PrologueScene extends Phaser.Scene {
     }
 
     const pad = GamepadManager.getInstance().getGameplayInput(this);
-    if (pad.isPause && this.skipButton) {
-      this.leave(true);
-      return;
-    }
 
     // Conversando: parada, cada aperto avança uma fala
     if (this.talk) {
@@ -185,6 +197,7 @@ export class PrologueScene extends Phaser.Scene {
 
     const move = this.readMove(pad);
     this.player.updateNixy(move.dx, move.dy, move.isSprint, delta);
+    this.syncFeetBox();
     this.player.setDepth(ACTOR_DEPTH + this.feetY() / 10000);
 
     // Perto de alguém: aviso de "falar" em cima da cabeça
@@ -200,7 +213,7 @@ export class PrologueScene extends Phaser.Scene {
 
     // Última sala: pisou na frente da porta de saída, atravessa
     if (this.roomIndex === last && rectContains(scaleRect(PROLOGUE_EXIT_ZONE, this.s), this.feetX(), this.feetY())) {
-      this.leave(false);
+      this.leave();
     }
 
     if (this.debugGfx) this.drawDebug();
@@ -259,7 +272,8 @@ export class PrologueScene extends Phaser.Scene {
         this.buildRoom(target);
         const room = CORRIDOR_ROOMS[target];
         const x = roomEntryX(step > 0 ? 'prev' : 'next', ROOM_EDGE.entry);
-        this.placeFeet(x * this.s, clampToWalkBand(room, feetYOrig, WALK_BAND_MARGIN) * this.s);
+        const bodyH = (this.player.body as Phaser.Physics.Arcade.Body).height / this.s;
+        this.placeFeet(x * this.s, clampToWalkBand(room, feetYOrig, bodyH, WALK_BAND_MARGIN) * this.s);
         this.snapCamera();
         cam.fadeIn(PROLOGUE_BALANCE.roomFadeMs, 0, 0, 0);
         this.isChangingRoom = false;
@@ -304,8 +318,9 @@ export class PrologueScene extends Phaser.Scene {
   private spawnNpc(def: PrologueNpcDef): void {
     const x = def.x * this.s;
     const y = def.y * this.s;
-    const hasArt = this.textures.exists(def.texture);
-    const sprite = this.add.image(x, y, hasArt ? def.texture : def.placeholderTexture);
+    const artKey = npcTextureKey(def.id);
+    const hasArt = def.hasArt && this.textures.exists(artKey);
+    const sprite = this.add.image(x, y, hasArt ? artKey : def.placeholderTexture);
     if (hasArt) {
       sprite.setOrigin(0.5, 1).setScale((def.displayHeight * this.s) / sprite.height);
     } else {
@@ -313,13 +328,39 @@ export class PrologueScene extends Phaser.Scene {
       sprite.setOrigin(0.5, 0.94).setScale(PROLOGUE_BALANCE.actorScalePerRoomScale * this.s);
     }
     sprite.setDepth(ACTOR_DEPTH + y / 10000);
-    this.wallGroup.add(this.add.zone(x, y - 6 * this.s, 88 * this.s, 32 * this.s));
+    // Obstáculo nos pés, da largura de quem está ali (a dupla ocupa mais)
+    this.wallGroup.add(this.add.zone(x, y - 6 * this.s, sprite.displayWidth * 0.7, 32 * this.s));
     this.npcs.push({ def, sprite, x, y });
+  }
+
+  /** Recoloca a caixa dos pés no quadro atual (os quadros têm tamanhos diferentes). */
+  private syncFeetBox(): void {
+    const body = this.player?.body as Phaser.Physics.Arcade.Body | null;
+    const frame = this.player?.frame;
+    if (!body || !frame) return;
+    const offX = (frame.width - FEET_BOX.w) / 2;
+    const offY = frame.height / 2 + FEET_BOX.belowCenter;
+    if (body.offset.x !== offX || body.offset.y !== offY) body.setOffset(offX, offY);
+  }
+
+  /** Prende a caixa dos pés dentro da faixa do chão e da largura da sala. */
+  private keepFeetOnFloor(): void {
+    const body = this.player?.body as Phaser.Physics.Arcade.Body | null;
+    if (!body || !body.enable) return;
+    const room = CORRIDOR_ROOMS[this.roomIndex];
+    const top = room.walkTop * this.s;
+    const bottom = room.walkBottom * this.s;
+    if (body.y < top) body.y = top;
+    else if (body.bottom > bottom) body.y = bottom - body.height;
+    const right = ROOM_IMAGE.width * this.s;
+    if (body.x < 0) body.x = 0;
+    else if (body.right > right) body.x = right - body.width;
   }
 
   /** Põe os pés da Nixy em (x, y) do mundo. */
   private placeFeet(x: number, y: number): void {
-    const feetBottom = (FEET_BOX.offsetY + FEET_BOX.h - TEXTURE_HALF) * this.player.scaleY;
+    this.syncFeetBox();
+    const feetBottom = (FEET_BOX.belowCenter + FEET_BOX.h) * this.player.scaleY;
     this.player.setPosition(x, y - feetBottom);
     (this.player.body as Phaser.Physics.Arcade.Body).reset(this.player.x, this.player.y);
   }
@@ -346,14 +387,11 @@ export class PrologueScene extends Phaser.Scene {
     for (const code of [K.E, K.SPACE, K.ENTER]) {
       add(code)?.on('down', () => this.onInteractPressed());
     }
-    add(K.ESC)?.on('down', () => {
-      if (this.skipButton) this.leave(true);
-    });
   }
 
   private setupPointer(): void {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.isLeaving || this.isChangingRoom || this.skipButton?.containsPointer(pointer)) return;
+      if (this.isLeaving || this.isChangingRoom) return;
       if (this.talk) {
         this.advanceTalk();
         return;
@@ -443,38 +481,37 @@ export class PrologueScene extends Phaser.Scene {
     if (!this.talk) return;
     const line = this.talk.lines[this.talk.index];
     if (line.who === 'nixy') {
-      const headOffset = -(TEXTURE_HALF + 4) * this.player.scaleY + 8;
+      const headOffset = -HEAD_ABOVE_CENTER * this.player.scaleY + 8;
       this.bubble.show(this.player, headOffset, line.text, PROLOGUE_THEME.nixyText);
       SoundManager.getInstance().playDialogueVoice('nixy');
     } else {
+      // Em dupla, a fala sai em cima de quem está falando (esquerda ou direita da imagem)
       const npc = this.talk.npc;
-      this.bubble.show(npc, npc.sprite.getBounds().top - npc.y - 8, line.text, PROLOGUE_THEME.npcText);
+      const spot = npc.def.speakers?.[line.who === 'npc2' ? 1 : 0] ?? 0;
+      const anchor = { x: npc.x + spot * npc.sprite.displayWidth, y: npc.y };
+      this.bubble.show(anchor, npc.sprite.getBounds().top - npc.y - 8, line.text, PROLOGUE_THEME.npcText);
       SoundManager.getInstance().playDialogueVoice('npc');
     }
   }
 
   // --- Saída ----------------------------------------------------------------------------------
 
-  /** Atravessa a porta (ou pula o corredor) e vai para a arena. */
-  private leave(skipped: boolean): void {
+  /** Atravessa a porta de saída e vai para a arena (o corredor não tem PULAR, decisão do dono). */
+  private leave(): void {
     if (this.isLeaving) return;
     this.isLeaving = true;
     this.talk = null;
     this.bubble.hide();
     this.prompt.setVisible(false);
-    this.skipButton?.setVisible(false);
     this.touch?.setVisible(false);
-    markPrologueSeen();
 
-    if (!skipped) {
-      // Entra na porta: um passo para cima e o estrondo dela batendo
-      const body = this.player.body as Phaser.Physics.Arcade.Body;
-      body.setVelocity(0, 0);
-      body.enable = false;
-      this.player.play('nixy-run-north', true);
-      this.tweens.add({ targets: this.player, y: this.player.y - 40 * this.s, alpha: 0, duration: PROLOGUE_BALANCE.exitWalkMs });
-      SoundManager.getInstance().playTableKick();
-    }
+    // Entra na porta: um passo para cima e o estrondo dela batendo
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+    body.enable = false;
+    this.player.play('nixy-run-north', true);
+    this.tweens.add({ targets: this.player, y: this.player.y - 40 * this.s, alpha: 0, duration: PROLOGUE_BALANCE.exitWalkMs });
+    SoundManager.getInstance().playTableKick();
     SoundManager.getInstance().stopMusic(PROLOGUE_BALANCE.exitFadeMs);
     this.cameras.main.fadeOut(PROLOGUE_BALANCE.exitFadeMs, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
@@ -517,8 +554,8 @@ export class PrologueScene extends Phaser.Scene {
   }
 
   private cleanup(): void {
+    this.physics.world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, this.keepFeetOnFloor, this);
     this.bubble?.destroy();
-    this.skipButton?.destroy();
     this.input.removeAllListeners();
     this.input.keyboard?.removeAllKeys(true);
     this.time.removeAllEvents();
@@ -530,6 +567,12 @@ export class PrologueScene extends Phaser.Scene {
       const key = roomKey(room.id);
       if (this.textures.exists(key)) this.textures.remove(key);
     }
+    for (const npc of this.npcs) npc.sprite.destroy();
+    this.npcs = [];
+    for (const def of PROLOGUE_NPCS) {
+      const key = npcTextureKey(def.id);
+      if (this.textures.exists(key)) this.textures.remove(key);
+    }
   }
 }
 
@@ -537,18 +580,3 @@ function roomKey(id: string): string {
   return `prologue-corridor-${id}`;
 }
 
-function hasSeenPrologue(): boolean {
-  try {
-    return window.localStorage.getItem(STORAGE_KEYS.PROLOGUE_SEEN) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function markPrologueSeen(): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEYS.PROLOGUE_SEEN, '1');
-  } catch {
-    // Sem localStorage (aba privada): o botão PULAR só não aparece na próxima vez
-  }
-}
