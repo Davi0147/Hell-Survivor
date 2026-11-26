@@ -6,6 +6,8 @@ import { InputHint } from './InputHint';
 
 const GLYPH_H = 26;
 const GLYPH_H_BARE = 32;
+/** Espaço entre o nome e o ícone do botão do aparelho. */
+const GLYPH_GAP = 10;
 
 export interface ActionKeyButtonOptions {
   x: number;
@@ -139,6 +141,13 @@ export class ActionKeyButton {
     this.glyph.container.setAlpha(showGlyph ? 1 : 0);
     // Aceso no hover, como a tecla desenhada fazia
     this.glyph.container.setScale(this.hovered ? 1.08 : 1);
-    if (this.opts.bare) this.labelText.setX(showGlyph ? w / 2 - glyphW - 12 : w / 2);
+    if (this.opts.bare) {
+      this.labelText.setX(showGlyph ? w / 2 - glyphW - 12 : w / 2);
+    } else {
+      // Logo depois do nome (antes ficava na beirada da caixa, longe do texto curto); nunca
+      // passa da borda do botão
+      const afterLabel = this.labelText.x + this.labelText.width + GLYPH_GAP + glyphW;
+      this.glyph.container.setX(Math.min(afterLabel, w / 2 - 10));
+    }
   }
 }
