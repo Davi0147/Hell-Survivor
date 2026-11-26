@@ -51,6 +51,8 @@ import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSyste
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 import { InfernalFurySystem } from '../systems/InfernalFurySystem';
 import { TalismanSystem, type ITalismanSystemContext } from '../systems/TalismanSystem';
+import { StoryArrivalSystem } from '../systems/StoryArrivalSystem';
+import { shouldPlayStoryArrival } from '../systems/prologueLogic';
 
 /** Contexto dos talismãs: a cena expõe `scene` como ScenePlugin, então ele é montado à parte. */
 function createTalismanContext(gs: GameScene): ITalismanSystemContext {
@@ -72,6 +74,8 @@ function createTalismanContext(gs: GameScene): ITalismanSystemContext {
 
 export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatBubbleContext, ISceneryContext, IEnemySpawnContext, IPickupSpawnContext, IBossFightContext, IRunEndContext, ICombatFeelContext, IHordeEventContext, IUltimateContext, IEncounterContext {
   public player!: Nixy;
+  /** Chegada do Capítulo I depois do corredor (porta, cão, latido). Ativa = sem combate. */
+  private storyArrival?: StoryArrivalSystem;
   private floorTile!: Phaser.GameObjects.TileSprite;
   /** Escala da textura do piso atual (cada piso tem a sua). */
   private floorScale: number = ARENA_FLOOR_SCALE_DEFAULT;
@@ -305,6 +309,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.enemyArrows = undefined;
     this.ultimate = undefined;
     this.talismans = undefined;
+    this.storyArrival = undefined;
     this.clearCombatSpeechBubbles();
     this.arenaScenerySystem?.destroy();
     this.arenaScenerySystem = undefined!;
@@ -375,8 +380,10 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // chefe nunca cobre a heroína. Projéteis (25+) e raios (28) continuam por cima dela.
     this.player.setDepth(23);
 
-    // 2.1. Animação ritual da Estrela de Respawn (Pentagrama de Invocação) nos pés de Nixy
-    this.playRespawnStarEffect();
+    // 2.1. Animação ritual da Estrela de Respawn (Pentagrama de Invocação) nos pés de Nixy.
+    // Começo do Capítulo I (vindo do corredor): ela chega por uma porta, sem o pentagrama.
+    const playArrival = shouldPlayStoryArrival({ mode: this.gameMode, chapter: this.currentChapter, isRevival: this.isRevival });
+    if (!playArrival) this.playRespawnStarEffect();
 
     // 3. Câmera travada no jogador com zoom 2x inteiro e pixels arredondados (pixel-perfect)
     this.cameras.main.startFollow(this.player, true, 1, 1);
@@ -598,6 +605,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.enemyArrows?.destroy();
       this.ultimate?.destroy();
       this.talismans?.destroy();
+      this.storyArrival?.destroy();
       this.bossFights?.destroy();
       this.combatBubbleSystem?.destroy();
       this.combatBubbleSystem = undefined!;
@@ -628,6 +636,14 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
       this.spawnZombieDogAt(220, -120);
       this.spawnZombieDogAt(-160, 160);
       this.spawnZombieDogAt(180, 150);
+    } else if (playArrival) {
+      // Capítulo I depois do corredor: porta, cão, latido; os cães chegam no fim da cena
+      this.storyArrival = new StoryArrivalSystem(this, () => this.spawnOpeningDogs());
+      this.storyArrival.start();
+      // A HUD nasce depois (UIScene sobe no próximo quadro): esconde assim que ela existir
+      this.scene.get('UIScene').events.once(Phaser.Scenes.Events.CREATE, () => {
+        if (this.storyArrival?.isActive) this.setHUDVisible(false);
+      });
     } else {
       // No Modo História: Inicia com o diálogo adaptado da fuga/capítulo ou com a fala de ressurreição (estilo Hades)
       this.time.delayedCall(200, () => {
@@ -648,17 +664,20 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
           dialogueLines = CHAPTER_OPENING_DIALOGUE[1];
         }
 
-        this.playDialogue(dialogueLines, () => {
-          // Os primeiros monstros surgem somente APÓS a conclusão do diálogo! (Apenas Cães na Fase 1)
-          const px = this.player.x;
-          const py = this.player.y;
-          this.spawnZombieDogAt(px - 220, py - 100);
-          this.spawnZombieDogAt(px + 220, py - 120);
-          this.spawnZombieDogAt(px - 160, py + 160);
-          this.spawnZombieDogAt(px + 180, py + 150);
-        });
+        // Os primeiros monstros surgem somente APÓS a conclusão do diálogo! (Apenas Cães na Fase 1)
+        this.playDialogue(dialogueLines, () => this.spawnOpeningDogs());
       });
     }
+  }
+
+  /** Os quatro cães que abrem a partida no Modo História, em volta da heroína. */
+  private spawnOpeningDogs(): void {
+    const px = this.player.x;
+    const py = this.player.y;
+    this.spawnZombieDogAt(px - 220, py - 100);
+    this.spawnZombieDogAt(px + 220, py - 120);
+    this.spawnZombieDogAt(px - 160, py + 160);
+    this.spawnZombieDogAt(px + 180, py + 150);
   }
 
   /**
@@ -735,6 +754,12 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // Vida zerada: Pacto Demoníaco, ou fim de partida
     if (this.runEnd.checkPlayerDeath()) return;
+
+    // Chegada do Capítulo I (porta e cão): só a cena roda; armas, monstros e spawns esperam
+    if (this.storyArrival?.isActive) {
+      this.storyArrival.update(delta);
+      return;
+    }
 
     if (this.sandboxInfiniteUlt) {
       this.player.ultimateCharge = this.player.maxUltimateCharge;
@@ -1355,6 +1380,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
    */
   public triggerUltimate(): void {
     if (!this.player.isUltimateReady || this.player.isUltimateActive) return;
+    if (this.storyArrival?.isActive) return;
     SoundManager.getInstance().playUltimateCast();
     GamepadManager.getInstance().vibrate(this, 350, 0.7, 1.0);
     this.ultimate?.activate();

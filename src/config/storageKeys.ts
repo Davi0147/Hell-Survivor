@@ -30,6 +30,8 @@ export const STORAGE_KEYS = {
    * (sessionStorage): teto contra recarregar sem parar.
    */
   SCREEN_REFIT_RELOADS: 'hell_survivor_screen_refit_reloads',
+  /** O jogador já atravessou o corredor do prólogo uma vez: o botão PULAR aparece (localStorage, '1'). */
+  PROLOGUE_SEEN: 'hell_survivor_prologue_seen',
 
   /**
    * Retorna a chave de armazenamento para mapas customizados do capítulo.

@@ -444,6 +444,11 @@ export class SoundManager {
     if (s) cutsceneSfx.playLightFlicker(s);
   }
 
+  public playDogBark(): void {
+    const s = this.getSfxOutput();
+    if (s) cutsceneSfx.playDogBark(s);
+  }
+
   public playStampImpact(): void {
     const s = this.getSfxOutput();
     if (s) cutsceneSfx.playStampImpact(s);

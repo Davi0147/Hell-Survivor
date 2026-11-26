@@ -672,7 +672,7 @@ export class IntroScene extends Phaser.Scene {
 
     // Se o jogador pulou durante a escuridão inicial (ou se a tela já está preta):
     if (isSkip && this.blackFadeOverlay && this.blackFadeOverlay.alpha >= 0.8) {
-      this.scene.start('GameScene', { mode: 'story', fromIntro: true });
+      this.scene.start('PrologueScene');
       return;
     }
 
@@ -685,11 +685,11 @@ export class IntroScene extends Phaser.Scene {
       ease: 'Linear',
       onComplete: () => {
         if (isSkip) {
-          this.scene.start('GameScene', { mode: 'story', fromIntro: true });
+          this.scene.start('PrologueScene');
         } else {
           // Final natural da história: breve pausa de 1.2s antes de entrar no inferno
           this.endDelayedCall = this.time.delayedCall(1200, () => {
-            this.scene.start('GameScene', { mode: 'story', fromIntro: true });
+            this.scene.start('PrologueScene');
           });
         }
       }

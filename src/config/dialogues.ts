@@ -542,3 +542,84 @@ export function getBossRematchDialogue(bossId: string, deathsToBoss: number): Di
 
   return [];
 }
+
+/** Uma fala curta no corredor do prólogo (balão em cima de quem fala, sem retrato). */
+export interface PrologueTalkLine {
+  who: 'npc' | 'nixy';
+  text: string;
+}
+
+/**
+ * Conversas dos funcionários parados no corredor do RH (o `id` vem de config/prologueData.ts).
+ * Cada vez que a Nixy fala com a mesma pessoa, vem a próxima conversa da lista.
+ */
+export const PROLOGUE_NPC_TALKS: Record<string, PrologueTalkLine[][]> = {
+  arquivista: [
+    [
+      { who: 'npc', text: 'Formulário 666-B em três vias... não, quatro... não, cinco...' },
+      { who: 'nixy', text: 'Faz quantos séculos que você tá nesse formulário?' },
+      { who: 'npc', text: 'Quatro. Mas esse ano eu termino.' },
+    ],
+    [
+      { who: 'npc', text: 'Você não pode sair do setor sem carimbo de saída.' },
+      { who: 'nixy', text: 'Carimba isso aqui, ó.' },
+    ],
+    [
+      { who: 'npc', text: 'Arquivaram meu pedido de férias. No arquivo morto. Junto comigo.' },
+    ],
+  ],
+  estagiario: [
+    [
+      { who: 'npc', text: 'Oi! Eu sou o estagiário! Faz 300 anos que eu sou o estagiário!' },
+      { who: 'nixy', text: 'E a efetivação?' },
+      { who: 'npc', text: 'Ano que vem! Sempre ano que vem!' },
+    ],
+    [
+      { who: 'npc', text: 'O Chefe pediu pra eu buscar café. Em 1543.' },
+      { who: 'nixy', text: 'Larga essa bandeja e foge comigo.' },
+      { who: 'npc', text: 'E perder meu vale-refeição de enxofre? Nem pensar!' },
+    ],
+  ],
+  contadora: [
+    [
+      { who: 'npc', text: 'Fuga do expediente? Vou ter que descontar do seu salário.' },
+      { who: 'nixy', text: 'Que salário?' },
+      { who: 'npc', text: 'Exatamente.' },
+    ],
+    [
+      { who: 'npc', text: 'Meta do trimestre: dez mil almas. Batemos três. O Chefe vai surtar.' },
+      { who: 'nixy', text: 'Que surte. Eu não vou estar aqui pra ver.' },
+    ],
+  ],
+  seguranca: [
+    [
+      { who: 'npc', text: 'Ei. Ninguém passa daquela porta sem crachá.' },
+      { who: 'nixy', text: 'E se eu passar mesmo assim?' },
+      { who: 'npc', text: '...Meu turno acaba em cinco minutos. Eu não vi nada.' },
+    ],
+    [
+      { who: 'npc', text: 'Lá fora tem cachorro. Daqueles que não gostam de gente.' },
+      { who: 'nixy', text: 'Que bom. Eu também não.' },
+    ],
+  ],
+};
+
+/** Na arena, logo depois de sair pela porta: a Nixy dá de cara com o cão de guarda. */
+export const STORY_ARRIVAL_DIALOGUE: DialogueLine[] = [
+  {
+    speaker: 'nixy',
+    speakerName: 'Nixy',
+    portraitKey: 'chat-nixy',
+    text: 'Argh... As catacumbas do abismo. Saí do escritório e caí direto no porão do inferno.'
+  },
+  {
+    speaker: 'nixy',
+    speakerName: 'Nixy',
+    portraitKey: 'chat-nixy',
+    text: '...Ah, não. Cachorrinho do RH. Bonzinho... Senta... Fica... Não faz barulho, tá?'
+  }
+];
+
+/** Balões depois dos latidos, antes da horda chegar. */
+export const STORY_ARRIVAL_BARK_TEXT = 'AU! AU! AUUUUU!';
+export const STORY_ARRIVAL_AFTER_BARK_TEXT = 'Ótimo. Agora o inferno inteiro sabe que eu fugi. Hora da colheita!';

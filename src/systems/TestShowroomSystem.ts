@@ -237,7 +237,10 @@ export class TestShowroomSystem {
           { name: 'Altar 3', texture: 'altar-3', scale: 0.55 },
           { name: 'Altar Invoc. Inativo', texture: 'altar-invoc-inactive', scale: 0.55 },
           { name: 'Altar Invoc. Ativo', texture: 'altar-invoc-active-1', scale: 0.55 },
-          { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.32 }
+          { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.32 },
+          { name: 'Porta Prólogo', texture: 'prologue-door', scale: 0.625 },
+          { name: 'Cão Prólogo', texture: 'prologue-dog-idle', scale: 0.625 },
+          { name: 'Cão Latindo', texture: 'prologue-dog-bark', scale: 0.625 }
         ]
       },
 

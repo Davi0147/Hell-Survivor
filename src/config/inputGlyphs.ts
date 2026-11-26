@@ -32,7 +32,8 @@ export type InputAction =
   | 'channel'
   | 'pick'
   | 'advance'
-  | 'skip';
+  | 'skip'
+  | 'interact';
 
 type GlyphRow = Readonly<Record<InputDevice, readonly string[]>>;
 
@@ -56,6 +57,8 @@ export const INPUT_GLYPHS: Readonly<Record<InputAction, GlyphRow>> = {
   // Avançar fala de diálogo / história (o clique também avança)
   advance: { keyboard: ['key-space', 'mouse-left'], xbox: ['pad-a'], playstation: ['ps-cross'], touch: ['touch-tap'] },
   skip: { keyboard: ['key-esc'], xbox: ['pad-b'], playstation: ['ps-circle'], touch: NONE },
+  // Falar com alguém no corredor do prólogo (E, Espaço ou Enter; A/cruz; tocar no aviso)
+  interact: { keyboard: ['key-e'], xbox: ['pad-a'], playstation: ['ps-cross'], touch: ['touch-tap'] },
 };
 
 /** Quadros do atlas que mostram a ação no aparelho (vazio = não mostrar nada). */

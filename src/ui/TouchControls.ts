@@ -452,6 +452,16 @@ export class TouchControls {
     }
   }
 
+  /**
+   * Só o analógico (cenas sem combate, como o corredor do prólogo): esconde e desliga Suprema,
+   * esquiva, corrida e pausa.
+   */
+  public setMovementOnly(): void {
+    for (const btn of [this.sprintBtn, this.dashBtn, this.ultBtn, this.pauseBtn]) btn.setVisible(false);
+    this.rings.setVisible(false);
+    this.sprintBtnX = this.dashBtnX = this.ultBtnX = this.pauseBtnX = -10000;
+  }
+
   public setForceEnabled(enabled: boolean): void {
     this.forceEnabled = enabled;
     this.container.setVisible(this.isVisibleState && (this.isActive || this.forceEnabled));

@@ -298,6 +298,27 @@ export const INPUT_HINT_THEME = {
   prompt: '#f3d17a',
 } as const;
 
+/** Prólogo (corredor do RH e chegada na arena). */
+export const PROLOGUE_THEME = {
+  /** Fundo fora do corredor e cor do escurecer. */
+  background: 0x000000,
+  /** Fala da Nixy no balão (a mesma dos balões de combate). */
+  nixyText: COLORS.phraseNixy,
+  /** Fala dos funcionários: papel velho. */
+  npcText: '#e8dcc0',
+  /** Latido do cão. */
+  barkText: '#ff3b3b',
+  /** "FALAR" em cima do NPC. */
+  promptText: '#f3d17a',
+  /** Brilho alaranjado da porta da arena ao abrir. */
+  doorGlow: 0xff7a1f,
+  /** Fumaça da porta sumindo. */
+  doorSmoke: 0x3a2a33,
+  /** Colisões visíveis (Modo de Teste). */
+  debugWall: 0xff0055,
+  debugFeet: 0x00e5ff,
+} as const;
+
 /**
  * Botões de ação com tecla (Re-rolar e Canalizar na tela de cartas): ícone, nome e uma
  * "tecla" desenhada que muda com o controle em uso.

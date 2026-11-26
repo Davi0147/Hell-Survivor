@@ -3,6 +3,7 @@ import { BootScene } from '../scenes/BootScene';
 import { MenuScene } from '../scenes/MenuScene';
 import { IntroScene } from '../scenes/IntroScene';
 import { GameScene } from '../scenes/GameScene';
+import { PrologueScene } from '../scenes/PrologueScene';
 import { UIScene } from '../scenes/UIScene';
 import { UpgradeScene } from '../scenes/UpgradeScene';
 import { Chapter1EndScene } from '../scenes/Chapter1EndScene';
@@ -37,7 +38,7 @@ export function createGameConfig(width: number = GAME_MIN_WIDTH, useCanvas: bool
       gamepad: true
     },
     backgroundColor: '#0d0b0e',
-    scene: [BootScene, MenuScene, IntroScene, GameScene, UIScene, UpgradeScene, Chapter1EndScene]
+    scene: [BootScene, MenuScene, IntroScene, PrologueScene, GameScene, UIScene, UpgradeScene, Chapter1EndScene]
   };
 }
 

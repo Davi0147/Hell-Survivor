@@ -90,6 +90,60 @@ export const CAMERA_BALANCE = {
 } as const;
 
 /**
+ * Prólogo do Capítulo I (PrologueScene): o corredor do escritório. A cena não usa zoom (o
+ * corredor é desenhado 1:1 na tela), então a Nixy e a velocidade dela são ampliadas pelo zoom da
+ * arena para ela ter o mesmo tamanho e o mesmo ritmo de lá.
+ */
+export const PROLOGUE_BALANCE = {
+  /**
+   * Escala da Nixy e dos NPCs provisórios. Um pouco maior que o zoom da arena (1.6): ao lado das
+   * portas do corredor ela parecia uma criança.
+   */
+  actorScale: 2,
+  /** Velocidade em px de tela por px de mundo da arena. */
+  speedMultiplier: CAMERA_BALANCE.gameplayZoom,
+  /** Distância (px de tela) dos pés da Nixy até os pés do NPC para aparecer o "falar". */
+  interactRadius: 110,
+  /** Suavidade da câmera seguindo a Nixy (0..1 por quadro). */
+  cameraLerp: 0.12,
+  fadeInMs: 700,
+  /** Escurecer ao atravessar a porta de saída. */
+  exitFadeMs: 800,
+  /** Andar sozinha até a porta antes de escurecer. */
+  exitWalkMs: 450,
+  /** Tempo mínimo entre duas falas (um toque não pula duas). */
+  talkAdvanceCooldownMs: 220,
+} as const;
+
+/**
+ * Chegada na arena depois do corredor (StoryArrivalSystem): ela sai por uma porta, anda até um
+ * cão, conversa, o cão late e a horda começa. Distâncias em px do mundo, a partir do ponto de
+ * nascimento do mapa. A porta e o cão vêm em px de tela (arte 1:1), por isso a escala 1/zoom.
+ */
+export const STORY_ARRIVAL_BALANCE = {
+  /** A porta fica à direita do ponto de nascimento. */
+  doorOffsetX: 150,
+  /** Quanto ela anda sozinha para a esquerda depois de sair. */
+  walkDistance: 170,
+  /** Velocidade da caminhada sozinha (mais lenta que o normal, de cena). */
+  walkSpeed: 95,
+  /** Distância do cão até onde ela para. */
+  dogGap: 150,
+  artScale: 1 / CAMERA_BALANCE.gameplayZoom,
+  fadeInMs: 600,
+  /** Pausa olhando o cão antes do diálogo. */
+  beforeDialogueMs: 450,
+  barkCount: 3,
+  barkIntervalMs: 420,
+  barkShakeMs: 180,
+  barkShakeIntensity: 0.006,
+  /** Respiro depois do último latido antes da horda chegar. */
+  afterBarkMs: 700,
+  /** A porta some em fumaça depois que ela se afasta. */
+  doorVanishMs: 900,
+} as const;
+
+/**
  * LIMITES DE PERFORMANCE E OTIMIZAÇÃO DE ENTIDADES:
  * Reduz a sobrecarga de draw calls e física, evitando travamentos em hordas massivas.
  */

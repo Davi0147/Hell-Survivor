@@ -269,3 +269,47 @@ export function playStarSlam(s: SfxOutput, starIndex: number): void {
   chimeOsc.start(now);
   chimeOsc.stop(now + 0.24);
 }
+
+/**
+ * Latido rouco de cão do inferno (prólogo): um "wuf" grave com rosnado em cima.
+ */
+export function playDogBark(s: SfxOutput): void {
+  const { ctx } = s;
+  const now = ctx.currentTime;
+
+  // 1. Corpo do latido: sobe e cai rápido, como uma boca abrindo e fechando
+  const body = ctx.createOscillator();
+  const bodyGain = ctx.createGain();
+  body.type = 'sawtooth';
+  body.frequency.setValueAtTime(190, now);
+  body.frequency.exponentialRampToValueAtTime(420, now + 0.04);
+  body.frequency.exponentialRampToValueAtTime(140, now + 0.2);
+  bodyGain.gain.setValueAtTime(0.001, now);
+  bodyGain.gain.exponentialRampToValueAtTime(0.55 * s.volume, now + 0.025);
+  bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+  body.connect(bodyGain);
+  bodyGain.connect(s.out);
+  body.start(now);
+  body.stop(now + 0.24);
+
+  // 2. Rosnado: quadrada grave tremendo (modulada por um oscilador lento)
+  const growl = ctx.createOscillator();
+  const growlGain = ctx.createGain();
+  const wobble = ctx.createOscillator();
+  const wobbleDepth = ctx.createGain();
+  growl.type = 'square';
+  growl.frequency.setValueAtTime(85, now);
+  wobble.frequency.setValueAtTime(38, now);
+  wobbleDepth.gain.setValueAtTime(30, now);
+  wobble.connect(wobbleDepth);
+  wobbleDepth.connect(growl.frequency);
+  growlGain.gain.setValueAtTime(0.001, now);
+  growlGain.gain.exponentialRampToValueAtTime(0.3 * s.volume, now + 0.03);
+  growlGain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+  growl.connect(growlGain);
+  growlGain.connect(s.out);
+  growl.start(now);
+  wobble.start(now);
+  growl.stop(now + 0.28);
+  wobble.stop(now + 0.28);
+}
