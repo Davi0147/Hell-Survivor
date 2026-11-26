@@ -4,6 +4,82 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Talismãs no menu de pausa
+
+#### Resumo para o Jogador
+- **O menu de pausa ganhou a seção TALISMÃS:** mostra os talismãs que você tem nesta partida, do mais raro para o mais comum, com a borda da cor da raridade. Toque num deles para ver nome, raridade, tipo e o que ele faz.
+- Os bônus agora ocupam só as linhas que usam, e Armas e Talismãs sobem para perto deles (cabe tudo mesmo com todos os bônus).
+
+#### Técnico
+- `ui/pauseLayout.ts` calcula as posições do meio do menu pelo número de bônus (testado: o pior caso termina 12 px acima do Volume). `ui/pauseTalismans.ts` monta a lista (`IPauseTalismanInfo`), exposta por `GameScene.getPauseTalismans`. A janela de explicação encaixa ícones não quadrados sem esticar.
+
+### Talismãs: amuleto que evolui e ícones novos
+
+#### Resumo para o Jogador
+- **O prêmio do minichefe virou um amuleto de verdade:** ele aparece pendurado na corrente, **balançando como um pêndulo**. A cada toque ele evolui para a próxima raridade (ferro, bronze, aço azul, obsidiana, ouro com asas), com um tranco no balanço e um clarão da cor da raridade.
+- No último toque a pedra **racha**, a luz explode e no lugar aparece o **ícone do talismã ganho, flutuando**, com nome, raridade, tipo e descrição embaixo.
+- **Os 15 talismãs ganharam ícone próprio** (nada de ícone emprestado: o Pilar do Inferno não é mais "um coco") e não vazam mais para fora da tela.
+- No chão, o talismã agora é o amuleto balançando dentro do feixe de luz (antes era uma cartinha girando).
+
+#### Técnico
+- `scripts/cut-talismans.py`: `talismas.jpg` (verde; fundo = só o verde ligado à borda, buracos fechados de verde de chroma também saem, a gema esmeralda fica) e `talisma-evolucao.jpg` (magenta; divisa entre vizinhos pela coluna mais vazia, os 10 na mesma tela 250x250 com o topo da corrente no centro-topo = pivô). Reduzidos à metade com Lanczos (grade irregular de 7 a 8 px) e alfa binário.
+- `TalismanRevealModal` reescrito: pêndulo por quadro (`dampPendulum`/`pendulumAngle`/`pendulumKick` em `talismanRules.ts`, testados; números em `TALISMAN_BALANCE.reveal.pendulum`). `TALISMAN_THEME.rarity.*.card` virou `art`/`openArt`; ícones `talisman-icon-<id>` no catálogo. Amuletos na galeria de teste; teste confere que toda a arte existe.
+
+### Azazel: Tapa da Mão nos cristais e caveiras no duelo final
+
+#### Resumo para o Jogador
+- **Fase dos cristais — Tapa da Mão:** de tempos em tempos uma faixa vermelha marca onde você está e, 1,5 segundo depois, a **mão gigante do Azazel** desce do alto e bate ali (35 de dano). A faixa cobre **a mão e o braço inteiro**: saia para o lado e volte para o cristal. Depois de 30 segundos na fase vêm **duas mãos, a direita e a esquerda**: a segunda mira para onde você está indo.
+- **Duelo final:** o Azazel volta com **duas caveiras** que giram e flutuam em volta dele e **cospem orbes em você**, uma de cada vez, abrindo a boca a cada tiro. Bater numa caveira tira vida dele.
+
+#### Técnico
+- `AzazelHandSlam` (novo, `entities/enemies`): marcas, queda da mão (tween), impacto e dano via `hitPlayer` do Azazel (respeita esquiva e imunidade curta). Regras puras em `crystalPhaseRules.ts` (`handSlamCount`, `handSlamTargets`, `handSlamRect`, `isInsideHandSlam`), testadas. Área = retângulo `handSlam.hitbox` (150 px de largura, 105 px abaixo do ponto até a ponta dos dedos, 540 px acima pelo braço). A segunda mão do par sai com `flipX` (mão esquerda). Números em `crystalPhase.handSlam`; arte de `scripts/cut-azazel-hand.py` (`art-source/novos/mao-azazel.jpg`, grade de 7,75 px, já virada com os dedos para baixo).
+- Duelo final: `finalSkulls` no balanço; reaproveita duas `AzazelPhantomClone` (`activateClone` agora recebe escala). Param na fase 2/3, na morte e no respawn.
+- Mão na galeria de teste; acerto do tapa vai para o `DebugSessionLogger`.
+
+### Correção: estruturas apareciam no domínio escuro do Azazel
+
+#### Resumo para o Jogador
+- **No "AQUI É O MEU MUNDO" a tela fica preta de verdade:** arcos, pilares e outras estruturas altas não aparecem mais no meio do escuro. Também deixam de ser paredes invisíveis enquanto estiver escuro; tudo volta quando a luz retorna.
+
+#### Técnico
+- As peças altas do `ChapterDecorSystem` vão para a profundidade 24 quando a heroína passa atrás delas, acima do véu preto (14). `ChapterDecorSystem.setHidden` esconde desenho, luzes e pegadas sólidas e pausa a passada por quadro (que reexibia peças pela tela). Ligado ao evento `azazel-darkness-active` via `IBossFightContext.setDecorHidden`; também restaurado na derrota do Azazel e ao remover o chefe no Modo de Teste.
+
+### Azazel: projéteis com arte nova
+
+#### Resumo para o Jogador
+- Os ataques do Azazel ganharam desenho próprio, na mesma cor roxa e verde-água:
+  - **Rajada direcionada** (os 4 tiros seguidos): agora são **cometas** com cauda.
+  - **Rajada do teleporte**: **orbes lisas** brilhantes.
+  - **Disparo em espiral**: **orbes em redemoinho** que giram enquanto voam.
+  - **Leque de penas**: **agulhas finas** (antes eram as mesmas bolinhas dos outros golpes).
+- O acerto fica na **cabeça** do cometa e da agulha, não no meio da cauda: o que você vê é o que acerta.
+- Dano, velocidade e quantidade de cada golpe não mudaram.
+
+#### Técnico
+- `scripts/cut-azazel-projectiles.py` recorta 4 peças de `art-source/novos/projeteis-azazel.jpg` (caixas aproximadas + aperto pela máscara, grade de 8 px, cor original sem a limpeza de franja do `spritecut`) para `public/assets/sprites/enemies/Azazel/Projectiles/`.
+- `AZAZEL_BOSS_BALANCE.projectileArt` (textura, escala, `originX` = ponto de acerto, `spinPerMs`); `darkSkulls.orbScale` foi para `projectileArt.skull`. `DarkOrbProjectile.fire` recebe um `ProjectileLook` e redefine escala/origem/giro a cada disparo (pool). Saiu a textura inexistente `azazel-feather`. Peças na galeria de teste; teste confere que cada golpe aponta para um arquivo existente.
+- Sobraram na folha, sem uso por enquanto: anéis, chamas, raios e cometas alternativos.
+
+### Correção: Nixy travava na borda da fase dos cristais
+
+#### Resumo para o Jogador
+- **A Nixy não trava mais na borda da área dos cristais do Azazel.** Às vezes, ao encostar na borda, ela parava de andar para qualquer lado e só saía morrendo.
+
+#### Técnico
+- `clampToCircle` (`crystalPhaseRules.ts`) devolvia o ponto exatamente no raio; por arredondamento ele podia ficar ~6e-14 px fora, a borda disparava em todo quadro e o `body.reset` zerava a velocidade para sempre. Agora devolve meio pixel para dentro (`EDGE_SLACK_PX`). Teste com as coordenadas reproduzidas no jogo.
+
+### Azazel: roda de caveiras no escuro
+
+#### Resumo para o Jogador
+- **Na fase da escuridão do Azazel, os 8 Azazels em volta de você viraram 8 caveiras.** Elas giram ao seu redor e, a cada tiro, **abrem a boca e cospem uma orbe roxa e turquesa**.
+- O Azazel de verdade está disfarçado de uma das caveiras: bater em **qualquer** caveira tira vida dele, como antes.
+- Ritmo, dano e duração (10 s) continuam iguais.
+
+#### Técnico
+- `scripts/cut-azazel-skulls.py` recorta `art-source/novos/caveiras-azazel.jpg` (fundo verde, grade de 16 px) em `public/assets/sprites/enemies/Azazel/Skull/skull-closed|open|orb.png`; os dois quadros da caveira têm o mesmo tamanho para a troca não pular.
+- `AzazelPhantomClone` virou caveira (`updateSkullPose`/`openMouth`, `flipX` para olhar a heroína). O próprio `AzazelBoss` entra em forma de caveira (`enterSkullForm`/`exitSkullForm`: escala, caixa de colisão e animação restauradas ao sair, nas fases 3, morte e respawn).
+- Números em `AZAZEL_BOSS_BALANCE.darkSkulls`. `DarkOrbProjectile.fire` recebe escala (sempre redefinida, por causa do pool). Caveiras e orbe na galeria de teste.
+
 ### Pets dos talismãs com arte própria
 
 #### Resumo para o Jogador

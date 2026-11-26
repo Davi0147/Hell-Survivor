@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { BaseEnemy } from './BaseEnemy';
 import type { BaseCharacter } from '../characters/BaseCharacter';
-import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
+import { DarkOrbProjectile, type ProjectileLook } from '../weapons/DarkOrbProjectile';
+import { AzazelHandSlam } from './AzazelHandSlam';
 import { SoundManager } from '../../systems/SoundManager';
 import { BOSS_TELEGRAPH } from '../../config/theme';
 import { AZAZEL_BOSS_BALANCE } from '../../config/balance';
@@ -44,21 +45,42 @@ interface IPlayerHitScene {
   grantInvulnerability?: (ms: number) => void;
 }
 
-const FEATHER_TEXTURE = 'azazel-feather';
-const ORB_TEXTURE = 'azazel-orb';
+const ART = AZAZEL_BOSS_BALANCE.projectileArt;
+/** Orbe desenhada por código (BootScene): reserva quando a arte de um golpe não carregou. */
+const ORB_LOOK: ProjectileLook = { texture: 'azazel-orb', scale: 1, originX: 0.5, spinPerMs: 0 };
+
+export const SKULL_CLOSED_TEXTURE = 'azazel-skull-closed';
+export const SKULL_OPEN_TEXTURE = 'azazel-skull-open';
+
+/** Caveira olhando para a heroína (a arte olha para a direita); boca aberta enquanto cospe. */
+function applySkullPose(skull: Phaser.Physics.Arcade.Sprite, targetX: number, mouthOpen: boolean): void {
+  const key = mouthOpen ? SKULL_OPEN_TEXTURE : SKULL_CLOSED_TEXTURE;
+  if (skull.texture.key !== key) skull.setTexture(key);
+  skull.setFlipX(targetX < skull.x);
+}
+
+function applySkullHitbox(skull: Phaser.Physics.Arcade.Sprite): void {
+  const body = skull.body as Phaser.Physics.Arcade.Body | null;
+  if (!body) return;
+  const hb = AZAZEL_BOSS_BALANCE.darkSkulls.hitbox;
+  body.setSize(hb.width, hb.height);
+  body.setOffset(hb.offsetX, hb.offsetY);
+}
 
 /**
- * Clone Espectral de Azazel usado na Fase 2 (8 Azazels ao redor do jogador).
+ * Caveira da Fase 2 (roda de 8 caveiras ao redor da heroína; o Azazel é uma delas).
  * Estende BaseEnemy para que todas as armas automáticas e projéteis da Nixy
- * o acertem naturalmente, compartilhando a barra de vida principal do Boss.
+ * a acertem naturalmente, compartilhando a barra de vida principal do Boss.
  */
 export class AzazelPhantomClone extends BaseEnemy {
   public parentBoss: AzazelBoss;
   public cloneAngle: number = 0;
   public isBoss: boolean = true;
+  /** Tempo restante com a boca aberta (ms). */
+  public mouthOpenMs: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, parentBoss: AzazelBoss) {
-    super(scene, x, y, 'azazel-idle-south');
+    super(scene, x, y, SKULL_CLOSED_TEXTURE);
     this.parentBoss = parentBoss;
     this.isBoss = true;
     this.maxHp = parentBoss.maxHp;
@@ -66,24 +88,23 @@ export class AzazelPhantomClone extends BaseEnemy {
     this.speed = 0;
     // Mesmo multiplicador do pai (inclui o +10% do balanço e a revanche)
     this.damage = Math.max(1, Math.round(AZAZEL_BOSS_BALANCE.cloneContactDamage * parentBoss.attackDamageMultiplier));
-    this.setScale(AZAZEL_BOSS_BALANCE.scale);
+    this.setScale(AZAZEL_BOSS_BALANCE.darkSkulls.scale);
     this.setDepth(22);
 
+    applySkullHitbox(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (body) {
-      body.setSize(42, 52);
-      body.setOffset(24, 20);
-      body.setImmovable(true);
-    }
+    if (body) body.setImmovable(true);
   }
 
-  public activateClone(x: number, y: number, facingAngle: number): void {
+  public activateClone(x: number, y: number, facingAngle: number, scale: number = AZAZEL_BOSS_BALANCE.darkSkulls.scale): void {
+    this.setScale(scale);
     this.setPosition(x, y);
     this.setActive(true);
     this.setVisible(true);
     this.isDead = false;
     this.setAlpha(0);
     this.clearTint();
+    this.mouthOpenMs = 0;
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
@@ -91,22 +112,25 @@ export class AzazelPhantomClone extends BaseEnemy {
       body.setVelocity(0, 0);
     }
 
-    this.updatePoseFacing(facingAngle, false);
+    this.updateSkullPose(x + Math.cos(facingAngle), 0);
 
     this.scene.tweens.add({
       targets: this,
-      alpha: 0.95,
+      alpha: 1,
       duration: 220,
       ease: 'Quad.easeOut'
     });
   }
 
-  public updatePoseFacing(angleRad: number, raisedHand: boolean): void {
-    const dir = AzazelBoss.angleToDir8(angleRad);
-    const key = raisedHand ? `azazel-hand-${dir}` : `azazel-idle-${dir}`;
-    if (this.anims.currentAnim?.key !== key) {
-      this.play(key, true);
-    }
+  /** Vira para a heroína e fecha a boca quando o tempo de cuspir acaba. */
+  public updateSkullPose(targetX: number, deltaMs: number): void {
+    this.mouthOpenMs = Math.max(0, this.mouthOpenMs - deltaMs);
+    applySkullPose(this, targetX, this.mouthOpenMs > 0);
+  }
+
+  public openMouth(): void {
+    this.mouthOpenMs = AZAZEL_BOSS_BALANCE.darkSkulls.mouthOpenMs;
+    applySkullPose(this, this.flipX ? this.x - 1 : this.x + 1, true);
   }
 
   public override takeDamage(amount: number): void {
@@ -199,6 +223,19 @@ export class AzazelBoss extends BaseEnemy {
   private phantomClones: AzazelPhantomClone[] = [];
   private darkCloneShotTimer: number = 0;
   private darkSurroundCenter: { x: number; y: number } = { x: 0, y: 0 };
+  // Na roda de caveiras o próprio Azazel vira uma delas
+  private isSkullForm: boolean = false;
+  private skullMouthOpenMs: number = 0;
+  private scaleBeforeSkull: number = AZAZEL_BOSS_BALANCE.scale;
+
+  // Fase dos cristais: a mão gigante bate onde a heroína está
+  private handSlam: AzazelHandSlam;
+
+  // Duelo final: duas caveiras giram em volta dele e atiram alternando
+  private finalSkullsActive: boolean = false;
+  private finalSkullClockMs: number = 0;
+  private finalSkullShotTimer: number = 0;
+  private finalSkullTurn: number = 0;
 
   // Texto acima da cabeça ("SUA ALMA É MINHA!")
 
@@ -231,6 +268,8 @@ export class AzazelBoss extends BaseEnemy {
       maxSize: 90,
       runChildUpdate: false
     });
+
+    this.handSlam = new AzazelHandSlam(scene, (player, damage) => this.hitPlayer(player, this.scaleAttack(damage)));
   }
 
   public static angleToDir8(angleRad: number): string {
@@ -258,6 +297,10 @@ export class AzazelBoss extends BaseEnemy {
   ): void {
     super.spawn(x, y, hp, speed, damage);
     this.setScale(customScale);
+    this.isSkullForm = false;
+    this.setFlipX(false);
+    this.stopFinalSkulls();
+    this.handSlam.stop();
     this.combatPhase = 1;
     this.attackDamageMultiplier = 1;
     this.damageTakenMultiplier = 1;
@@ -385,6 +428,9 @@ export class AzazelBoss extends BaseEnemy {
     // Desenha e aplica limite da Arena Delimitada (Fase 1 e Fase 4)
     this.updateArenaBarrier(player);
 
+    // Banido na fase dos cristais: só a mão gigante age
+    if (this.bossState === 'CRYSTAL_BANISHED') this.handSlam.update(player, deltaMs);
+
     if (this.bossState === 'INTRO' || this.bossState === 'TRANSITIONING' || this.bossState === 'CRYSTAL_BANISHED') {
       const body = this.body as Phaser.Physics.Arcade.Body;
       if (body) body.setVelocity(0, 0);
@@ -413,6 +459,8 @@ export class AzazelBoss extends BaseEnemy {
     // =========================================================================
     // LÓGICA DA FASE 1 (100% -> 50%) E FASE 4 SHOWDOWN FINAL (20% -> 0%)
     // =========================================================================
+    if (this.finalSkullsActive) this.updateFinalSkulls(player, deltaMs);
+
     const speedFactor = this.combatPhase === 4 ? 1.2 : 1.0;
 
     if (this.bossState === 'CHASE') {
@@ -531,7 +579,7 @@ export class AzazelBoss extends BaseEnemy {
       for (let i = 0; i < cfg.feathers; i++) {
         const t = i / Math.max(1, cfg.feathers - 1);
         const angle = a0 + (a1 - a0) * t;
-        this.spawnAzazelProjectile(this.x, this.y, angle, cfg.speed, cfg.damage, FEATHER_TEXTURE);
+        this.spawnAzazelProjectile(this.x, this.y, angle, cfg.speed, cfg.damage, ART.feather);
       }
       this.scene.cameras.main.shake(140, 0.01);
       this.bossState = 'CHASE';
@@ -740,17 +788,17 @@ export class AzazelBoss extends BaseEnemy {
       this.scene.time.delayedCall(idx * 95, () => {
         if (!this.active || this.isDead || this.combatPhase === 2 || this.combatPhase === 3) return;
         const curAngle = Math.atan2(player.y - this.y, player.x - this.x) + offset;
-        this.spawnAzazelOrb(this.x, this.y, curAngle, 320, AZAZEL_BOSS_BALANCE.directedBurstOrbDamage);
+        this.spawnAzazelOrb(this.x, this.y, curAngle, 320, AZAZEL_BOSS_BALANCE.directedBurstOrbDamage, ART.directedBurst);
       });
     });
   }
 
-  public spawnAzazelOrb(x: number, y: number, angle: number, speed: number, dmg: number): void {
-    this.spawnAzazelProjectile(x, y, angle, speed, dmg, ORB_TEXTURE);
+  public spawnAzazelOrb(x: number, y: number, angle: number, speed: number, dmg: number, look: ProjectileLook = ORB_LOOK): void {
+    this.spawnAzazelProjectile(x, y, angle, speed, dmg, look);
   }
 
-  /** Projétil do Azazel (orbe ou pena), do mesmo grupo: tudo some nas trocas de fase. */
-  private spawnAzazelProjectile(x: number, y: number, angle: number, speed: number, dmg: number, textureKey: string): void {
+  /** Projétil do Azazel (orbe, cometa, agulha...), do mesmo grupo: tudo some nas trocas de fase. */
+  private spawnAzazelProjectile(x: number, y: number, angle: number, speed: number, dmg: number, look: ProjectileLook): void {
     let proj = this.projectilesGroup.getChildren().find(
       (child) => !child.active
     ) as DarkOrbProjectile | undefined;
@@ -761,9 +809,9 @@ export class AzazelBoss extends BaseEnemy {
     }
 
     SoundManager.getInstance().playAzazelOrbShoot();
-    // Sem arte própria ainda (ex.: pena), usa a orbe
-    const key = this.scene.textures.exists(textureKey) ? textureKey : ORB_TEXTURE;
-    proj.fire(x, y, angle, speed, this.scaleAttack(dmg), key);
+    // Arte que não carregou: cai na orbe desenhada por código, com o visual dela
+    const art = this.scene.textures.exists(look.texture) ? look : ORB_LOOK;
+    proj.fire(x, y, angle, speed, this.scaleAttack(dmg), art.texture, art);
   }
 
   // =========================================================================
@@ -814,7 +862,7 @@ export class AzazelBoss extends BaseEnemy {
       if (!this.active || this.isDead || this.combatPhase === 2 || this.combatPhase === 3) return;
       const a = Math.atan2(player.y - this.y, player.x - this.x);
       [-0.22, 0, 0.22].forEach((off) => {
-        this.spawnAzazelOrb(this.x, this.y, a + off, 300, AZAZEL_BOSS_BALANCE.teleportOrbDamage);
+        this.spawnAzazelOrb(this.x, this.y, a + off, 300, AZAZEL_BOSS_BALANCE.teleportOrbDamage, ART.teleportBurst);
       });
     });
   }
@@ -1059,8 +1107,8 @@ export class AzazelBoss extends BaseEnemy {
     if (this.spiralShotTimer <= 0) {
       this.spiralShotTimer = 115;
       this.spiralAngle += 0.36;
-      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle, 265, AZAZEL_BOSS_BALANCE.spiralOrbDamage);
-      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle + Math.PI, 265, AZAZEL_BOSS_BALANCE.spiralOrbDamage);
+      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle, 265, AZAZEL_BOSS_BALANCE.spiralOrbDamage, ART.spiral);
+      this.spawnAzazelOrb(this.spiralBasePos.x, this.spiralBasePos.y, this.spiralAngle + Math.PI, 265, AZAZEL_BOSS_BALANCE.spiralOrbDamage, ART.spiral);
     }
 
     if (this.stateTimer <= 0) {
@@ -1077,6 +1125,7 @@ export class AzazelBoss extends BaseEnemy {
     this.bossState = 'TRANSITIONING';
     this.isInvulnerable = true;
     this.isArenaRestricted = false;
+    this.stopFinalSkulls();
     this.arenaGraphics.clear();
     this.telegraphGraphics.clear();
     this.lightningMarkers = [];
@@ -1140,6 +1189,7 @@ export class AzazelBoss extends BaseEnemy {
   private startDarkFiveDashes(player: BaseCharacter): void {
     if (this.isDead || this.combatPhase !== 2) return;
     this.deactivatePhantomClones();
+    this.exitSkullForm();
 
     this.bossState = 'DARK_FIVE_DASHES';
     this.darkDashCount = 0;
@@ -1253,19 +1303,19 @@ export class AzazelBoss extends BaseEnemy {
   private startDarkEightClones(player: BaseCharacter): void {
     if (this.isDead || this.combatPhase !== 2) return;
 
+    const cfg = AZAZEL_BOSS_BALANCE.darkSkulls;
     this.bossState = 'DARK_EIGHT_CLONES';
-    this.stateTimer = 10000; // 10 segundos!
-    this.darkCloneShotTimer = 450;
+    this.stateTimer = cfg.durationMs;
+    this.darkCloneShotTimer = cfg.firstShotMs;
     this.telegraphGraphics.clear();
     this.darkSurroundCenter = { x: player.x, y: player.y };
 
     SoundManager.getInstance().playAzazelTeleport();
     this.scene.cameras.main.shake(200, 0.012);
 
-    const radius = 320;
-    // O próprio Azazel ocupa o índice 0 do círculo de 8; os outros 7 são AzazelPhantomClone com HP compartilhado
-    const pos0X = this.darkSurroundCenter.x + Math.cos(0) * radius;
-    const pos0Y = this.darkSurroundCenter.y + Math.sin(0) * radius;
+    // O próprio Azazel ocupa o índice 0 da roda, disfarçado de caveira; as outras são AzazelPhantomClone com HP compartilhado
+    const pos0X = this.darkSurroundCenter.x + cfg.radius;
+    const pos0Y = this.darkSurroundCenter.y;
     this.setPosition(pos0X, pos0Y);
     this.setVisible(true);
     this.setAlpha(1);
@@ -1277,23 +1327,49 @@ export class AzazelBoss extends BaseEnemy {
       body.enable = true;
       body.setVelocity(0, 0);
     }
-    this.updateHandAnimation(Math.atan2(player.y - pos0Y, player.x - pos0X));
+    this.enterSkullForm(player.x);
 
-    // Garante que temos 7 clones instanciados e registrados no grupo de inimigos da cena
+    // Garante que temos as caveiras instanciadas e registradas no grupo de inimigos da cena
     this.ensurePhantomClonesCreated();
 
-    for (let i = 0; i < 7; i++) {
-      const angle = ((i + 1) / 8) * (Math.PI * 2);
-      const cx = this.darkSurroundCenter.x + Math.cos(angle) * radius;
-      const cy = this.darkSurroundCenter.y + Math.sin(angle) * radius;
+    for (let i = 0; i < this.phantomClones.length; i++) {
+      const angle = ((i + 1) / cfg.count) * (Math.PI * 2);
+      const cx = this.darkSurroundCenter.x + Math.cos(angle) * cfg.radius;
+      const cy = this.darkSurroundCenter.y + Math.sin(angle) * cfg.radius;
       const clone = this.phantomClones[i];
       clone.cloneAngle = angle;
       clone.activateClone(cx, cy, Math.atan2(player.y - cy, player.x - cx));
     }
   }
 
+  /** Troca o anjo pela caveira (sem animação: a pose é só boca aberta ou fechada). */
+  private enterSkullForm(targetX: number): void {
+    if (!this.isSkullForm) this.scaleBeforeSkull = this.scaleX;
+    this.isSkullForm = true;
+    this.skullMouthOpenMs = 0;
+    this.anims.stop();
+    this.setScale(AZAZEL_BOSS_BALANCE.darkSkulls.scale);
+    applySkullHitbox(this);
+    applySkullPose(this, targetX, false);
+  }
+
+  /** Volta a ser o Azazel: escala, caixa de colisão e animação de antes da roda de caveiras. */
+  private exitSkullForm(): void {
+    if (!this.isSkullForm) return;
+    this.isSkullForm = false;
+    this.setFlipX(false);
+    this.setScale(this.scaleBeforeSkull);
+    const body = this.body as Phaser.Physics.Arcade.Body | null;
+    if (body) {
+      body.setSize(42, 52);
+      body.setOffset(24, 20);
+    }
+    // Sem ignoreIfPlaying: a animação parada ainda guarda a chave antiga, e as funções de pose a pulariam
+    this.play('azazel-idle-south');
+  }
+
   private ensurePhantomClonesCreated(): void {
-    while (this.phantomClones.length < 7) {
+    while (this.phantomClones.length < AZAZEL_BOSS_BALANCE.darkSkulls.count - 1) {
       const clone = new AzazelPhantomClone(this.scene, this.x, this.y, this);
       clone.deactivateClone();
       this.phantomClones.push(clone);
@@ -1311,55 +1387,74 @@ export class AzazelBoss extends BaseEnemy {
     this.stateTimer -= deltaMs;
     this.darkCloneShotTimer -= deltaMs;
 
-    // Mantém os 8 Azazels acompanhando suavemente o centro ao redor do jogador para que não fiquem fora da tela
+    const cfg = AZAZEL_BOSS_BALANCE.darkSkulls;
+
+    // A roda acompanha suavemente a heroína para que nenhuma caveira fique fora da tela
     this.darkSurroundCenter.x = Phaser.Math.Linear(this.darkSurroundCenter.x, player.x, 0.035);
     this.darkSurroundCenter.y = Phaser.Math.Linear(this.darkSurroundCenter.y, player.y, 0.035);
 
-    const radius = 320;
-    const baseSpin = (10000 - this.stateTimer) * 0.00035;
+    const baseSpin = (cfg.durationMs - this.stateTimer) * cfg.spinPerMs;
 
-    // Posição 0 (Azazel principal)
-    const a0 = baseSpin;
+    // Posição 0 (Azazel disfarçado)
     this.setPosition(
-      this.darkSurroundCenter.x + Math.cos(a0) * radius,
-      this.darkSurroundCenter.y + Math.sin(a0) * radius
+      this.darkSurroundCenter.x + Math.cos(baseSpin) * cfg.radius,
+      this.darkSurroundCenter.y + Math.sin(baseSpin) * cfg.radius
     );
-    this.updateHandAnimation(Math.atan2(player.y - this.y, player.x - this.x));
+    this.skullMouthOpenMs = Math.max(0, this.skullMouthOpenMs - deltaMs);
+    applySkullPose(this, player.x, this.skullMouthOpenMs > 0);
 
-    // Posições 1..7 (Clones)
+    // Demais posições (caveiras)
     for (let i = 0; i < this.phantomClones.length; i++) {
       const clone = this.phantomClones[i];
       if (!clone.active) continue;
-      const a = baseSpin + ((i + 1) / 8) * (Math.PI * 2);
+      const a = baseSpin + ((i + 1) / cfg.count) * (Math.PI * 2);
       clone.setPosition(
-        this.darkSurroundCenter.x + Math.cos(a) * radius,
-        this.darkSurroundCenter.y + Math.sin(a) * radius
+        this.darkSurroundCenter.x + Math.cos(a) * cfg.radius,
+        this.darkSurroundCenter.y + Math.sin(a) * cfg.radius
       );
-      clone.updatePoseFacing(Math.atan2(player.y - clone.y, player.x - clone.x), true);
+      clone.updateSkullPose(player.x, deltaMs);
     }
 
-    // Disparos coordenados dos 8 Azazels em direção ao jogador durante os 10 segundos
+    // Salvas: algumas caveiras sorteadas abrem a boca e cospem uma orbe na heroína
     if (this.darkCloneShotTimer <= 0) {
-      this.darkCloneShotTimer = 580;
+      this.darkCloneShotTimer = cfg.volleyEveryMs;
 
-      // Escolhe 3 dos 8 Azazels por salva para atirar na direção do jogador
-      const allShooters: { x: number; y: number }[] = [{ x: this.x, y: this.y }];
+      const shooters: Array<AzazelBoss | AzazelPhantomClone> = [this];
       for (const c of this.phantomClones) {
-        if (c.active) allShooters.push({ x: c.x, y: c.y });
+        if (c.active) shooters.push(c);
       }
-      Phaser.Utils.Array.Shuffle(allShooters);
-      const selected = allShooters.slice(0, 3);
-      for (const s of selected) {
+      Phaser.Utils.Array.Shuffle(shooters);
+      for (const s of shooters.slice(0, cfg.shootersPerVolley)) {
         const shotAngle = Math.atan2(player.y - s.y, player.x - s.x);
-        this.spawnAzazelOrb(s.x, s.y, shotAngle, 265, AZAZEL_BOSS_BALANCE.darkCloneOrbDamage);
+        if (s === this) {
+          this.skullMouthOpenMs = cfg.mouthOpenMs;
+          applySkullPose(this, player.x, true);
+        } else {
+          (s as AzazelPhantomClone).openMouth();
+        }
+        this.spawnSkullOrb(s.x, s.y, shotAngle);
       }
     }
 
-    // Ao final dos 10 segundos, se ainda não chegou a 20% de vida, volta para os 5 avanços rápidos!
+    // Ao fim da roda, se ainda não chegou a 20% de vida, volta para os 5 avanços rápidos!
     if (this.stateTimer <= 0) {
       this.deactivatePhantomClones();
+      this.exitSkullForm();
       this.startDarkFiveDashes(player);
     }
+  }
+
+  /** Orbe cuspida pela boca da caveira (arte própria, maior que a orbe do anjo). */
+  private spawnSkullOrb(x: number, y: number, angle: number): void {
+    const cfg = AZAZEL_BOSS_BALANCE.darkSkulls;
+    this.spawnAzazelProjectile(
+      x + Math.cos(angle) * cfg.mouthOffset,
+      y + Math.sin(angle) * cfg.mouthOffset,
+      angle,
+      cfg.orbSpeed,
+      AZAZEL_BOSS_BALANCE.darkCloneOrbDamage,
+      ART.skull
+    );
   }
 
   // =========================================================================
@@ -1372,7 +1467,9 @@ export class AzazelBoss extends BaseEnemy {
     this.telegraphGraphics.clear();
     this.lightningMarkers = [];
     this.clearHaloWaves();
+    this.stopFinalSkulls();
     this.deactivatePhantomClones();
+    this.exitSkullForm();
     this.deactivateAllProjectiles();
 
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -1405,6 +1502,7 @@ export class AzazelBoss extends BaseEnemy {
         SoundManager.getInstance().boostCurrentMusicVolume(1.0);
 
         this.bossState = 'CRYSTAL_BANISHED';
+        this.handSlam.start();
         this.setVisible(false);
         this.emit('azazel-darkness-active', false);
         this.emit('azazel-lock-player', false);
@@ -1447,6 +1545,70 @@ export class AzazelBoss extends BaseEnemy {
 
     SoundManager.getInstance().playAzazelTeleport();
     this.playMidPrepareScream(player);
+
+    this.handSlam.stop();
+    this.startFinalSkulls(player);
+  }
+
+  // =========================================================================
+  // DUELO FINAL: DUAS CAVEIRAS GIRANDO EM VOLTA DELE
+  // =========================================================================
+  private startFinalSkulls(player: BaseCharacter): void {
+    const cfg = AZAZEL_BOSS_BALANCE.finalSkulls;
+    this.ensurePhantomClonesCreated();
+    this.deactivatePhantomClones();
+    this.finalSkullsActive = true;
+    this.finalSkullClockMs = 0;
+    this.finalSkullTurn = 0;
+    this.finalSkullShotTimer = cfg.shotEveryMs;
+    for (let i = 0; i < cfg.count; i++) {
+      const a = (i / cfg.count) * Math.PI * 2;
+      const sx = this.x + Math.cos(a) * cfg.orbitRadius;
+      const sy = this.y + Math.sin(a) * cfg.orbitRadius;
+      this.phantomClones[i].activateClone(sx, sy, Math.atan2(player.y - sy, player.x - sx), cfg.scale);
+    }
+  }
+
+  private stopFinalSkulls(): void {
+    if (!this.finalSkullsActive) return;
+    this.finalSkullsActive = false;
+    this.deactivatePhantomClones();
+  }
+
+  private updateFinalSkulls(player: BaseCharacter, deltaMs: number): void {
+    const cfg = AZAZEL_BOSS_BALANCE.finalSkulls;
+    this.finalSkullClockMs += deltaMs;
+    const spin = this.finalSkullClockMs * cfg.spinPerMs;
+
+    const skulls = this.phantomClones.slice(0, cfg.count);
+    skulls.forEach((skull, i) => {
+      if (!skull.active) return;
+      const a = spin + (i / cfg.count) * Math.PI * 2;
+      // Cada uma flutua num tempo diferente, para não subirem e descerem juntas
+      const bob = Math.sin(this.finalSkullClockMs * cfg.bobPerMs + i * Math.PI) * cfg.bobPx;
+      skull.setPosition(this.x + Math.cos(a) * cfg.orbitRadius, this.y + Math.sin(a) * cfg.orbitRadius + bob);
+      // Somem junto com ele (teleporte) e voltam quando ele reaparece
+      skull.setVisible(this.visible);
+      skull.updateSkullPose(player.x, deltaMs);
+    });
+
+    this.finalSkullShotTimer -= deltaMs;
+    if (this.finalSkullShotTimer > 0 || !this.visible) return;
+    this.finalSkullShotTimer = cfg.shotEveryMs;
+
+    const shooter = skulls[this.finalSkullTurn % skulls.length];
+    this.finalSkullTurn++;
+    if (!shooter || !shooter.active) return;
+    const angle = Math.atan2(player.y - shooter.y, player.x - shooter.x);
+    shooter.openMouth();
+    this.spawnAzazelProjectile(
+      shooter.x + Math.cos(angle) * cfg.mouthOffset,
+      shooter.y + Math.sin(angle) * cfg.mouthOffset,
+      angle,
+      cfg.orbSpeed,
+      AZAZEL_BOSS_BALANCE.darkCloneOrbDamage,
+      ART.skull
+    );
   }
 
   /** Fase dos cristais: enquanto está banido ele se recupera (a barra de vida mostra). */
@@ -1527,8 +1689,11 @@ export class AzazelBoss extends BaseEnemy {
     this.isDead = true;
 
     this.deactivatePitchBlackOverlay();
+    this.finalSkullsActive = false;
     this.deactivatePhantomClones();
+    this.exitSkullForm();
     this.deactivateAllProjectiles();
+    this.handSlam.destroy();
 
     if (this.arenaGraphics && this.arenaGraphics.scene) {
       this.arenaGraphics.destroy();

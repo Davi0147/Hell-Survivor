@@ -79,6 +79,8 @@ export interface IBossFightContext {
   setArenaFloorTexture(textureKey: string): void;
   playRespawnStarEffect(): void;
   setCameraZoom(zoom: number, duration?: number): void;
+  /** Some com o cenário do mapa (desenho e colisão) enquanto a tela está no escuro. */
+  setDecorHidden(hidden: boolean): void;
 }
 
 /**
@@ -609,7 +611,8 @@ export class BossFightSystem {
 
     boss.on('azazel-darkness-active', (isDark: boolean) => {
       this.hud?.setHUDVisible(!isDark);
-      // No escuro total só se vê a heroína e os ataques do Azazel
+      // No escuro total só se vê a heroína e os ataques do Azazel (nem o cenário)
+      this.ctx.setDecorHidden(isDark);
       if (isDark) this.dissipateMinions();
     });
 
@@ -785,6 +788,7 @@ export class BossFightSystem {
     this.clearCrystalArena();
     this.ctx.setCameraZoom(DEFAULT_CAMERA_ZOOM, 1000);
     this.hud?.setHUDVisible(true);
+    this.ctx.setDecorHidden(false);
 
     if (getBossDefeatOutcome(this.ctx.gameMode) === 'continue-run') {
       if (this.ctx.azazelBoss === boss) this.ctx.azazelBoss = undefined;

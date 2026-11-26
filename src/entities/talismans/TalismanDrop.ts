@@ -3,18 +3,20 @@ import { TALISMAN_BALANCE } from '../../config/balance';
 import { TALISMAN_THEME } from '../../config/theme';
 
 const DROP_DEPTH = 16;
-const CARD_W = 22;
-const CARD_H = 34;
+/** Tamanho do amuleto no chão (a tela do recorte é quadrada; a corrente fica em cima). */
+const AMULET_SIZE = 56;
+/** Balanço do pêndulo no chão (radianos) e altura em que ele flutua. */
+const SWAY_RAD = 0.18;
 
 /**
- * Talismã no chão (prêmio do minichefe): carta de costas girando, feixe de luz até o céu,
+ * Talismã no chão (prêmio do minichefe): o amuleto comum flutuando e balançando, feixe de luz até o céu,
  * brilho pulsando e faíscas subindo, para o jogador ver de longe que tem algo especial ali.
  * A raridade só é sorteada quando ele pega (o item no chão é sempre igual).
  */
 export class TalismanDrop {
   public active = true;
   private readonly parts: Phaser.GameObjects.GameObject[] = [];
-  private readonly card: Phaser.GameObjects.Image;
+  private readonly amulet: Phaser.GameObjects.Image;
   private readonly glow: Phaser.GameObjects.Ellipse;
   private sparkTimer = 0;
   private t = Math.random() * Math.PI * 2;
@@ -32,10 +34,10 @@ export class TalismanDrop {
     this.glow = scene.add.ellipse(x, y + 4, 56, 24, th.dropGlow, 0.5).setDepth(DROP_DEPTH - 2).setBlendMode(Phaser.BlendModes.ADD);
     scene.tweens.add({ targets: this.glow, alpha: { from: 0.3, to: 0.7 }, scale: { from: 0.9, to: 1.2 }, duration: 600, yoyo: true, repeat: -1 });
 
-    // Moldura dourada: a escura sumia no chão de pedra
-    this.card = scene.add.image(x, y - 14, th.rarity.legendary.card).setDisplaySize(CARD_W, CARD_H).setDepth(DROP_DEPTH);
+    // O amuleto comum: é assim que a revelação começa (ele evolui na tela do prêmio)
+    this.amulet = scene.add.image(x, y - AMULET_SIZE, th.rarity.common.art).setOrigin(0.5, 0).setDisplaySize(AMULET_SIZE, AMULET_SIZE).setDepth(DROP_DEPTH);
 
-    this.parts.push(beamOuter, beamInner, this.glow, this.card);
+    this.parts.push(beamOuter, beamInner, this.glow, this.amulet);
 
     // Chegada: clarão no chão
     const burst = scene.add.circle(x, y, 60, th.dropBeam, 0.5).setDepth(DROP_DEPTH + 1).setBlendMode(Phaser.BlendModes.ADD).setScale(0.1);
@@ -45,9 +47,9 @@ export class TalismanDrop {
   public update(deltaMs: number): void {
     if (!this.active) return;
     this.t += deltaMs * 0.004;
-    // Carta flutua e "gira" (encolhe na largura como se virasse)
-    this.card.y = this.y - 16 + Math.sin(this.t) * 4;
-    this.card.scaleX = (CARD_W / this.card.width) * Math.cos(this.t * 0.8);
+    // Flutua e balança pendurado pela corrente, como um pêndulo
+    this.amulet.y = this.y - AMULET_SIZE + Math.sin(this.t) * 4;
+    this.amulet.rotation = Math.sin(this.t * 0.8) * SWAY_RAD;
 
     this.sparkTimer -= deltaMs;
     if (this.sparkTimer <= 0) {

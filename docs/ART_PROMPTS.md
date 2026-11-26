@@ -1266,3 +1266,188 @@ The flame gets the same 3-pixel white outline as the character.
 Se só a cor sair diferente, me mande assim mesmo: eu repinto o fogo no recorte com essas 4 cores, igual nos 4 quadros.
 
 **Já gerado e no jogo, sem a animação de ataque** (decisão do dono: ela só atira, então o gesto não compensa). Usamos só as linhas 1 (parada) e 2 (andando) de `art-source/novos/gemea-sombria.jpg`, e o tiro dela é uma imagem à parte, `art-source/novos/gemea-tiro.webp` (chama roxa com rastro, cabeça para a direita, fundo verde). Para trocar, rode `python scripts/cut-twin.py <folha> <tiro> public/assets/sprites/pets`. O jogo vira a Gêmea para o monstro a cada tiro.
+
+---
+
+## 22. Ícones dos 15 talismãs (folha única, 5 x 3)
+
+Os talismãs usavam ícones emprestados de outras coisas (o Pilar do Inferno era o meteoro, que parecia um coco) e os pets apareciam pequenos e de lado na carta. Esta folha dá a cada talismã um **ícone próprio de carta**: um objeto ou retrato grande, de frente, bem legível dentro da janela da moldura.
+
+**Grade:** 3 linhas (pets, armas, ativos) e 5 colunas (comum → lendário). Quanto mais à direita, mais rico o ícone (mais brilho, ouro e detalhe), mas todos com o mesmo tamanho e a mesma densidade de pixel. Feito para o mesmo fluxo das últimas folhas (fundo verde `#00FF00` e borda branca). Se possível, **anexe a folha dos pets** (`art-source/novos/pets-talismas.jpg`) para a linha 1 manter a cara deles.
+
+```text
+Create ONE image: a pixel art sheet of 15 square game ICONS for the "talismans" of a dark
+gothic 16-bit survival game. Each icon is shown big inside an ornate card frame in the game,
+so it must read instantly at small size: ONE clear subject per icon, bold silhouette,
+front or 3/4 front view, no scenery behind it.
+If an image of pets is attached, the 5 pets in ROW 1 must keep exactly those character
+designs, colors and gold collars; only the pose and camera change (see ROW 1).
+
+=== LAYOUT ===
+Landscape canvas 2000x1200. Invisible grid of exactly 3 ROWS x 5 COLUMNS of equal square
+cells (400x400). No grid lines, no frames, no boxes, no labels.
+Each icon is centered in its cell and fills about 70% of the cell (about 280x280), so there is
+a WIDE empty green gap between neighbours. Nothing touches or crosses into another cell:
+no sparks, smoke or trails crossing the gap.
+All 15 icons share the same visual size: a small subject (bat, slime) is drawn closer/larger,
+a big subject (pillar, three-headed dog) is framed tighter, so every icon fills its cell the
+same way. Keep every icon roughly as wide as it is tall (square-ish silhouette); a tall
+subject like a pillar of fire still stays inside the square.
+Columns = rarity, left to right: COMMON, UNCOMMON, RARE, EPIC, LEGENDARY. Higher rarity =
+more glow, more antique gold detail and more dramatic light, never a bigger icon.
+
+=== STYLE (same for all 15) ===
+16-bit pixel art, hand-placed pixels, big chunky pixels (each icon about 64x64 real pixels
+scaled up), crisp hard edges, NO anti-aliasing, NO blur, NO soft gradients, NO painterly
+texture. Hard near-black outline (#12020a) around every shape, then an outer WHITE outline
+about 3 pixels thick around the whole icon silhouette (sticker style), the same thickness on
+all 15. Light from the upper left, subtle violet rim light (#c77dff) on the right edges.
+Palette: deep violet (#4b1673, #7b2cbf, #9b5de5), antique gold (#f3d17a), bone white
+(#efe6d8), near-black purple (#1a0a1f), crimson (#ff0055), ember orange (#ff7a1a),
+white-hot (#fff4d6). Pets and allies use violet and gold, never blood red on their bodies;
+eyes of allies glow violet, never red.
+
+=== ROW 1: PETS (allied familiars, cute-but-infernal, 3/4 FRONT view portrait, looking at
+the viewer, head and body visible, each with an antique gold collar and a small violet gem) ===
+ 1 COMMON - COLLECTOR BAT: chubby dark violet bat with big ears, wings spread wide in a
+   V, holding a glowing green soul gem with its little feet, happy fangs.
+ 2 UNCOMMON - HOPPING SLIME: translucent violet jelly blob caught mid-bounce, a small bone
+   skull floating inside, two cute eyes, a few violet droplets splashing below it,
+   gold ring collar around its middle.
+ 3 RARE - GUARD HOUND: lean dark violet hellhound pup sitting proud, bone-white muzzle and
+   chest, small curved horns, glowing ember mouth, spiked gold collar, ears up.
+ 4 EPIC - CERBERUS PUP: stocky violet three-headed puppy, all three heads clearly visible side
+   by side (left head growling, middle head howling, right head tongue out), one wide gold
+   collar joining them, small embers around.
+ 5 LEGENDARY - SHADOW TWIN: bust portrait (head and shoulders, waist up) of a slim demon girl
+   with small horns and long flowing hair, her whole body made of dark violet shadow with
+   lighter violet edges, one glowing violet eye, shadow smoke wisps rising from her hair,
+   small gold rune glowing on her chest, one open palm raised with a small violet soul flame.
+
+=== ROW 2: WEAPONS (one object or effect, no character) ===
+ 6 COMMON - CHAIN SPARK: a jagged violet-white lightning bolt zigzagging through three small
+   floating soul orbs, linking them like the links of a chain.
+ 7 UNCOMMON - BONE SPIKES: three sharp curved bone spikes bursting up out of a cracked dark
+   stone floor slab, stone chips flying, the middle spike tallest.
+ 8 RARE - BLACK ICE RING: a ring of jagged black ice crystals with shards pointing outward,
+   pale cyan frost glowing inside the ring (#a8f0ff, the only blue allowed), cold mist.
+ 9 EPIC - EYE OF THE ABYSS: a single huge demonic eye with a violet iris and a vertical slit
+   pupil, set in a baroque antique gold eyelid frame with small gold spikes, a crimson beam
+   of light leaving the pupil and curving around the eye in a circular arc.
+ 10 LEGENDARY - HELL PILLAR: a massive vertical column of hellfire slamming down from the
+   top of the cell into the ground, white-hot core, crimson and ember-orange flame walls,
+   a ring of molten cracks and flying rocks at the base. It reads clearly as a PILLAR of fire,
+   never as a round rock or ball.
+
+=== ROW 3: ACTIVE POWERS (one object or effect, no character) ===
+ 11 COMMON - SHADOW BURST: a burst of dark violet shadow energy exploding outward from a small
+   bright core, with a clean shockwave ring and small shadow shards pushed outward.
+ 12 UNCOMMON - BONE SHIELD: a round shield built from interlocked bones and ribs, a small
+   horned skull boss in the center, gold rivets, one glowing violet crack.
+ 13 RARE - ABYSS VORTEX: a spiral black hole seen from the front, violet and magenta swirl
+   arms curling into a pitch-black center, tiny soul sparks and stones being sucked in.
+ 14 EPIC - BLOOD HEART: an anatomical demon heart, crimson with glowing veins, wrapped in
+   black thorns, a ring-shaped wave of blood splashing out around it.
+ 15 LEGENDARY - METEOR RAIN: four flaming meteors falling diagonally in parallel from the
+   upper right, long fire trails, the lowest one exploding in a small impact flash at the
+   bottom left. Clearly several meteors, not one ball.
+
+=== BACKGROUND ===
+Fill the entire background with ONE solid flat color, pure chroma green RGB (0, 255, 0) /
+#00FF00, perfectly uniform: no texture, no noise, no gradient, no vignette, no shadow, no
+grid lines. Pure green must not appear anywhere inside the icons.
+
+No text, letters, numbers, labels, card frames or borders. Exactly 15 icons in the
+3 x 5 grid, in the order above (left to right, top to bottom).
+```
+
+**Se o gerador errar a grade ou juntar ícones:** peça uma linha por vez (`canvas 2000x400, 1 row x 5 columns of 400x400 cells`), colando LAYOUT, STYLE, BACKGROUND e só a linha que falta.
+
+**Depois de gerar:** salve como `art-source/novos/talismas.jpg` e me avise. Eu recorto, coloco cada ícone na carta e **encaixo dentro da janela da moldura** (hoje o ícone é dimensionado por uma caixa maior que a janela, por isso vazava).
+
+**Já gerado e no jogo** (`art-source/novos/talismas.jpg`). Para trocar, gere de novo na mesma ordem e rode `python -I scripts/cut-talismans.py`.
+
+---
+
+## 23. O talismã que evolui (revelação do prêmio do minichefe, 5 raridades)
+
+A revelação deixa de usar as molduras de carta. Na tela aparece um **talismã de verdade** (um amuleto) flutuando. A cada toque ele **evolui** para a raridade seguinte, ficando mais épico, até chegar à raridade sorteada. No último toque ele **racha e se abre**, e no lugar dele aparece o ícone do talismã ganho (folha da seção 22, `art-source/novos/talismas.jpg`) flutuando, com nome, raridade e descrição embaixo.
+
+**Grade:** 2 linhas x 5 colunas (comum → lendário). Linha 1 = o talismã inteiro de cada raridade. Linha 2 = o mesmo talismã rachando, com luz saindo (o quadro antes de abrir). **Fundo magenta**: a pedra do incomum é verde e sumiria num fundo verde.
+
+```text
+Create ONE image: a pixel art sheet of a single magical TALISMAN (a demonic amulet / medallion)
+shown in 5 evolution stages, for the reward screen of a dark gothic 16-bit survival game.
+The SAME talisman evolves from humble to legendary: same core shape every time, each stage adds
+ornaments, glow and drama. It is an object floating in the air, front view, perfectly
+symmetrical left/right, no hand, no character, no scenery.
+
+=== LAYOUT ===
+Landscape canvas 2000x800. Invisible grid of exactly 2 ROWS x 5 COLUMNS of equal square cells
+(400x400). No grid lines, no frames, no boxes, no labels.
+Columns = rarity, left to right: COMMON, UNCOMMON, RARE, EPIC, LEGENDARY.
+ROW 1 = the talisman whole and intact at that rarity.
+ROW 2 = the SAME talisman as directly above it, at the moment it bursts open (see ROW 2).
+THE CORE NEVER MOVES: in all 10 sprites the round central medallion with its gem is the same
+size (about 40% of the cell width) and sits at exactly the same spot (center of the cell), so
+the game can swap one stage for the next without the talisman jumping. Higher stages only add
+things AROUND that core (frame, spikes, horns, wings, flames). Common fills about 50% of its
+cell; each stage grows a little; the legendary, with spread wings, fills about 90% of the cell
+width. Nothing touches or crosses into another cell, generous empty margin everywhere.
+
+=== THE TALISMAN (shared by all stages) ===
+A round medallion: a thick circular frame holding one big faceted gem in the center, a small
+loop on top with a short chain (3 or 4 links) going up. The GEM COLOR is the rarity color and
+must read instantly:
+ COMMON gem: dull silver-grey (#cbd5e1), barely glowing.
+ UNCOMMON gem: emerald green (#4ade80), soft glow.
+ RARE gem: sky blue sapphire (#38bdf8), bright glow.
+ EPIC gem: amethyst violet (#c084fc), strong pulsing glow.
+ LEGENDARY gem: blazing gold (#ffd700) with a white-hot core and a tiny hellfire flicker inside.
+
+=== ROW 1: EVOLUTION (intact) ===
+ 1 COMMON: plain dark iron frame, a few scratches, simple riveted rim, small iron chain.
+   Humble and a bit worn. No wings, no flames.
+ 2 UNCOMMON: frame becomes aged bronze with small engraved runes around the rim, two short
+   bone spikes on the left and right sides, chain in bronze.
+ 3 RARE: frame of dark blued steel with four sharp points (top, bottom, left, right) like a
+   compass star, the runes on the rim now glow faint sky blue, two small curled bone horns
+   on top beside the chain loop.
+ 4 EPIC: frame of black obsidian trimmed with antique gold (#f3d17a), two demonic horns curving
+   up from the top, a pair of small bat wings spread at the sides, wisps of violet flame
+   rising from the rim, tiny violet sparks around it.
+ 5 LEGENDARY: grand baroque antique gold frame with filigree and a small crown of horns on
+   top, a pair of LARGE demon wings fully spread (feathered-and-bony, gold edges, dark crimson
+   membrane), small rubies set in the frame, a ring of short golden light rays behind the
+   medallion, floating embers. Majestic, the most detailed sprite of the sheet.
+
+=== ROW 2: BURSTING OPEN (one per rarity, same design as the sprite above it) ===
+The gem has cracked across with bright jagged cracks, and light of the gem's color is blasting
+out: short straight beams radiating from the gem in all directions, a few gem shards
+flying outward, the frame and ornaments unchanged and still in place. The beams stay inside
+the cell. Common: a weak grey glow and 4 short beams. Each rarity stronger, until the
+legendary: blinding gold-white light, many beams, embers everywhere.
+
+=== STYLE (same for all 10) ===
+16-bit pixel art, hand-placed pixels, big chunky pixels, crisp hard edges, NO anti-aliasing,
+NO blur, NO soft gradients, NO painterly texture. Hard near-black outline (#12020a) around
+every shape, then an outer WHITE outline about 3 pixels thick around the whole silhouette
+(sticker style), the same thickness on all 10 sprites. Light from the upper left. Same pixel
+density as a set of 64x64 game icons scaled up. Palette: the 5 gem colors above, antique gold
+(#f3d17a), dark iron and bronze, bone white (#efe6d8), near-black purple (#1a0a1f),
+crimson (#ff0055), ember orange (#ff7a1a), white-hot (#fff4d6). The glow around the gem is
+drawn as solid pixel rings and beams, never as a soft blurry halo.
+
+=== BACKGROUND ===
+Fill the entire background with ONE solid flat color, pure magenta RGB (255, 0, 255) /
+#FF00FF, perfectly uniform: no texture, no noise, no gradient, no vignette, no shadow, no grid
+lines. Pure magenta and hot pink must not appear anywhere on the talismans.
+
+No text, letters, numbers, labels or borders. Exactly 10 sprites in the 2 x 5 grid.
+```
+
+**Se o gerador errar a grade:** peça uma linha por vez (`canvas 2000x400, 1 row x 5 columns of 400x400 cells`), colando tudo menos a linha que não é a pedida. Se a linha 2 não sair boa, me mande só a linha 1: eu faço a explosão de luz por código.
+
+**Depois de gerar:** salve como `art-source/novos/talisma-evolucao.png` (ou `.jpg`) e me avise.
+
+**Já gerado e no jogo** (`art-source/novos/talisma-evolucao.jpg`, fundo magenta). Para trocar, gere de novo na mesma ordem e rode `python -I scripts/cut-talismans.py` (recorta esta folha e a dos ícones).

@@ -214,6 +214,7 @@ function createContext(gameMode: 'story' | 'endless' | 'sandbox' = 'story'): Tes
     setArenaFloorTexture: vi.fn(),
     playRespawnStarEffect: vi.fn(),
     setCameraZoom: vi.fn(),
+    setDecorHidden: vi.fn(),
   };
 }
 
@@ -338,6 +339,18 @@ describe('BossFightSystem', () => {
     });
   });
 
+  describe('Azazel: domínio escuro', () => {
+    it('o cenário some no escuro e volta quando a luz retorna', () => {
+      const { ctx, system } = build('story');
+      system.spawnAzazel(false);
+      const boss = ctx.azazelBoss as unknown as { emit(e: string, ...a: unknown[]): void };
+      boss.emit('azazel-darkness-active', true);
+      expect(ctx.setDecorHidden).toHaveBeenLastCalledWith(true);
+      boss.emit('azazel-darkness-active', false);
+      expect(ctx.setDecorHidden).toHaveBeenLastCalledWith(false);
+    });
+  });
+
   describe('Azazel: fase dos cristais', () => {
     it('cria os cristais, liga a horda e entrega um cálice', () => {
       const { ctx, system } = build('story');
@@ -388,7 +401,10 @@ describe('BossFightSystem', () => {
       player.y = 0;
       system.update(16);
       const [rx, ry] = player.body.reset.mock.calls[0] as [number, number];
-      expect(Math.hypot(rx, ry)).toBeCloseTo(AZAZEL_BOSS_BALANCE.crystalPhase.arenaRadius);
+      // Volta para a borda, um pouco para dentro (senão o arredondamento a prendia ali)
+      const r = AZAZEL_BOSS_BALANCE.crystalPhase.arenaRadius;
+      expect(Math.hypot(rx, ry)).toBeLessThan(r);
+      expect(Math.hypot(rx, ry)).toBeGreaterThan(r - 1);
     });
 
     it('purificar todos os cristais encerra a horda e traz Azazel de volta', () => {

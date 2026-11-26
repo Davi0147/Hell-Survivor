@@ -38,3 +38,7 @@ scratch/
 reports/
 *.zip
 
+
+# Cache do Python (scripts de recorte de arte)
+__pycache__/
+*.pyc

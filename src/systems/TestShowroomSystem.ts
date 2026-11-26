@@ -279,7 +279,20 @@ export class TestShowroomSystem {
           { name: 'Heart Attack', texture: 'projectile-heart-attack', scale: 1.0 },
           { name: 'Gosma Tóxica', texture: 'mummy-poison-gosma', scale: 1.0 },
           { name: 'Orbe Azazel (VFX)', texture: 'azazel-orb', scale: 1.15 },
-          { name: 'Raio Azazel (VFX)', texture: 'azazel-lightning-bolt', scale: 0.25 }
+          { name: 'Raio Azazel (VFX)', texture: 'azazel-lightning-bolt', scale: 0.25 },
+          { name: 'Caveira Azazel', texture: 'azazel-skull-closed', scale: 1.0 },
+          { name: 'Caveira Cuspindo', texture: 'azazel-skull-open', scale: 1.0 },
+          { name: 'Orbe da Caveira', texture: 'azazel-skull-orb', scale: 1.0 },
+          { name: 'Cometa Azazel', texture: 'azazel-proj-comet', scale: 1.0 },
+          { name: 'Orbe do Teleporte', texture: 'azazel-proj-orb-glossy', scale: 1.5 },
+          { name: 'Orbe Espiral', texture: 'azazel-proj-orb-spiral', scale: 1.5 },
+          { name: 'Agulha (Leque)', texture: 'azazel-proj-needle', scale: 1.0 },
+          { name: 'Mão do Azazel', texture: 'azazel-hand-slam', scale: 0.5 },
+          { name: 'Talismã Comum', texture: 'talisman-common', scale: 0.4 },
+          { name: 'Talismã Incomum', texture: 'talisman-uncommon', scale: 0.4 },
+          { name: 'Talismã Raro', texture: 'talisman-rare', scale: 0.4 },
+          { name: 'Talismã Épico', texture: 'talisman-epic', scale: 0.4 },
+          { name: 'Talismã Lendário', texture: 'talisman-legendary', scale: 0.4 }
         ]
       },
 

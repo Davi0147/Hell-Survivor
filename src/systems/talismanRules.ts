@@ -59,6 +59,25 @@ export function pickTalisman<T extends TalismanPoolEntry>(
 }
 
 /**
+ * Pêndulo do talismã: a amplitude de um empurrão volta ao balanço leve aos poucos.
+ * Devolve a amplitude depois de `dtMs` (nunca abaixo do balanço leve).
+ */
+export function dampPendulum(ampDeg: number, idleAmpDeg: number, dampPerSec: number, dtMs: number): number {
+  if (ampDeg <= idleAmpDeg) return idleAmpDeg;
+  return idleAmpDeg + (ampDeg - idleAmpDeg) * Math.exp((-dampPerSec * dtMs) / 1000);
+}
+
+/** Ângulo do pêndulo (graus) no instante `timeMs`: vai e volta entre -amp e +amp. */
+export function pendulumAngle(ampDeg: number, timeMs: number, periodMs: number): number {
+  return ampDeg * Math.sin((2 * Math.PI * timeMs) / periodMs);
+}
+
+/** Empurrão do toque: mais forte quanto mais rara a raridade nova. */
+export function pendulumKick(tier: number, kickAmpDeg: number, kickPerTierDeg: number): number {
+  return kickAmpDeg + tier * kickPerTierDeg;
+}
+
+/**
  * Estado da carta durante a revelação. Cada toque sobe uma raridade até chegar na sorteada;
  * o toque seguinte abre a carta. Na lendária não há mais para onde subir, então o próximo toque abre.
  */

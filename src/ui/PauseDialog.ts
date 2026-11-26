@@ -41,7 +41,12 @@ export class PauseDialog {
     ring.lineStyle(2, t.innerBorderColor, 1);
     ring.strokeCircle(cx, iconY, 44);
     popup.add(ring);
-    if (this.host.textures?.exists(iconKey)) popup.add(this.host.add.image(cx, iconY, iconKey).setDisplaySize(72, 72));
+    if (this.host.textures?.exists(iconKey)) {
+      // Cabe em 72x72 sem esticar (os ícones dos talismãs não são quadrados)
+      const icon = this.host.add.image(cx, iconY, iconKey);
+      icon.setScale(Math.min(72 / icon.width, 72 / icon.height));
+      popup.add(icon);
+    }
 
     popup.add(this.text(cx, iconY + 66, title, 16, t.titleColor, t.titleStroke, 4));
     popup.add(this.text(cx, iconY + 92, subtitle, 12, t.subtitleColor));

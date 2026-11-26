@@ -522,13 +522,16 @@ export const CHEST_ROULETTE_THEME = {
  * contorno branco dos pets e efeitos das armas únicas.
  */
 export const TALISMAN_THEME = {
+  /**
+   * Cor de cada raridade (a mesma das cartas; a lendária usa o ouro do Supremo) e a arte do
+   * talismã da revelação: inteiro (`art`) e rachando (`openArt`), em public/assets/sprites/talismans.
+   */
   rarity: {
-    common: { color: CARD_RARITY_THEME.common.color, text: CARD_RARITY_THEME.common.text, card: CARD_RARITY_THEME.common.frame, label: 'COMUM' },
-    uncommon: { color: CARD_RARITY_THEME.uncommon.color, text: CARD_RARITY_THEME.uncommon.text, card: CARD_RARITY_THEME.uncommon.frame, label: 'INCOMUM' },
-    rare: { color: CARD_RARITY_THEME.rare.color, text: CARD_RARITY_THEME.rare.text, card: CARD_RARITY_THEME.rare.frame, label: 'RARA' },
-    epic: { color: CARD_RARITY_THEME.epic.color, text: CARD_RARITY_THEME.epic.text, card: CARD_RARITY_THEME.epic.frame, label: 'ÉPICA' },
-    // Lendária usa a moldura do Supremo (ouro e fogo do inferno)
-    legendary: { color: CARD_RARITY_THEME.supreme.color, text: CARD_RARITY_THEME.supreme.text, card: CARD_RARITY_THEME.supreme.frame, label: 'LENDÁRIA' },
+    common: { color: CARD_RARITY_THEME.common.color, text: CARD_RARITY_THEME.common.text, art: 'talisman-common', openArt: 'talisman-common-open', label: 'COMUM' },
+    uncommon: { color: CARD_RARITY_THEME.uncommon.color, text: CARD_RARITY_THEME.uncommon.text, art: 'talisman-uncommon', openArt: 'talisman-uncommon-open', label: 'INCOMUM' },
+    rare: { color: CARD_RARITY_THEME.rare.color, text: CARD_RARITY_THEME.rare.text, art: 'talisman-rare', openArt: 'talisman-rare-open', label: 'RARA' },
+    epic: { color: CARD_RARITY_THEME.epic.color, text: CARD_RARITY_THEME.epic.text, art: 'talisman-epic', openArt: 'talisman-epic-open', label: 'ÉPICA' },
+    legendary: { color: CARD_RARITY_THEME.supreme.color, text: CARD_RARITY_THEME.supreme.text, art: 'talisman-legendary', openArt: 'talisman-legendary-open', label: 'LENDÁRIA' },
   },
   textStroke: '#0e0208',
   hint: '#94a3b8',

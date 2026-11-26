@@ -3,12 +3,15 @@ import { GAME_ICON_KEYS, GAME_ICON_FOLDERS } from '../config/iconKeys';
 import { CH1_DECOR_FILES } from '../config/sceneryCatalog';
 import Phaser from 'phaser';
 import { DIRECTIONS_8, ENEMY_BALANCE, TALISMAN_BALANCE } from '../config/balance';
-import { PET_ANIM_FRAMES, PET_SPRITES, TWIN_BOLT_TEXTURE } from '../systems/TalismanCatalog';
+import { PET_ANIM_FRAMES, PET_SPRITES, TALISMAN_CATALOG, TWIN_BOLT_TEXTURE } from '../systems/TalismanCatalog';
 import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
 import { InputDeviceTracker } from '../systems/InputDeviceTracker';
-import { CARD_FRAME_KEYS } from '../config/theme';
+import { CARD_FRAME_KEYS, TALISMAN_THEME } from '../config/theme';
+
+/** Arquivos em public/assets/sprites/enemies/Azazel/Projectiles (texturas `azazel-proj-<nome>`). */
+const AZAZEL_PROJECTILE_ART = ['comet', 'orb-glossy', 'orb-spiral', 'needle'] as const;
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -188,6 +191,9 @@ export class BootScene extends Phaser.Scene {
     if (this.textures.exists('chat-azazel')) this.textures.remove('chat-azazel');
     if (this.textures.exists('azazel-orb')) this.textures.remove('azazel-orb');
     if (this.textures.exists('azazel-lightning-bolt')) this.textures.remove('azazel-lightning-bolt');
+    for (const k of ['azazel-skull-closed', 'azazel-skull-open', 'azazel-skull-orb', 'azazel-hand-slam', ...AZAZEL_PROJECTILE_ART.map((a) => `azazel-proj-${a}`)]) {
+      if (this.textures.exists(k)) this.textures.remove(k);
+    }
     for (const dir of DIRECTIONS_8) {
       if (this.textures.exists(`azazel-idle-${dir}`)) this.textures.remove(`azazel-idle-${dir}`);
       if (this.textures.exists(`azazel-hand-${dir}`)) this.textures.remove(`azazel-hand-${dir}`);
@@ -396,6 +402,17 @@ export class BootScene extends Phaser.Scene {
       this.load.image(key, `assets/sprites/pets/${key}.png?t=${cacheBuster}`);
     }
 
+    // Revelação do talismã: o amuleto de cada raridade (inteiro e rachando) e o ícone de cada
+    // talismã. Recortados por scripts/cut-talismans.py (art-source/novos/).
+    for (const look of Object.values(TALISMAN_THEME.rarity)) {
+      for (const key of [look.art, look.openArt]) {
+        this.load.image(key, `assets/sprites/talismans/${key}.png?t=${cacheBuster}`);
+      }
+    }
+    for (const def of TALISMAN_CATALOG) {
+      this.load.image(def.icon, `assets/sprites/talismans/${def.icon.replace('talisman-', '')}.png?t=${cacheBuster}`);
+    }
+
     // 14.1. Carregar sprites da Múmia (Idle nos 8 ângulos e caminhada em 4 eixos x 9 frames)
     for (const dir of DIRECTIONS_8) {
       this.load.image(
@@ -600,6 +617,17 @@ export class BootScene extends Phaser.Scene {
         `azazel-hand-${dir}`,
         `assets/sprites/enemies/Azazel/Rise%20Hand/rotations/${dir}.png?t=${cacheBuster}`
       );
+    }
+
+    // Caveiras da Fase 2 (boca fechada / aberta ao atirar) e a orbe que elas cospem
+    for (const key of ['skull-closed', 'skull-open', 'skull-orb'] as const) {
+      this.load.image(`azazel-${key}`, `assets/sprites/enemies/Azazel/Skull/${key}.png?t=${cacheBuster}`);
+    }
+    // Mão gigante do Tapa da Mão (fase dos cristais)
+    this.load.image('azazel-hand-slam', `assets/sprites/enemies/Azazel/hand-slam.png?t=${cacheBuster}`);
+    // Projéteis dos golpes dele (cometa, orbes, agulha)
+    for (const key of AZAZEL_PROJECTILE_ART) {
+      this.load.image(`azazel-proj-${key}`, `assets/sprites/enemies/Azazel/Projectiles/${key}.png?t=${cacheBuster}`);
     }
 
     const AZAZEL_RUN_DIRS = ['east', 'north', 'south', 'west'] as const;

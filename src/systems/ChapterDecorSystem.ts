@@ -79,6 +79,8 @@ export class ChapterDecorSystem {
   /** Monstros que atravessam o cenário até o instante marcado (saída de emergência). */
   private readonly phasing = new Map<DetourEnemy, number>();
   private clock = 0;
+  /** Cenário escondido (domínio escuro do Azazel): nada aparece nem bloqueia. */
+  private hidden = false;
   /** Pegadas sólidas dos objetos grandes (a cena liga a colisão com a heroína e os monstros). */
   public readonly blockers: Phaser.Physics.Arcade.StaticGroup;
 
@@ -290,6 +292,7 @@ export class ChapterDecorSystem {
    * (e ficam meio transparentes se a cobrem); fora da tela, nada é desenhado.
    */
   public update(delta: number, playerX: number, playerY: number): void {
+    if (this.hidden) return;
     if (this.tall.length === 0 && this.cullable.length === 0) return;
 
     for (let i = this.tall.length - 1; i >= 0; i--) {
@@ -315,8 +318,32 @@ export class ChapterDecorSystem {
     }
   }
 
+  /**
+   * Some com o cenário inteiro (desenho, luzes e colisão) ou traz de volta. No domínio escuro
+   * do Azazel a tela é toda preta: os objetos altos, que passam para a frente da heroína
+   * (profundidade 24, acima do véu preto 14), apareciam no meio do escuro, e as pegadas
+   * sólidas viravam paredes invisíveis.
+   */
+  public setHidden(hidden: boolean): void {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    this.cullable = this.cullable.filter((img) => img.scene);
+    for (const img of this.cullable) img.setVisible(!hidden);
+    for (const zone of this.blockers.getChildren()) {
+      const body = (zone as Phaser.GameObjects.Zone).body as Phaser.Physics.Arcade.StaticBody | null;
+      if (body) body.enable = !hidden;
+    }
+    // Ao voltar, a próxima passada do update recalcula o que está fora da tela
+    this.cullTimer = 0;
+  }
+
+  public get isHidden(): boolean {
+    return this.hidden;
+  }
+
   /** Esquece as referências (os objetos em si são destruídos pelo ArenaScenerySystem). */
   public reset(): void {
+    this.hidden = false;
     this.detours.clear();
     this.contacts.clear();
     this.phasing.clear();

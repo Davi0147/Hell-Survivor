@@ -4,10 +4,22 @@ import { SoundManager } from '../systems/SoundManager';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { GamepadManager } from '../systems/GamepadManager';
 import { createModalFrame } from './ModalFrame';
-import { buildRunBonuses, describeRunMode, type IRunBonusSource } from './pauseRunSummary';
+import { buildRunBonuses, describeRunMode, type IRunBonusEntry, type IRunBonusSource } from './pauseRunSummary';
 import { WEAPON_INFO } from '../config/pauseInfo';
 import { PauseDialog } from './PauseDialog';
 import { createGlowButton } from './pauseWidgets';
+import { PAUSE_MIDDLE, layoutPauseMiddle, type PauseMiddleLayout } from './pauseLayout';
+
+/** Talismã que o jogador tem, como o menu de pausa mostra (toque abre a explicação). */
+export interface IPauseTalismanInfo {
+  iconKey: string;
+  name: string;
+  /** Raridade e tipo, ex.: "LENDÁRIA · PET AJUDANTE". */
+  subtitle: string;
+  description: string;
+  /** Cor da borda da caixinha (cor da raridade). */
+  rarityColor: number;
+}
 
 /** Arma equipada como o menu de pausa a vê (ícone e nível vêm do catálogo). */
 export interface IPauseWeaponInfo {
@@ -27,6 +39,8 @@ export interface IPauseGameScene {
   player?: { currentLevel?: number } & Partial<IRunBonusSource>;
   /** Armas equipadas já traduzidas para ícone e nível (UIScene monta com o catálogo). */
   getPauseWeapons?(): IPauseWeaponInfo[];
+  /** Talismãs ganhos nesta partida (prêmios dos minichefes). */
+  getPauseTalismans?(): IPauseTalismanInfo[];
   physics: {
     pause(): void;
     resume(): void;
@@ -62,16 +76,10 @@ const LAYOUT = {
   statsY: 140,
   statsCellH: 58,
   bonusHeaderY: 192,
-  bonusGridY: 216,
-  bonusCols: 5,
-  bonusChipH: 36,
-  bonusGap: 4,
-  bonusMaxRows: 3,
-  weaponsHeaderY: 350,
-  weaponsY: 386,
-  volumeHeaderY: 428,
-  bgmY: 460,
-  sfxY: 494,
+  // Bônus, armas e talismãs: posições calculadas em pauseLayout.ts (PAUSE_MIDDLE)
+  volumeHeaderY: PAUSE_MIDDLE.volumeHeaderY,
+  bgmY: 471,
+  sfxY: 503,
   buttonsY: 552,
   buttonW: 220,
   buttonH: 63,
@@ -190,8 +198,12 @@ export class PauseMenu {
 
     this.buildHeader(cx, top, gameScene);
     this.buildStatsRow(cx, top, gameScene);
-    this.buildBonuses(cx, top, gameScene);
-    this.buildWeapons(cx, top, gameScene);
+    const p = gameScene.player;
+    const bonuses = p && typeof p.bonusDamagePercent === 'number' ? buildRunBonuses(p as IRunBonusSource) : [];
+    const middle = layoutPauseMiddle(bonuses.length);
+    this.buildBonuses(cx, top, bonuses, middle);
+    this.buildWeapons(cx, top, gameScene, middle);
+    this.buildTalismans(cx, top, gameScene, middle);
     this.buildVolumeRows(cx, top);
     this.buildActionButtons(cx, top, gameScene);
 
@@ -380,39 +392,39 @@ export class PauseMenu {
     });
   }
 
-  private buildBonuses(cx: number, top: number, gameScene: IPauseGameScene): void {
+  private buildBonuses(cx: number, top: number, bonuses: IRunBonusEntry[], middle: PauseMiddleLayout): void {
     const t = MODAL_THEME.pause;
+    const M = PAUSE_MIDDLE;
     this.sectionHeader(cx, top + LAYOUT.bonusHeaderY, 'BÔNUS DA PARTIDA');
 
-    const p = gameScene.player;
-    const bonuses = p && typeof p.bonusDamagePercent === 'number' ? buildRunBonuses(p as IRunBonusSource) : [];
-    const gridTop = top + LAYOUT.bonusGridY;
+    const gridTop = top + M.bonusTop;
     if (bonuses.length === 0) {
-      this.add(this.text(cx, gridTop + 30, 'NENHUM BÔNUS AINDA: SUBA DE NÍVEL E ESCOLHA CARTAS', 10, t.emptyText, 0.5));
+      this.add(this.text(cx, gridTop + M.emptyRowH / 2, 'NENHUM BÔNUS AINDA: SUBA DE NÍVEL E ESCOLHA CARTAS', 10, t.emptyText, 0.5));
       return;
     }
 
-    const cols = LAYOUT.bonusCols;
-    const gap = LAYOUT.bonusGap;
+    const cols = M.bonusCols;
+    const gap = M.bonusGap;
     const w = (LAYOUT.contentW - gap * (cols - 1)) / cols;
-    const h = LAYOUT.bonusChipH;
+    const h = M.bonusChipH;
     const left = cx - LAYOUT.contentW / 2;
-    bonuses.slice(0, cols * LAYOUT.bonusMaxRows).forEach((b, i) => {
+    bonuses.slice(0, cols * middle.bonusRows).forEach((b, i) => {
       const x = left + (i % cols) * (w + gap);
       const y = gridTop + Math.floor(i / cols) * (h + gap);
       this.add(this.cellBox(x, y, w, h));
-      this.addIcon(x + 20, y + h / 2, b.iconKey, 28);
-      this.add(this.text(x + 40, y + 11, b.value, 12, t.valueColor, 0));
-      this.add(this.text(x + 40, y + 26, b.label, 8, t.labelColor, 0));
+      this.addIcon(x + 18, y + h / 2, b.iconKey, 25);
+      this.add(this.text(x + 36, y + 10, b.value, 12, t.valueColor, 0));
+      this.add(this.text(x + 36, y + 23, b.label, 8, t.labelColor, 0));
       this.addInfoHotspot(x + w / 2, y + h / 2, w, h, (c) => this.dialog.openInfo(c, b.iconKey, b.title, b.value, b.description));
     });
   }
 
-  private buildWeapons(cx: number, top: number, gameScene: IPauseGameScene): void {
+  private buildWeapons(cx: number, top: number, gameScene: IPauseGameScene, middle: PauseMiddleLayout): void {
     const t = MODAL_THEME.pause;
-    this.sectionHeader(cx, top + LAYOUT.weaponsHeaderY, 'ARMAS');
+    const rowH = PAUSE_MIDDLE.rowH;
+    this.sectionHeader(cx, top + middle.weaponsHeaderY, 'ARMAS');
     const weapons = gameScene.getPauseWeapons?.() ?? [];
-    const y = top + LAYOUT.weaponsY;
+    const y = top + middle.weaponsRowY;
     if (weapons.length === 0) {
       this.add(this.text(cx, y, 'NENHUMA ARMA EQUIPADA', 10, t.emptyText, 0.5));
       return;
@@ -421,14 +433,39 @@ export class PauseMenu {
     const left = cx - (weapons.length * slotW) / 2;
     weapons.forEach((wpn, i) => {
       const x = left + i * slotW;
-      this.add(this.cellBox(x + 4, y - 22, slotW - 8, 44));
-      this.addIcon(x + 28, y, wpn.key, 36);
+      this.add(this.cellBox(x + 4, y - rowH / 2, slotW - 8, rowH));
+      this.addIcon(x + 28, y, wpn.key, rowH - 6);
       const lvl = wpn.isEvolved ? 'EVOLUÍDA' : `NV ${wpn.level}/${wpn.maxLevel}`;
       this.add(this.text(x + 50, y, lvl, 9, wpn.isEvolved ? t.evolvedText : t.valueColor, 0));
       const info = WEAPON_INFO[wpn.key];
       if (info) {
-        this.addInfoHotspot(x + slotW / 2, y, slotW - 8, 44, (c) => this.dialog.openInfo(c, wpn.key, info.name, lvl, info.text));
+        this.addInfoHotspot(x + slotW / 2, y, slotW - 8, rowH, (c) => this.dialog.openInfo(c, wpn.key, info.name, lvl, info.text));
       }
+    });
+  }
+
+  /** Talismãs ganhos: só o ícone, com a borda da cor da raridade; o toque explica o que faz. */
+  private buildTalismans(cx: number, top: number, gameScene: IPauseGameScene, middle: PauseMiddleLayout): void {
+    const t = MODAL_THEME.pause;
+    const rowH = PAUSE_MIDDLE.rowH;
+    this.sectionHeader(cx, top + middle.talismansHeaderY, 'TALISMÃS');
+    const talismans = gameScene.getPauseTalismans?.() ?? [];
+    const y = top + middle.talismansRowY;
+    if (talismans.length === 0) {
+      this.add(this.text(cx, y, 'NENHUM TALISMÃ AINDA: VENÇA UM MINICHEFE', 10, t.emptyText, 0.5));
+      return;
+    }
+    // Cabe os 15 numa linha só (15 x 48 = 720, dentro dos 756 do conteúdo)
+    const slot = rowH + 10;
+    const left = cx - (talismans.length * slot) / 2;
+    talismans.forEach((tal, i) => {
+      const x = left + i * slot + slot / 2;
+      const box = this.cellBox(x - rowH / 2, y - rowH / 2, rowH, rowH);
+      box.lineStyle(1.5, tal.rarityColor, 1);
+      box.strokeRoundedRect(x - rowH / 2, y - rowH / 2, rowH, rowH, 6);
+      this.add(box);
+      this.addFittedIcon(x, y, tal.iconKey, rowH - 6);
+      this.addInfoHotspot(x, y, rowH, rowH, (c) => this.dialog.openInfo(c, tal.iconKey, tal.name, tal.subtitle, tal.description));
     });
   }
 
@@ -553,6 +590,14 @@ export class PauseMenu {
   private addIcon(x: number, y: number, key: string, size: number): void {
     if (!this.hasTexture(key)) return;
     this.add(this.host.add.image(x, y, key).setDisplaySize(size, size));
+  }
+
+  /** Ícone que não é quadrado: cabe na caixa sem esticar. */
+  private addFittedIcon(x: number, y: number, key: string, size: number): void {
+    if (!this.hasTexture(key)) return;
+    const img = this.host.add.image(x, y, key);
+    img.setScale(Math.min(size / img.width, size / img.height));
+    this.add(img);
   }
 
   private cellBox(x: number, y: number, w: number, h: number): Phaser.GameObjects.Graphics {

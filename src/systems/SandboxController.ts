@@ -101,6 +101,7 @@ export interface ISandboxContext extends Phaser.Scene {
   clearCombatSpeechBubbles(): void;
   clearAzazelCrystals(): void;
   setHUDVisible(visible: boolean): void;
+  setDecorHidden(hidden: boolean): void;
   setCameraZoom(zoom: number, duration?: number): void;
 }
 
@@ -226,6 +227,7 @@ export class SandboxController {
     this.context.clearCombatSpeechBubbles();
     this.context.clearAzazelCrystals();
     this.context.setHUDVisible(true);
+    this.context.setDecorHidden(false);
 
     if (this.context.bossInstance) {
       if (this.context.bossInstance.projectilesGroup) {

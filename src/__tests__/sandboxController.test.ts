@@ -121,6 +121,7 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
       clearCombatSpeechBubbles: vi.fn(),
       clearAzazelCrystals: vi.fn(),
       setHUDVisible: vi.fn(),
+      setDecorHidden: vi.fn(),
       setCameraZoom: vi.fn()
     };
   });

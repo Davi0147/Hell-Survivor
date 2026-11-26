@@ -6,9 +6,57 @@ import {
   createRevealState,
   tapReveal,
   TALISMAN_RARITIES,
+  dampPendulum,
+  pendulumAngle,
+  pendulumKick,
 } from '../systems/talismanRules';
 import { TALISMAN_CATALOG } from '../systems/TalismanCatalog';
 import { TALISMAN_BALANCE } from '../config/balance';
+import { TALISMAN_THEME } from '../config/theme';
+
+/** Arquivos que existem em public/assets/sprites/talismans (só os nomes; nada é carregado). */
+const TALISMAN_ART = Object.keys(import.meta.glob('/public/assets/sprites/talismans/*.png'));
+const hasArt = (file: string): boolean => TALISMAN_ART.includes(`/public/assets/sprites/talismans/${file}.png`);
+
+describe('Talismãs: arte da revelação', () => {
+  it('cada raridade tem o amuleto inteiro e rachando', () => {
+    for (const r of TALISMAN_RARITIES) {
+      expect(hasArt(TALISMAN_THEME.rarity[r].art), r).toBe(true);
+      expect(hasArt(TALISMAN_THEME.rarity[r].openArt), `${r} aberto`).toBe(true);
+    }
+  });
+
+  it('cada talismã tem um ícone próprio (nenhum emprestado de outra coisa)', () => {
+    const icons = new Set<string>();
+    for (const def of TALISMAN_CATALOG) {
+      expect(def.icon, def.id).toBe(`talisman-icon-${def.id}`);
+      expect(hasArt(def.icon.replace('talisman-', '')), def.id).toBe(true);
+      icons.add(def.icon);
+    }
+    expect(icons.size).toBe(TALISMAN_CATALOG.length);
+  });
+});
+
+describe('Talismãs: pêndulo', () => {
+  const P = TALISMAN_BALANCE.reveal.pendulum;
+
+  it('vai e volta entre -amp e +amp no período', () => {
+    expect(pendulumAngle(10, 0, P.periodMs)).toBeCloseTo(0);
+    expect(pendulumAngle(10, P.periodMs / 4, P.periodMs)).toBeCloseTo(10);
+    expect(pendulumAngle(10, (P.periodMs * 3) / 4, P.periodMs)).toBeCloseTo(-10);
+  });
+
+  it('o empurrão do toque morre aos poucos até o balanço leve, sem passar dele', () => {
+    let amp = pendulumKick(4, P.kickAmpDeg, P.kickPerTierDeg);
+    expect(amp).toBeGreaterThan(pendulumKick(0, P.kickAmpDeg, P.kickPerTierDeg));
+    const after1s = dampPendulum(amp, P.idleAmpDeg, P.dampPerSec, 1000);
+    expect(after1s).toBeLessThan(amp);
+    expect(after1s).toBeGreaterThan(P.idleAmpDeg);
+    for (let i = 0; i < 600; i++) amp = dampPendulum(amp, P.idleAmpDeg, P.dampPerSec, 16);
+    expect(amp).toBeCloseTo(P.idleAmpDeg, 1);
+    expect(dampPendulum(1, P.idleAmpDeg, P.dampPerSec, 16)).toBe(P.idleAmpDeg);
+  });
+});
 
 describe('Talismãs: sorteio de raridade', () => {
   it('respeita os pesos (comum no começo da faixa, lendária no fim)', () => {

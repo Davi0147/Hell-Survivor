@@ -540,6 +540,42 @@ export const AZAZEL_BOSS_BALANCE = {
   },
   /** Fase da escuridão: tempo de mira de cada investida (ms). */
   darkDashAimMs: 420,
+  /**
+   * Fase da escuridão, roda de caveiras (substituiu os 8 Azazels em 2026-11-25): 8 caveiras
+   * giram em volta da heroína e cospem orbes. O Azazel de verdade é uma delas; acertar
+   * qualquer uma tira da vida dele.
+   */
+  darkSkulls: {
+    count: 8,
+    durationMs: 10000,
+    radius: 320,
+    /** Velocidade do giro da roda (radianos por ms). */
+    spinPerMs: 0.00035,
+    scale: 2.2,
+    firstShotMs: 450,
+    volleyEveryMs: 580,
+    /** Quantas caveiras atiram em cada salva. */
+    shootersPerVolley: 3,
+    orbSpeed: 265,
+    /** Quanto tempo a boca fica aberta depois de cuspir a orbe. */
+    mouthOpenMs: 260,
+    /** A orbe nasce na boca, não no meio do crânio. */
+    mouthOffset: 28,
+    hitbox: { width: 30, height: 34, offsetX: 2, offsetY: 6 },
+  },
+  /**
+   * Arte de cada projétil (folha art-source/novos/projeteis-azazel.jpg, 2026-11-25).
+   * `originX`: onde fica a cabeça do projétil no desenho (0 = cauda, 1 = ponta). O acerto é
+   * medido no ponto de origem, então nos compridos ele vai na cabeça, não no meio da cauda.
+   * `spinPerMs`: giro do desenho em voo (radianos por ms; 0 = aponta para onde vai).
+   */
+  projectileArt: {
+    directedBurst: { texture: 'azazel-proj-comet', scale: 1.2, originX: 0.86, spinPerMs: 0 },
+    teleportBurst: { texture: 'azazel-proj-orb-glossy', scale: 1.5, originX: 0.5, spinPerMs: 0 },
+    spiral: { texture: 'azazel-proj-orb-spiral', scale: 1.4, originX: 0.5, spinPerMs: 0.012 },
+    feather: { texture: 'azazel-proj-needle', scale: 1.0, originX: 0.9, spinPerMs: 0 },
+    skull: { texture: 'azazel-skull-orb', scale: 1.3, originX: 0.75, spinPerMs: 0 },
+  },
   /** Fase dos cristais: quantos cristais, e de quanto em quanto tempo nasce uma leva. */
   crystalCount: 3,
   dimensionWaveIntervalMs: 1100,
@@ -563,6 +599,52 @@ export const AZAZEL_BOSS_BALANCE = {
     arenaRadius: 470,
     /** Distância dos cristais até o centro (sorteada entre min e max). */
     crystalDist: { min: 220, max: 340 },
+    /**
+     * Tapa da Mão (pedido do dono em 2026-11-25): marca um círculo onde a heroína está e,
+     * `telegraphMs` depois, a mão gigante do Azazel desce e bate ali. Obriga a sair de cima
+     * do cristal de vez em quando. Depois de `secondHandAfterMs` na fase, vem uma segunda mão
+     * mirando para onde ela está indo (`leadMs` à frente).
+     */
+    handSlam: {
+      firstDelayMs: 3500,
+      everyMs: 4200,
+      /** 1,5 s (dono em 2026-11-25; antes 2 s). */
+      telegraphMs: 1500,
+      /**
+       * Área do golpe: retângulo em pé que cobre a mão E o braço (pedido do dono; o círculo
+       * só na palma era fácil demais). Medido a partir do ponto marcado (o miolo da mão):
+       * `below` até a ponta dos dedos, `above` subindo pelo braço. Largura entre o braço
+       * (~115 px) e a mão aberta (~175 px).
+       */
+      hitbox: { width: 150, above: 540, below: 105 },
+      damage: 32,
+      secondHandAfterMs: 30000,
+      leadMs: 700,
+      // Visual: a mão desce `dropFromPx` acima do ponto, fica um instante e sobe sumindo
+      scale: 2.6,
+      /** Altura do miolo da mão no desenho (0 = topo do braço, 1 = ponta dos dedos). */
+      palmOriginY: 0.83,
+      dropFromPx: 520,
+      dropMs: 170,
+      holdMs: 420,
+      riseMs: 380,
+    },
+  },
+  /**
+   * Duelo final: duas caveiras da roda giram e flutuam em volta dele e cospem orbes na
+   * heroína, alternando (pedido do dono em 2026-11-25). Acertar uma tira vida do Azazel.
+   */
+  finalSkulls: {
+    count: 2,
+    scale: 1.5,
+    orbitRadius: 100,
+    spinPerMs: 0.0022,
+    /** Sobe e desce enquanto gira (px e radianos por ms). */
+    bobPx: 9,
+    bobPerMs: 0.004,
+    shotEveryMs: 1300,
+    orbSpeed: 290,
+    mouthOffset: 20,
   },
   /** Cálice de cura entregue ao entrar na fase dos cristais e ao voltar para o duelo final. */
   healOnPhaseChange: true,
@@ -899,7 +981,20 @@ export const TALISMAN_BALANCE = {
   /** Item no chão: raio de coleta e altura do feixe de luz. */
   drop: { pickupRadius: 26, beamHeight: 150, scale: 0.42 },
   /** Tela da carta: tempo mínimo entre toques e espera do bot [F3] entre toques. */
-  reveal: { tapLockMs: 260, botTapMs: 420, collectLockMs: 450 },
+  reveal: {
+    tapLockMs: 260,
+    botTapMs: 420,
+    collectLockMs: 450,
+    /**
+     * Talismã pendurado balançando como um pêndulo (pedido do dono em 2026-11-25). Parado, ele
+     * balança de leve (`idleAmpDeg`); cada toque dá um empurrão maior que vai morrendo até
+     * voltar ao balanço leve. Ângulos em graus; `dampPerSec` = fração do excesso que some por segundo.
+     */
+    pendulum: { periodMs: 1600, idleAmpDeg: 5, kickAmpDeg: 20, kickPerTierDeg: 3, dampPerSec: 0.9 },
+    /** Ícone do prêmio flutuando depois de abrir: sobe e desce (px) neste período. */
+    iconFloatPx: 8,
+    iconFloatMs: 1300,
+  },
 
   pets: {
     /** Pets que andam sem alvo ficam nesta distância da heroína. */

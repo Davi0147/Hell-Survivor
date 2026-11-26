@@ -1,9 +1,20 @@
 import Phaser from 'phaser';
 import type { BaseCharacter } from '../characters/BaseCharacter';
 
+/** Como o projétil aparece: textura, tamanho, onde fica a cabeça e se gira em voo. */
+export interface ProjectileLook {
+  texture: string;
+  scale: number;
+  /** 0 = cauda, 1 = ponta; o acerto é medido nesse ponto. */
+  originX: number;
+  /** Radianos por ms (0 = aponta para onde vai). */
+  spinPerMs: number;
+}
+
 export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
   public damage: number = 18;
   private lifespanMs: number = 0;
+  private spinPerMs: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     const textureKey = scene.textures.exists('projectile-heart-attack') ? 'projectile-heart-attack' : 'dark-orb';
@@ -24,11 +35,16 @@ export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
     angle: number,
     speed: number = 220,
     damage: number = 18,
-    customTextureKey?: string
+    customTextureKey?: string,
+    look?: Omit<ProjectileLook, 'texture'>
   ): void {
     if (customTextureKey && this.scene.textures.exists(customTextureKey)) {
       this.setTexture(customTextureKey);
     }
+    // Vem do pool: sempre redefine, senão herda o visual do disparo anterior
+    this.setScale(look?.scale ?? 1);
+    this.setOrigin(look?.originX ?? 0.5, 0.5);
+    this.spinPerMs = look?.spinPerMs ?? 0;
     this.setPosition(startX, startY);
     this.setRotation(angle);
     this.damage = damage;
@@ -45,6 +61,7 @@ export class DarkOrbProjectile extends Phaser.Physics.Arcade.Sprite {
 
   public updateProjectile(deltaMs: number): void {
     if (!this.active) return;
+    if (this.spinPerMs !== 0) this.rotation += this.spinPerMs * deltaMs;
     this.lifespanMs -= deltaMs;
     if (this.lifespanMs <= 0) {
       this.deactivate();

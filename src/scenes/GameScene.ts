@@ -45,7 +45,8 @@ import { RunEndSystem, IRunEndContext } from '../systems/RunEndSystem';
 import { FONTS, getArenaFloorTint, ARENA_FLOOR_SCALE, ARENA_FLOOR_SCALE_DEFAULT, CHAPTER_FLOOR_TEXTURE } from '../config/theme';
 import { ChapterDecorSystem } from '../systems/ChapterDecorSystem';
 import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
-import type { IPauseWeaponInfo } from '../ui/PauseMenu';
+import type { IPauseTalismanInfo, IPauseWeaponInfo } from '../ui/PauseMenu';
+import { describeTalismansForPause } from '../ui/pauseTalismans';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
 import { HordeEventSystem, IHordeEventContext } from '../systems/HordeEventSystem';
 import { InfernalFurySystem } from '../systems/InfernalFurySystem';
@@ -219,6 +220,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   /** Armas equipadas como ícone + nível, para o menu de pausa. */
   public getPauseWeapons(): IPauseWeaponInfo[] {
     return this.weapons.map((w) => getWeaponIconInfo(w)).filter((i): i is IPauseWeaponInfo => i !== undefined);
+  }
+  public getPauseTalismans(): IPauseTalismanInfo[] {
+    return this.talismans ? describeTalismansForPause(this.talismans.ownedIds) : [];
   }
   public soulBoltWeapon!: SoulBoltWeapon;
   public enemiesGroup!: Phaser.GameObjects.Group;
@@ -1186,6 +1190,11 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
    */
   public setSceneryPropsVisible(visible: boolean): void {
     this.arenaScenerySystem?.setSceneryPropsVisible(visible);
+  }
+
+  /** Cenário do kit do capítulo some (desenho e colisão) no domínio escuro do Azazel. */
+  public setDecorHidden(hidden: boolean): void {
+    this.chapterDecor?.setHidden(hidden);
   }
 
   /**
