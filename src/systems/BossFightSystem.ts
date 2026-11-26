@@ -16,6 +16,7 @@ import { MapStorageManager, ChapterMapConfig } from '../config/mapData';
 import { ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, getBossRematchDialogue } from '../config/dialogues';
 import {
   AZAZEL_BOSS_BALANCE,
+  CAMERA_BALANCE,
   SUCCUBUS_BOSS_BALANCE,
   ENEMY_BALANCE,
   BOSS_FATIGUE,
@@ -30,7 +31,7 @@ export type BossId = 'rosalin' | 'azazel';
 
 /** Mapa da Dimensão Corrompida (fase dos cristais do Azazel). */
 const AZAZEL_DIMENSION_MAP_ID = 202;
-const DEFAULT_CAMERA_ZOOM = 2.0;
+const DEFAULT_CAMERA_ZOOM = CAMERA_BALANCE.gameplayZoom;
 const AZAZEL_FIGHT_ZOOM = 1.35;
 /**
  * Espera do fim do loop da intro do Azazel: a câmera desliza bem devagar até ele e se

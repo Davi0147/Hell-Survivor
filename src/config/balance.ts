@@ -74,6 +74,22 @@ export const DIRECTIONS_8 = [
 export type Direction8 = typeof DIRECTIONS_8[number];
 
 /**
+ * Câmera da partida. 1.6 (dono em 2026-11-25; antes 2.0, achava perto demais) mostra ~25% mais
+ * mapa em cada direção. A horda nasce `spawnViewMargin` px fora da área visível (spawnRules.ts),
+ * então mudar o zoom não faz monstro brotar na tela. Cenas com zoom próprio (Azazel) voltam
+ * para este valor no fim.
+ */
+export const CAMERA_BALANCE = {
+  gameplayZoom: 1.6,
+  spawnViewMargin: 60,
+  /**
+   * Zoom para o qual os efeitos fixos na tela da cena do jogo (cut-in da Suprema) foram
+   * desenhados. Eles também são ampliados pela câmera; a escala compensa a diferença.
+   */
+  overlayDesignZoom: 2,
+} as const;
+
+/**
  * LIMITES DE PERFORMANCE E OTIMIZAÇÃO DE ENTIDADES:
  * Reduz a sobrecarga de draw calls e física, evitando travamentos em hordas massivas.
  */
@@ -787,8 +803,14 @@ export const ULTIMATE_BALANCE = {
   weaponHasteMultiplier: 1.9,
   damageBonusPercent: 50,
   speedBonusPercent: 35,
-  /** Intocável enquanto a animação de ativação cobre a tela. */
-  castInvulnerableMs: 1300,
+  /**
+   * O mundo fica congelado enquanto o cut-in cobre a tela (~0,9 s). Esta proteção começa a
+   * contar quando o jogo volta (o relógio dela para junto), para dar tempo de se situar.
+   * Antes era 1300 ms contando durante o cut-in, com a horda andando por trás dele.
+   */
+  castInvulnerableMs: 700,
+  /** Teto do congelamento: se a animação do cut-in não terminar, o jogo volta mesmo assim. */
+  cutInMaxFreezeMs: 1600,
   openingBlast: { radius: 230, damage: 90, pushPx: 70 },
   pulse: { intervalMs: 1000, radius: 135, damage: 34 },
   finale: { radius: 270, damage: 130, pushPx: 90 },

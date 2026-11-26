@@ -81,6 +81,7 @@ import { SandboxController, type ISandboxContext } from '../systems/SandboxContr
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
 import { BossSummonAltar } from '../entities/items/BossSummonAltar';
+import { CAMERA_BALANCE } from '../config/balance';
 
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 
@@ -322,7 +323,7 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
       expect(mockContext.clearCombatSpeechBubbles).toHaveBeenCalledTimes(1);
       expect(mockContext.clearAzazelCrystals).toHaveBeenCalledTimes(1);
       expect(mockContext.setHUDVisible).toHaveBeenCalledWith(true);
-      expect(mockContext.setCameraZoom).toHaveBeenCalledWith(2.0, 600);
+      expect(mockContext.setCameraZoom).toHaveBeenCalledWith(CAMERA_BALANCE.gameplayZoom, 600);
       expect(mockSoundManager.playBattleMusic).toHaveBeenCalledWith(1500);
     });
 

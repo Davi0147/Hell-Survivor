@@ -21,6 +21,7 @@ function makeWorld(gameMode: 'story' | 'endless') {
     spawnArcherAt: vi.fn(),
     spawnColossusAt: vi.fn(),
     spawnColossusFormation: vi.fn(),
+    offscreenDist: (_angle: number, dist: number) => dist,
     spawnGhoulDevourer: vi.fn(),
     spawnLyn: vi.fn(),
   };

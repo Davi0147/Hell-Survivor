@@ -4,6 +4,36 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-25
 
+### Suprema: o jogo congela durante a animação
+
+#### Resumo para o Jogador
+- **Ao ativar a Suprema, o jogo agora pausa enquanto a animação cobre a tela** (~1 segundo): monstros, flechas, orbes e spawns param. Antes a horda continuava andando e atacando por trás da imagem, e quando ela sumia você já estava cercada.
+- Quando o jogo volta, a Nixy ainda fica intocável por 0,7 segundo para dar tempo de se situar.
+
+#### Técnico
+- `UltimateSystem.isCutInPlaying`: a `GameScene.update` não roda o quadro e a física fica pausada enquanto o cut-in existe (solta no `DESTROY` dele, com teto `ULTIMATE_BALANCE.cutInMaxFreezeMs`). `castInvulnerableMs` 1300 → 700, agora contando depois do congelamento (o relógio da proteção para junto).
+
+### Correção: partida começava com a heroína travada (jogando no controle)
+
+#### Resumo para o Jogador
+- **Jogando no controle, ao reiniciar ou começar outra partida a Nixy podia nascer sem conseguir andar**, com mensagens de erro vermelhas no canto. Corrigido.
+
+#### Técnico
+- Defeito do Phaser 3.90: com o controle num índice que não é o 0 (comum no Windows com controle de Xbox ou depois de reconectar), `GamepadPlugin.gamepads` fica com buraco e `stopListeners`/`disconnectAll` quebram ao fechar a cena. A limpeza parava no meio: a UIScene não voltava e a física ficava com colisões de grupos destruídos (`World.collideObjects ... 'entries'` a cada quadro). `systems/phaserPatches.ts` (instalado no `main.ts` antes de criar o jogo) roda esses dois métodos sem os buracos; testado, e reproduzido no navegador antes e depois.
+
+### Câmera mais afastada e Tartarus verde
+
+#### Resumo para o Jogador
+- **A câmera ficou mais longe:** dá para ver ~25% mais mapa para cada lado (zoom 1,6 em vez de 2).
+- **Os monstros continuam chegando de fora da tela:** antes, em celular largo, alguns já nasciam à vista; agora a horda, as formações e os eventos (Cerco, Emboscada, Matilha Alfa) sempre nascem logo fora da área visível, em qualquer zoom.
+- **Grilhões do Tartarus com cara de evolução:** as correntes e os grilhões da arma evoluída ficaram verde espectral (antes eram iguais aos da Cadeia Abissal).
+- O cut-in da Suprema continua do mesmo tamanho de antes.
+
+#### Técnico
+- `CAMERA_BALANCE` (`gameplayZoom`, `spawnViewMargin`, `overlayDesignZoom`) substitui os `2` soltos (GameScene, fim do Azazel, remover chefe no Modo de Teste).
+- `systems/spawnRules.ts` (`distanceToViewEdge`, `offscreenSpawnDist`, testados inclusive na tela mais larga); `EnemySpawnSystem.offscreenDist` usado pela horda, `EncounterDirector.at` e `HordeEventSystem`. Minichefes e Transportador seguem nascendo perto, de propósito (entram com clarão e aviso).
+- `CHAINS_THEME` no tema (normal roxo/ciano, Tartarus verde); a catraca de cores caiu de 917 para 913.
+
 ### Talismãs no menu de pausa
 
 #### Resumo para o Jogador

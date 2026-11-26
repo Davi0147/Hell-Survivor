@@ -183,7 +183,9 @@ export class HordeEventSystem {
     const p = this.ctx.player;
     for (let i = 0; i < count; i++) {
       const a = offset + (i / count) * Math.PI * 2;
-      this.spawner.spawnScaledDogAt(p.x + Math.cos(a) * cfg.radius, p.y + Math.sin(a) * cfg.radius);
+      // Fora da tela em qualquer zoom: o anel aparece fechando, não brotando à vista
+      const r = this.spawner.offscreenDist(a, cfg.radius);
+      this.spawner.spawnScaledDogAt(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r);
     }
     this.scene.cameras.main.shake(260, 0.008);
     this.hud?.showWaveAlert('CERCO INFERNAL! ROMPA O CÍRCULO!', 3200);
@@ -203,7 +205,7 @@ export class HordeEventSystem {
     const dogs = Math.min(cfg.dogs, this.freeEnemySlots());
     for (let i = 0; i < dogs; i++) {
       const a = angle + Phaser.Math.FloatBetween(-0.4, 0.4);
-      const d = cfg.distance + Phaser.Math.Between(-40, 60);
+      const d = this.spawner.offscreenDist(a, cfg.distance + Phaser.Math.Between(-40, 60));
       this.spawner.spawnScaledDogAt(p.x + Math.cos(a) * d, p.y + Math.sin(a) * d);
     }
     this.hud?.showWaveAlert('EMBOSCADA! ELES VÊM DE UM LADO SÓ!', 3200);
@@ -253,7 +255,8 @@ export class HordeEventSystem {
     const p = this.ctx.player;
     for (let i = 0; i < count; i++) {
       const a = angle + (i - 1) * 0.3;
-      this.spawner.spawnScaledDogAt(p.x + Math.cos(a) * 400, p.y + Math.sin(a) * 400, true);
+      const d = this.spawner.offscreenDist(a, 400);
+      this.spawner.spawnScaledDogAt(p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, true);
     }
     this.scene.cameras.main.shake(220, 0.01);
     this.hud?.showWaveAlert('MATILHA ALFA NA CAÇADA!', 3000);

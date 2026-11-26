@@ -13,7 +13,8 @@ import { ArcherEnemy } from '../entities/enemies/ArcherEnemy';
 import type { GemType } from '../entities/items/SoulGem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { SoundManager } from './SoundManager';
-import { PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, ENDLESS_SCHEDULE, getStorySchedule, getEnemyScaling, getChapterConfig, getColossusMaxAlive, getArcherMaxAlive, type EnemyKind } from '../config/balance';
+import { offscreenSpawnDist } from './spawnRules';
+import { CAMERA_BALANCE, PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, ENDLESS_SCHEDULE, getStorySchedule, getEnemyScaling, getChapterConfig, getColossusMaxAlive, getArcherMaxAlive, type EnemyKind } from '../config/balance';
 
 /** O que o sistema de spawn precisa saber sobre o personagem jogável (qualquer BaseCharacter serve). */
 export interface IEnemySpawnPlayer {
@@ -60,6 +61,21 @@ export class EnemySpawnSystem {
   constructor(scene: Phaser.Scene, ctx: IEnemySpawnContext) {
     this.scene = scene;
     this.ctx = ctx;
+  }
+
+  /**
+   * Distância de nascimento da horda: sorteia entre `min` e `max` como sempre, mas nunca
+   * dentro da tela (com a câmera afastada, parte do círculo antigo caía à vista).
+   */
+  private spawnDist(angle: number, min: number, max: number): number {
+    return this.offscreenDist(angle, Phaser.Math.Between(min, max));
+  }
+
+  /** `dist` na direção `angle`, empurrada para logo fora da área visível se cairia na tela. */
+  public offscreenDist(angle: number, dist: number): number {
+    const view = this.scene.cameras?.main?.worldView;
+    if (!view || view.width <= 0) return dist;
+    return Math.round(offscreenSpawnDist(angle, dist, view.width / 2, view.height / 2, CAMERA_BALANCE.spawnViewMargin));
   }
 
   private getChapterEnemyStatMultiplier(): number {
@@ -222,7 +238,7 @@ export class EnemySpawnSystem {
    */
   public spawnBloodBatFlock(count: number = 5, fromAngle?: number): void {
     const angle = fromAngle ?? Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const dist = Phaser.Math.Between(360, 480);
+    const dist = this.spawnDist(angle, 360, 480);
     const originX = this.ctx.player.x + Math.cos(angle) * dist;
     const originY = this.ctx.player.y + Math.sin(angle) * dist;
 
@@ -290,7 +306,7 @@ export class EnemySpawnSystem {
     const dogCount = Phaser.Math.Between(3, 5);
     for (let i = 0; i < dogCount; i++) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const dist = Phaser.Math.Between(300, 440);
+      const dist = this.spawnDist(angle, 300, 440);
       const sx = this.ctx.player.x + Math.cos(angle) * dist;
       const sy = this.ctx.player.y + Math.sin(angle) * dist;
       this.spawnZombieDogAt(sx, sy, Math.round(dog.hp * s.hp), dog.speed, Math.round(dog.damage * s.damage));
@@ -302,7 +318,7 @@ export class EnemySpawnSystem {
 
     if (Math.random() < 0.25) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const dist = Phaser.Math.Between(320, 420);
+      const dist = this.spawnDist(angle, 320, 420);
       this.spawnMummyAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist, Math.round(mummy.hp * s.hp), mummy.speed, Math.round(mummy.damage * s.damage));
     }
   }
@@ -379,7 +395,7 @@ export class EnemySpawnSystem {
 
       if (activeSlimes < maxSlimes && Math.random() < slimeChance) {
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        const dist = Phaser.Math.Between(340, 460);
+        const dist = this.spawnDist(angle, 340, 460);
         this.spawnSkullSlimeAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
       }
     }
@@ -394,7 +410,7 @@ export class EnemySpawnSystem {
 
       if (activeMummies < maxMummies && Math.random() < mummyChance) {
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        const dist = Phaser.Math.Between(320, 440);
+        const dist = this.spawnDist(angle, 320, 440);
         this.spawnScaledMummyAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
       }
     }
@@ -418,7 +434,7 @@ export class EnemySpawnSystem {
       ).length;
       if (activeArchers < maxArchers) {
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        const dist = Phaser.Math.Between(440, 520);
+        const dist = this.spawnDist(angle, 440, 520);
         this.spawnArcherAt(this.ctx.player.x + Math.cos(angle) * dist, this.ctx.player.y + Math.sin(angle) * dist);
       }
     }
@@ -439,7 +455,7 @@ export class EnemySpawnSystem {
 
     for (let i = 0; i < dogCount; i++) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const dist = Phaser.Math.Between(340, 480);
+      const dist = this.spawnDist(angle, 340, 480);
       const spawnX = this.ctx.player.x + Math.cos(angle) * dist;
       const spawnY = this.ctx.player.y + Math.sin(angle) * dist;
 
@@ -556,7 +572,7 @@ export class EnemySpawnSystem {
    * Formação do Colossus: ele na frente e uma fila de cães logo atrás, na mesma linha até a heroína.
    * Assim os projéteis que perfuram batem nele e não chegam na escolta.
    */
-  public spawnColossusFormation(angle: number = Phaser.Math.FloatBetween(0, Math.PI * 2), dist: number = 420): void {
+  public spawnColossusFormation(angle: number = Phaser.Math.FloatBetween(0, Math.PI * 2), dist: number = this.spawnDist(angle, 420, 420)): void {
     const cfg = ENEMY_BALANCE.colossus;
     const p = this.ctx.player;
     this.spawnColossusAt(p.x + Math.cos(angle) * dist, p.y + Math.sin(angle) * dist);

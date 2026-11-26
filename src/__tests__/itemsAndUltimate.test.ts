@@ -38,7 +38,11 @@ describe('ULTIMATE_BALANCE (Ascensão Infernal)', () => {
     expect(ULTIMATE_BALANCE.durationMs).toBeGreaterThanOrEqual(5000);
   });
 
-  it('a heroína fica intocável durante a animação de ativação', () => {
-    expect(ULTIMATE_BALANCE.castInvulnerableMs).toBeGreaterThanOrEqual(1000);
+  it('o mundo congela no cut-in e a heroína ainda tem um instante intocável quando o jogo volta', () => {
+    // O cut-in dura 160 + 200 + 380 + 160 ms (UltimateSystem.playCutIn); o teto não pode cortá-lo
+    const cutInMs = 160 + 200 + 380 + 160;
+    expect(ULTIMATE_BALANCE.cutInMaxFreezeMs).toBeGreaterThan(cutInMs);
+    expect(ULTIMATE_BALANCE.cutInMaxFreezeMs).toBeLessThan(2500);
+    expect(ULTIMATE_BALANCE.castInvulnerableMs).toBeGreaterThanOrEqual(500);
   });
 });

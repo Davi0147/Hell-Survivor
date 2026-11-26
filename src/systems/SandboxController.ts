@@ -13,7 +13,7 @@ import type { BaseWeapon } from '../entities/weapons/BaseWeapon';
 import type { TalismanSystem } from './TalismanSystem';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
-import { ENEMY_BALANCE } from '../config/balance';
+import { CAMERA_BALANCE, ENEMY_BALANCE } from '../config/balance';
 
 import type { HordeEventType as HordeEventType2 } from './HordeEventSystem';
 
@@ -262,7 +262,7 @@ export class SandboxController {
       }
     }
 
-    this.context.setCameraZoom(2.0, 600);
+    this.context.setCameraZoom(CAMERA_BALANCE.gameplayZoom, 600);
     if (restoreBattleMusic) {
       SoundManager.getInstance().playBattleMusic(1500);
     }

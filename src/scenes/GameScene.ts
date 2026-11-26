@@ -26,7 +26,7 @@ import { DialogueLine } from '../systems/DialogueSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { DebugSessionLogger } from '../systems/DebugSessionLogger';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
-import { PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig, getSpawnIntervalMs, type EnemyKind } from '../config/balance';
+import { CAMERA_BALANCE, PERFORMANCE_LIMITS, ARENA_CONFIG, getChapterConfig, getSpawnIntervalMs, type EnemyKind } from '../config/balance';
 import { IdlePressureSystem } from '../systems/IdlePressureSystem';
 import { UIScene } from './UIScene';
 import { GamepadManager } from '../systems/GamepadManager';
@@ -380,7 +380,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 3. Câmera travada no jogador com zoom 2x inteiro e pixels arredondados (pixel-perfect)
     this.cameras.main.startFollow(this.player, true, 1, 1);
-    this.cameras.main.setZoom(2);
+    this.cameras.main.setZoom(CAMERA_BALANCE.gameplayZoom);
     this.cameras.main.setRoundPixels(true);
 
     // 3.1. Configuração dos Limites Rígidos da Arena e Câmera (6400 x 6400 px)
@@ -724,6 +724,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     if (this.isGameOver || this.isChapterCompleted) return;
     const uiScene = this.scene.get('UIScene') as UIScene;
     if (uiScene && (uiScene.isDialogueActive() || uiScene.isChestRouletteActive())) return;
+    // Cut-in da Suprema cobrindo a tela: mundo congelado (horda, projéteis, spawns e relógios)
+    if (this.ultimate?.isCutInPlaying) return;
 
     // Fila de escolhas de melhoria pendentes (garante que múltiplos níveis ganhos de uma vez sejam ofertados em sequência)
     if (this.player && this.player.pendingLevelUps > 0 && !this.scene.isActive('UpgradeScene') && !this.isUpgradeSceneOpening) {

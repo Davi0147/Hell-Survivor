@@ -3,7 +3,7 @@ import type { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
-import { ULTIMATE_BALANCE } from '../config/balance';
+import { CAMERA_BALANCE, ULTIMATE_BALANCE } from '../config/balance';
 import { FONTS, FX_COLORS, COLORS } from '../config/theme';
 
 /** O que a Suprema usa da HUD (a UIScene cumpre este contrato). */
@@ -34,6 +34,10 @@ export interface IUltimateContext {
 export class UltimateSystem {
   private remainingMs = 0;
   private pulseTimer = 0;
+  /** Cut-in na tela: o jogo fica congelado (a GameScene não roda o quadro). */
+  private cutInPlaying = false;
+  /** A física foi pausada por nós (não retoma uma pausa que não é nossa). */
+  private pausedPhysicsForCutIn = false;
 
   private aura?: Phaser.GameObjects.Particles.ParticleEmitter;
   private embers?: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -45,6 +49,28 @@ export class UltimateSystem {
 
   public get isActive(): boolean {
     return this.remainingMs > 0;
+  }
+
+  /**
+   * O cut-in cobre a tela por ~1 s. Antes a horda continuava andando e atacando por trás dele,
+   * e quando a imagem sumia a heroína já estava cercada. Agora o mundo congela nesse tempo.
+   */
+  public get isCutInPlaying(): boolean {
+    return this.cutInPlaying;
+  }
+
+  private freezeWorld(): void {
+    this.cutInPlaying = true;
+    const world = this.scene.physics?.world;
+    this.pausedPhysicsForCutIn = Boolean(world && !world.isPaused);
+    if (this.pausedPhysicsForCutIn) this.scene.physics.pause();
+  }
+
+  private unfreezeWorld(): void {
+    if (!this.cutInPlaying) return;
+    this.cutInPlaying = false;
+    if (this.pausedPhysicsForCutIn && this.scene.physics?.world) this.scene.physics.resume();
+    this.pausedPhysicsForCutIn = false;
   }
 
   /** Fração (0 a 1) do poder que ainda resta. */
@@ -131,6 +157,7 @@ export class UltimateSystem {
   public destroy(): void {
     this.stopVisuals();
     this.remainingMs = 0;
+    this.cutInPlaying = false;
   }
 
   // ---------------------------------------------------------------------------
@@ -283,6 +310,20 @@ export class UltimateSystem {
 
     const cutIn = scene.add.container(0, 0);
     cutIn.setScrollFactor(0).setDepth(400);
+    this.freezeWorld();
+    // Cena encerrada no meio (reiniciar, sair): nada para retomar, mas solta a trava
+    cutIn.once(Phaser.GameObjects.Events.DESTROY, () => this.unfreezeWorld());
+    // Rede de segurança: se algum passo da animação não rodar, o mundo não fica congelado
+    scene.time.delayedCall(ULTIMATE_BALANCE.cutInMaxFreezeMs, () => {
+      if (cutIn.scene) {
+        cutIn.destroy();
+        hud?.setHUDVisible(true);
+      }
+    });
+    // Fixo na tela, mas a câmera também o amplia (a partir do centro). Foi desenhado para o
+    // zoom 2: compensa para ficar do mesmo tamanho em qualquer zoom da partida.
+    const k = CAMERA_BALANCE.overlayDesignZoom / Math.max(0.1, cameras.zoom);
+    cutIn.setScale(k).setPosition((width / 2) * (1 - k), (height / 2) * (1 - k));
 
     const backdrop = scene.add.rectangle(width / 2, height / 2, width, height, COLORS.black, 0.8);
     cutIn.add(backdrop);
@@ -339,7 +380,7 @@ export class UltimateSystem {
             duration: 160,
             ease: 'Quad.easeIn',
             onComplete: () => {
-              cutIn.destroy();
+              cutIn.destroy(); // solta o mundo (DESTROY acima)
               hud?.setHUDVisible(true);
             },
           });

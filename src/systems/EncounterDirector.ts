@@ -302,8 +302,10 @@ export class EncounterDirector {
     else this.spawner.spawnLyn(hpMultiplier);
   }
 
-  private at(angle: number, dist: number, side: number = 0): { x: number; y: number } {
+  private at(angle: number, baseDist: number, side: number = 0): { x: number; y: number } {
     const p = this.ctx.player;
+    // Nasce fora da tela em qualquer zoom (a formação inteira recua junto)
+    const dist = this.spawner.offscreenDist(angle, baseDist);
     const px = -Math.sin(angle);
     const py = Math.cos(angle);
     return { x: p.x + Math.cos(angle) * dist + px * side, y: p.y + Math.sin(angle) * dist + py * side };
