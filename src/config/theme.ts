@@ -361,6 +361,16 @@ export const CRYSTAL_ARENA_THEME = {
   ringCore: 0xffb3c8
 } as const;
 
+/**
+ * Correntes Abissais: aura grossa + fio central + elos, e o grilhão em volta do monstro preso.
+ * Evoluída (Grilhões do Tartarus) troca o roxo/ciano por verde espectral, para a evolução
+ * não parecer só "a mesma arma com mais alvos" (pedido do dono em 2026-11-25).
+ */
+export const CHAINS_THEME = {
+  normal: { aura: 0x9d4edd, core: 0x00f5d4 },
+  tartarus: { aura: 0x1fa85a, core: 0xb8ff6a },
+} as const;
+
 /** Lyn (minichefe súcubo): rosa para separar dela os avisos carmesim da Rosalin. */
 export const LYN_THEME = {
   tellTint: 0xff7ad9,

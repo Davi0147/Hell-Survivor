@@ -3,6 +3,7 @@ import { BaseWeapon } from './BaseWeapon';
 import { BaseCharacter } from '../characters/BaseCharacter';
 import { BaseEnemy } from '../enemies/BaseEnemy';
 import { SoundManager } from '../../systems/SoundManager';
+import { CHAINS_THEME } from '../../config/theme';
 
 export class AbyssalChainsWeapon extends BaseWeapon {
   private player: BaseCharacter;
@@ -74,6 +75,7 @@ export class AbyssalChainsWeapon extends BaseWeapon {
     SoundManager.getInstance().playAbyssalChainsWhip();
 
     const effectiveDamage = Math.round(this.damage * (1 + this.player.bonusDamagePercent / 100));
+    const colors = this.colors;
     const chainGraphics = this.scene.add.graphics();
     chainGraphics.setDepth(22);
     chainGraphics.setBlendMode(Phaser.BlendModes.ADD);
@@ -109,12 +111,12 @@ export class AbyssalChainsWeapon extends BaseWeapon {
         chainGraphics.clear();
 
         for (const seg of chainSegments) {
-          // Aura roxa abissal externa
-          chainGraphics.lineStyle(5 * alpha, 0x9d4edd, alpha * 0.85);
+          // Aura externa (roxa; verde no Tartarus)
+          chainGraphics.lineStyle(5 * alpha, colors.aura, alpha * 0.85);
           chainGraphics.lineBetween(seg.x1, seg.y1, seg.x2, seg.y2);
 
-          // Fio central de aço espiritual ciano/branco
-          chainGraphics.lineStyle(2, 0x00f5d4, alpha);
+          // Fio central e elos (ciano; verde-limão no Tartarus)
+          chainGraphics.lineStyle(2, colors.core, alpha);
           chainGraphics.lineBetween(seg.x1, seg.y1, seg.x2, seg.y2);
 
           // Desenha pequenos elos ao longo da corrente
@@ -134,7 +136,13 @@ export class AbyssalChainsWeapon extends BaseWeapon {
     });
   }
 
+  /** Cores das correntes: roxo/ciano normal, verde espectral depois de evoluir. */
+  private get colors(): { aura: number; core: number } {
+    return this.isEvolved ? CHAINS_THEME.tartarus : CHAINS_THEME.normal;
+  }
+
   private spawnShackleRing(enemy: BaseEnemy): void {
+    const colors = this.colors;
     const ring = this.scene.add.graphics();
     ring.setDepth(21);
 
@@ -150,9 +158,9 @@ export class AbyssalChainsWeapon extends BaseWeapon {
         const p = tween.getValue() ?? 0;
         const alpha = 1 - p * 0.7;
         ring.clear();
-        ring.lineStyle(2, 0x9d4edd, alpha);
+        ring.lineStyle(2, colors.aura, alpha);
         ring.strokeCircle(enemy.x, enemy.y + 4, 14);
-        ring.lineStyle(1, 0x00f5d4, alpha * 0.8);
+        ring.lineStyle(1, colors.core, alpha * 0.8);
         ring.strokeCircle(enemy.x, enemy.y + 4, 11);
       },
       onComplete: () => {
