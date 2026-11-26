@@ -8,6 +8,7 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 #### Resumo para o Jogador
 - **O Capítulo I começa diferente:** depois da abertura, a Nixy sai do setor dela e atravessa um **corredor de escritório do inferno**, com bebedouro de lava, arquivos acorrentados, o quadro do "Funcionário do Milênio" e cafeteira pingando piche. Só dá para andar pelo chão (as paredes seguram).
+- **O corredor é dividido em 5 salas:** chegando na ponta, a tela escurece rapidinho e ela passa para a próxima (dá para voltar também). Cada sala ocupa a tela inteira, sem emenda aparecendo.
 - **Funcionários parados no caminho:** chegando perto aparece **FALAR** em cima da cabeça (E, Espaço, A/cruz, ou tocar no aviso). Cada um tem conversas curtas, e a próxima vez rende outra fala.
 - **Porta de saída no fim:** ela atravessa e chega na arena por uma porta, anda sozinha, dá de cara com um **cão de guarda** e conversa. O cão late, a tela treme e a horda começa. Nesse momento as armas e a Suprema ficam paradas (nada ataca sozinho).
 - **Morreu e ressurgiu:** volta do jeito de sempre (pentagrama + fala de raiva), sem corredor.
@@ -15,7 +16,7 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 - Os funcionários usam arte provisória (múmia, transportador, arqueira, ghoul) até sair a arte deles.
 
 #### Técnico
-- `scenes/PrologueScene.ts` (sem zoom; corredor 1:1, Nixy em `PROLOGUE_BALANCE.actorScale`, colisão só nos pés), `config/prologueData.ts` (pedaços, faixa de chão, móveis, NPCs, saída), `systems/prologueLogic.ts` (puro, testado em `prologue.test.ts`), `ui/WorldTalkBubble.ts`.
+- `scenes/PrologueScene.ts` (sem zoom; uma sala por vez ampliada por `roomScale`, troca de sala nas pontas com escurecida, só a sala atual e as vizinhas carregadas, filtro suave na arte da sala, colisão só nos pés), `config/prologueData.ts` (pedaços, faixa de chão, móveis, NPCs, saída), `systems/prologueLogic.ts` (puro, testado em `prologue.test.ts`), `ui/WorldTalkBubble.ts`.
 - `systems/StoryArrivalSystem.ts`: chegada na `GameScene` (`shouldPlayStoryArrival`). Enquanto ativa, a `GameScene.update` só roda a cena e `triggerUltimate` é ignorada. O cão vira um Cão Zumbi no fim, e os 4 cães de abertura saem de `spawnOpeningDogs()`.
 - Arte: `scripts/cut-prologue-dog.py` e `scripts/cut-prologue-corridor.py` (corredor reduzido à metade, porta recortada do corredor-fim). O corredor é carregado e solto pela própria cena (memória de vídeo do iPhone).
 - `TouchControls.setMovementOnly()`, ação `interact` nos ícones de botão, `SoundManager.playDogBark()` (sintetizado), `STORAGE_KEYS.PROLOGUE_SEEN`, `PROLOGUE_THEME`, `PROLOGUE_BALANCE` e `STORY_ARRIVAL_BALANCE`. Porta e cão na galeria do Modo de Teste.

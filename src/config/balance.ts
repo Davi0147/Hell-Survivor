@@ -90,22 +90,21 @@ export const CAMERA_BALANCE = {
 } as const;
 
 /**
- * Prólogo do Capítulo I (PrologueScene): o corredor do escritório. A cena não usa zoom (o
- * corredor é desenhado 1:1 na tela), então a Nixy e a velocidade dela são ampliadas pelo zoom da
- * arena para ela ter o mesmo tamanho e o mesmo ritmo de lá.
+ * Prólogo do Capítulo I (PrologueScene): o corredor do escritório, uma sala por imagem. A sala
+ * é ampliada para cobrir a tela (escala `s`, ver prologueLogic.roomScale), e a Nixy e a
+ * velocidade dela seguem a mesma escala, para ficarem do tamanho certo perto das portas.
  */
 export const PROLOGUE_BALANCE = {
-  /**
-   * Escala da Nixy e dos NPCs provisórios. Um pouco maior que o zoom da arena (1.6): ao lado das
-   * portas do corredor ela parecia uma criança.
-   */
-  actorScale: 2,
-  /** Velocidade em px de tela por px de mundo da arena. */
-  speedMultiplier: CAMERA_BALANCE.gameplayZoom,
-  /** Distância (px de tela) dos pés da Nixy até os pés do NPC para aparecer o "falar". */
-  interactRadius: 110,
-  /** Suavidade da câmera seguindo a Nixy (0..1 por quadro). */
+  /** Escala da Nixy e dos NPCs provisórios = isto x escala da sala (~3 na tela do PC). */
+  actorScalePerRoomScale: 4,
+  /** Velocidade = velocidade da arena x isto x escala da sala. */
+  speedPerRoomScale: 3.2,
+  /** Distância (px da arte original) dos pés da Nixy até os pés do NPC para aparecer o "falar". */
+  interactRadius: 220,
+  /** Suavidade da câmera seguindo a Nixy dentro da sala (0..1 por quadro). */
   cameraLerp: 0.12,
+  /** Escurecer/clarear ao passar de uma sala para outra. */
+  roomFadeMs: 180,
   fadeInMs: 700,
   /** Escurecer ao atravessar a porta de saída. */
   exitFadeMs: 800,

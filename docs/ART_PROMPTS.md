@@ -1635,7 +1635,7 @@ office full of paper stacks, a faceless boss in a black suit behind her, warm la
 
 ## 26. Prólogo: corredor do escritório (fuga do RH)
 
-**Como o jogo usa:** o corredor é horizontal e a Nixy anda **da esquerda para a direita** só pela faixa do chão, no meio. Ele é montado com **pedaços lado a lado**, porque nenhum gerador faz uma imagem de 15 mil pixels de largura. Cima e baixo ficam pretos: a imagem já vem com uma borda preta e o jogo continua o preto além dela.
+**Como o jogo usa (atualizado):** cada imagem é uma **sala** que ocupa a tela. A Nixy anda só pela faixa do chão e, ao chegar na ponta esquerda ou direita, a tela escurece e ela passa para a sala vizinha (indo e voltando). As imagens **não precisam se encaixar** umas nas outras: a parede pode ter outra altura, o carpete outro desenho. A pilastra nas bordas é opcional. Sala nova = gerar mais uma imagem com o mesmo prompt-base e medir o chão dela em `src/config/prologueData.ts`.
 
 São **5 imagens**, todas com o mesmo prompt-base e o mesmo gerador. Se der, use a mesma *seed*, ou anexe a primeira imagem como referência nas outras:
 
@@ -1647,7 +1647,6 @@ São **5 imagens**, todas com o mesmo prompt-base e o mesmo gerador. Se der, use
 
 Salve em `art-source/novos/prologo/`.
 
-**O segredo para os pedaços encaixarem:** cada imagem tem uma **coluna de parede** (pilastra) nas bordas esquerda e direita, e todas as linhas (topo da parede, rodapé, chão) ficam **sempre na mesma altura**. A emenda fica escondida atrás da pilastra.
 
 ### Prompt-base (cole sempre)
 
@@ -1750,7 +1749,7 @@ The right edge pilaster is still there, the black frame continues.
 Quando for gerar os funcionários, cada um sai **parado, de corpo inteiro, de frente ou de 3/4, virado para baixo/esquerda**:
 
 - Fundo verde liso (`#00FF00`), estilo do bloco ART STYLE da seção 25.
-- **224 px de altura na imagem** (a altura de uma pessoa, igual à escala do corredor). Personagem baixinho, menos.
+- Altura de uma pessoa nas salas do corredor: uns **200 px na imagem de 2000 px** (o jogo ajusta). Personagem baixinho, menos.
 - Um por imagem: `art-source/novos/prologo/npc-<nome>.png`.
 
 Eu recorto, coloco no corredor e ligo as falas.

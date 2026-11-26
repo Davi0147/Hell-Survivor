@@ -1,87 +1,114 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CORRIDOR_IMAGE_HEIGHT,
-  CORRIDOR_SEGMENTS,
+  CORRIDOR_ROOMS,
   PROLOGUE_EXIT_ZONE,
   PROLOGUE_NPCS,
   PROLOGUE_START,
+  ROOM_CONTENT,
+  ROOM_EDGE,
+  ROOM_IMAGE,
 } from '../config/prologueData';
 import { PROLOGUE_NPC_TALKS, STORY_ARRIVAL_DIALOGUE } from '../config/dialogues';
 import {
-  corridorWalls,
-  corridorWidth,
-  layoutCorridor,
+  clampToWalkBand,
   nearestInRange,
   nextTalkIndex,
   rectContains,
-  segmentAt,
+  roomEntryX,
+  roomExitAt,
+  roomScale,
+  roomWalls,
+  roomsToKeep,
+  scaleRect,
   shouldPlayStoryArrival,
 } from '../systems/prologueLogic';
 
-describe('corredor do prólogo: montagem', () => {
-  it('coloca os pedaços lado a lado sem buraco', () => {
-    const placed = layoutCorridor(CORRIDOR_SEGMENTS);
-    expect(placed[0].x0).toBe(0);
-    for (let i = 1; i < placed.length; i++) {
-      expect(placed[i].x0).toBe(placed[i - 1].x0 + placed[i - 1].width);
-    }
-    expect(corridorWidth(CORRIDOR_SEGMENTS)).toBe(placed[placed.length - 1].x0 + placed[placed.length - 1].width);
-  });
-
-  it('acha o pedaço pelo x (e o último além do fim)', () => {
-    const placed = layoutCorridor(CORRIDOR_SEGMENTS);
-    expect(segmentAt(placed, 10).id).toBe('inicio');
-    expect(segmentAt(placed, placed[1].x0 + 1).id).toBe(placed[1].id);
-    expect(segmentAt(placed, 1e9).id).toBe('fim');
-  });
-
-  it('cada pedaço deixa uma faixa de chão andável dentro da imagem', () => {
-    for (const s of CORRIDOR_SEGMENTS) {
-      expect(s.walkTop).toBeGreaterThan(0);
-      expect(s.walkBottom).toBeLessThan(CORRIDOR_IMAGE_HEIGHT);
-      // Espaço para a Nixy passar (pés de ~16 px de altura e folga)
-      expect(s.walkBottom - s.walkTop).toBeGreaterThanOrEqual(80);
+describe('salas do corredor', () => {
+  it('a sala sempre cobre a tela (altura e largura), em 16:9 e no celular largo', () => {
+    for (const [w, h] of [[1280, 720], [1558, 720], [1680, 720]]) {
+      const s = roomScale(w, h);
+      expect((ROOM_CONTENT.bottom - ROOM_CONTENT.top) * s).toBeGreaterThanOrEqual(h - 0.001);
+      expect(ROOM_IMAGE.width * s).toBeGreaterThanOrEqual(w - 0.001);
     }
   });
 
-  it('as paredes fecham o corredor: em cima, embaixo e nas duas pontas', () => {
-    const placed = layoutCorridor(CORRIDOR_SEGMENTS);
-    const walls = corridorWalls(placed, 80, 720);
-    const blockers = CORRIDOR_SEGMENTS.reduce((n, s) => n + s.blockers.length, 0);
-    expect(walls).toHaveLength(placed.length * 2 + blockers + 2);
-    // Parede do fundo do primeiro pedaço termina exatamente no walkTop
-    expect(walls[0]).toEqual({ x: 0, y: 0, w: placed[0].width, h: 80 + placed[0].walkTop });
-    // Ponta esquerda antes do x = 0 e ponta direita depois do fim
-    const total = corridorWidth(CORRIDOR_SEGMENTS);
+  it('cada sala deixa uma faixa de chão andável dentro da imagem', () => {
+    for (const r of CORRIDOR_ROOMS) {
+      expect(r.walkTop).toBeGreaterThan(ROOM_CONTENT.top);
+      expect(r.walkBottom).toBeLessThan(ROOM_CONTENT.bottom);
+      expect(r.walkBottom - r.walkTop).toBeGreaterThanOrEqual(160);
+    }
+  });
+
+  it('as paredes fecham a sala: fundo, frente, móveis e as duas pontas', () => {
+    const room = CORRIDOR_ROOMS[0];
+    const walls = roomWalls(room);
+    expect(walls).toHaveLength(4 + room.blockers.length);
+    expect(walls[0]).toEqual({ x: 0, y: 0, w: ROOM_IMAGE.width, h: room.walkTop });
+    expect(walls[1].y).toBe(room.walkBottom);
     expect(walls.some((w) => w.x + w.w === 0)).toBe(true);
-    expect(walls.some((w) => w.x === total)).toBe(true);
+    expect(walls.some((w) => w.x === ROOM_IMAGE.width)).toBe(true);
+  });
+
+  it('a ponta leva à sala vizinha, menos antes da primeira e depois da última', () => {
+    const t = ROOM_EDGE.trigger;
+    expect(roomExitAt(10, t, true, true)).toBe('prev');
+    expect(roomExitAt(10, t, false, true)).toBeNull();
+    expect(roomExitAt(ROOM_IMAGE.width - 10, t, true, true)).toBe('next');
+    expect(roomExitAt(ROOM_IMAGE.width - 10, t, true, false)).toBeNull();
+    expect(roomExitAt(ROOM_IMAGE.width / 2, t, true, true)).toBeNull();
+  });
+
+  it('ao entrar, ela aparece longe da faixa de troca (não volta sem querer)', () => {
+    const t = ROOM_EDGE.trigger;
+    const fromLeft = roomEntryX('prev', ROOM_EDGE.entry);
+    const fromRight = roomEntryX('next', ROOM_EDGE.entry);
+    expect(roomExitAt(fromLeft, t, true, true)).toBeNull();
+    expect(roomExitAt(fromRight, t, true, true)).toBeNull();
+    expect(fromLeft).toBeLessThan(fromRight);
+  });
+
+  it('os pés entram na faixa andável da sala nova', () => {
+    const room = CORRIDOR_ROOMS[1];
+    expect(clampToWalkBand(room, 0, 10)).toBe(room.walkTop + 10);
+    expect(clampToWalkBand(room, 5000, 10)).toBe(room.walkBottom - 10);
+    expect(clampToWalkBand(room, 800, 10)).toBe(800);
+  });
+
+  it('guarda só a sala atual e as vizinhas na memória', () => {
+    expect(roomsToKeep(0, 5)).toEqual([0, 1]);
+    expect(roomsToKeep(2, 5)).toEqual([1, 2, 3]);
+    expect(roomsToKeep(4, 5)).toEqual([3, 4]);
+  });
+
+  it('escala retângulos da arte para o mundo', () => {
+    expect(scaleRect({ x: 10, y: 20, w: 30, h: 40 }, 0.5, 100)).toEqual({ x: 105, y: 10, w: 15, h: 20 });
   });
 
   it('a Nixy começa no chão, longe dos móveis', () => {
-    const start = CORRIDOR_SEGMENTS[0];
+    const start = CORRIDOR_ROOMS[0];
     expect(PROLOGUE_START.y).toBeGreaterThan(start.walkTop);
     expect(PROLOGUE_START.y).toBeLessThan(start.walkBottom);
     for (const b of start.blockers) expect(rectContains(b, PROLOGUE_START.x, PROLOGUE_START.y)).toBe(false);
   });
 
-  it('a porta de saída fica no chão do último pedaço (dá para pisar nela)', () => {
-    const end = CORRIDOR_SEGMENTS[CORRIDOR_SEGMENTS.length - 1];
-    expect(PROLOGUE_EXIT_ZONE.x + PROLOGUE_EXIT_ZONE.w).toBeLessThanOrEqual(end.width);
-    // A zona começa na parede e desce para dentro do chão
-    expect(PROLOGUE_EXIT_ZONE.y + PROLOGUE_EXIT_ZONE.h).toBeGreaterThan(end.walkTop + 16);
+  it('a porta de saída fica no chão da última sala, longe da ponta', () => {
+    const end = CORRIDOR_ROOMS[CORRIDOR_ROOMS.length - 1];
+    expect(PROLOGUE_EXIT_ZONE.x + PROLOGUE_EXIT_ZONE.w).toBeLessThan(ROOM_IMAGE.width - ROOM_EDGE.trigger);
+    expect(PROLOGUE_EXIT_ZONE.y + PROLOGUE_EXIT_ZONE.h).toBeGreaterThan(end.walkTop + 32);
   });
 });
 
 describe('funcionários do corredor', () => {
-  it('cada um está num pedaço que existe, em cima do chão', () => {
+  it('cada um está numa sala que existe, em cima do chão, fora das pontas', () => {
     for (const npc of PROLOGUE_NPCS) {
-      const seg = CORRIDOR_SEGMENTS.find((s) => s.id === npc.segment);
-      expect(seg, npc.id).toBeDefined();
-      if (!seg) continue;
-      expect(npc.y).toBeGreaterThanOrEqual(seg.walkTop);
-      expect(npc.y).toBeLessThanOrEqual(seg.walkBottom);
-      expect(npc.x).toBeGreaterThan(0);
-      expect(npc.x).toBeLessThan(seg.width);
+      const room = CORRIDOR_ROOMS.find((r) => r.id === npc.room);
+      expect(room, npc.id).toBeDefined();
+      if (!room) continue;
+      expect(npc.y).toBeGreaterThanOrEqual(room.walkTop);
+      expect(npc.y).toBeLessThanOrEqual(room.walkBottom);
+      expect(npc.x).toBeGreaterThan(ROOM_EDGE.entry);
+      expect(npc.x).toBeLessThan(ROOM_IMAGE.width - ROOM_EDGE.entry);
     }
   });
 

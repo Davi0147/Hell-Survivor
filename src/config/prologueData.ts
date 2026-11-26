@@ -2,9 +2,12 @@
  * Corredor do prólogo (fuga do RH, Capítulo I). Arte em public/assets/sprites/prologue/,
  * preparada por scripts/cut-prologue-corridor.py (prompt em docs/ART_PROMPTS.md §26).
  *
- * Medidas em px da imagem já reduzida (1000 x 558), que é desenhada 1:1 na tela. Cada pedaço
- * guarda a faixa onde os PÉS da Nixy podem pisar (o resto é parede) e os móveis que bloqueiam.
- * Mexeu na arte? Meça de novo com o Modo de Teste (F1 > ver colisões) e ajuste só aqui.
+ * Cada imagem é uma SALA: ocupa a tela, e chegar na ponta esquerda ou direita escurece e passa
+ * para a sala vizinha. Assim as imagens não precisam se encaixar umas nas outras.
+ *
+ * Medidas em px da imagem ORIGINAL (2000 x 1116, art-source/novos/prologo/). Cada sala guarda a
+ * faixa onde os PÉS da Nixy podem pisar (o resto é parede) e os móveis que bloqueiam.
+ * Mexeu na arte? Meça de novo (Modo de Teste: tecla C no corredor mostra as colisões).
  */
 
 export interface PrologueRect {
@@ -14,65 +17,69 @@ export interface PrologueRect {
   h: number;
 }
 
-export interface CorridorSegment {
+export interface CorridorRoom {
   /** Chave da textura e nome do arquivo (`corridor-<id>.jpg`). */
   id: string;
-  width: number;
   /** Linha mais alta (perto da parede do fundo) onde os pés pisam. */
   walkTop: number;
   /** Linha mais baixa (perto da parede da frente) onde os pés pisam. */
   walkBottom: number;
-  /** Móveis no chão que a Nixy contorna (coordenadas do pedaço). */
+  /** Móveis no chão que a Nixy contorna. */
   blockers: PrologueRect[];
 }
 
-export const CORRIDOR_IMAGE_HEIGHT = 558;
+/** Tamanho da arte original de cada sala. */
+export const ROOM_IMAGE = { width: 2000, height: 1116 } as const;
+/** Tamanho em que a arte é exportada para o jogo (fração da original). */
+export const ROOM_EXPORT_SCALE = 0.8;
+/** Parte da imagem que tem desenho (fora disso é a faixa preta): a câmera mostra no máximo isto. */
+export const ROOM_CONTENT = { top: 70, bottom: 1040 } as const;
 
-export const CORRIDOR_SEGMENTS: readonly CorridorSegment[] = [
+export const CORRIDOR_ROOMS: readonly CorridorRoom[] = [
   {
     id: 'inicio',
-    width: 1000,
-    walkTop: 342,
-    walkBottom: 492,
+    walkTop: 684,
+    walkBottom: 984,
     blockers: [
-      { x: 200, y: 300, w: 205, h: 72 }, // cadeira caída e gaveta chutada
-      { x: 825, y: 300, w: 55, h: 52 }, // vaso da planta morta
+      { x: 400, y: 600, w: 410, h: 144 }, // cadeira caída e gaveta chutada
+      { x: 1650, y: 600, w: 110, h: 104 }, // vaso da planta morta
     ],
   },
   {
     id: 'meio-a',
-    width: 1000,
-    walkTop: 346,
-    walkBottom: 466,
+    walkTop: 692,
+    walkBottom: 932,
     blockers: [
-      { x: 615, y: 300, w: 58, h: 54 }, // bebedouro de lava
-      { x: 690, y: 432, w: 92, h: 90 }, // planta carnívora encostada na parede da frente
+      { x: 1230, y: 600, w: 116, h: 108 }, // bebedouro de lava
+      { x: 1380, y: 864, w: 184, h: 180 }, // planta carnívora encostada na parede da frente
     ],
   },
-  { id: 'meio-b', width: 1000, walkTop: 352, walkBottom: 468, blockers: [] },
+  { id: 'meio-b', walkTop: 704, walkBottom: 936, blockers: [] },
   {
     id: 'meio-c',
-    width: 1000,
-    walkTop: 350,
-    walkBottom: 470,
-    blockers: [{ x: 125, y: 424, w: 76, h: 96 }], // cacto de caveiras
+    walkTop: 700,
+    walkBottom: 940,
+    blockers: [{ x: 250, y: 848, w: 152, h: 192 }], // cacto de caveiras
   },
-  { id: 'fim', width: 1000, walkTop: 342, walkBottom: 476, blockers: [] },
+  { id: 'fim', walkTop: 684, walkBottom: 952, blockers: [] },
 ];
 
-/** Onde a Nixy aparece (porta do setor dela, no pedaço de início). */
-export const PROLOGUE_START = { x: 505, y: 400 };
+/** Onde a Nixy aparece (na frente da porta do setor dela, na primeira sala). */
+export const PROLOGUE_START = { x: 1010, y: 800 };
+
+/** Pisou aqui (na frente da porta de saída da última sala), ela atravessa. */
+export const PROLOGUE_EXIT_ZONE: PrologueRect = { x: 1504, y: 660, w: 324, h: 112 };
 
 /**
- * Faixas de chão na frente da porta de saída (pedaço `fim`): pisou ali, ela atravessa.
- * Coordenadas do pedaço.
+ * Largura da faixa nas pontas de cada sala que leva à vizinha (px originais). Ao chegar, ela
+ * aparece um pouco para dentro da faixa, para não voltar sem querer.
  */
-export const PROLOGUE_EXIT_ZONE: PrologueRect = { x: 752, y: 330, w: 162, h: 56 };
+export const ROOM_EDGE = { trigger: 110, entry: 210 } as const;
 
 export interface PrologueNpcDef {
   id: string;
-  /** Pedaço do corredor e posição dos pés dentro dele. */
-  segment: string;
+  /** Sala e posição dos pés dentro dela. */
+  room: string;
   x: number;
   y: number;
   /**
@@ -81,15 +88,13 @@ export interface PrologueNpcDef {
    */
   texture: string;
   placeholderTexture: string;
-  /** Altura na tela (px). A arte nova é encolhida/ampliada para isto. */
+  /** Altura na arte original (px). A arte nova é encolhida/ampliada para isto. */
   displayHeight: number;
-  /** Arte virada para a esquerda? (o jogo espelha para olhar para a Nixy). */
-  facesLeft?: boolean;
 }
 
 export const PROLOGUE_NPCS: readonly PrologueNpcDef[] = [
-  { id: 'arquivista', segment: 'meio-a', x: 470, y: 362, texture: 'npc-arquivista', placeholderTexture: 'mummy-idle-south', displayHeight: 100 },
-  { id: 'estagiario', segment: 'meio-b', x: 330, y: 366, texture: 'npc-estagiario', placeholderTexture: 'transporter-idle-south', displayHeight: 92 },
-  { id: 'contadora', segment: 'meio-c', x: 560, y: 368, texture: 'npc-contadora', placeholderTexture: 'archer-idle-south', displayHeight: 96 },
-  { id: 'seguranca', segment: 'fim', x: 330, y: 366, texture: 'npc-seguranca', placeholderTexture: 'ghoul-idle-south', displayHeight: 104 },
+  { id: 'arquivista', room: 'meio-a', x: 940, y: 724, texture: 'npc-arquivista', placeholderTexture: 'mummy-idle-south', displayHeight: 200 },
+  { id: 'estagiario', room: 'meio-b', x: 660, y: 732, texture: 'npc-estagiario', placeholderTexture: 'transporter-idle-south', displayHeight: 184 },
+  { id: 'contadora', room: 'meio-c', x: 1120, y: 736, texture: 'npc-contadora', placeholderTexture: 'archer-idle-south', displayHeight: 192 },
+  { id: 'seguranca', room: 'fim', x: 660, y: 732, texture: 'npc-seguranca', placeholderTexture: 'ghoul-idle-south', displayHeight: 208 },
 ];

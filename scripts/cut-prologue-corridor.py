@@ -1,16 +1,16 @@
 """Prepara a arte do prólogo (corredor do escritório) para o jogo.
 
 Uso: python scripts/cut-prologue-corridor.py <pasta-fonte> <pasta-saida>
-- corredor-*.jpg (2000 px de largura) viram corridor-*.jpg com metade do tamanho: o corredor é
-  desenhado 1:1 na tela (altura do jogo = 720), e a Nixy fica do tamanho que tem na arena.
+- corredor-*.jpg (2000 px de largura) viram corridor-*.jpg a 80%: cada imagem é uma SALA que
+  ocupa a tela inteira (o jogo ajusta o resto com filtro suave).
 - A porta de saída do corredor-fim vira prologue-door.png, a porta por onde ela chega na arena.
-Ver docs/ART_PROMPTS.md §26 e src/config/prologueData.ts (medidas do chão em pixels da saída).
+Ver docs/ART_PROMPTS.md §26 e src/config/prologueData.ts (medidas em pixels da imagem ORIGINAL).
 """
 import sys
 from PIL import Image
 
 SEGMENTS = ['inicio', 'meio-a', 'meio-b', 'meio-c', 'fim']
-SCALE = 0.5
+SCALE = 0.8
 # Caixa da porta de saída no corredor-fim.jpg original (moldura de ferro, sem a parede em volta)
 DOOR_BOX = (1508, 262, 1838, 624)
 DOOR_HEIGHT = 160  # px na tela; o jogo desenha em 1/zoom da arena

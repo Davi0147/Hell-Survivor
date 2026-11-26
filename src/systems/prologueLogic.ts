@@ -1,59 +1,67 @@
 /**
- * Regras puras do prólogo (corredor do RH e chegada na arena). Sem Phaser, testáveis.
+ * Regras puras do prólogo (salas do corredor do RH e chegada na arena). Sem Phaser, testáveis.
  */
-import type { CorridorSegment, PrologueRect } from '../config/prologueData';
+import { ROOM_CONTENT, ROOM_IMAGE, type CorridorRoom, type PrologueRect } from '../config/prologueData';
 
-export interface PlacedSegment extends CorridorSegment {
-  /** Borda esquerda do pedaço no mundo do corredor. */
-  x0: number;
+/**
+ * Px de tela por px da arte original. A sala sempre cobre a tela: a parte desenhada ocupa a
+ * altura inteira, e a sala nunca fica mais estreita que a tela (no celular largo sobra um pouco
+ * em cima/embaixo, e a câmera acompanha a Nixy).
+ */
+export function roomScale(screenW: number, screenH: number): number {
+  return Math.max(screenH / (ROOM_CONTENT.bottom - ROOM_CONTENT.top), screenW / ROOM_IMAGE.width);
 }
 
-/** Coloca os pedaços lado a lado a partir do x = 0. */
-export function layoutCorridor(segments: readonly CorridorSegment[]): PlacedSegment[] {
-  let x0 = 0;
-  return segments.map((s) => {
-    const placed = { ...s, x0 };
-    x0 += s.width;
-    return placed;
-  });
+/** Retângulo na arte original convertido para o mundo (sala começando em `x0`). */
+export function scaleRect(r: PrologueRect, s: number, x0: number = 0): PrologueRect {
+  return { x: x0 + r.x * s, y: r.y * s, w: r.w * s, h: r.h * s };
 }
 
-export function corridorWidth(segments: readonly CorridorSegment[]): number {
-  return segments.reduce((sum, s) => sum + s.width, 0);
-}
-
-/** Pedaço que contém o x do mundo (o último, se passar do fim). */
-export function segmentAt(placed: readonly PlacedSegment[], x: number): PlacedSegment {
-  for (const s of placed) {
-    if (x < s.x0 + s.width) return s;
-  }
-  return placed[placed.length - 1];
+/**
+ * Paredes de uma sala em px da arte original: fundo (acima de `walkTop`), frente (abaixo de
+ * `walkBottom`), móveis e as duas pontas (por fora da imagem). A física usa como paredes sólidas.
+ */
+export function roomWalls(room: CorridorRoom): PrologueRect[] {
+  const { width: W, height: H } = ROOM_IMAGE;
+  const endW = 80;
+  return [
+    { x: 0, y: 0, w: W, h: room.walkTop },
+    { x: 0, y: room.walkBottom, w: W, h: H - room.walkBottom },
+    ...room.blockers,
+    { x: -endW, y: 0, w: endW, h: H },
+    { x: W, y: 0, w: endW, h: H },
+  ];
 }
 
 export function rectContains(r: PrologueRect, x: number, y: number): boolean {
   return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 }
 
+export type RoomExit = 'prev' | 'next' | null;
+
 /**
- * Paredes do corredor como retângulos (no mundo, já com o deslocamento vertical da imagem):
- * acima de `walkTop` e abaixo de `walkBottom` de cada pedaço, os móveis e as duas pontas.
- * A física usa estes retângulos como paredes sólidas.
+ * Os pés chegaram numa ponta da sala que leva a outra? `x` em px da arte original. A primeira
+ * sala não tem saída à esquerda nem a última à direita (lá a saída é a porta).
  */
-export function corridorWalls(placed: readonly PlacedSegment[], offsetY: number, worldHeight: number): PrologueRect[] {
-  const walls: PrologueRect[] = [];
-  for (const s of placed) {
-    walls.push({ x: s.x0, y: 0, w: s.width, h: offsetY + s.walkTop });
-    const bottom = offsetY + s.walkBottom;
-    walls.push({ x: s.x0, y: bottom, w: s.width, h: worldHeight - bottom });
-    for (const b of s.blockers) {
-      walls.push({ x: s.x0 + b.x, y: offsetY + b.y, w: b.w, h: b.h });
-    }
-  }
-  const total = placed.length ? placed[placed.length - 1].x0 + placed[placed.length - 1].width : 0;
-  const endW = 40;
-  walls.push({ x: -endW, y: 0, w: endW, h: worldHeight });
-  walls.push({ x: total, y: 0, w: endW, h: worldHeight });
-  return walls;
+export function roomExitAt(x: number, trigger: number, hasPrev: boolean, hasNext: boolean): RoomExit {
+  if (hasPrev && x <= trigger) return 'prev';
+  if (hasNext && x >= ROOM_IMAGE.width - trigger) return 'next';
+  return null;
+}
+
+/** Onde ela aparece (x, px originais) ao entrar numa sala vindo de um lado. */
+export function roomEntryX(cameFrom: 'prev' | 'next', entry: number): number {
+  return cameFrom === 'prev' ? entry : ROOM_IMAGE.width - entry;
+}
+
+/** Mantém os pés dentro da faixa andável da sala (ao trocar de sala as faixas mudam um pouco). */
+export function clampToWalkBand(room: CorridorRoom, y: number, margin: number): number {
+  return Math.min(room.walkBottom - margin, Math.max(room.walkTop + margin, y));
+}
+
+/** Salas que ficam na memória: a atual e as vizinhas (o iPhone tem pouca memória de vídeo). */
+export function roomsToKeep(current: number, count: number): number[] {
+  return [current - 1, current, current + 1].filter((i) => i >= 0 && i < count);
 }
 
 export interface Positioned {

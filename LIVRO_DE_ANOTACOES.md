@@ -136,7 +136,7 @@
 - [ ] **Capítulo 3:** Novo bioma, chefe inédito e continuação da campanha.
 - [x] **Prólogo do Capítulo I (pedido do dono em 2026-11-26):** corredor do RH (`PrologueScene`) com paredes, funcionários que conversam e porta de saída; chegada na arena pela porta, encontro com o cão, latido e horda (`StoryArrivalSystem`); ressurgir mantém a entrada antiga; PULAR a partir da 2ª vez.
   - [ ] Arte dos funcionários (o dono vai gerar; hoje são sprites de inimigos provisórios). Quando chegar: recortar, salvar como `npc-<id>` e carregar no `PrologueScene.preload`.
-  - [ ] As emendas entre os pedaços do corredor aparecem um pouco (as paredes saíram com alturas diferentes em cada imagem). Dá para melhorar regerando, ou alinhando cada pedaço por código.
+  - [x] Emendas entre os pedaços: resolvido trocando a montagem lado a lado por salas (a ponta escurece e passa para a vizinha, ideia do dono).
   - [ ] Porta da arena é provisória (recorte da porta do corredor, com borda de parede). Arte própria de porta solta fica melhor.
   - [ ] Não verificado no iPhone de verdade (só no formato de celular no navegador do PC).
 - [x] **Balanceamento do fim de partida (feito em 2026-11-20; curva acelerada do Infinito, teto do roubo de vida e Pressão do Abismo só no Infinito, por decisão do dono. Falta medir com partidas longas reais e ajustar os números em `balance.ts`):** com build pronta (nível ~44, +115% dano, +11 projéteis, 5 armas) a Nixy fica parada e nada a ameaça. Duas frentes:
