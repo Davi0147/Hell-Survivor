@@ -4,6 +4,7 @@ import { getGameWidthForScreen } from './config/screenFit';
 import { STORAGE_KEYS } from './config/storageKeys';
 import { initPWAInstallPrompt } from './systems/PWAInstallPrompt';
 import { installCrashGuard } from './systems/CrashGuard';
+import { installPhaserPatches } from './systems/phaserPatches';
 
 /**
  * Área onde o jogo cabe de verdade: o contêiner (já sem notch e cantos) ou, se ele ainda não
@@ -73,6 +74,7 @@ async function bootstrap() {
   // A largura do jogo acompanha o formato da tela (sem borda preta nos lados do celular)
   const startWidth = getGameWidthForScreen(...getVisibleArea());
   const useCanvas = readRenderMode() === 'canvas';
+  installPhaserPatches();
   const game = new Phaser.Game(createGameConfig(startWidth, useCanvas));
   installCrashGuard(game);
   watchWebglContextLoss(game);
