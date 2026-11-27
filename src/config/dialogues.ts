@@ -606,22 +606,32 @@ export const PROLOGUE_NPC_DIALOGUES: Record<string, DialogueLine[]> = {
 /** Léo segura a porta: se ela tentar sair sem falar com ele, a conversa começa por aqui. */
 export const PROLOGUE_GUARD_STOP_LINE: DialogueLine = npcSays('leo', 'Léo', 'Ei, espera aí!');
 
-/** Na arena, logo depois de sair pela porta: a Nixy dá de cara com o cão de guarda. */
+/** Retratos do Cão Infernal na conversa (a arte detalhada é só daqui; no mundo é o Cão Zumbi). */
+export const DOG_PORTRAITS = { idle: 'portrait-dog-idle', bark: 'portrait-dog-bark' } as const;
+
+function dogSays(text: string, barking: boolean = false): DialogueLine {
+  return { speaker: 'cao', speakerName: 'Cão Infernal', portraitKey: barking ? DOG_PORTRAITS.bark : DOG_PORTRAITS.idle, text };
+}
+
+/**
+ * Na arena, logo depois de sair pela porta: a Nixy dá de cara com o cão de guarda (roteiro do
+ * dono). A fala com o retrato latindo (`DOG_PORTRAITS.bark`) também treme a tela e late.
+ */
 export const STORY_ARRIVAL_DIALOGUE: DialogueLine[] = [
-  {
-    speaker: 'nixy',
-    speakerName: 'Nixy',
-    portraitKey: 'chat-nixy',
-    text: 'Argh... As catacumbas do abismo. Saí do escritório e caí direto no porão do inferno.'
-  },
-  {
-    speaker: 'nixy',
-    speakerName: 'Nixy',
-    portraitKey: 'chat-nixy',
-    text: '...Ah, não. Cachorrinho do RH. Bonzinho... Senta... Fica... Não faz barulho, tá?'
-  }
+  nixySays('Oi...'),
+  nixySays('Bichinho...'),
+  dogSays('...'),
+  nixySays('Você vai me deixar passar?'),
+  dogSays('...'),
+  nixySays('Olha, eu só vou ali e...'),
+  dogSays('Grrr...'),
+  dogSays('WOOF WOOF WOOF WOOF', true),
+  nixySays('É, acho que vou precisar passar por vocês...'),
+  nixySays('PODE VIR!'),
 ];
 
-/** Balões depois dos latidos, antes da horda chegar. */
-export const STORY_ARRIVAL_BARK_TEXT = 'AU! AU! AUUUUU!';
-export const STORY_ARRIVAL_AFTER_BARK_TEXT = 'Ótimo. Agora o inferno inteiro sabe que eu fugi. Hora da colheita!';
+/** Tela da carta única que desperta o ataque da Nixy (o cão vindo para cima dela). */
+export const AWAKENING_CARD_TEXT = {
+  title: 'DESPERTAR // O PODER DO ABISMO',
+  hint: 'ESCOLHA PARA DESPERTAR SEU PODER',
+} as const;

@@ -9,8 +9,8 @@ import {
   ROOM_EDGE,
   ROOM_IMAGE,
 } from '../config/prologueData';
-import { PROLOGUE_GUARD_STOP_LINE, PROLOGUE_NPC_DIALOGUES, STORY_ARRIVAL_DIALOGUE } from '../config/dialogues';
-import {
+import { DOG_PORTRAITS, PROLOGUE_GUARD_STOP_LINE, PROLOGUE_NPC_DIALOGUES, STORY_ARRIVAL_DIALOGUE } from '../config/dialogues';import {
+  arrivalChaseReachedCard,
   clampToWalkBand,
   nearestInRange,
   rectContains,
@@ -164,8 +164,19 @@ describe('chegada na arena', () => {
     expect(shouldPlayStoryArrival({ mode: 'sandbox', chapter: 1, isRevival: false })).toBe(false);
   });
 
-  it('o diálogo com o cão é só da Nixy (o cão não tem retrato)', () => {
-    expect(STORY_ARRIVAL_DIALOGUE.length).toBeGreaterThan(0);
-    for (const line of STORY_ARRIVAL_DIALOGUE) expect(line.speaker).toBe('nixy');
+  it('a conversa com o cão usa os retratos detalhados, e só uma fala late', () => {
+    const dogLines = STORY_ARRIVAL_DIALOGUE.filter((l) => l.speaker === 'cao');
+    expect(dogLines.length).toBeGreaterThan(0);
+    for (const l of dogLines) expect(Object.values(DOG_PORTRAITS)).toContain(l.portraitKey);
+    expect(dogLines.filter((l) => l.portraitKey === DOG_PORTRAITS.bark)).toHaveLength(1);
+    // Termina na Nixy chamando a briga
+    expect(STORY_ARRIVAL_DIALOGUE[STORY_ARRIVAL_DIALOGUE.length - 1].speaker).toBe('nixy');
   });
-});
+
+  it('a carta do ataque aparece quando o cão chega no meio do caminho', () => {
+    expect(arrivalChaseReachedCard(200, 150, 0.5)).toBe(false);
+    expect(arrivalChaseReachedCard(200, 100, 0.5)).toBe(true);
+    expect(arrivalChaseReachedCard(200, 20, 0.5)).toBe(true);
+    // Cão já colado nela (distância zero no começo): mostra na hora, nunca trava
+    expect(arrivalChaseReachedCard(0, 0, 0.5)).toBe(true);
+  });});

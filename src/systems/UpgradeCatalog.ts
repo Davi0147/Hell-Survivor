@@ -7,7 +7,7 @@ import { HellfireAuraWeapon } from '../entities/weapons/HellfireAuraWeapon';
 import { BloodDaggersWeapon } from '../entities/weapons/BloodDaggersWeapon';
 import { AbyssalChainsWeapon } from '../entities/weapons/AbyssalChainsWeapon';
 import { InfernalMeteorWeapon } from '../entities/weapons/InfernalMeteorWeapon';
-import { COLORS, FX_COLORS, type CardRarity } from '../config/theme';
+import { COLORS, FX_COLORS, PROLOGUE_THEME, type CardRarity } from '../config/theme';
 import { CRIT_BALANCE, DASH_BALANCE, CORPSE_EXPLOSION_BALANCE, BLOODTHIRST_BALANCE } from '../config/balance';
 
 /**
@@ -54,6 +54,7 @@ export const C_EVO     = '#ffe600'; // Ouro radiante para Evoluções Supremas
 
 /** Ícone de arte de cada carta (pelo `id`). Cartas sem entrada ficam só com texto. */
 export const CARD_ICON_KEYS: Record<string, string> = {
+  awaken_soul_bolt: 'icon-weapon-soulbolt',
   soul_bolt_upgrade: 'icon-weapon-soulbolt',
   void_scythes: 'icon-weapon-scythes',
   void_scythes_upgrade: 'icon-weapon-scythes',
@@ -105,6 +106,33 @@ export function getWeaponIconInfo(weapon: BaseWeapon): { key: string; level: num
   else if (weapon instanceof InfernalMeteorWeapon) base = 'icon-weapon-meteor';
   if (!base) return undefined;
   return { key: isEvolved ? `${base}-evo` : base, level, maxLevel, isEvolved };
+}
+
+/**
+ * Carta única do começo do Capítulo I (o cão vindo para cima dela): a Nixy desperta o ataque.
+ * O Disparo de Almas já está equipado; quem libera ele é a cena da chegada (StoryArrivalSystem),
+ * quando o jogador escolhe esta carta.
+ */
+export function getAwakeningCard(): UpgradeCard {
+  return {
+    id: 'awaken_soul_bolt',
+    title: 'DISPARO DE ALMAS',
+    category: 'HABILIDADE DESPERTADA',
+    badgeColor: PROLOGUE_THEME.awakeningCardGlow,
+    icon: 'ALMAS',
+    rarity: 'rare',
+    cardName: 'DISPARO DE ALMAS',
+    cardNameColor: C_WEAPON,
+    levelLabel: 'NÍVEL 1/5',
+    glowColor: PROLOGUE_THEME.awakeningCardGlow,
+    description: 'Disparo de Almas\n\nUsa magia demoníaca para lançar chamas em direção aos seus inimigos.',
+    richLines: [
+      [{ text: 'USA ', color: C_WHITE }, { text: 'MAGIA DEMONÍACA', color: C_WEAPON }],
+      [{ text: 'PARA LANÇAR ', color: C_WHITE }, { text: 'CHAMAS', color: C_DAMAGE }],
+      [{ text: 'NOS SEUS INIMIGOS', color: C_WHITE }],
+    ],
+    apply: () => undefined,
+  };
 }
 
 export function getAvailableUpgrades(player: BaseCharacter, gameScene: UpgradeGameScene): UpgradeCard[] {

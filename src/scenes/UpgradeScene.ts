@@ -22,6 +22,11 @@ export interface UpgradeSceneData {
   gameScene: UpgradeHostScene;
   isAltar?: boolean;
   onAltarChosen?: () => void;
+  /**
+   * Cartas fixas no lugar do sorteio (ex.: a carta única que desperta o ataque no começo do
+   * Capítulo I). Sem re-rolar nem canalizar: o jogador só pode escolher uma delas.
+   */
+  forced?: { cards: UpgradeCard[]; title: string; hint: string; onChosen: () => void };
 }
 
 export class UpgradeScene extends Phaser.Scene {
@@ -29,6 +34,7 @@ export class UpgradeScene extends Phaser.Scene {
   private gameScene!: UpgradeHostScene;
   private isAltar: boolean = false;
   private onAltarChosen?: () => void;
+  private forced?: UpgradeSceneData['forced'];
   private cardContainers: Phaser.GameObjects.Container[] = [];
   private currentCardIds: string[] = [];
   private selectedCardIndex: number = 0;
@@ -75,6 +81,7 @@ export class UpgradeScene extends Phaser.Scene {
     }
     this.isAltar = !!data.isAltar;
     this.onAltarChosen = data.onAltarChosen;
+    this.forced = data.forced;
     this.cardContainers = [];
     this.currentCardIds = [];
     this.isClosing = false;
@@ -123,9 +130,11 @@ export class UpgradeScene extends Phaser.Scene {
     titleBox.lineStyle(2, this.isAltar ? 0xff4500 : 0xc59b27, 1);
     titleBox.strokeRoundedRect(width / 2 - 270, titleY - 20, 540, 40, 6);
 
-    const titleText = this.isAltar
-      ? 'ALTAR DOS ANCESTRAIS // ASCENSÃO SUPREMA'
-      : 'LEVEL UP! // ESCOLHA SUA CARTA';
+    const titleText = this.forced
+      ? this.forced.title
+      : this.isAltar
+        ? 'ALTAR DOS ANCESTRAIS // ASCENSÃO SUPREMA'
+        : 'LEVEL UP! // ESCOLHA SUA CARTA';
     const titleColor = this.isAltar ? '#ffe600' : '#f3d17a';
 
     this.add.text(width / 2, titleY, titleText, {
@@ -169,7 +178,7 @@ export class UpgradeScene extends Phaser.Scene {
       this.handleSkipAndHeal();
     };
 
-    if (!this.isAltar && this.input.keyboard) {
+    if (!this.isAltar && !this.forced && this.input.keyboard) {
       this.input.keyboard.on('keydown-R', onKeyDownR);
       this.input.keyboard.on('keydown-SPACE', onKeyDownSpace);
     }
@@ -193,7 +202,9 @@ export class UpgradeScene extends Phaser.Scene {
     this.cardContainers = [];
 
     let chosenCards: UpgradeCard[];
-    if (this.isAltar) {
+    if (this.forced) {
+      chosenCards = this.forced.cards;
+    } else if (this.isAltar) {
       const availableCards = UpgradeScene.getAltarEvolutionCards(this.player, this.gameScene);
       const shuffled = [...availableCards].sort(() => 0.5 - Math.random());
       chosenCards = shuffled.slice(0, Math.min(3, shuffled.length));
@@ -225,6 +236,16 @@ export class UpgradeScene extends Phaser.Scene {
 
   private createTacticalFooter(width: number, height: number): void {
     const footerY = height - 36;
+
+    if (this.forced) {
+      new InputHint(this, width / 2, footerY, ['pick', { text: this.forced.hint }], {
+        glyphHeight: 28,
+        fontSize: 11,
+        color: COLORS.goldTextAccent,
+        align: 'center',
+      });
+      return;
+    }
 
     if (this.isAltar) {
       new InputHint(this, width / 2, footerY, ['pick', { text: 'ESCOLHA UMA CARTA PARA DESPERTAR SEU PODER MÁXIMO' }], {
@@ -630,6 +651,7 @@ export class UpgradeScene extends Phaser.Scene {
       if (this.isAltar && typeof this.onAltarChosen === 'function') {
         this.onAltarChosen();
       }
+      this.forced?.onChosen();
 
       // 3. As outras duas cartas não escolhidas descem para baixo da tela!
       this.cardContainers.forEach((otherContainer, otherIdx) => {
@@ -835,7 +857,7 @@ export class UpgradeScene extends Phaser.Scene {
         }
       }
     }
-    if (!this.isAltar) {
+    if (!this.isAltar && !this.forced) {
       if (nav.reroll) {
         this.handleReroll();
       } else if (nav.cancel) {

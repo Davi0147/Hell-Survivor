@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { DIRECTIONS_8, ENEMY_BALANCE, TALISMAN_BALANCE } from '../config/balance';
 import { PET_ANIM_FRAMES, PET_SPRITES, TALISMAN_CATALOG, TWIN_BOLT_TEXTURE } from '../systems/TalismanCatalog';
 import { ARRIVAL_DOOR_FRAME, ARRIVAL_TEXTURES } from '../systems/StoryArrivalSystem';
+import { DOG_PORTRAITS } from '../config/dialogues';
 import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
@@ -413,7 +414,8 @@ export class BootScene extends Phaser.Scene {
     }
     // Chegada do Capítulo I: o cão do encontro (parado/latindo) e a porta por onde a Nixy sai.
     // O corredor do prólogo é carregado pela própria PrologueScene (e solto no fim dela).
-    for (const key of [ARRIVAL_TEXTURES.dogIdle, ARRIVAL_TEXTURES.dogBark]) {
+    // Retratos do cão na conversa (no mundo ele é o Cão Zumbi comum), scripts/cut-prologue-dog.py
+    for (const key of Object.values(DOG_PORTRAITS)) {
       this.load.image(key, `assets/sprites/prologue/${key}.png?t=${cacheBuster}`);
     }
     // Porta: tira de quadros (subindo no fogo, abrindo, fechando), scripts/cut-prologue-door.py

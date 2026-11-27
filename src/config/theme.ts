@@ -308,10 +308,10 @@ export const DIALOGUE_THEME = {
 export const PROLOGUE_THEME = {
   /** Fundo fora do corredor e cor do escurecer. */
   background: 0x000000,
-  /** Latido do cão. */
-  barkText: '#ff3b3b',
   /** "FALAR" em cima do NPC. */
   promptText: '#f3d17a',
+  /** Brilho da carta que desperta o ataque da Nixy (a mesma do Disparo de Almas). */
+  awakeningCardGlow: 0x00f5d4,
   /** Colisões visíveis (Modo de Teste). */
   debugWall: 0xff0055,
   debugFeet: 0x00e5ff,

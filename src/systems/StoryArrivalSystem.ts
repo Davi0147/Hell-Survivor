@@ -1,20 +1,14 @@
 import Phaser from 'phaser';
 import { ARENA_CONFIG, STORY_ARRIVAL_BALANCE as B } from '../config/balance';
-import { COLORS, FONTS, PROLOGUE_THEME } from '../config/theme';
-import {
-  STORY_ARRIVAL_AFTER_BARK_TEXT,
-  STORY_ARRIVAL_BARK_TEXT,
-  STORY_ARRIVAL_DIALOGUE,
-} from '../config/dialogues';
+import { AWAKENING_CARD_TEXT, DOG_PORTRAITS, STORY_ARRIVAL_DIALOGUE } from '../config/dialogues';
 import type { DialogueLine } from './DialogueSystem';
-import type { ICombatBubbleTarget } from './CombatBubbleSystem';
 import { SoundManager } from './SoundManager';
+import { getAwakeningCard, type UpgradeCard } from './UpgradeCatalog';
+import { arrivalChaseReachedCard } from './prologueLogic';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 
-/** Textura do cão do encontro (scripts/cut-prologue-dog.py) e da porta (cut-prologue-door.py). */
+/** Porta da chegada (scripts/cut-prologue-door.py). Os retratos do cão ficam em DOG_PORTRAITS. */
 export const ARRIVAL_TEXTURES = {
-  dogIdle: 'prologue-dog-idle',
-  dogBark: 'prologue-dog-bark',
   door: 'prologue-door-sheet',
 } as const;
 
@@ -29,6 +23,17 @@ const DOOR_ANIMS = {
   close: { key: 'prologue-door-close', frames: [12, 13, 14, 15], frameRate: 10 },
 } as const;
 
+/** Cão no mundo antes de virar inimigo: o sprite comum do Cão Zumbi, olhando para a Nixy. */
+const WORLD_DOG_ANIM = 'zombie-dog-idle-east';
+
+/** O cão do encontro, já inimigo (só o que a cena precisa saber dele). */
+export interface IArrivalDog {
+  x: number;
+  y: number;
+  active: boolean;
+  isDead?: boolean;
+}
+
 /** O que a chegada precisa da cena da partida. */
 export interface IStoryArrivalContext {
   readonly add: Phaser.GameObjects.GameObjectFactory;
@@ -37,37 +42,64 @@ export interface IStoryArrivalContext {
   readonly cameras: Phaser.Cameras.Scene2D.CameraManager;
   readonly anims: Phaser.Animations.AnimationManager;
   readonly player: BaseCharacter & { updateNixy(dx: number, dy: number, sprint: boolean, delta: number): void };
+  isPlayerMovementLocked: boolean;
   playDialogue(lines: DialogueLine[], onComplete: () => void): void;
   setHUDVisible(visible: boolean): void;
-  showCombatSpeechBubble(target: ICombatBubbleTarget, text: string, durationMs: number, isNixy?: boolean): void;
-  spawnZombieDogAt(x: number, y: number): void;
+  spawnZombieDogAt(x: number, y: number, hp?: number): IArrivalDog;
+  /** Congela o jogo e mostra só estas cartas; `onChosen` quando o jogador escolhe. */
+  openForcedCards(cards: UpgradeCard[], title: string, hint: string, onChosen: () => void): void;
+  grantInvulnerability(ms: number): void;
 }
 
-type Step = 'idle' | 'rising' | 'walking' | 'talking' | 'barking' | 'done';
+/**
+ * Fases da chegada:
+ * - rising/walking/talking: cena (a GameScene só roda isto);
+ * - chase: o cão corre até ela (monstros rodam; armas, spawns e controle parados);
+ * - card: jogo congelado na carta única do ataque;
+ * - firstKill: o ataque liga e mata o cão; a horda ainda espera;
+ * - done: partida normal.
+ */
+type Step = 'idle' | 'rising' | 'walking' | 'talking' | 'chase' | 'card' | 'firstKill' | 'done';
 
 /** Do centro do sprite da Nixy até os pés, em px do mundo (quadro de 64, pés em 60). */
 const NIXY_FEET_BELOW_CENTER = 28;
 
 /**
  * Começo do Capítulo I depois do corredor do prólogo: uma porta sobe do chão no fogo na borda de
- * cima do mapa e abre, a Nixy sai, a porta fecha e afunda, ela desce até um cão, conversa, o cão
- * late e a horda começa (os quatro cães de sempre + o próprio cão vira um inimigo).
- *
- * Enquanto `isActive`, a GameScene não roda armas, Suprema, monstros nem spawns: nada ataca
- * sozinho durante a cena.
+ * cima do mapa e abre, a Nixy sai, a porta fecha e afunda, ela desce até um cão e conversa com
+ * ele (retratos detalhados na tela de diálogo). O cão vira inimigo e corre até ela; no meio do
+ * caminho o jogo congela numa carta única que desperta o ataque dela; escolhida, ela mata o cão
+ * sozinha e só então a horda começa.
  */
 export class StoryArrivalSystem {
   private step: Step = 'idle';
   private walkLeft = 0;
   private door?: Phaser.GameObjects.Sprite;
-  private dog?: Phaser.GameObjects.Image;
-  private barkText?: Phaser.GameObjects.Text;
+  private dogSprite?: Phaser.GameObjects.Sprite;
+  private dog?: IArrivalDog;
+  private chaseStartDist = 0;
   private readonly timers: Phaser.Time.TimerEvent[] = [];
 
-  constructor(private readonly ctx: IStoryArrivalContext, private readonly onCombatStart: (dogX: number, dogY: number) => void) {}
+  constructor(private readonly ctx: IStoryArrivalContext, private readonly onCombatStart: () => void) {}
 
+  /** A chegada ainda não acabou (a Suprema espera). */
   public get isActive(): boolean {
     return this.step !== 'idle' && this.step !== 'done';
+  }
+
+  /** Cena pura: a GameScene não roda nada além desta cena. */
+  public get isCutscene(): boolean {
+    return this.step === 'rising' || this.step === 'walking' || this.step === 'talking';
+  }
+
+  /** Armas paradas até o jogador escolher a carta (nada ataca sozinho antes). */
+  public get weaponsLocked(): boolean {
+    return this.isActive && this.step !== 'firstKill';
+  }
+
+  /** Horda, eventos e cronograma de inimigos só depois da primeira morte. */
+  public get spawnsLocked(): boolean {
+    return this.isActive;
   }
 
   /**
@@ -94,11 +126,9 @@ export class StoryArrivalSystem {
       .setScale(B.artScale)
       .setDepth(p.depth - 1)
       .setVisible(false);
-    // O cão espera ao lado de onde ela para, olhando para ela (a arte olha para a direita)
-    this.dog = this.ctx.add.image(doorX - B.dogGap, stopY + NIXY_FEET_BELOW_CENTER, ARRIVAL_TEXTURES.dogIdle)
-      .setOrigin(0.5, 1)
-      .setScale(B.artScale)
-      .setDepth(p.depth - 1);
+    // O cão espera à esquerda de onde ela para (mesma posição em que o inimigo nasce depois)
+    this.dogSprite = this.ctx.add.sprite(doorX - B.dogGap, stopY, WORLD_DOG_ANIM).setDepth(5);
+    if (this.ctx.anims.exists(WORLD_DOG_ANIM)) this.dogSprite.play(WORLD_DOG_ANIM);
 
     this.ctx.setHUDVisible(false);
     this.ctx.cameras.main.fadeIn(B.fadeInMs, 0, 0, 0);
@@ -158,13 +188,33 @@ export class StoryArrivalSystem {
     });
   }
 
-  /** Chamado pela GameScene a cada quadro enquanto `isActive`. */
+  /**
+   * Chamado pela GameScene a cada quadro enquanto `isActive`. Na cena (`isCutscene`) a GameScene
+   * não roda mais nada; nas outras fases o jogo roda junto, com as travas acima.
+   */
   public update(delta: number): void {
-    if (this.step !== 'walking') {
-      // Parada (conversa, latidos): só respira no lugar
+    if (this.step === 'walking') {
+      this.walkOut(delta);
+      return;
+    }
+    if (this.isCutscene) {
+      // Parada (porta, conversa): só respira no lugar
       this.ctx.player.updateNixy(0, 0, false, delta);
       return;
     }
+    if (this.step === 'chase' && this.dog) {
+      const p = this.ctx.player;
+      if (arrivalChaseReachedCard(this.chaseStartDist, Math.hypot(this.dog.x - p.x, this.dog.y - p.y), B.cardAtChaseFraction)) {
+        this.showAwakeningCard();
+      }
+      return;
+    }
+    if (this.step === 'firstKill' && (!this.dog || !this.dog.active || this.dog.isDead)) {
+      this.finish();
+    }
+  }
+
+  private walkOut(delta: number): void {
     const step = Math.min(this.walkLeft, (B.walkSpeed * delta) / 1000);
     this.walkLeft -= step;
     const p = this.ctx.player;
@@ -182,59 +232,58 @@ export class StoryArrivalSystem {
       p.updateNixy(0, 0, false, 0);
       this.sinkDoor();
       this.later(B.beforeDialogueMs, () => {
-        this.ctx.playDialogue(STORY_ARRIVAL_DIALOGUE, () => this.barkSequence());
+        this.ctx.playDialogue(this.dialogueWithBark(), () => this.startChase());
       });
     }
   }
 
-  private barkSequence(): void {
-    this.step = 'barking';
+  /** O roteiro com o latido (tela treme e o som) na fala do retrato de boca aberta. */
+  private dialogueWithBark(): DialogueLine[] {
+    return STORY_ARRIVAL_DIALOGUE.map((line) =>
+      line.portraitKey === DOG_PORTRAITS.bark ? { ...line, onShow: () => this.barkFx() } : line
+    );
+  }
+
+  private barkFx(): void {
     for (let i = 0; i < B.barkCount; i++) {
-      this.later(i * B.barkIntervalMs, () => this.bark());
+      this.later(i * B.barkIntervalMs, () => {
+        this.ctx.cameras.main.shake(B.barkShakeMs, B.barkShakeIntensity);
+        SoundManager.getInstance().playDogBark();
+      });
     }
-    const end = B.barkCount * B.barkIntervalMs;
-    this.later(end, () => {
-      this.dog?.setTexture(ARRIVAL_TEXTURES.dogIdle);
-      this.barkText?.destroy();
-      this.barkText = undefined;
-      this.ctx.showCombatSpeechBubble(this.ctx.player, STORY_ARRIVAL_AFTER_BARK_TEXT, 2600, true);
-    });
-    this.later(end + B.afterBarkMs, () => this.finish());
   }
 
-  private bark(): void {
-    const dog = this.dog;
-    if (!dog) return;
-    dog.setTexture(ARRIVAL_TEXTURES.dogBark);
-    this.later(B.barkIntervalMs * 0.55, () => {
-      if (dog.active) dog.setTexture(ARRIVAL_TEXTURES.dogIdle);
-    });
-    this.ctx.cameras.main.shake(B.barkShakeMs, B.barkShakeIntensity);
-    SoundManager.getInstance().playDogBark();
-    if (!this.barkText) {
-      this.barkText = this.ctx.add.text(dog.x, dog.y - dog.displayHeight - 4, STORY_ARRIVAL_BARK_TEXT, {
-        fontFamily: FONTS.display,
-        fontSize: '16px',
-        fontStyle: 'bold',
-        color: PROLOGUE_THEME.barkText,
-        stroke: COLORS.strokeBlack,
-        strokeThickness: 4,
-      }).setOrigin(0.5, 1).setDepth(1500).setResolution(2);
-    }
-    this.ctx.tweens.add({ targets: this.barkText, scale: { from: 1.25, to: 1 }, duration: 160 });
+  /** O cão vira inimigo e corre até ela; ela fica parada esperando. */
+  private startChase(): void {
+    const x = this.dogSprite?.x ?? this.ctx.player.x - B.dogGap;
+    const y = this.dogSprite?.y ?? this.ctx.player.y;
+    this.dogSprite?.destroy();
+    this.dogSprite = undefined;
+    this.dog = this.ctx.spawnZombieDogAt(x, y, B.dogHp);
+    const p = this.ctx.player;
+    this.chaseStartDist = Math.hypot(x - p.x, y - p.y);
+    this.ctx.isPlayerMovementLocked = true;
+    this.step = 'chase';
   }
 
-  /** Fim da cena: o cão vira um inimigo de verdade e a partida começa. */
+  /** No meio do caminho do cão: o jogo congela e só existe uma carta, o ataque dela. */
+  private showAwakeningCard(): void {
+    this.step = 'card';
+    this.ctx.openForcedCards([getAwakeningCard()], AWAKENING_CARD_TEXT.title, AWAKENING_CARD_TEXT.hint, () => {
+      this.ctx.isPlayerMovementLocked = false;
+      // O cão já está perto: o primeiro tiro precisa sair antes da mordida
+      this.ctx.grantInvulnerability(B.firstKillGraceMs);
+      this.step = 'firstKill';
+    });
+  }
+
+  /** Cão do encontro morto: a partida começa de verdade. */
   private finish(): void {
     if (this.step === 'done') return;
     this.step = 'done';
-    const x = this.dog?.x ?? this.ctx.player.x;
-    const y = this.dog ? this.dog.y - this.dog.displayHeight / 2 : this.ctx.player.y;
-    this.dog?.destroy();
-    this.dog = undefined;
-    this.ctx.spawnZombieDogAt(x, y);
+    this.ctx.isPlayerMovementLocked = false;
     this.ctx.setHUDVisible(true);
-    this.onCombatStart(x, y);
+    this.onCombatStart();
   }
 
   /** A porta (já fechada) volta a afundar no chão em brasa e some. */
@@ -263,8 +312,7 @@ export class StoryArrivalSystem {
     for (const t of this.timers) t.remove();
     this.timers.length = 0;
     this.door?.destroy();
-    this.dog?.destroy();
-    this.barkText?.destroy();
+    this.dogSprite?.destroy();
     this.step = 'done';
   }
 }

@@ -87,6 +87,15 @@ export function nearestInRange<T extends Positioned>(items: readonly T[], x: num
   return best;
 }
 
+/**
+ * O cão do encontro já percorreu a parte do caminho em que a carta do ataque aparece?
+ * `fraction` = quanto da distância inicial ainda falta (0.5 = no meio do caminho).
+ */
+export function arrivalChaseReachedCard(startDist: number, currentDist: number, fraction: number): boolean {
+  if (startDist <= 0) return true;
+  return currentDist <= startDist * fraction;
+}
+
 export interface ArrivalCheck {
   mode: 'story' | 'endless' | 'sandbox';
   chapter: number;

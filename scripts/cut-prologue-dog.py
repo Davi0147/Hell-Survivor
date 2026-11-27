@@ -1,14 +1,16 @@
-"""Recorta o cão do encontro do prólogo (parado e latindo, fundo verde).
+"""Recorta os retratos de diálogo do cão do encontro (parado e latindo, fundo verde).
 
 Uso: python scripts/cut-prologue-dog.py <parado> <latindo> <pasta-saida>
-Gera prologue-dog-idle.png e prologue-dog-bark.png com a MESMA janela de recorte, para
-o cão não tremer ao trocar de quadro. Virado para a direita (o jogo espelha se precisar).
+Gera portrait-dog-idle.png e portrait-dog-bark.png com a MESMA janela de recorte (o cão não
+pula ao latir), espelhados para olhar para a esquerda, para a Nixy na tela de diálogo.
+No mundo o cão é o sprite comum do Cão Zumbi; a arte detalhada é só da conversa.
 """
 import sys
 import numpy as np
+from PIL import ImageOps
 from spritecut import load_keyed, to_rgba, shrink
 
-DOG_WIDTH = 160  # tamanho de trabalho; a escala final na tela é ajustada no jogo
+DOG_WIDTH = 520
 
 idle_path, bark_path, outdir = sys.argv[1], sys.argv[2], sys.argv[3]
 sheets = [load_keyed(idle_path), load_keyed(bark_path)]
@@ -22,6 +24,6 @@ x1 = max(b[2] for b in boxes)
 y1 = max(b[3] for b in boxes)
 k = DOG_WIDTH / (x1 - x0)
 for name, (im, solid) in zip(('idle', 'bark'), sheets):
-    small = shrink(to_rgba(im, solid, x0, y0, x1, y1), k)
-    small.save(f'{outdir}/prologue-dog-{name}.png')
+    small = ImageOps.mirror(shrink(to_rgba(im, solid, x0, y0, x1, y1), k))
+    small.save(f'{outdir}/portrait-dog-{name}.png')
     print(name, small.size)

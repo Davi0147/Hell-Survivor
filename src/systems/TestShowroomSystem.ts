@@ -240,8 +240,8 @@ export class TestShowroomSystem {
           { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.32 },
           { name: 'Porta Prólogo', texture: 'prologue-door-sheet', frame: 7, scale: 0.625 },
           { name: 'Porta Aberta', texture: 'prologue-door-sheet', frame: 11, scale: 0.625 },
-          { name: 'Cão Prólogo', texture: 'prologue-dog-idle', scale: 0.625 },
-          { name: 'Cão Latindo', texture: 'prologue-dog-bark', scale: 0.625 }
+          { name: 'Retrato Cão', texture: 'portrait-dog-idle', scale: 0.2 },
+          { name: 'Retrato Latindo', texture: 'portrait-dog-bark', scale: 0.2 }
         ]
       },
 

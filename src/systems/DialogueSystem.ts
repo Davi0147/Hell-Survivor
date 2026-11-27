@@ -16,6 +16,8 @@ export interface DialogueLine {
    * quem está falando (`speaking` = índices em `portraits`; os dois = falando juntas).
    */
   duo?: { portraits: readonly [string, string]; speaking: readonly number[] };
+  /** Chamado quando esta fala aparece (ex.: o cão late e a tela treme). */
+  onShow?: () => void;
 }
 
 export class DialogueSystem {
@@ -404,6 +406,7 @@ export class DialogueSystem {
 
     // Toca som de voz do personagem no início do balão
     SoundManager.getInstance().playDialogueVoice(line.speaker);
+    line.onShow?.();
 
     if (this.typeTimer) {
       this.typeTimer.remove();

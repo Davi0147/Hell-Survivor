@@ -92,7 +92,7 @@ export class EnemySpawnSystem {
     isElite: boolean = false,
     eliteScale: number = 1.0,
     customDrop?: GemType
-  ): void {
+  ): ZombieDog {
     const clamped = this.ctx.clampToArena(x, y);
     x = clamped.x;
     y = clamped.y;
@@ -140,6 +140,7 @@ export class EnemySpawnSystem {
     }
 
     enemy.spawn(x, y, hp, speed, damage, isElite, eliteScale, customDrop);
+    return enemy;
   }
 
   public spawnSkullSlimeAt(x: number, y: number): void {

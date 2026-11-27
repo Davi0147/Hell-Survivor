@@ -114,9 +114,9 @@ export const PROLOGUE_BALANCE = {
 
 /**
  * Chegada na arena depois do corredor (StoryArrivalSystem): uma porta sobe do chão encostada na
- * borda de cima do mapa (na coluna do ponto de nascimento), ela sai, desce até um cão, conversa,
- * o cão late e a horda começa. Distâncias em px do mundo. A porta e o cão vêm em px de tela
- * (arte 1:1), por isso a escala 1/zoom.
+ * borda de cima do mapa (na coluna do ponto de nascimento), ela sai, desce até um cão e conversa;
+ * o cão corre até ela, a carta do ataque aparece no meio do caminho, ela mata o cão e só então a
+ * horda começa. Distâncias em px do mundo. A porta vem em px de tela, por isso a escala 1/zoom.
  */
 export const STORY_ARRIVAL_BALANCE = {
   /** Base da porta, a partir da borda de cima do mapa (a porta inteira fica dentro da arena). */
@@ -129,8 +129,14 @@ export const STORY_ARRIVAL_BALANCE = {
   walkDistance: 170,
   /** Velocidade da caminhada sozinha (mais lenta que o normal, de cena). */
   walkSpeed: 95,
-  /** Distância do cão (à esquerda) até onde ela para. */
-  dogGap: 150,
+  /** Distância do cão (à esquerda) até onde ela para: o tamanho da corrida dele até ela. */
+  dogGap: 230,
+  /** Vida do cão do encontro: o primeiro disparo dela mata (antes da multiplicação do capítulo). */
+  dogHp: 1,
+  /** A carta do ataque aparece quando falta esta fração da distância (0.5 = meio do caminho). */
+  cardAtChaseFraction: 0.5,
+  /** Proteção depois da carta: o cão já está perto e o primeiro tiro sai antes da mordida. */
+  firstKillGraceMs: 1500,
   artScale: 1 / CAMERA_BALANCE.gameplayZoom,
   fadeInMs: 600,
   /** Pausa olhando o cão antes do diálogo. */
@@ -139,8 +145,6 @@ export const STORY_ARRIVAL_BALANCE = {
   barkIntervalMs: 420,
   barkShakeMs: 180,
   barkShakeIntensity: 0.006,
-  /** Respiro depois do último latido antes da horda chegar. */
-  afterBarkMs: 700,
 } as const;
 
 /**

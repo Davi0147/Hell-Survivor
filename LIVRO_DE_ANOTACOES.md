@@ -137,6 +137,7 @@
 - [x] **Prólogo do Capítulo I (pedido do dono em 2026-11-26):** corredor do RH (`PrologueScene`) com paredes, funcionários que conversam e porta de saída; chegada na arena pela porta, encontro com o cão, latido e horda (`StoryArrivalSystem`); ressurgir mantém a entrada antiga; sem PULAR no corredor (decisão do dono).
   - [x] Arte do estagiário e da dupla de fofoqueiras (2026-11-26).
   - [x] Segurança (múmia vigia) e porta animada da chegada (sobe no fogo, abre, fecha, afunda).
+  - [x] Conversa com o Cão Infernal (retratos detalhados; no mundo é o Cão Zumbi), cão corre, carta única do Disparo de Almas no meio do caminho, primeira morte, e só depois a horda (roteiro do dono, 2026-11-26).
   - [x] Conversas na tela de diálogo da história, com retratos (Carlos, Lina e Gina em dupla, Léo); roteiro do dono. Léo segura a porta, seta dourada na saída. O arquivista provisório saiu (a sala meio-a ficou sem ninguém). Arte nova: `art-source/novos/prologo/npc-<id>.jpg` em fundo verde, rodar `scripts/cut-prologue-npcs.py` e marcar `hasArt: true`.
   - [x] Emendas entre os pedaços: resolvido trocando a montagem lado a lado por salas (a ponta escurece e passa para a vizinha, ideia do dono).
   - [ ] Não verificado no iPhone de verdade (só no formato de celular no navegador do PC).

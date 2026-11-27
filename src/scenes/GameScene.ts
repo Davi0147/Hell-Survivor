@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Nixy } from '../entities/characters/Nixy';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
+import type { ZombieDog } from '../entities/enemies/ZombieDog';
 import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy, PoisonPuddle } from '../entities/enemies/MummyEnemy';
@@ -44,7 +45,7 @@ import { BossFightSystem, IBossFightContext, BossId } from '../systems/BossFight
 import { RunEndSystem, IRunEndContext } from '../systems/RunEndSystem';
 import { FONTS, getArenaFloorTint, ARENA_FLOOR_SCALE, ARENA_FLOOR_SCALE_DEFAULT, CHAPTER_FLOOR_TEXTURE } from '../config/theme';
 import { ChapterDecorSystem } from '../systems/ChapterDecorSystem';
-import { getWeaponIconInfo } from '../systems/UpgradeCatalog';
+import { getWeaponIconInfo, type UpgradeCard } from '../systems/UpgradeCatalog';
 import type { IPauseTalismanInfo, IPauseWeaponInfo } from '../ui/PauseMenu';
 import { describeTalismansForPause } from '../ui/pauseTalismans';
 import { CombatFeelSystem, ICombatFeelContext } from '../systems/CombatFeelSystem';
@@ -670,6 +671,16 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     }
   }
 
+  /**
+   * Congela a partida e mostra só estas cartas (sem re-rolar nem canalizar). Usada pela carta
+   * que desperta o ataque no começo do Capítulo I.
+   */
+  public openForcedCards(cards: UpgradeCard[], title: string, hint: string, onChosen: () => void): void {
+    this.physics.pause();
+    this.scene.pause();
+    this.scene.launch('UpgradeScene', { player: this.player, gameScene: this, forced: { cards, title, hint, onChosen } });
+  }
+
   /** Os quatro cães que abrem a partida no Modo História, em volta da heroína. */
   private spawnOpeningDogs(): void {
     const px = this.player.x;
@@ -755,11 +766,14 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // Vida zerada: Pacto Demoníaco, ou fim de partida
     if (this.runEnd.checkPlayerDeath()) return;
 
-    // Chegada do Capítulo I (porta e cão): só a cena roda; armas, monstros e spawns esperam
-    if (this.storyArrival?.isActive) {
+    // Chegada do Capítulo I: na cena (porta, conversa) só ela roda. Depois (cão correndo, carta,
+    // primeira morte) o jogo roda, mas armas e horda esperam as travas dela.
+    if (this.storyArrival?.isCutscene) {
       this.storyArrival.update(delta);
       return;
     }
+    this.storyArrival?.update(delta);
+    const arrivalLocksSpawns = this.storyArrival?.spawnsLocked ?? false;
 
     if (this.sandboxInfiniteUlt) {
       this.player.ultimateCharge = this.player.maxUltimateCharge;
@@ -786,7 +800,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 1.2. Combo, Frenesi e bônus de XP do momento (combo + evento de horda)
     this.combatFeel?.update(delta);
-    this.hordeEvents?.update(delta);
+    if (!arrivalLocksSpawns) this.hordeEvents?.update(delta);
     this.infernalFury?.update(delta);
     this.enemyArrows?.update(delta);
     this.ultimate?.update(delta);
@@ -803,7 +817,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 4. Atualizar Todas as Armas Ativas (a Suprema acelera o relógio delas)
     const weaponDelta = delta * this.player.weaponHasteMultiplier;
-    for (const weapon of this.weapons) {
+    // Começo do Capítulo I: o ataque só liga quando o jogador escolhe a carta que desperta ele
+    const weaponsActive = !this.storyArrival?.weaponsLocked;
+    for (const weapon of weaponsActive ? this.weapons : []) {
       const custom = weapon as BaseWeapon & { updateWeapon?: (d: number, x: number, y: number, g: Phaser.GameObjects.Group) => void };
       if (typeof custom.updateWeapon === 'function') {
         custom.updateWeapon(weaponDelta, this.player.x, this.player.y, this.enemiesGroup);
@@ -876,9 +892,9 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     // 7. Spawner Escalável Contínuo de Hordas
     // Se o Altar de Invocação despertou (isHordeSpawningPaused) ou a Boss está ativa, não spawna novas levas da horda
     // Cronograma de inimigos: apresentações, minichefes, formações e (Infinito) Círculos e chefe
-    this.encounters?.update(delta);
+    if (!arrivalLocksSpawns) this.encounters?.update(delta);
 
-    if (!this.isBossFightActive && !this.isHordeSpawningPaused && !this.encounters?.isCalm && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
+    if (!arrivalLocksSpawns && !this.isBossFightActive && !this.isHordeSpawningPaused && !this.encounters?.isCalm && (this.gameMode !== 'sandbox' || this.sandboxAutoSpawn)) {
       this.spawnTimer += delta;
 
       // Intervalo entre levas encurta com o tempo (SPAWN_PACING em balance.ts)
@@ -923,8 +939,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     }
   }
 
-  public spawnZombieDogAt(x: number, y: number, hp?: number, speed?: number, damage?: number, isElite?: boolean, eliteScale?: number, customDrop?: GemType): void {
-    this.enemySpawner.spawnZombieDogAt(x, y, hp, speed, damage, isElite, eliteScale, customDrop);
+  public spawnZombieDogAt(x: number, y: number, hp?: number, speed?: number, damage?: number, isElite?: boolean, eliteScale?: number, customDrop?: GemType): ZombieDog {
+    return this.enemySpawner.spawnZombieDogAt(x, y, hp, speed, damage, isElite, eliteScale, customDrop);
   }
 
   public spawnSkullSlimeAt(x: number, y: number): void {
