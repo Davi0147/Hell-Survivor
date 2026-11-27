@@ -36,6 +36,11 @@ export class DialogueSystem {
   /** Dupla do lado direito (retratos lado a lado). */
   private duoImages: Phaser.GameObjects.Image[] = [];
   private readonly DUO_SPREAD = 110;
+  /**
+   * Altura de cada retrato da dupla. Maior que o busto comum porque a arte vem até os joelhos:
+   * os rostos ficam acima do balão e o corte da arte fica abaixo da tela.
+   */
+  private readonly DUO_BUST_H = 560;
 
   // Sub-container deslizante do balão de fala
   private balloonContainer!: Phaser.GameObjects.Container;
@@ -428,11 +433,11 @@ export class DialogueSystem {
    * Retrato no tamanho do busto sem distorcer: os quadrados (Nixy, chefes) ficam 420x420 como
    * sempre; os mais estreitos ocupam a mesma altura com a largura proporcional.
    */
-  private fitBust(img: Phaser.GameObjects.Image): void {
+  private fitBust(img: Phaser.GameObjects.Image, maxH: number = this.BUST_H): void {
     const fw = img.frame.width;
     const fh = img.frame.height;
     if (!fw || !fh) return;
-    const scale = Math.min(this.BUST_H / fh, (this.BUST_W * 1.15) / fw);
+    const scale = Math.min(maxH / fh, (this.BUST_W * 1.15) / fw);
     img.setScale(scale);
   }
 
@@ -441,7 +446,7 @@ export class DialogueSystem {
     this.duoImages.forEach((img, i) => {
       const key = duo.portraits[i];
       img.setTexture(this.scene.textures.exists(key) ? key : 'succubus-idle-south');
-      this.fitBust(img);
+      this.fitBust(img, this.DUO_BUST_H);
       // A de trás (esquerda) fica atrás; quem fala vem para a frente
       const lit = duo.speaking.includes(i);
       if (lit) img.clearTint();

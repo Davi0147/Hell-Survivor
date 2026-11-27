@@ -5,7 +5,7 @@ Fonte (art-source/novos/prologo/):
   retrato-carlos.jpg     -> portrait-carlos.png (espelhado: olha para a esquerda, para a Nixy)
   retrato-lina-gina.jpg  -> portrait-lina.png e portrait-gina.png (as duas da imagem, separadas
                             pelo vão de fundo entre elas; corpo inteiro vira busto até a cintura)
-  retrato-leo.jpg        -> portrait-leo.png
+  retrato-leo.jpg        -> portrait-leo.png (espelhado: olha para a esquerda)
 Os retratos ficam com PORTRAIT_HEIGHT px de altura; a tela de diálogo ajusta sem distorcer.
 """
 import sys
@@ -14,8 +14,9 @@ from PIL import Image, ImageOps
 from spritecut import load_keyed, to_rgba, shrink
 
 PORTRAIT_HEIGHT = 460
-# Corpo inteiro (Lina/Gina): fica só do topo até esta fração da altura (busto até a cintura)
-FULL_BODY_KEEP = 0.62
+# Corpo inteiro (Lina/Gina): fica do topo até esta fração da altura (até os joelhos). A tela de
+# diálogo mostra a dupla maior e ancorada embaixo, então o corte fica sempre fora da tela.
+FULL_BODY_KEEP = 0.82
 
 src, out = sys.argv[1], sys.argv[2]
 
@@ -34,7 +35,7 @@ def save(img: Image.Image, name: str, mirror: bool = False) -> None:
     print(name, small.size)
 
 
-for name, mirror in (('carlos', True), ('leo', False)):
+for name, mirror in (('carlos', True), ('leo', True)):
     im, solid = load_keyed(f'{src}/retrato-{name}.jpg')
     save(to_rgba(im, solid, *bbox(solid)), f'portrait-{name}', mirror)
 

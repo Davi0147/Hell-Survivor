@@ -47,7 +47,7 @@ const ACTOR_DEPTH = 10;
 /** Folga (px originais) ao encaixar os pés na faixa andável da sala nova. */
 const WALK_BAND_MARGIN = 24;
 /** Seta dourada da saída: px acima da porta e quanto ela balança. */
-const EXIT_ARROW = { aboveDoor: 140, bob: 14, bobMs: 520, scale: 0.55 } as const;
+const EXIT_ARROW = { aboveDoor: 105, bob: 14, bobMs: 520, scale: 0.55 } as const;
 
 interface NpcActor {
   def: PrologueNpcDef;
