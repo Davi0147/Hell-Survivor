@@ -64,7 +64,16 @@ export class DialogueSystem {
   private readonly BUST_W = 420;
   private readonly BUST_H = 420;
   private readonly BUST_LEFT_X = 190;
-  private readonly BUST_RIGHT_X = 1090;
+  /** Distância do busto da direita até a borda direita (1090 numa tela de 1280). */
+  private readonly BUST_RIGHT_MARGIN = 190;
+
+  /**
+   * Busto da direita preso na borda direita da tela. O jogo é mais largo no celular (até 1680
+   * de largura); com posição fixa o retrato ficava quase no meio da tela no iPhone.
+   */
+  private get BUST_RIGHT_X(): number {
+    return this.scene.scale.width - this.BUST_RIGHT_MARGIN;
+  }
 
   private currentSpeakerSide?: 'left' | 'right';
 

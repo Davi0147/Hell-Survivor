@@ -27,6 +27,22 @@ export const HUD_SIZES = {
   radar: { radius: 54, labelH: 18 },
 } as const;
 
+/**
+ * Tela de cartas (level up, altar, carta do despertar). No celular o jogo é encolhido para ~48%,
+ * então as cartas (`touchCardZoom`), o título e os botões de baixo crescem.
+ */
+export const UPGRADE_SCREEN_LAYOUT = {
+  touchCardZoom: 1.2,
+  desktop: {
+    title: { w: 540, h: 40, font: 14 },
+    footer: { bottom: 36, buttonOffset: 158, buttonW: 296, buttonH: 46, buttonFont: 15, hintGlyph: 28, hintFont: 11 },
+  },
+  touch: {
+    title: { w: 700, h: 50, font: 19 },
+    footer: { bottom: 40, buttonOffset: 200, buttonW: 380, buttonH: 60, buttonFont: 22, hintGlyph: 38, hintFont: 16 },
+  },
+} as const;
+
 export interface Point { x: number; y: number }
 export interface Circle extends Point { r: number }
 export interface Rect { left: number; top: number; right: number; bottom: number }

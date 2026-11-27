@@ -4,6 +4,18 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-26
 
+### Celular: retratos na borda e cartas maiores
+
+#### Resumo para o Jogador
+- **Diálogos no celular:** o retrato de quem fala na direita (colegas, chefes) agora fica encostado na borda direita da tela. Antes ficava quase no meio no iPhone.
+- **Cartas no celular:** as cartas de level up, do altar e do despertar estão 20% maiores, e o título e os botões de baixo também cresceram, para dar para ler.
+
+#### Técnico
+- `DialogueSystem.BUST_RIGHT_X` passa a ser `largura da tela - 190` (era 1090 fixo, feito para 1280).
+- `UpgradeScene`: cartas numa camada (`cardsLayer`) ampliada por `UPGRADE_SCREEN_LAYOUT.touchCardZoom` no toque; título e rodapé por `UPGRADE_SCREEN_LAYOUT` (`config/hudLayout.ts`). A explosão da carta escolhida usa a posição na tela.
+
+## [Publicado em 2026-11-26] — prólogo
+
 ### Prólogo do Capítulo I: a fuga pelo corredor do RH
 
 #### Resumo para o Jogador

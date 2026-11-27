@@ -13,6 +13,8 @@ import { UPGRADE_SKIP_BALANCE } from '../config/balance';
 import { AutoPlayTestAgent } from '../systems/AutoPlayTestAgent';
 import { getSkipLockRemainingMs, getPickLockRemainingMs, formatSkipLockBadge } from '../systems/UpgradeSkipLock';
 import { drawPixelFrame } from '../ui/pixelFrame';
+import { isTouchDevice } from '../ui/SkipButton';
+import { UPGRADE_SCREEN_LAYOUT } from '../config/hudLayout';
 
 /** Cena de jogo que abriu a tela de cartas: além das armas, sinaliza a reabertura da fila de níveis. */
 export type UpgradeHostScene = UpgradeGameScene & { isUpgradeSceneOpening?: boolean; survivalTimeMs?: number };
@@ -36,6 +38,11 @@ export class UpgradeScene extends Phaser.Scene {
   private onAltarChosen?: () => void;
   private forced?: UpgradeSceneData['forced'];
   private cardContainers: Phaser.GameObjects.Container[] = [];
+  /** Camada com as cartas (ampliada no celular por `cardsZoom`). */
+  private cardsLayer?: Phaser.GameObjects.Container;
+  private cardsZoom = 1;
+  /** Celular: textos e botões da tela maiores. */
+  private isTouch = false;
   private currentCardIds: string[] = [];
   private selectedCardIndex: number = 0;
   private rerollButton?: ActionKeyButton;
@@ -83,6 +90,9 @@ export class UpgradeScene extends Phaser.Scene {
     this.onAltarChosen = data.onAltarChosen;
     this.forced = data.forced;
     this.cardContainers = [];
+    this.cardsLayer = undefined;
+    this.isTouch = isTouchDevice(this);
+    this.cardsZoom = this.isTouch ? UPGRADE_SCREEN_LAYOUT.touchCardZoom : 1;
     this.currentCardIds = [];
     this.isClosing = false;
     // A cena é reaproveitada: botões da abertura anterior (level up) já foram destruídos.
@@ -124,11 +134,12 @@ export class UpgradeScene extends Phaser.Scene {
 
     // 2. Banner de Título Superior
     const titleY = 46;
+    const tl = this.isTouch ? UPGRADE_SCREEN_LAYOUT.touch.title : UPGRADE_SCREEN_LAYOUT.desktop.title;
     const titleBox = this.add.graphics();
     titleBox.fillStyle(0x080206, 0.95);
-    titleBox.fillRoundedRect(width / 2 - 270, titleY - 20, 540, 40, 6);
+    titleBox.fillRoundedRect(width / 2 - tl.w / 2, titleY - tl.h / 2, tl.w, tl.h, 6);
     titleBox.lineStyle(2, this.isAltar ? 0xff4500 : 0xc59b27, 1);
-    titleBox.strokeRoundedRect(width / 2 - 270, titleY - 20, 540, 40, 6);
+    titleBox.strokeRoundedRect(width / 2 - tl.w / 2, titleY - tl.h / 2, tl.w, tl.h, 6);
 
     const titleText = this.forced
       ? this.forced.title
@@ -139,7 +150,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     this.add.text(width / 2, titleY, titleText, {
       fontFamily: this.uiFont,
-      fontSize: '14px',
+      fontSize: `${tl.font}px`,
       fontStyle: 'bold',
       color: titleColor,
       stroke: '#2b0914',
@@ -200,6 +211,10 @@ export class UpgradeScene extends Phaser.Scene {
       c.destroy();
     }
     this.cardContainers = [];
+    // Camada das cartas: no celular ela é ampliada (o jogo inteiro é encolhido para ~48% no iPhone
+    // e o texto das cartas ficava pequeno demais). O desenho de cada carta não muda.
+    this.cardsLayer?.destroy();
+    this.cardsLayer = this.add.container(width / 2, Math.round(height / 2 + 2)).setScale(this.cardsZoom);
 
     let chosenCards: UpgradeCard[];
     if (this.forced) {
@@ -220,12 +235,12 @@ export class UpgradeScene extends Phaser.Scene {
     const cardH = Math.round(200 * cardScale); // 440px
     const spacing = 52;
     const totalW = chosenCards.length * cardW + (chosenCards.length - 1) * spacing;
-    const startX = width / 2 - totalW / 2 + cardW / 2;
-    const cardY = Math.round(height / 2 + 2);
+    const startX = -totalW / 2 + cardW / 2;
 
+    // Posições relativas ao centro da camada das cartas
     chosenCards.forEach((card, index) => {
       const cx = Math.round(startX + index * (cardW + spacing));
-      this.createCard(cx, cardY, cardW, cardH, cardScale, card, index);
+      this.createCard(cx, 0, cardW, cardH, cardScale, card, index);
     });
 
     this.selectedCardIndex = 0;
@@ -235,22 +250,14 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   private createTacticalFooter(width: number, height: number): void {
-    const footerY = height - 36;
+    const fl = this.isTouch ? UPGRADE_SCREEN_LAYOUT.touch.footer : UPGRADE_SCREEN_LAYOUT.desktop.footer;
+    const footerY = height - fl.bottom;
 
-    if (this.forced) {
-      new InputHint(this, width / 2, footerY, ['pick', { text: this.forced.hint }], {
-        glyphHeight: 28,
-        fontSize: 11,
-        color: COLORS.goldTextAccent,
-        align: 'center',
-      });
-      return;
-    }
-
-    if (this.isAltar) {
-      new InputHint(this, width / 2, footerY, ['pick', { text: 'ESCOLHA UMA CARTA PARA DESPERTAR SEU PODER MÁXIMO' }], {
-        glyphHeight: 28,
-        fontSize: 11,
+    if (this.forced || this.isAltar) {
+      const hint = this.forced ? this.forced.hint : 'ESCOLHA UMA CARTA PARA DESPERTAR SEU PODER MÁXIMO';
+      new InputHint(this, width / 2, footerY, ['pick', { text: hint }], {
+        glyphHeight: fl.hintGlyph,
+        fontSize: fl.hintFont,
         color: COLORS.goldTextAccent,
         align: 'center',
       });
@@ -259,10 +266,11 @@ export class UpgradeScene extends Phaser.Scene {
 
     // Botões minimalistas: ícone, nome e a tecla do controle em uso (atualizada em update)
     this.rerollButton = new ActionKeyButton(this, {
-      x: width / 2 - 158,
+      x: width / 2 - fl.buttonOffset,
       y: footerY,
-      width: 296,
-      height: 46,
+      width: fl.buttonW,
+      height: fl.buttonH,
+      labelFontSize: fl.buttonFont,
       iconKey: 'ui-icon-reroll',
       label: 'RE-ROLAR',
       badge: `${this.player.rerollsRemaining}`,
@@ -272,10 +280,11 @@ export class UpgradeScene extends Phaser.Scene {
       onClick: () => this.handleReroll()
     });
     this.skipButton = new ActionKeyButton(this, {
-      x: width / 2 + 158,
+      x: width / 2 + fl.buttonOffset,
       y: footerY,
-      width: 296,
-      height: 46,
+      width: fl.buttonW,
+      height: fl.buttonH,
+      labelFontSize: fl.buttonFont,
       iconKey: 'ui-icon-skip',
       label: 'CANALIZAR',
       badge: `+${Math.round(UPGRADE_SKIP_BALANCE.healFractionOfMaxHp * 100)}%`,
@@ -412,6 +421,7 @@ export class UpgradeScene extends Phaser.Scene {
   ): void {
     // Container raiz posicionado na coluna da carta
     const rootContainer = this.add.container(x, y + 70);
+    this.cardsLayer?.add(rootContainer);
     rootContainer.setAlpha(0);
     rootContainer.setScale(0.75);
     rootContainer.setData('upgradeCard', card);
@@ -684,7 +694,11 @@ export class UpgradeScene extends Phaser.Scene {
         ease: 'Quad.easeOut',
         onComplete: () => {
           // Dispara explosão de partículas douradas e da cor da carta
-          this.spawnCardExplosionParticles(rootContainer.x, rootContainer.y, glowColor);
+          // A carta fica dentro da camada (ampliada no celular): explosão no ponto da tela
+          const layer = this.cardsLayer;
+          const ex = layer ? layer.x + rootContainer.x * layer.scaleX : rootContainer.x;
+          const ey = layer ? layer.y + rootContainer.y * layer.scaleY : rootContainer.y;
+          this.spawnCardExplosionParticles(ex, ey, glowColor);
 
           // Desintegra a carta em um clarão
           this.tweens.add({
