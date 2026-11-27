@@ -6,6 +6,9 @@ import { SkipButton } from '../ui/SkipButton';
 import { InputHint } from '../ui/InputHint';
 import { DIALOGUE_THEME, INPUT_HINT_THEME } from '../config/theme';
 
+/** Largura de tela para a qual a tela de diálogo foi desenhada (16:9). */
+const DIALOGUE_DESIGN_WIDTH = 1280;
+
 export interface DialogueLine {
   speaker: string; // 'nixy', 'succubus', ou futuros NPCs
   speakerName: string;
@@ -57,22 +60,28 @@ export class DialogueSystem {
   // Posições dos balões
   private readonly BALLOON_W = 870;
   private readonly BALLOON_H = 135;
-  private readonly BALLOON_LEFT_X = 40;   // Posição quando NPC/Boss fala na direita
+  /**
+   * Posição do balão quando NPC/Boss fala na direita: 40 numa tela de 1280. Em telas mais largas
+   * (celular) ele anda junto com o busto da direita, senão sobra um buraco entre os dois.
+   */
+  private get BALLOON_LEFT_X(): number {
+    return 40 + (this.scene.scale.width - DIALOGUE_DESIGN_WIDTH);
+  }
   private readonly BALLOON_RIGHT_X = 370; // Posição quando Nixy fala na esquerda
 
   // Dimensões do busto dos personagens (+50%: 420x420px para presença de destaque estilo Persona)
   private readonly BUST_W = 420;
   private readonly BUST_H = 420;
   private readonly BUST_LEFT_X = 190;
-  /** Distância do busto da direita até a borda direita (1090 numa tela de 1280). */
-  private readonly BUST_RIGHT_MARGIN = 190;
+  /** Centro do busto da direita numa tela de 1280 (190 da borda direita). */
+  private readonly BUST_RIGHT_DESIGN_X = 1090;
 
   /**
    * Busto da direita preso na borda direita da tela. O jogo é mais largo no celular (até 1680
    * de largura); com posição fixa o retrato ficava quase no meio da tela no iPhone.
    */
   private get BUST_RIGHT_X(): number {
-    return this.scene.scale.width - this.BUST_RIGHT_MARGIN;
+    return this.scene.scale.width - (DIALOGUE_DESIGN_WIDTH - this.BUST_RIGHT_DESIGN_X);
   }
 
   private currentSpeakerSide?: 'left' | 'right';
