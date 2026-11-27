@@ -4,6 +4,16 @@ Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e n
 
 ## [Não publicado] — 2026-11-26
 
+### Celular: tela cheia ao girar o aparelho
+
+#### Resumo para o Jogador
+- **Abriu em pé e deitou o celular:** o jogo agora se ajusta e preenche a tela inteira, sem faixas pretas nos lados, mesmo se você girar durante o carregamento. Antes só ficava certo se já abrisse deitado.
+- Girar no meio da partida continua sem recarregar (para não perder a partida); o ajuste acontece ao voltar ao menu.
+
+#### Técnico
+- `main.ts`: confere o formato da tela sempre que o `MenuScene` fica ativo (antes só em eventos de redimensionar, que se perdiam durante o `BootScene`).
+- Trava anti-loop de recarga passou de "2 por aba" para "2 em 15 s" (`SCREEN_REFIT_RELOADS` guarda os horários).
+
 ### Celular: retratos na borda e cartas maiores
 
 #### Resumo para o Jogador

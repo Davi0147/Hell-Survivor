@@ -99,7 +99,18 @@ async function bootstrap() {
   }
   window.visualViewport?.addEventListener('resize', scheduleRefit);
   window.addEventListener('resize', scheduleRefit);
+  // Girou durante o carregamento ou no meio da partida: confere de novo quando o menu abre
+  game.events.on(Phaser.Core.Events.STEP, () => {
+    const inMenu = game.scene.isActive('MenuScene');
+    if (inMenu && !wasInMenu) {
+      window.clearTimeout(refitTimer);
+      refitTimer = window.setTimeout(() => refitIfInMenu(game), 450);
+    }
+    wasInMenu = inMenu;
+  });
 }
+
+let wasInMenu = false;
 
 /** Espera dois quadros e um instante: tempo para o navegador aplicar áreas seguras e altura visível. */
 function waitForLayoutToSettle(): Promise<void> {
@@ -110,9 +121,10 @@ function waitForLayoutToSettle(): Promise<void> {
   });
 }
 
-/** Diferença mínima (px de jogo) que justifica recarregar; e no máximo 2 recargas por sessão. */
+/** Diferença mínima (px de jogo) que justifica recarregar; no máximo 2 recargas seguidas em 15 s. */
 const REFIT_MIN_DIFF = 40;
 const REFIT_MAX_RELOADS = 2;
+const REFIT_WINDOW_MS = 15000;
 
 function refitIfInMenu(game: Phaser.Game): void {
   const wanted = getGameWidthForScreen(...getVisibleArea());
@@ -120,10 +132,15 @@ function refitIfInMenu(game: Phaser.Game): void {
   const inMenu = game.scene.isActive('MenuScene') && !game.scene.isActive('GameScene');
   if (!inMenu) return;
   try {
-    const reloads = Number(sessionStorage.getItem(STORAGE_KEYS.SCREEN_REFIT_RELOADS) ?? '0');
-    // Teto evita ficar recarregando sem parar se o aparelho oscilar entre dois tamanhos
-    if (reloads >= REFIT_MAX_RELOADS) return;
-    sessionStorage.setItem(STORAGE_KEYS.SCREEN_REFIT_RELOADS, String(reloads + 1));
+    // Teto evita ficar recarregando sem parar se o aparelho oscilar entre dois tamanhos,
+    // mas só conta recargas recentes: girar de novo minutos depois volta a funcionar
+    const now = Date.now();
+    const recent = (sessionStorage.getItem(STORAGE_KEYS.SCREEN_REFIT_RELOADS) ?? '')
+      .split(',')
+      .map(Number)
+      .filter((t) => t > 0 && now - t < REFIT_WINDOW_MS);
+    if (recent.length >= REFIT_MAX_RELOADS) return;
+    sessionStorage.setItem(STORAGE_KEYS.SCREEN_REFIT_RELOADS, [...recent, now].join(','));
   } catch {
     return;
   }
