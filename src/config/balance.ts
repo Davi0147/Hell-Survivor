@@ -123,8 +123,10 @@ export const PROLOGUE_BALANCE = {
 export const STORY_ARRIVAL_BALANCE = {
   /** Base da porta, a partir da borda de cima do mapa (a porta inteira fica dentro da arena). */
   doorTopMargin: 130,
-  /** A porta subindo do chão em brasa. */
-  doorRiseMs: 700,
+  /** Tremor da tela enquanto a porta sobe do chão no fogo (a animação tem 8 quadros a 10/s). */
+  doorRiseMs: 800,
+  /** Depois de ela sair, a porta espera isto e fecha. */
+  doorCloseDelayMs: 450,
   /** Quanto ela desce sozinha depois de sair. */
   walkDistance: 170,
   /** Velocidade da caminhada sozinha (mais lenta que o normal, de cena). */
@@ -141,8 +143,6 @@ export const STORY_ARRIVAL_BALANCE = {
   barkShakeIntensity: 0.006,
   /** Respiro depois do último latido antes da horda chegar. */
   afterBarkMs: 700,
-  /** A porta afunda de volta no chão depois que ela se afasta. */
-  doorVanishMs: 900,
 } as const;
 
 /**

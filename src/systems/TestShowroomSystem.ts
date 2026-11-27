@@ -238,7 +238,8 @@ export class TestShowroomSystem {
           { name: 'Altar Invoc. Inativo', texture: 'altar-invoc-inactive', scale: 0.55 },
           { name: 'Altar Invoc. Ativo', texture: 'altar-invoc-active-1', scale: 0.55 },
           { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.32 },
-          { name: 'Porta Prólogo', texture: 'prologue-door', scale: 0.625 },
+          { name: 'Porta Prólogo', texture: 'prologue-door-sheet', frame: 7, scale: 0.625 },
+          { name: 'Porta Aberta', texture: 'prologue-door-sheet', frame: 11, scale: 0.625 },
           { name: 'Cão Prólogo', texture: 'prologue-dog-idle', scale: 0.625 },
           { name: 'Cão Latindo', texture: 'prologue-dog-bark', scale: 0.625 }
         ]
@@ -379,7 +380,7 @@ export class TestShowroomSystem {
         const itemY = cat.y;
 
         if (this.scene.textures.exists(item.texture)) {
-          const sprite = this.scene.add.sprite(itemX, itemY, item.texture);
+          const sprite = this.scene.add.sprite(itemX, itemY, item.texture, item.frame);
           sprite.setOrigin(0.5, 0.5);
           sprite.setDepth(15);
           if (item.scale !== undefined) {

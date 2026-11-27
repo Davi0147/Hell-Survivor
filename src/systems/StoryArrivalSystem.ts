@@ -11,11 +11,22 @@ import type { ICombatBubbleTarget } from './CombatBubbleSystem';
 import { SoundManager } from './SoundManager';
 import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 
-/** Textura do cão do encontro (scripts/cut-prologue-dog.py) e da porta (cut-prologue-corridor.py). */
+/** Textura do cão do encontro (scripts/cut-prologue-dog.py) e da porta (cut-prologue-door.py). */
 export const ARRIVAL_TEXTURES = {
   dogIdle: 'prologue-dog-idle',
   dogBark: 'prologue-dog-bark',
-  door: 'prologue-door',
+  door: 'prologue-door-sheet',
+} as const;
+
+/** Quadro da tira da porta e onde fica o chão nele (px). */
+export const ARRIVAL_DOOR_FRAME = { width: 172, height: 256, groundY: 210 } as const;
+
+/** Animações da porta (quadros da tira: 0-7 subindo no fogo, 8-11 abrindo, 12-15 fechando). */
+const DOOR_ANIMS = {
+  rise: { key: 'prologue-door-rise', frames: [0, 1, 2, 3, 4, 5, 6, 7], frameRate: 10 },
+  sink: { key: 'prologue-door-sink', frames: [7, 6, 5, 4, 3, 2, 1, 0], frameRate: 12 },
+  open: { key: 'prologue-door-open', frames: [8, 9, 10, 11], frameRate: 10 },
+  close: { key: 'prologue-door-close', frames: [12, 13, 14, 15], frameRate: 10 },
 } as const;
 
 /** O que a chegada precisa da cena da partida. */
@@ -24,6 +35,7 @@ export interface IStoryArrivalContext {
   readonly tweens: Phaser.Tweens.TweenManager;
   readonly time: Phaser.Time.Clock;
   readonly cameras: Phaser.Cameras.Scene2D.CameraManager;
+  readonly anims: Phaser.Animations.AnimationManager;
   readonly player: BaseCharacter & { updateNixy(dx: number, dy: number, sprint: boolean, delta: number): void };
   playDialogue(lines: DialogueLine[], onComplete: () => void): void;
   setHUDVisible(visible: boolean): void;
@@ -37,9 +49,9 @@ type Step = 'idle' | 'rising' | 'walking' | 'talking' | 'barking' | 'done';
 const NIXY_FEET_BELOW_CENTER = 28;
 
 /**
- * Começo do Capítulo I depois do corredor do prólogo: a Nixy sai por uma porta à direita do
- * ponto de nascimento, anda sozinha para a esquerda, dá de cara com um cão, conversa, o cão late
- * e a horda começa (os quatro cães de sempre + o próprio cão vira um inimigo).
+ * Começo do Capítulo I depois do corredor do prólogo: uma porta sobe do chão no fogo na borda de
+ * cima do mapa e abre, a Nixy sai, a porta fecha e afunda, ela desce até um cão, conversa, o cão
+ * late e a horda começa (os quatro cães de sempre + o próprio cão vira um inimigo).
  *
  * Enquanto `isActive`, a GameScene não roda armas, Suprema, monstros nem spawns: nada ataca
  * sozinho durante a cena.
@@ -47,7 +59,7 @@ const NIXY_FEET_BELOW_CENTER = 28;
 export class StoryArrivalSystem {
   private step: Step = 'idle';
   private walkLeft = 0;
-  private door?: Phaser.GameObjects.Image;
+  private door?: Phaser.GameObjects.Sprite;
   private dog?: Phaser.GameObjects.Image;
   private barkText?: Phaser.GameObjects.Text;
   private readonly timers: Phaser.Time.TimerEvent[] = [];
@@ -76,10 +88,12 @@ export class StoryArrivalSystem {
     p.currentDirection = 'south';
     this.ctx.cameras.main.centerOn(doorX, stopY);
 
-    this.door = this.ctx.add.image(doorX, doorBaseY, ARRIVAL_TEXTURES.door)
-      .setOrigin(0.5, 1)
-      .setScale(B.artScale, 0)
-      .setDepth(p.depth - 1);
+    this.createDoorAnims();
+    this.door = this.ctx.add.sprite(doorX, doorBaseY, ARRIVAL_TEXTURES.door, 0)
+      .setOrigin(0.5, ARRIVAL_DOOR_FRAME.groundY / ARRIVAL_DOOR_FRAME.height)
+      .setScale(B.artScale)
+      .setDepth(p.depth - 1)
+      .setVisible(false);
     // O cão espera ao lado de onde ela para, olhando para ela (a arte olha para a direita)
     this.dog = this.ctx.add.image(doorX - B.dogGap, stopY + NIXY_FEET_BELOW_CENTER, ARRIVAL_TEXTURES.dogIdle)
       .setOrigin(0.5, 1)
@@ -92,25 +106,55 @@ export class StoryArrivalSystem {
     this.later(B.fadeInMs * 0.5, () => this.riseDoor());
   }
 
-  /** A porta sobe do chão, em brasa; quando termina, a Nixy sai por ela. */
-  private riseDoor(): void {
+  private createDoorAnims(): void {
+    for (const a of Object.values(DOOR_ANIMS)) {
+      // Criada vazia (arte ainda não carregada)? Refaz
+      const existing = this.ctx.anims.get(a.key);
+      if (existing && existing.frames.length > 0) continue;
+      if (existing) this.ctx.anims.remove(a.key);
+      this.ctx.anims.create({
+        key: a.key,
+        frames: a.frames.map((frame) => ({ key: ARRIVAL_TEXTURES.door, frame })),
+        frameRate: a.frameRate,
+      });
+    }
+  }
+
+  /**
+   * Toca uma animação da porta e chama `then` quando ela acaba. Se a animação não rodar (arte
+   * faltando), segue mesmo assim depois de um tempo: a cena nunca pode travar aqui.
+   */
+  private playDoor(anim: { key: string; frames: readonly number[]; frameRate: number }, then: () => void): void {
     const door = this.door;
-    if (!door) return;
-    door.setTint(PROLOGUE_THEME.doorGlow);
+    let done = false;
+    const finish = (): void => {
+      if (done) return;
+      done = true;
+      then();
+    };
+    if (!door || !this.ctx.anims.get(anim.key)?.frames.length) {
+      finish();
+      return;
+    }
+    door.once(Phaser.Animations.Events.ANIMATION_COMPLETE, finish);
+    door.play(anim.key);
+    this.later((anim.frames.length / anim.frameRate) * 1000 + 600, finish);
+  }
+
+  /** A porta sobe do chão no fogo, abre, a Nixy sai por ela e a porta fecha atrás dela. */
+  private riseDoor(): void {
+    // Sem a arte (não deveria acontecer), melhor sem porta do que o quadrado de textura faltando
+    this.door?.setVisible(this.door.texture.key === ARRIVAL_TEXTURES.door);
     this.ctx.cameras.main.shake(B.doorRiseMs, B.barkShakeIntensity * 0.6);
     SoundManager.getInstance().playSmokePoof();
-    this.ctx.tweens.add({
-      targets: door,
-      scaleY: B.artScale,
-      duration: B.doorRiseMs,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        door.clearTint();
-        SoundManager.getInstance().playTableKick();
+    this.playDoor(DOOR_ANIMS.rise, () => {
+      SoundManager.getInstance().playTableKick();
+      this.playDoor(DOOR_ANIMS.open, () => {
         this.ctx.tweens.add({ targets: this.ctx.player, alpha: 1, duration: 260 });
         this.walkLeft = B.walkDistance;
         this.step = 'walking';
-      },
+        this.later(B.doorCloseDelayMs, () => this.playDoor(DOOR_ANIMS.close, () => undefined));
+      });
     });
   }
 
@@ -193,20 +237,22 @@ export class StoryArrivalSystem {
     this.onCombatStart(x, y);
   }
 
-  /** A porta volta a afundar no chão em brasa (o contrário de quando subiu) e some. */
+  /** A porta (já fechada) volta a afundar no chão em brasa e some. */
   private sinkDoor(): void {
     const door = this.door;
     if (!door) return;
     SoundManager.getInstance().playSmokePoof();
-    door.setTint(PROLOGUE_THEME.doorGlow);
-    this.ctx.tweens.add({
-      targets: door,
-      scaleY: 0,
-      duration: B.doorVanishMs,
-      ease: 'Quad.easeIn',
-      onComplete: () => door.destroy(),
-    });
+    // A subida de trás para frente: volta para o fogo e some
     this.door = undefined;
+    this.playDoorThen(door, DOOR_ANIMS.sink, () => door.destroy());
+  }
+
+  /** Como `playDoor`, para uma porta que já saiu de `this.door` (afundando). */
+  private playDoorThen(door: Phaser.GameObjects.Sprite, anim: { key: string; frames: readonly number[]; frameRate: number }, then: () => void): void {
+    const previous = this.door;
+    this.door = door;
+    this.playDoor(anim, then);
+    this.door = previous;
   }
 
   private later(ms: number, fn: () => void): void {

@@ -310,10 +310,6 @@ export const PROLOGUE_THEME = {
   barkText: '#ff3b3b',
   /** "FALAR" em cima do NPC. */
   promptText: '#f3d17a',
-  /** Brilho alaranjado da porta da arena ao abrir. */
-  doorGlow: 0xff7a1f,
-  /** Fumaça da porta sumindo. */
-  doorSmoke: 0x3a2a33,
   /** Colisões visíveis (Modo de Teste). */
   debugWall: 0xff0055,
   debugFeet: 0x00e5ff,

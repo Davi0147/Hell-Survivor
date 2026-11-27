@@ -4,7 +4,7 @@ import { CH1_DECOR_FILES } from '../config/sceneryCatalog';
 import Phaser from 'phaser';
 import { DIRECTIONS_8, ENEMY_BALANCE, TALISMAN_BALANCE } from '../config/balance';
 import { PET_ANIM_FRAMES, PET_SPRITES, TALISMAN_CATALOG, TWIN_BOLT_TEXTURE } from '../systems/TalismanCatalog';
-import { ARRIVAL_TEXTURES } from '../systems/StoryArrivalSystem';
+import { ARRIVAL_DOOR_FRAME, ARRIVAL_TEXTURES } from '../systems/StoryArrivalSystem';
 import { SoundManager } from '../systems/SoundManager';
 import { EnemyArrowSystem } from '../systems/EnemyArrowSystem';
 import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
@@ -413,9 +413,14 @@ export class BootScene extends Phaser.Scene {
     }
     // Chegada do Capítulo I: o cão do encontro (parado/latindo) e a porta por onde a Nixy sai.
     // O corredor do prólogo é carregado pela própria PrologueScene (e solto no fim dela).
-    for (const key of Object.values(ARRIVAL_TEXTURES)) {
+    for (const key of [ARRIVAL_TEXTURES.dogIdle, ARRIVAL_TEXTURES.dogBark]) {
       this.load.image(key, `assets/sprites/prologue/${key}.png?t=${cacheBuster}`);
     }
+    // Porta: tira de quadros (subindo no fogo, abrindo, fechando), scripts/cut-prologue-door.py
+    this.load.spritesheet(ARRIVAL_TEXTURES.door, `assets/sprites/prologue/${ARRIVAL_TEXTURES.door}.png?t=${cacheBuster}`, {
+      frameWidth: ARRIVAL_DOOR_FRAME.width,
+      frameHeight: ARRIVAL_DOOR_FRAME.height,
+    });
     // Arte de fundo de cada capítulo (tela de escolha); sem arquivo, a tela usa o sprite do chefe
     for (const c of CHAPTERS) {
       if (c.art) this.load.image(`chapter-art-${c.number}`, `assets/sprites/chapters/${c.art}?t=${cacheBuster}`);

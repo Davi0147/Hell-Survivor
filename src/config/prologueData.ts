@@ -102,7 +102,7 @@ export const PROLOGUE_NPCS: readonly PrologueNpcDef[] = [
   { id: 'arquivista', room: 'meio-a', x: 940, y: 706, hasArt: false, placeholderTexture: 'mummy-idle-south', displayHeight: 200 },
   { id: 'estagiario', room: 'meio-b', x: 640, y: 718, hasArt: true, placeholderTexture: 'transporter-idle-south', displayHeight: 215 },
   { id: 'fofoqueiras', room: 'meio-c', x: 1020, y: 714, hasArt: true, placeholderTexture: 'archer-idle-south', displayHeight: 235, speakers: [-0.23, 0.2] },
-  { id: 'seguranca', room: 'fim', x: 660, y: 698, hasArt: false, placeholderTexture: 'ghoul-idle-south', displayHeight: 208 },
+  { id: 'seguranca', room: 'fim', x: 660, y: 698, hasArt: true, placeholderTexture: 'ghoul-idle-south', displayHeight: 215 },
 ];
 
 export function npcTextureKey(id: string): string {
