@@ -73,7 +73,7 @@ export const COLORS = {
  */
 export const ARENA_FLOOR_TINT = {
   fallback: 0x423232,
-  byTexture: { 'floor-tile-2': 0x684b4b, 'floor-ch1': 0xffffff } as Record<string, number>,
+  byTexture: { 'floor-tile-2': 0x684b4b, 'floor-ch1': 0xffffff, 'floor-ch2': 0xffffff, 'floor-ch3': 0xffffff } as Record<string, number>,
   byChapter: {
     1: 0x423232, // Catacumbas de Rosalin: pedra quente e escura
     2: 0x2f3350, // Santuário caído de Azazel: pedra fria azul-violeta
@@ -86,6 +86,8 @@ export const ARENA_FLOOR_TINT = {
  */
 export const ARENA_FLOOR_SCALE: Record<string, number> = {
   'floor-ch1': 0.5,
+  'floor-ch2': 0.5,
+  'floor-ch3': 0.5,
 };
 /** Pisos antigos (chao1/chao2) reduzidos de 2048 para 512 px: 0.4 mantém o mesmo tamanho na tela. */
 export const ARENA_FLOOR_SCALE_DEFAULT = 0.4;
@@ -93,6 +95,20 @@ export const ARENA_FLOOR_SCALE_DEFAULT = 0.4;
 /** Piso com arte própria por capítulo (troca o piso padrão quando a arte existe). */
 export const CHAPTER_FLOOR_TEXTURE: Record<number, string> = {
   1: 'floor-ch1',
+  2: 'floor-ch2',
+  3: 'floor-ch3',
+};
+
+/** Cor do halo das fontes de luz do cenário (sem cor = fogo laranja da textura). */
+export const SCENERY_LIGHT_TINT = {
+  /** Fogo frio do domínio do Azazel. */
+  violet: 0x9d7bff,
+} as const;
+
+/** Faíscas do Altar de Invocação aceso, por capítulo (o 1 usa as brasas de fogo padrão). */
+export const SUMMON_ALTAR_EMBERS: Record<number, number[]> = {
+  2: [0x9d7bff, 0xc4b0ff, 0x6b4bd6, 0xe6dcff],
+  3: [0xc0123a, 0xff5a1f, 0xffb347, 0xc9a14a],
 };
 
 export function getArenaFloorTint(textureKey: string, chapter: number): number {
@@ -372,6 +388,22 @@ export const BOSS_TELEGRAPH = {
   circleFillAlpha: (progress: number): number => 0.15 + progress * 0.3,
   /** Espessura do retículo em cruz central */
   crosshairThickness: 1.5
+} as const;
+
+/** Shylph, a Serafim Caída (Capítulo 3): vento, sangue e clarões da morte falsa. */
+export const SHYLPH_THEME = {
+  /** Pena cravada piscando antes de voltar. */
+  featherWarn: 0xff0055,
+  /** Clarão vermelho quando ela levanta para a fase 2. */
+  riseFlash: { r: 180, g: 0, b: 30 },
+  /** Penas que giram em volta dela na fase final. */
+  orbitTint: 0xffd0dc,
+  /** Branco da transformação em Serafim (o mesmo do golpe recebido). */
+  transformWhite: 0xffffff,
+  /** Botões do Modo de Teste. */
+  buttonFill: 0x4a0a1a,
+  buttonBorder: 0xffd0dc,
+  buttonText: '#ffe4ec',
 } as const;
 
 /** Borda da área da fase dos cristais do Azazel (blocos de pixel carmesim com miolo claro). */

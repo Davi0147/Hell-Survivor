@@ -15,7 +15,7 @@ import type { ISandboxContext } from './SandboxController';
 import type { HordeEventType } from './HordeEventSystem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { CRIT_BALANCE } from '../config/balance';
-import { COLORS, FX_COLORS, TALISMAN_THEME } from '../config/theme';
+import { COLORS, FX_COLORS, TALISMAN_THEME, SHYLPH_THEME } from '../config/theme';
 import { TALISMAN_RARITIES } from './talismanRules';
 
 /** Itens de mapa novos (v0.11.0) com botão no Modo de Teste. */
@@ -632,7 +632,7 @@ export class DevSandboxPanel {
 
     // Coluna 2: Controle de Boss (Cap 1 & Cap 2) e Limpeza da Arena
     const col2X = x + colW + 24;
-    this.addSectionTitle(col2X, y, 'CONTROLE DE CHEFES (ROSALIN & AZAZEL) & MAPA');
+    this.addSectionTitle(col2X, y, 'CONTROLE DE CHEFES (ROSALIN, AZAZEL & SHYLPH) & MAPA');
 
     const halfBtnW = Math.floor((colW - 8) / 2);
 
@@ -820,6 +820,31 @@ export class DevSandboxPanel {
         this.showToast(`${count} MONSTROS REMOVIDOS DA ARENA!`, '#34d399');
       }
     );
+
+    // Linha 8: Shylph, a Serafim Caída (Cap 3) - Direto | Serafim (50%) | Fase final (25%)
+    const thirdW = Math.floor((colW - 16) / 3);
+    const shylphButtons: Array<{ label: string; toast: string; action: () => void }> = [
+      { label: 'SHYLPH (DIRETO)', toast: 'SHYLPH, A SERAFIM CAÍDA, INVOCADA!', action: () => gs.sandboxSpawnShylph() },
+      { label: 'SHYLPH: SERAFIM', toast: 'FORMA DE SERAFIM (50%)!', action: () => gs.sandboxForceShylphPhase('seraph') },
+      { label: 'SHYLPH: FINAL', toast: 'FASE FINAL (25%)!', action: () => gs.sandboxForceShylphPhase('final') },
+    ];
+    shylphButtons.forEach((b, i) => {
+      this.createActionButton(
+        col2X + i * (thirdW + 8),
+        y + 334,
+        thirdW,
+        36,
+        b.label,
+        SHYLPH_THEME.buttonFill,
+        SHYLPH_THEME.buttonBorder,
+        SHYLPH_THEME.buttonText,
+        () => {
+          this.togglePanel(false);
+          b.action();
+          this.showToast(b.toast, SHYLPH_THEME.buttonText);
+        }
+      );
+    });
 
     // Coluna 1, abaixo dos monstros: cronograma do Infinito (pular tempo do Círculo)
     this.createActionButton(

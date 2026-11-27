@@ -1,6 +1,17 @@
 import Phaser from 'phaser';
 import { BaseCharacter } from '../characters/BaseCharacter';
 import { SoundManager } from '../../systems/SoundManager';
+import { DECOR_TEXTURE_SCALE } from '../../config/sceneryCatalog';
+
+/** Arte própria do altar de um capítulo (apagado / aceso) e a cor das faíscas. */
+export interface SummonAltarLook {
+  off: string;
+  on: string;
+  embers?: number[];
+}
+
+/** Brilho pulsante por cima do altar aceso (o altar novo tem um quadro só de aceso). */
+const GLOW_PULSE = { periodMs: 900, min: 0.05, max: 0.4 } as const;
 
 export class BossSummonAltar extends Phaser.GameObjects.Container {
   public isActive: boolean = false;
@@ -13,24 +24,38 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
   private currentActiveFrame: number = 1;
   private particleTimer: number = 0;
   private pulseTimer: number = 0;
+  /** Arte do capítulo (Capítulos 2 e 3); sem ela, o altar antigo de 3 imagens. */
+  private readonly look?: SummonAltarLook;
+  private glow?: Phaser.GameObjects.Image;
 
   // Raio de ativação e aproximação para iniciar a batalha do Boss
   public readonly encounterRadius: number = 190;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, look?: SummonAltarLook) {
     super(scene, x, y);
     scene.add.existing(this);
     // Abaixo dos monstros (4–15) e da heroína (20): é uma plataforma no chão, quem passa por cima fica na frente.
     this.setDepth(3);
+    // Só usa a arte do capítulo se ela carregou
+    this.look = look && scene.textures.exists(look.off) && scene.textures.exists(look.on) ? look : undefined;
 
     // 1. Gráficos de Aura e Brilho no Chão
     this.auraGraphics = scene.add.graphics();
     this.add(this.auraGraphics);
 
-    // 2. Sprite Central do Altar (200x200px com escala de 0.82 para presença monumental na arena)
-    this.altarSprite = scene.add.image(0, 0, 'altar-invoc-inactive');
-    this.altarSprite.setScale(0.82);
+    // 2. Sprite Central do Altar (antigo: 200x200 com escala 0.82; novo: densidade 2x com escala 0.5)
+    this.altarSprite = scene.add.image(0, 0, this.look ? this.look.off : 'altar-invoc-inactive');
+    this.altarSprite.setScale(this.look ? DECOR_TEXTURE_SCALE : 0.82);
     this.add(this.altarSprite);
+    if (this.look) {
+      this.glow = scene.add
+        .image(0, 0, this.look.on)
+        .setScale(DECOR_TEXTURE_SCALE)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setAlpha(0)
+        .setVisible(false);
+      this.add(this.glow);
+    }
 
     this.drawAura();
   }
@@ -42,7 +67,8 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
     if (this.isActive) return;
     this.isActive = true;
     this.currentActiveFrame = 1;
-    this.altarSprite.setTexture('altar-invoc-active-1');
+    this.altarSprite.setTexture(this.look ? this.look.on : 'altar-invoc-active-1');
+    this.glow?.setVisible(true);
     SoundManager.getInstance().playWeaponEvolve();
 
     // Clarão dramático de ativação
@@ -70,13 +96,17 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
       return;
     }
 
-    // Se estiver ativo:
-    // 1. Animação alternando entre AltarInvoc Ativo1 e Ativo2 para sensação de fogo vivo
-    this.animTimer += deltaMs;
-    if (this.animTimer >= 220) {
-      this.animTimer = 0;
-      this.currentActiveFrame = this.currentActiveFrame === 1 ? 2 : 1;
-      this.altarSprite.setTexture(`altar-invoc-active-${this.currentActiveFrame}`);
+    // 1. Altar antigo alterna Ativo1/Ativo2; o novo pulsa um brilho por cima do quadro aceso
+    if (this.glow) {
+      const wave = (1 - Math.cos((this.pulseTimer / GLOW_PULSE.periodMs) * Math.PI * 2)) / 2;
+      this.glow.setAlpha(GLOW_PULSE.min + (GLOW_PULSE.max - GLOW_PULSE.min) * wave);
+    } else {
+      this.animTimer += deltaMs;
+      if (this.animTimer >= 220) {
+        this.animTimer = 0;
+        this.currentActiveFrame = this.currentActiveFrame === 1 ? 2 : 1;
+        this.altarSprite.setTexture(`altar-invoc-active-${this.currentActiveFrame}`);
+      }
     }
 
     // 2. Aura infernal pulsante
@@ -111,7 +141,7 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
     const px = Math.cos(angle) * dist;
     const py = Math.sin(angle) * dist;
 
-    const colors = [0xff2200, 0xff6600, 0xffaa00, 0xffe600];
+    const colors = this.look?.embers ?? [0xff2200, 0xff6600, 0xffaa00, 0xffe600];
     const color = colors[Phaser.Math.Between(0, colors.length - 1)];
 
     const ember = this.scene.add.circle(this.x + px, this.y + py, Phaser.Math.Between(2, 4), color, 0.9);
@@ -152,6 +182,7 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
   public complete(): void {
     this.isCompleted = true;
     this.altarSprite.setTint(0x777777);
+    this.glow?.setVisible(false);
     this.auraGraphics.clear();
   }
 
@@ -167,9 +198,10 @@ export class BossSummonAltar extends Phaser.GameObjects.Container {
     this.particleTimer = 0;
     this.pulseTimer = 0;
     if (this.altarSprite) {
-      this.altarSprite.setTexture('altar-invoc-inactive');
+      this.altarSprite.setTexture(this.look ? this.look.off : 'altar-invoc-inactive');
       this.altarSprite.clearTint();
     }
+    this.glow?.setVisible(false).setAlpha(0);
     if (this.auraGraphics) {
       this.auraGraphics.clear();
     }

@@ -2,7 +2,38 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
-## [Não publicado] — 2026-11-26
+## [Publicado em 2026-11-27] — Shylph e cenário dos Capítulos 2 e 3
+
+### Cenário próprio dos Capítulos 2 e 3
+
+#### Resumo para o Jogador
+- **Capítulo 2 (Domínio de Azazel):** piso novo de mármore frio com veios dourados, colunas caídas, anjos sem cabeça, asas de pedra, cristais de almas, braseiros e velas de fogo violeta, bancos e vitrais quebrados, penas pretas e selos no chão. Altar de invocação novo (o olho coroado acende em violeta, com raios).
+- **Capítulo 3 (Templo de Shylph):** piso de losangos de pedra escura com sangue nas juntas, anjos vendados, pilares rachados com lava, pia de sangue, braseiros pendurados em correntes, castiçais sangrando, gaiolas, púlpito, lápide dos olhos, pegadas e manchas de sangue. Altar novo (o olho do selo abre e o sangue brilha).
+- Tudo na mesma escala do Capítulo 1 em relação à Nixy, com luz nas fontes de fogo e peças grandes que bloqueiam a passagem pela base.
+
+#### Técnico
+- `sceneryCatalog.ts`: `CHAPTER_DECOR_KITS` (peças, trocas das peças antigas, composições, semente e altar por capítulo) e `DECOR_FILES`. `ChapterDecorSystem.useChapter()` escolhe o kit pelo capítulo do mapa (a Dimensão Corrompida, mapa 202, continua com o visual próprio).
+- `BossSummonAltar` aceita a arte do capítulo (apagado/aceso) com brilho pulsante e faíscas na cor do capítulo (`SUMMON_ALTAR_EMBERS`).
+- Arte recortada por `scripts/cut-chapter-kits.py` (tira o magenta e reduz cada peça para o tamanho pedido no prompt em alturas de personagem; apaga as penas repetidas do piso do Cap. 3). Peças e pisos entraram no Editor de Mapas e na galeria.
+
+### Chefe do Capítulo 3: Shylph, a Serafim Caída (só no Modo de Teste por enquanto)
+
+#### Resumo para o Jogador
+- **Tela de capítulos:** o Capítulo III já mostra a arte da Shylph atrás das correntes de "em breve".
+- **Nova chefe:** Shylph anda cambaleando como um zumbi, arremessa **Penas Cravadas** (cravam no chão, piscam e voltam para ela), bate as asas soltando **tornados que puxam a Nixy** e às vezes para para **lamber o sangue da mão** (nessa hora ela leva +50% de dano).
+- **Três fases pela vida:** de 100% a 50% o padrão acima; **de 49% a 25% ela pisca branca e vira um Serafim**, que atira chuvas de penas rápidas em padrões (anel, espiral, leque mirado, estrela girando), some e reaparece em outro lugar com o padrão seguinte; **em 25% o Serafim se desfaz**, ela cai de joelhos, levanta rindo e entra na **fase final**: mais rápida, 9 penas por arremesso, 4 tornados de vez e um anel largo de penas girando em volta dela.
+- Tornados mais rápidos (perseguem a Nixy de verdade agora).
+- **Nomes com subtítulo:** Rosalin, a Súcubo Infernal; Azazel, o Falso Deus; Shylph, a Serafim Caída (barra de vida e tela de capítulos).
+- Para testar: Modo de Teste, aba de hordas e chefes, botões **SHYLPH (DIRETO)**, **SHYLPH: SERAFIM** e **SHYLPH: FINAL**. O Capítulo 3 (mapa e história) ainda não existe.
+- **Arte nova:** furacão animado de 11 quadros (aparece e some em fade, balança como vento) e Serafim de verdade (olho no meio, muitas asas). O Serafim bate as asas de forma realista: batida para baixo rápida que ergue o corpo, subida das asas lenta em que ele afunda um pouco.
+
+#### Técnico
+- `ShylphBoss.ts` + `shylph/ShylphHazards.ts` (penas, tornados, chuva do Serafim e anel da fase final com pool) + `shylph/SeraphVolley.ts` (ritmo dos padrões do Serafim). Um golpe enorme não pula fase: a vida para no limite (`phaseFloorHp`). Regras puras em `systems/shylphRules.ts` (testadas), números em `SHYLPH_BOSS_BALANCE`, cores em `SHYLPH_THEME`, textos em `SHYLPH_FIGHT_TEXT`.
+- Arte gerada pela API do PixelLab (`docs/ART_PROMPTS.md` §27): uma folha só (`Shylph/shylph-sheet.png`, 78 quadros de 132x132) montada por `scripts/pack-shylph.py`, que também gera `config/shylphSheet.ts`. O oeste é o leste espelhado e "levantar" é "ajoelhar" de trás para frente (menos memória de vídeo e menos gerações).
+- `BossFightSystem`: `BossId` ganhou `'shylph'` (exaustão, revanche, fim do Capítulo 3). `DebugSessionLogger` passa a relatar qualquer chefe em campo, não só a Rosalin.
+- Furacão e Serafim recortados de `art-source/novos/shylph/` por `scripts/cut-shylph-fx.py` (tira o verde, reduz 4x sem borrar, alinha o furacão pelo pé e o Serafim pelo olho; gera `config/shylphFxSheet.ts`). Bater de asas em `seraphFlap` (regra pura, testada).
+
+## [Publicado em 2026-11-26] — celular
 
 ### Celular: tela cheia ao girar o aparelho
 

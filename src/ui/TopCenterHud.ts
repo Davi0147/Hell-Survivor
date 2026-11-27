@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { OBJECTIVE_THEME as T, COLORS } from '../config/theme';
 import { HUD_SIZES } from '../config/hudLayout';
+import { SHYLPH_FIGHT_TEXT } from '../config/dialogues';
 
 /** Chefe com barra de vida no topo. */
 interface IBossBarSource {
@@ -17,6 +18,7 @@ export interface ITopCenterHudWorld {
   isBossFightActive: boolean;
   bossInstance?: IBossBarSource | null;
   azazelBoss?: IBossBarSource | null;
+  shylphBoss?: IBossBarSource | null;
   azazelCrystalsCaptured?: number;
   survivalTimeMs: number;
   chapterPurifiedSouls: number;
@@ -83,7 +85,8 @@ export class TopCenterHud {
   public update(gs: ITopCenterHudWorld): void {
     // Azazel tem prioridade quando está em campo; antes a barra só lia a Rosalin
     const azazel = gs.azazelBoss && gs.azazelBoss.active ? gs.azazelBoss : undefined;
-    const boss = azazel ?? gs.bossInstance;
+    const shylph = gs.shylphBoss && gs.shylphBoss.active ? gs.shylphBoss : undefined;
+    const boss = shylph ?? azazel ?? gs.bossInstance;
     const timeText = this.formatTime(Math.floor(gs.survivalTimeMs / 1000));
 
     if (gs.isBossFightActive && boss && boss.active) {
@@ -151,11 +154,11 @@ export class TopCenterHud {
 
   /** O nome vem de quem está na luta, não do capítulo (no Infinito o capítulo é sempre 1). */
   private bossLabel(gs: ITopCenterHudWorld, boss: IBossBarSource): string {
-    const isAzazel = boss === gs.azazelBoss;
-    // Hífen, não ponto médio: a fonte pixel não tem todos os símbolos
-    if (!isAzazel) return 'ROSALIN - CHEFE DO CAPÍTULO 1';
+    // Nome com subtítulo (pedido do dono, 2026-11-27). Hífen, não ponto médio: a fonte pixel não tem todos os símbolos
+    if (boss === gs.shylphBoss) return SHYLPH_FIGHT_TEXT.barName;
+    if (boss !== gs.azazelBoss) return 'ROSALIN, A SÚCUBO INFERNAL';
     // A vida dele volta a subir enquanto os cristais estão de pé: o rótulo avisa
     if (boss.combatPhase === 3) return `AZAZEL SE CURA - CRISTAIS ${gs.azazelCrystalsCaptured || 0}/3`;
-    return 'AZAZEL - CHEFE DO CAPÍTULO 2';
+    return 'AZAZEL, O FALSO DEUS';
   }
 }

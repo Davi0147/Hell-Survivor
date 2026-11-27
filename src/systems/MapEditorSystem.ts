@@ -41,6 +41,54 @@ const CH1_EDITOR_PIECES: [string, string, string][] = [
   ['ch1-decal-cracks', 'Chão Rachado (Cap. 1)', '🪨'],
 ];
 
+/** Kit do Capítulo 2 (Domínio de Azazel, o Falso Deus). */
+const CH2_EDITOR_PIECES: [string, string, string][] = [
+  ['ch2-column', 'Coluna Caída (Cap. 2)', '🏛️'],
+  ['ch2-statue', 'Anjo sem Cabeça (Cap. 2)', '🗿'],
+  ['ch2-wing', 'Asa de Pedra (Cap. 2)', '🪽'],
+  ['ch2-crystal', 'Cristal de Almas (Cap. 2)', '💎'],
+  ['ch2-pew', 'Banco Quebrado (Cap. 2)', '🪑'],
+  ['ch2-brazier', 'Braseiro de Fogo Frio (Cap. 2)', '🔥'],
+  ['ch2-candelabra', 'Candelabro Torto (Cap. 2)', '🕯️'],
+  ['ch2-candles', 'Velas Pretas (Cap. 2)', '🕯️'],
+  ['ch2-lantern', 'Lanterna de Caveira (Cap. 2)', '💀'],
+  ['ch2-block-large', 'Bloco de Mármore (Cap. 2)', '⛰️'],
+  ['ch2-blocks-medium', 'Blocos Médios (Cap. 2)', '🪨'],
+  ['ch2-chunks-small', 'Lascas de Mármore (Cap. 2)', '🪨'],
+  ['ch2-rubble-halo', 'Entulho com Auréola (Cap. 2)', '🧱'],
+  ['ch2-halo', 'Auréola Dourada (Cap. 2)', '⭕'],
+  ['ch2-feathers', 'Penas Pretas (Cap. 2)', '🪶'],
+  ['ch2-glass', 'Vitral Quebrado (Cap. 2)', '🪟'],
+  ['ch2-decal-sigil', 'Selo do Falso Deus (Cap. 2)', '👁️'],
+  ['ch2-decal-void', 'Fenda do Vazio (Cap. 2)', '🌌'],
+  ['ch2-decal-cracks', 'Mármore Rachado (Cap. 2)', '🪨'],
+  ['ch2-decal-puddle', 'Poça Escura (Cap. 2)', '💧'],
+];
+
+/** Kit do Capítulo 3 (Templo de Shylph, a Serafim Caída). */
+const CH3_EDITOR_PIECES: [string, string, string][] = [
+  ['ch3-statue', 'Anjo Vendado (Cap. 3)', '🗿'],
+  ['ch3-lava-pillar', 'Pilar de Lava (Cap. 3)', '🌋'],
+  ['ch3-fire-post', 'Braseiro Pendurado (Cap. 3)', '🔥'],
+  ['ch3-font', 'Pia de Sangue (Cap. 3)', '🩸'],
+  ['ch3-stairs', 'Escada Quebrada (Cap. 3)', '🪜'],
+  ['ch3-cage', 'Gaiola de Anjo (Cap. 3)', '⛓️'],
+  ['ch3-lectern', 'Púlpito do Coro (Cap. 3)', '📖'],
+  ['ch3-tablet', 'Lápide dos Olhos (Cap. 3)', '👁️'],
+  ['ch3-halo-statue', 'Auréola Erguida (Cap. 3)', '⭕'],
+  ['ch3-fire-bowl', 'Bacia de Fogo (Cap. 3)', '🔥'],
+  ['ch3-candle-stand', 'Castiçal Sangrando (Cap. 3)', '🕯️'],
+  ['ch3-candles', 'Velas Brancas (Cap. 3)', '🕯️'],
+  ['ch3-block-large', 'Bloco Manchado (Cap. 3)', '⛰️'],
+  ['ch3-blocks-medium', 'Blocos Médios (Cap. 3)', '🪨'],
+  ['ch3-chunks-small', 'Lascas (Cap. 3)', '🪨'],
+  ['ch3-bandages', 'Vendas e Penas (Cap. 3)', '🪶'],
+  ['ch3-decal-sigil', 'Selo do Serafim (Cap. 3)', '⭕'],
+  ['ch3-decal-lava', 'Fenda de Lava (Cap. 3)', '🌋'],
+  ['ch3-decal-blood', 'Sangue Arrastado (Cap. 3)', '🩸'],
+  ['ch3-decal-footprints', 'Pegadas de Sangue (Cap. 3)', '👣'],
+];
+
 export class MapEditorSystem {
   private scene: GameScene;
   public isOpen: boolean = false;
@@ -100,7 +148,15 @@ export class MapEditorSystem {
     { id: 'scenery-cristal', name: 'Cristais Abissais', category: 'props', icon: '💎', texture: 'scenery-cristal', scale: 0.5 },
 
     // 2.1. Kit do Capítulo 1 (Catacumbas de Rosalin): arte nova, desenhada com escala 0.5
-    ...CH1_EDITOR_PIECES.map(([id, name, icon]) => ({ id, name, category: 'props' as const, icon, texture: id, scale: DECOR_TEXTURE_SCALE })),
+    // 2.2. Kits dos Capítulos 2 e 3 (mesma escala)
+    ...[...CH1_EDITOR_PIECES, ...CH2_EDITOR_PIECES, ...CH3_EDITOR_PIECES].map(([id, name, icon]) => ({
+      id,
+      name,
+      category: 'props' as const,
+      icon,
+      texture: id,
+      scale: DECOR_TEXTURE_SCALE,
+    })),
 
     // 3. Ferramentas Utilitárias
     { id: 'select', name: 'Mão / Mover Câmera', category: 'tools', icon: '🖐️' },
@@ -940,7 +996,9 @@ export class MapEditorSystem {
 
       const textures = [
         { key: 'floor-tile', label: 'PISO 1: CATACUMBAS INFERNAIS (PADRÃO)', desc: 'Chão clássico de pedras vulcânicas do Capítulo 1' },
-        { key: 'floor-tile-2', label: 'PISO 2: DIMENSÃO ABISSAL (CHAO 2)', desc: 'Textura corrompida de rochas obscuras do Capítulo 2' }
+        { key: 'floor-tile-2', label: 'PISO 2: DIMENSÃO ABISSAL (CHAO 2)', desc: 'Textura corrompida de rochas obscuras do Capítulo 2' },
+        { key: 'floor-ch2', label: 'PISO CAP. 2: CATEDRAL DO FALSO DEUS', desc: 'Mármore frio violeta com veios dourados (Azazel)' },
+        { key: 'floor-ch3', label: 'PISO CAP. 3: TEMPLO DE SANGUE', desc: 'Losangos de pedra escura com sangue nas juntas (Shylph)' }
       ];
 
       for (const t of textures) {

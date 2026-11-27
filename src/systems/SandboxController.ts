@@ -4,6 +4,7 @@ import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { LynMiniBoss } from '../entities/enemies/LynMiniBoss';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
+import { ShylphBoss } from '../entities/enemies/ShylphBoss';
 import { SoulGem, GemType } from '../entities/items/SoulGem';
 import { MapItem, type MapItemType } from '../entities/items/MapItem';
 import type { EvolutionAltar } from '../entities/items/EvolutionAltar';
@@ -43,6 +44,7 @@ export interface ISandboxContext extends Phaser.Scene {
   isAzazelPhase3HordeActive: boolean;
   bossInstance?: SuccubusBoss;
   azazelBoss?: AzazelBoss;
+  shylphBoss?: ShylphBoss;
   altarInstance?: EvolutionAltar | null;
   bossSummonAltar?: BossSummonAltar | null;
 
@@ -62,6 +64,8 @@ export interface ISandboxContext extends Phaser.Scene {
   sandboxSpawnHorde(type: HordeEnemyType, count?: number): void;
   sandboxSpawnBoss(withIntroDialogue: boolean): void;
   sandboxSpawnAzazel(withIntroDialogue: boolean): void;
+  sandboxSpawnShylph(): void;
+  sandboxForceShylphPhase(phase: 'seraph' | 'final'): void;
   sandboxForceAzazelPhase2(): void;
   sandboxForceAzazelPhase3(): void;
   sandboxRemoveBoss(restoreBattleMusic?: boolean): void;
@@ -85,6 +89,7 @@ export interface ISandboxContext extends Phaser.Scene {
   spawnSuccubusBoss(isIntroDialogue?: boolean, isStaticIntro?: boolean): void;
   triggerAzazelEncounterFromAltar(): void;
   spawnAzazelBoss(isIntroOnly?: boolean): void;
+  spawnShylphBoss(): void;
 
   // Spawner de coletáveis e ambiente
   spawnGemAt(x: number, y: number, type: GemType): void;
@@ -198,6 +203,23 @@ export class SandboxController {
     }
   }
 
+  /** Shylph, a Serafim Caída (Capítulo 3), direto na luta. */
+  public spawnShylph(): void {
+    this.removeBoss(false);
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Boss Shylph invocada via Sandbox');
+    this.context.isBossFightActive = true;
+    SoundManager.getInstance().playBossMusic(1800);
+    this.context.spawnShylphBoss();
+  }
+
+  /** Leva a Shylph direto para o começo de uma fase (Serafim em 50%, final em 25%). */
+  public forceShylphPhase(phase: 'seraph' | 'final'): void {
+    if (!this.context.shylphBoss || !this.context.shylphBoss.active || this.context.shylphBoss.isDead) {
+      this.spawnShylph();
+    }
+    this.context.shylphBoss?.skipToPhase(phase);
+  }
+
   public forceAzazelPhase2(): void {
     if (!this.context.azazelBoss || !this.context.azazelBoss.active || this.context.azazelBoss.isDead) {
       this.spawnAzazel(false);
@@ -245,10 +267,15 @@ export class SandboxController {
       this.context.azazelBoss = undefined;
     }
 
+    if (this.context.shylphBoss) {
+      this.context.shylphBoss.destroy();
+      this.context.shylphBoss = undefined;
+    }
+
     if (this.context.enemiesGroup) {
       const enemies = this.context.enemiesGroup.getChildren() as BaseEnemy[];
       for (const e of enemies) {
-        if ((e instanceof SuccubusBoss || e instanceof LynMiniBoss || e instanceof AzazelBoss || e instanceof AzazelPhantomClone) && e.active) {
+        if ((e instanceof SuccubusBoss || e instanceof LynMiniBoss || e instanceof AzazelBoss || e instanceof AzazelPhantomClone || e instanceof ShylphBoss) && e.active) {
           if ('projectilesGroup' in e) {
             const pGroup = (e as { projectilesGroup?: Phaser.GameObjects.Group }).projectilesGroup;
             if (pGroup) {
@@ -280,7 +307,7 @@ export class SandboxController {
 
     for (const e of enemies) {
       if (!e.active || e.isDead) continue;
-      if (e === this.context.bossInstance || e === this.context.azazelBoss || e instanceof AzazelPhantomClone) continue;
+      if (e === this.context.bossInstance || e === this.context.azazelBoss || e === this.context.shylphBoss || e instanceof AzazelPhantomClone) continue;
       count++;
       if (withDrops) {
         e.takeDamage(999999);

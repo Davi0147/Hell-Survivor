@@ -6,6 +6,7 @@ import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy, PoisonPuddle } from '../entities/enemies/MummyEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
+import { ShylphBoss } from '../entities/enemies/ShylphBoss';
 import { LynMiniBoss } from '../entities/enemies/LynMiniBoss';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { ColossusEnemy } from '../entities/enemies/ColossusEnemy';
@@ -178,6 +179,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
   public isBossFightActive: boolean = false;
   public bossInstance?: SuccubusBoss;
   public azazelBoss?: AzazelBoss;
+  public shylphBoss?: ShylphBoss;
   public isPlayerMovementLocked: boolean = false;
   public survivalTimeMs: number = 0;
   public isChapterCompleted: boolean = false;
@@ -296,6 +298,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.idlePressure.reset();
     this.bossInstance = undefined;
     this.azazelBoss = undefined;
+    this.shylphBoss = undefined;
     this.isPlayerMovementLocked = false;
     this.altarInstance = null;
     this.bossSummonAltar = null;
@@ -872,6 +875,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
           // Clones espectrais são atualizados diretamente pelo AzazelBoss pai
         } else if (e instanceof SuccubusBoss) {
           e.updateBoss(this.player, delta);
+        } else if (e instanceof ShylphBoss) {
+          e.updateBoss(this.player, delta);
         } else if (e instanceof LynMiniBoss) {
           e.updateBoss(this.player, delta);
         } else if (e instanceof SkullSlime) {
@@ -1193,6 +1198,8 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     // 4. Instancia os props definidos no mapa
     const decor = this.chapterDecor;
+    // Mapas especiais (ex.: 202, Dimensão Corrompida) têm o próprio visual e não usam o kit
+    decor?.useChapter(map.chapter && map.chapter > 100 ? map.chapter : this.currentChapter);
     if (decor?.isActive) {
       // Kit de arte do capítulo: troca as peças antigas, monta composições e espalha detalhes
       decor.placeMapProps(map.props ?? [], (p) => this.arenaScenerySystem.placeMapProps([p]));
@@ -1493,6 +1500,19 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
   public sandboxSpawnAzazel(withIntroDialogue: boolean): void {
     this.sandboxController.spawnAzazel(withIntroDialogue);
+  }
+
+  public sandboxSpawnShylph(): void {
+    this.sandboxController.spawnShylph();
+  }
+
+  public sandboxForceShylphPhase(phase: 'seraph' | 'final'): void {
+    this.sandboxController.forceShylphPhase(phase);
+  }
+
+  /** Coloca a Shylph (Capítulo 3) em campo pelo sistema de lutas de chefe. */
+  public spawnShylphBoss(): void {
+    this.bossFights.spawnShylph();
   }
 
   public sandboxForceAzazelPhase2(): void {

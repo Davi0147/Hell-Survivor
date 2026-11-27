@@ -4,6 +4,15 @@ import { GameScene } from '../scenes/GameScene';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { ARENA_CONFIG } from '../config/balance';
+import {
+  SHYLPH_TEXTURE,
+  SHYLPH_FEATHER_TEXTURE,
+  SHYLPH_SERAPH_TEXTURE,
+  SHYLPH_SERAPH_GALLERY_ANIM,
+  SHYLPH_TORNADO_TEXTURE,
+  SHYLPH_TORNADO_ANIM,
+  shylphAnimKey,
+} from './ShylphAssets';
 
 export interface ShowroomItemConfig {
   name: string;
@@ -238,6 +247,16 @@ export class TestShowroomSystem {
           { name: 'Altar Invoc. Inativo', texture: 'altar-invoc-inactive', scale: 0.55 },
           { name: 'Altar Invoc. Ativo', texture: 'altar-invoc-active-1', scale: 0.55 },
           { name: 'Piso Chao2 (Cap2)', texture: 'floor-tile-2', scale: 0.32 },
+          { name: 'Piso Cap. 2 (Novo)', texture: 'floor-ch2', scale: 0.32 },
+          { name: 'Piso Cap. 3', texture: 'floor-ch3', scale: 0.32 },
+          { name: 'Altar Cap. 2 Apagado', texture: 'ch2-altar-off', scale: 0.5 },
+          { name: 'Altar Cap. 2 Aceso', texture: 'ch2-altar-on', scale: 0.5 },
+          { name: 'Altar Cap. 3 Apagado', texture: 'ch3-altar-off', scale: 0.5 },
+          { name: 'Altar Cap. 3 Aceso', texture: 'ch3-altar-on', scale: 0.5 },
+          { name: 'Anjo sem Cabeça (Cap. 2)', texture: 'ch2-statue', scale: 0.5 },
+          { name: 'Cristal de Almas (Cap. 2)', texture: 'ch2-crystal', scale: 0.5 },
+          { name: 'Anjo Vendado (Cap. 3)', texture: 'ch3-statue', scale: 0.5 },
+          { name: 'Pilar de Lava (Cap. 3)', texture: 'ch3-lava-pillar', scale: 0.5 },
           { name: 'Porta Prólogo', texture: 'prologue-door-sheet', frame: 7, scale: 0.625 },
           { name: 'Porta Aberta', texture: 'prologue-door-sheet', frame: 11, scale: 0.625 },
           { name: 'Retrato Cão', texture: 'portrait-dog-idle', scale: 0.2 },
@@ -320,7 +339,16 @@ export class TestShowroomSystem {
           { name: 'Rosalin (Chefe 1)', texture: 'succubus-idle-south', scale: 1.75, anim: 'succubus-fly-south' },
           { name: 'Azazel (Parado)', texture: 'azazel-idle-south', scale: 1.55, anim: 'azazel-idle-south' },
           { name: 'Azazel (Correndo)', texture: 'azazel-run-south-0', scale: 1.55, anim: 'azazel-run-south' },
-          { name: 'Azazel (Mão Erguida)', texture: 'azazel-hand-south', scale: 1.55, anim: 'azazel-hand-south' }
+          { name: 'Azazel (Mão Erguida)', texture: 'azazel-hand-south', scale: 1.55, anim: 'azazel-hand-south' },
+          // Folha única: o quadro certo vem da animação
+          { name: 'Shylph (Andando)', texture: SHYLPH_TEXTURE, scale: 1.25, anim: shylphAnimKey('walk-south') },
+          { name: 'Shylph (Lambendo)', texture: SHYLPH_TEXTURE, scale: 1.25, anim: shylphAnimKey('lick-east') },
+          { name: 'Shylph (Penas)', texture: SHYLPH_TEXTURE, scale: 1.25, anim: shylphAnimKey('throw-south') },
+          { name: 'Shylph (Vendaval)', texture: SHYLPH_TEXTURE, scale: 1.25, anim: shylphAnimKey('flap-south') },
+          { name: 'Shylph (Ajoelhada)', texture: SHYLPH_TEXTURE, scale: 1.25, anim: shylphAnimKey('kneel-south') },
+          { name: 'Shylph (Serafim)', texture: SHYLPH_SERAPH_TEXTURE, scale: 0.8, anim: SHYLPH_SERAPH_GALLERY_ANIM },
+          { name: 'Furacão da Shylph', texture: SHYLPH_TORNADO_TEXTURE, scale: 0.75, anim: SHYLPH_TORNADO_ANIM },
+          { name: 'Pena da Shylph', texture: SHYLPH_FEATHER_TEXTURE, scale: 1.5 }
         ]
       },
 

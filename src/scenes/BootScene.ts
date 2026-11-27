@@ -1,6 +1,6 @@
 import { ensurePlaceholderItemTextures } from '../systems/PlaceholderItemTextures';
 import { GAME_ICON_KEYS, GAME_ICON_FOLDERS } from '../config/iconKeys';
-import { CH1_DECOR_FILES } from '../config/sceneryCatalog';
+import { DECOR_FILES } from '../config/sceneryCatalog';
 import Phaser from 'phaser';
 import { DIRECTIONS_8, ENEMY_BALANCE, TALISMAN_BALANCE } from '../config/balance';
 import { PET_ANIM_FRAMES, PET_SPRITES, TALISMAN_CATALOG, TWIN_BOLT_TEXTURE } from '../systems/TalismanCatalog';
@@ -12,6 +12,7 @@ import { BUTTON_GLYPH_ATLAS, BUTTON_GLYPH_PATH } from '../config/inputGlyphs';
 import { InputDeviceTracker } from '../systems/InputDeviceTracker';
 import { CARD_FRAME_KEYS, CHAPTER_UI_PIECES, TALISMAN_THEME, chapterUiKey } from '../config/theme';
 import { CHAPTERS } from '../config/chapterCatalog';
+import { preloadShylphAssets, createShylphAnims, unloadShylphAssets } from '../systems/ShylphAssets';
 
 /** Arquivos em public/assets/sprites/enemies/Azazel/Projectiles (texturas `azazel-proj-<nome>`). */
 const AZAZEL_PROJECTILE_ART = ['comet', 'orb-glossy', 'orb-spiral', 'needle'] as const;
@@ -212,12 +213,15 @@ export class BootScene extends Phaser.Scene {
     if (this.textures.exists('chat-nixy-damage')) this.textures.remove('chat-nixy-damage');
     if (this.textures.exists('chat-rosalin-defeated')) this.textures.remove('chat-rosalin-defeated');
     if (this.textures.exists('ui-star')) this.textures.remove('ui-star');
+    unloadShylphAssets(this.textures, this.anims);
   }
 
   preload(): void {
     const { width, height } = this.scale;
     // Timestamp dinâmico garante que o navegador NUNCA sirva imagens em cache antigo
     const cacheBuster = Date.now();
+    // Shylph, a Serafim Caída (Capítulo 3): uma folha só com todas as animações
+    preloadShylphAssets(this.load, cacheBuster);
 
     // Garante carregamento da fonte Pixelzone na memória do navegador
     if (typeof document !== 'undefined' && document.fonts) {
@@ -300,9 +304,11 @@ export class BootScene extends Phaser.Scene {
 
     // 6. Carregar textura do chão enviada pelo usuário (Chão1.jpg)
     this.load.image('floor-tile', `assets/textures/chao1.jpg?t=${cacheBuster}`);
-    // Kit de cenário do Capítulo 1 (piso e peças em densidade 2x, desenhadas com escala 0.5)
-    this.load.image('floor-ch1', `assets/textures/floor-ch1.png?t=${cacheBuster}`);
-    for (const [key, file] of Object.entries(CH1_DECOR_FILES)) {
+    // Kits de cenário dos capítulos (piso e peças em densidade 2x, desenhadas com escala 0.5)
+    for (const n of [1, 2, 3]) {
+      this.load.image(`floor-ch${n}`, `assets/textures/floor-ch${n}.png?t=${cacheBuster}`);
+    }
+    for (const [key, file] of Object.entries(DECOR_FILES)) {
       this.load.image(key, `${file}?t=${cacheBuster}`);
     }
 
@@ -678,6 +684,7 @@ export class BootScene extends Phaser.Scene {
     SoundManager.getInstance().setScene(this);
     // Detector único de teclado / controle / toque para as dicas de botão
     InputDeviceTracker.getInstance().attach(this.game);
+    createShylphAnims(this.anims);
 
     // 1. Textura do chão: fallback procedural apenas caso a imagem não exista
     if (!this.textures.exists('floor-tile')) {

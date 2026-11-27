@@ -635,3 +635,19 @@ export const AWAKENING_CARD_TEXT = {
   title: 'DESPERTAR // O PODER DO ABISMO',
   hint: 'ESCOLHA PARA DESPERTAR SEU PODER',
 } as const;
+
+/**
+ * Shylph, a Serafim Caída (Capítulo 3): falas da luta (balões em cima dela). Sem telas de
+ * vitória: a queda entre o Serafim e a fase final é só a animação (decisão do dono).
+ */
+export const SHYLPH_FIGHT_TEXT = {
+  barName: 'SHYLPH, A SERAFIM CAÍDA',
+  seraphTaunt: 'Contemple minha verdadeira forma.',
+  risePhrase: 'Hihihi... você acreditou mesmo?',
+  lickTaunts: [
+    'Hmm... o seu vai ser mais doce.',
+    'Mais perto... eu quero provar.',
+    'Que cheiro bom de medo...',
+  ],
+  defeatLabel: 'SHYLPH DERROTADA',
+} as const;

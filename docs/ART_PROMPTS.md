@@ -220,7 +220,7 @@ Regras para todos: chão em 512x512, emendável nos quatro lados, **escuro e com
 | `floor-dimension.png` | `seamless tileable top-down floor texture, void-black glass floor with floating magenta cracks and distant stars underneath, 512x512, no visible seams, very dark` |
 | `dimension-prop-shard.png` | `floating jagged obsidian shard with magenta inner glow` |
 
-**Capítulo 3** ainda não tem tema definido. Quando você escolher o bioma e o chefe, eu escrevo a lista dele no mesmo formato.
+**Capítulos 2 e 3:** os kits completos (piso, objetos, detalhes de chão e altar) estão na seção 28.
 
 ---
 
@@ -1575,30 +1575,104 @@ must not appear anywhere on the pieces (the insides of the three frames are back
 
 ---
 
-## 25. Prompt fixo: estilo da arte (pixel art) + aparência da Nixy
+## 25. Prompt fixo: estilo visual novel (cenas e retratos) + aparência da Nixy
 
-Referência: `art-source/referencias/estilo-cena-01-closeup.jpg`, `estilo-cena-02-escritorio-longe.jpg` e `estilo-cena-03-escritorio-perto.jpg`.
+### O que as artes atuais têm em comum (análise)
 
-**Como usar:** cole os dois blocos fixos **sempre iguais** e escreva a cena que quiser no fim. Eles não dizem onde a cena acontece, nem luz, nem câmera: isso é da cena. Se o gerador aceitar imagem de referência, anexe as 3 imagens. Cena sem a Nixy: use só o bloco ART STYLE.
+Referências: as 6 cenas da abertura (`public/assets/scenes/intro/`), as 5 do fim do Capítulo 1 (`public/assets/scenes/chapter1/`) e os retratos (`public/assets/sprites/prologue/portrait-*.png`). Cópias para anexar ficam em `art-source/referencias/`.
+
+- **Pixel art moderna em alta resolução**, não 16-bit de verdade: a grade é fina (cada pixel da arte vale 2 a 3 pixels da tela, desenho de uns 640 a 900 px de largura). Dá para ver os degraus nas bordas, mas o rosto tem bastante detalhe.
+- **Sombra em blocos de cor** (3 a 5 tons por material) e **pontilhado (dithering)** só nas transições grandes: o cone de luz da lâmpada, o céu, a fumaça. Nada de degradê liso.
+- **Contorno escuro colorido nos personagens** (roxo-escuro, vinho; nunca preto puro). O fundo quase não tem contorno, para o personagem saltar.
+- **Rosto de anime** com olhos grandes e marcados, mas com um toque grotesco e de humor ácido (a Nixy de olho X e boca de abóbora).
+- **Cabelo e pano em mechas grandes** com reflexos pontudos de 1 a 2 pixels.
+- **Uma fonte de luz que manda na cena** (lâmpada âmbar no escritório; céu vermelho no inferno) e uma **luz de recorte** colorida na borda dos personagens.
+- **O personagem é sempre a coisa mais saturada da imagem.** O cenário é dessaturado e escuro (azul-acinzentado ou vermelho queimado), e o magenta do cabelo da Nixy é o ponto de cor.
+- **Enquadramento de cinema** em 16:9: close no terço esquerdo com o outro personagem ao fundo à direita, câmera baixa com objeto em primeiro plano, plano aberto mostrando o ambiente. O primeiro plano desfocado continua pixelado (Intro 3).
+- **Os retratos de diálogo são um degrau mais simples** que as cenas: pixel mais grosso, contorno de 1 pixel bem fechado, sombra em 3 tons, recortados, da cintura para cima.
+
+### Como usar
+
+1. Cole o bloco **ART STYLE** (sempre igual).
+2. Cole o bloco do **formato**: **CENA** (imagem de tela cheia) ou **RETRATO** (personagem recortado para o diálogo). Nunca os dois.
+3. Se a Nixy aparece, cole o bloco **NIXY**. Outro personagem: escreva um bloco no mesmo formato (veja o fim desta seção).
+4. Se for cena, cole **um clima** (inferno vermelho, escritório do inferno ou dimensão violeta) ou escreva o seu no mesmo formato.
+5. Escreva a cena no fim.
+6. Se o gerador aceitar imagem de referência, anexe `art-source/referencias/estilo-cena-01-closeup.jpg` e `estilo-cena-03-escritorio-perto.jpg` (cena) ou `public/assets/sprites/prologue/portrait-carlos.png` (retrato).
+
+Salve em `art-source/novos/` e me avise. Eu corto, ajusto o tamanho e coloco no jogo.
 
 ```text
-=== ART STYLE (fixed) ===
-High-resolution modern PIXEL ART illustration, like a key art or cutscene frame of a polished
-indie pixel-art game. The whole image is built on a visible pixel grid: one art pixel = 4x4 screen
-pixels (artwork about 480 px wide, scaled up with nearest neighbour), so every edge is a crisp
-stair-step. NO anti-aliasing, NO smooth airbrush gradients, NO painterly brush strokes, NO
-photographic or 3D texture.
-Shading uses flat clusters of color with 3 to 5 tones per material (base, shadow, deep shadow,
-highlight, rim light), and ordered checkerboard / Bayer DITHERING to blend large gradients (sky,
-walls, light glows, cloth). Clean selective outlines: dark colored outlines (not pure black) on
-characters, softer or no outlines on the background. Hair and cloth drawn as big readable clumps
-with sharp pixel highlights. Faces with an anime-influenced but slightly grotesque, darkly comedic
-look. Muted, desaturated, moody colors with strong value contrast on the main subject; saturated
-color used only where it matters. Out-of-focus foreground objects, when present, stay pixel art
-(blocky blur), never photographic blur.
-Never: text, letters, logos, watermark, signature, UI, frames or borders, extra fingers, chibi
-proportions, glossy 3D look, smooth vector look, anti-aliased edges.
+=== ART STYLE (fixed, always paste) ===
+Modern high-resolution PIXEL ART illustration, like a cutscene / visual novel CG of a polished
+indie pixel-art game. Built on a visible pixel grid: one art pixel = 2 to 3 screen pixels (art
+about 640-900 px wide, upscaled with nearest neighbour), every edge a crisp stair-step.
+NO anti-aliasing, NO smooth airbrush gradients, NO painterly brush strokes, NO photographic,
+3D-render or vector look.
+SHADING: flat clusters of color, 3 to 5 tones per material (base, shadow, deep shadow, highlight,
+rim light). Ordered checkerboard / Bayer DITHERING only on large transitions: light cones, glows,
+sky, smoke, fog. Hair and cloth as big readable clumps with sharp 1-2 pixel highlights.
+LINES: characters have a clean dark COLORED outline (deep plum, wine or navy, never pure black),
+with a thin colored rim light on the edge facing the light. Backgrounds have softer, sparse
+outlines so the characters pop.
+FACES: anime-influenced, large expressive eyes with heavy lashes, sharp chin, but slightly
+grotesque and darkly comedic. Strong readable acting: clear emotion in eyebrows, eyes and hands.
+LIGHT: ONE dominant motivated light source per scene, everything else falls into dark shadow.
+COLOR: the background is desaturated, dark and low in contrast; the characters are the most
+saturated and contrasted thing in the image. Saturated color only where the eye should go.
+Depth of field, when used, stays pixel art: blocky, chunky out-of-focus shapes, never a smooth
+photographic blur.
+NEVER: text, letters, numbers, logos, watermark, signature, UI, speech bubbles, frames or borders,
+extra or fused fingers, chibi proportions, glossy 3D look, smooth vector shading.
+```
 
+```text
+=== FORMAT: SCENE (full-screen CG) ===
+Widescreen 16:9 full scene, 1920x1080, edge to edge, cinematic composition. Use one of these
+framings: close-up of the main character in the LEFT third with the other character smaller in
+the RIGHT half in the background; low camera with a large foreground object (boots, desk, paper
+stacks) partly cropped by the frame; medium shot centered; or a wide establishing shot showing
+the room. Keep a clear foreground, middle ground and background. Leave the bottom 20% of the
+image calm and not too busy (a dialogue box is drawn over it).
+```
+
+```text
+=== FORMAT: PORTRAIT (dialogue sprite) ===
+Single character dialogue portrait for a visual novel, waist up (or full body if the pose needs
+it), 3/4 view turned toward the LEFT side of the image, clearly acting the requested emotion.
+Slightly simpler than a cutscene: chunkier pixels (one art pixel = 3 screen pixels, character
+about 300-400 px tall before upscaling), a closed 1-pixel dark colored outline around the whole
+silhouette, 3 to 4 cel-shading tones, light from the upper LEFT, no dithering on the character.
+Adult proportions, head a bit large for readability (about 3 heads tall from waist), NOT chibi.
+Background: solid flat pure green #00FF00, one single color, no shadow, no glow, no ground,
+no other objects. Nothing of the character touches the image edges. Do not use #00FF00 inside
+the character.
+```
+
+```text
+=== MOOD: HELL WASTELAND (red) ===
+Burnt blood-red sky with thick dark smoke clouds and drifting black smoke columns, cracked
+black volcanic ground with thin glowing lava veins and floating embers, jagged dark-red rocks.
+Palette: crimson (#b3121b, #6e0b12), near-black red (#2a0608), ember orange (#ff5a1f) only on
+lava and sparks. Everything red-tinted, the characters keep their own colors.
+```
+
+```text
+=== MOOD: HELL OFFICE (dim corporate) ===
+A cramped, dim office in hell: grey metal filing cabinets, shelves of binders, cardboard boxes,
+towering stacks of paper. ONE hanging lamp casts a warm amber cone of light (#ffcf7a, dithered
+edge) on the desk; the rest of the room sinks into cold navy and violet-grey shadow (#1c2033,
+#2b2a3d, #3d3a52). Warm wood desk (#5a3a26). Cozy-depressing, darkly funny.
+```
+
+```text
+=== MOOD: CORRUPTED DIMENSION (violet) ===
+Dark violet sky with swirling black clouds, cracked obsidian ground, floating shattered crystal
+shards with magenta inner glow, drifting black feathers. Palette: deep violet (#2a1238, #4b1673),
+black, crimson accents (#ff0044), tarnished gold (#8a6a2a). Cold violet light from above.
+```
+
+```text
 === NIXY (fixed appearance, always exactly this) ===
 Nixy, a young demon woman:
 - HAIR: very long, thick, messy, voluminous magenta-purple hair (base #8a1b9a, highlights #b02ad0,
@@ -1624,12 +1698,31 @@ Never give her: a normal human mouth or lips, colored or white eyes, short hair,
 color, dark horns, bare hands, a different outfit unless the scene asks for it.
 
 === SCENE (write here what you want) ===
-[[Where it happens, what she is doing, emotion, camera (close-up / medium / wide), light and
-key props. Example: "Close-up of Nixy grabbing her head with both hands in despair, in a dark
-office full of paper stacks, a faceless boss in a black suit behind her, warm lamp light from above."]]
+[[Who is in it, what they are doing, the emotion, the framing and the one light source.
+Example: "Close-up of Nixy grabbing her head with both hands in despair at her desk, out-of-focus
+paper stacks in the foreground, a faceless boss in a black suit standing in the dark behind her."]]
 ```
 
-**Outro personagem no mesmo estilo:** cole o bloco ART STYLE e escreva um bloco igual ao da Nixy para ele (cabelo, chifres, pele, olhos, rosto, mãos, roupa, corpo, jeito, "never give").
+**Outro personagem no mesmo estilo:** preencha este molde e cole no lugar do bloco NIXY. Quanto mais exato, mais o personagem sai igual de uma imagem para a outra. Depois que um personagem tiver uma boa imagem, anexe-a como referência nas próximas.
+
+```text
+=== <NAME> (fixed appearance, always exactly this) ===
+<Name>, <who they are in one line>:
+- HAIR: <length, shape, color with hex if possible>.
+- HORNS / EARS / TAIL / WINGS: <shape and color, or "none">.
+- SKIN: <color>.
+- EYES: <color, shape, anything unusual>.
+- FACE: <mouth, nose, marks, expression they usually wear>.
+- HANDS: <gloves, claws, rings>.
+- OUTFIT: <each piece of clothing with color>.
+- BODY: <height, build, posture>.
+- ATTITUDE: <personality shown in body language>.
+Never give <him/her/them>: <the mistakes the generator tends to make>.
+```
+
+**Exemplo pronto (retrato):** ART STYLE + PORTRAIT + NIXY + `SCENE: Nixy smirking with one hand on her hip, the other hand waving lazily, half-closed eyes, smug.` Salve como `art-source/novos/portrait-nixy-<emocao>.png`.
+
+**Exemplo pronto (cena):** ART STYLE + SCENE + NIXY + HELL OFFICE + `SCENE: wide shot, Nixy asleep face down on her desk under the lamp, drool on a contract, a stamp still in her gloved hand, a tiny imp stacking more paper on her head.`
 
 ---
 
@@ -1759,3 +1852,423 @@ Eu recorto (`scripts/cut-prologue-npcs.py`), coloco no corredor e ligo as falas.
 ### O cão do encontro (já salvo)
 
 `art-source/novos/prologo/cao-encontro-parado.jpg` e `cao-encontro-latindo.jpg`. Recortados em `public/assets/sprites/prologue/prologue-dog-idle.png` / `-bark.png` por `scripts/cut-prologue-dog.py`, que usa a mesma janela nos dois para o cão não tremer ao latir.
+
+---
+
+## 27. Sprites pela API do PixelLab (Chefe do Capítulo 3: Seraphim Ensanguentada)
+
+**Lição aprendida:** mandar a arte de conceito reduzida como referência (`reference_image`) deixa o sprite borrado, porque o desenho tem detalhe demais para 128 px. O que funciona é gerar **do zero, só pela descrição**, em 96 px com contorno preto: a IA simplifica o design do jeito certo para sprite. Pedir "sem efeitos" no fim de cada animação reduz (não zera) projéteis e vento desenhados junto.
+
+**Custos medidos (plano de teste, 1 geração por vez):** personagem 96 px em 8 direções = 3 gerações; cada animação de 8 quadros = 3 gerações **por direção** (em 128 px eram 4). O oeste sai espelhando o leste.
+
+**Ferramentas:** `scripts/pixellab/px.py` (cliente da API v2; a chave fica fora do repositório, em `D:\Downloads\pixlabapi.txt` ou no arquivo apontado por `PIXELLAB_KEY_FILE`) e `scripts/pixellab/fetch_anim.py` (baixa todos os quadros de um personagem). Tudo o que foi gerado, inclusive tentativas descartadas, fica em `art-source/referencias/Chefe Cap3/`.
+
+**Personagem** (`POST /create-character-v3`, `image_size` 96x96, `view` "low top-down", `outline` "single color black outline", `detail` "medium detail", 8 direções; versão escolhida: seed 7):
+
+```text
+bloody seraphim boss, tall slender fallen angel woman, eerie and unsettling. Very long straight pure white hair falling down to her waist. Two curved black demon horns on top of her head. Eyes hidden by a white cloth blindfold soaked with blood, red blood tears running down her pale cheeks, blood dripping from her lips. Very pale white skin. Six wings behind her back: four white feathered angel wings with blood red stained feather tips, and two dark tattered black bat demon wings. Long torn white robe down to her bare feet, black vertical panels on the front of the robe, black high collar, thin gold chain necklace, red cloth sash around the waist, shredded robe hem soaked in dark red blood. Long thin pale arms with clawed bloody fingers. Barefoot. Palette: white, ivory, dark blood red, crimson, black, muted gold. Holy and corrupted gothic horror, clean readable game sprite
+```
+
+**Animações** (`POST /animate-character`, `mode` "v3", `frame_count` 8, `keep_first_frame` false, uma direção por chamada). Todas terminam com: `No visual effects, no particles, no wind, no slash trails, no projectiles drawn: only the character body moves.`
+
+| Pasta no jogo | Direções | Ação pedida |
+|---|---|---|
+| `Walk` | south, east, north (+ west espelhado) | shambling zombie walk: limping and staggering forward unevenly, dragging one bare foot, head tilted and lolling to one side, arms hanging limp and swinging loosely, body swaying side to side, wings slowly flapping and twitching with each step. |
+| `IdleLick` | east (+ west) | idle: stands still, slowly raises one bloody clawed hand up to her mouth, sticks out her tongue and licks the blood off her fingers, creepy smile, then slowly lowers the hand back down, wings gently breathing. |
+| `Throw` | south, east (+ west) | attack: stands in place facing the same direction the whole time, pulls one clawed arm back behind her shoulder then whips it forward hard with an open hand as if throwing feathers, body leaning into the throw, then returns to standing. |
+| `WingFlap` | south, east (+ west) | attack: stays in place facing the same direction the whole time, spreads all wings wide open, then beats all wings forward powerfully two times as if blowing a gust, long hair and torn robe pushed back, then folds wings back to rest. |
+| `Kneel` | south | defeated: her strength fails, she staggers and slowly collapses down onto both knees, head hanging down, long hair falling over her face, arms limp at her sides, all wings drooping down to the ground, then stays kneeling motionless. (O jogo toca de trás para frente para ela levantar.) |
+
+**Pena** (`POST /create-image-pixen`, 32x32, 1 geração): `a single long white angel feather projectile, pointing straight to the right, sharp quill tip, feather tip soaked in dark blood red, clean pixel art game projectile sprite, single color black outline, no background`. Veio apontando para cima-direita e com riscos soltos; o script de montagem limpa os riscos e o código gira a pena 45°.
+
+Quadros limpos em `art-source/referencias/Chefe Cap3/frames_limpos/` (canvas único de 132x132). O `Throw` de lado veio com projétil azul e riscos: o azul e os pedaços soltos foram apagados por código e os 2 últimos quadros cortados (fica com 6). Depois de mexer nos quadros, rode `python scripts/pack-shylph.py` para refazer a folha do jogo (`public/assets/sprites/enemies/Shylph/`) e o mapa de quadros (`src/config/shylphSheet.ts`).
+
+### Prompt: furacão animado da Shylph (Vendaval)
+
+Salve como `art-source/novos/shylph/furacao.png`. No jogo ele fica com uns 60x80 px; eu reduzo e corto os quadros.
+
+```text
+PIXEL ART SPRITE SHEET of an animated magical HURRICANE / TORNADO for a dark gothic top-down
+(3/4 view) action game boss attack. ONE horizontal row of 8 frames, each frame EXACTLY 128 px wide
+and 160 px tall, total canvas 1024 x 160, frames side by side with no gaps and no borders.
+The tornado is a tall funnel: narrow point touching the ground at the bottom center of each frame,
+widening toward the top (about 110 px wide at the top, 140 px tall). Made of swirling pale wind
+(white #ffffff, pale lavender #d8d4e8, cold grey #9a95ad) with WHITE ANGEL FEATHERS caught in
+the spin and thin streaks of dark blood red (#8a0f2e, #c0123a) spiraling inside. A small dust and
+feather ring spins at the base on the ground. The 8 frames are ONE seamless LOOP of the funnel
+spinning: the wind bands and feathers move around the funnel a little each frame, frame 8 flows
+back into frame 1. Same size, same position and same ground point in every frame (it must not
+jump). Crisp hand-placed pixels, 1 px dark outline (#1a1024) on the outer silhouette, 3 to 4
+shading tones, NO anti-aliasing, NO blur, NO glow halo, NO smooth gradients.
+BACKGROUND: solid flat pure green #00FF00, perfectly uniform, no shadow; do not use green inside
+the tornado. No text, no frame numbers, no grid lines.
+```
+
+### Prompt: Shylph em forma de Serafim (2 quadros de asas)
+
+Salve como `art-source/novos/shylph/serafim.png`. Os dois quadros se alternam no jogo, como se ela batesse as asas.
+
+```text
+PIXEL ART SPRITE SHEET, 2 frames side by side, of a terrifying BIBLICAL SERAPH boss for a dark
+gothic top-down (3/4 view) action game. Canvas 1024 x 512: frame 1 on the left half (512 x 512),
+frame 2 on the right half (512 x 512), no gap, no border.
+THE CREATURE: the fallen seraph SHYLPH in her true form. No human body. In the exact center
+floats ONE HUGE EYE (about 140 px wide): white sclera with red veins, a crimson-red iris
+(#c0123a) and a black slit pupil, blood dripping from the lower lid, the eye half wrapped by torn
+white bandages soaked with blood. Two curved black demon horns rise from above the eye. Around
+the eye, MANY WINGS in rings: six large white feathered angel wings with blood-red stained
+feather tips (#8a0f2e) and two dark tattered black bat demon wings, arranged symmetrically like
+a burning flower around the eye, plus a thin broken golden halo (#c9a14a) behind it. Long
+strands of white hair drift between the wings. Palette: white, ivory, pale lavender shadows,
+dark blood red, crimson, black, muted gold.
+FRAME 1 = wings UP and spread wide (top wings raised high). FRAME 2 = wings DOWN (the same wings
+pushed down and slightly folded inward, like the downstroke of a flap). The EYE, the horns and
+the halo are IDENTICAL and in the SAME POSITION in both frames: only the wings move. The creature
+fills about 80% of each frame, centered.
+STYLE: crisp hand-placed pixels, 1-2 px dark outline (#1a1024), 3 to 5 shading tones per
+material, NO anti-aliasing, NO blur, NO glow halos, NO smooth gradients, holy and corrupted horror.
+BACKGROUND: solid flat pure green #00FF00, perfectly uniform, no shadow, no ground; do not use
+green on the creature. No text, no frame numbers.
+```
+
+**Já no jogo (2026-11-27):** `art-source/novos/shylph/furacao.jpg` (11 quadros) e `serafim.jpg` (2 quadros). Cada pixel da arte veio ocupando 4 pixels da imagem; `python scripts/cut-shylph-fx.py` recorta, tira o verde e reduz 4x sem borrar, gerando `public/assets/sprites/enemies/Shylph/shylph-tornado.png` e `shylph-seraph.png`. Gerar de novo com outro tamanho de pixel: ajuste `ART_PIXEL` no script.
+
+---
+
+## 28. Kits de cenário dos Capítulos 2 e 3 (prompts completos, prontos para colar)
+
+Mesmo método da seção 12: cada capítulo tem **4 imagens** (piso, folha A de objetos grandes, folha B de detalhes de chão, altar). Cada prompt abaixo já está completo, é só colar. Gere as 4 imagens de um capítulo no mesmo gerador e, se der, com a mesma *seed*.
+
+Salve em `art-source/novos/cenario/`: `floor-ch2`, `ch2-props`, `ch2-decals`, `ch2-altar` (e o mesmo com `ch3`).
+
+**Já no jogo (2026-11-27):** `python scripts/cut-chapter-kits.py` recorta as 8 imagens. O gerador não respeita a escala pedida, então o script reduz cada peça para o tamanho do prompt (em alturas de personagem) usando a tabela `KITS` do próprio script; regerar uma peça = trocar a imagem e rodar de novo. Peças, luzes, pegadas e composições ficam em `src/config/sceneryCatalog.ts` (`CHAPTER_DECOR_KITS`).
+
+A arte do menu do Capítulo 3 já está no jogo (`public/assets/sprites/chapters/chapter-03.jpg`; original em `art-source/novos/capitulos/capitulo-03.jpg`).
+
+### Capítulo 2 — Domínio de Azazel, o Falso Deus
+
+**Piso (`floor-ch2.png`)**
+
+```text
+Seamless tileable top-down floor texture for a dark gothic pixel art survival game: the floor of
+a FALLEN CELESTIAL CATHEDRAL ruled by a false god. Large cracked marble slabs that went dark and
+cold (violet-gray #1d1a2a to #2c2840), thin black mortar lines, a few black feathers pressed flat
+into the cracks, very faint thin violet lightning cracks (#4b3f6b, barely visible), worn traces
+of a gold inlay line (#4a3a1c) here and there. NO big landmarks, NO skulls, NO bright spots,
+extremely low contrast so characters and enemies pop on top of it. Uniform chunky pixel grid
+matching 4 screen pixels per art pixel, crisp pixels, no anti-aliasing, no blur. 512x512, tiles
+perfectly on all four sides with no visible seams.
+```
+
+**Folha A — objetos grandes e fontes de luz (`ch2-props.png`)**
+
+```text
+TOP-DOWN 3/4 VIEW ENVIRONMENT SPRITE SHEET for a dark gothic pixel art survival game, art
+style of a premium 16-bit era action RPG. Canvas 2048x2048 px, solid flat magenta background
+(#FF00FF) everywhere outside the art. Invisible 4x4 grid of 512x512 cells, exactly ONE asset
+per cell, centered horizontally, standing on an invisible ground line at 85% of the cell
+height, never touching or crossing another cell, at least 32 px of pure magenta margin.
+No text, no letters, no UI, no characters, no creatures, no frames around the cells.
+
+CRITICAL SCALE RULE: every asset uses the SAME pixel density, as if one art pixel equals
+4 screen pixels everywhere (chunky, uniform pixel grid, no mixed resolutions). Sizes are given
+relative to ONE HUMAN-SIZED CHARACTER HEIGHT (1 CH). Respect the stated size of each asset
+exactly; smaller assets must look small in the cell, do not stretch them to fill.
+
+CAMERA: top-down 3/4 view, about 45 degrees, the same angle for every asset: we see the top
+surface AND the front face of objects. Light comes from the upper-left, so the right and
+bottom faces are darker. Every grounded asset has a small, solid, dark purple-black contact
+shadow (#0e0a16) directly under its base, slightly offset to the lower-right, inside its cell.
+
+PALETTE AND VALUE HIERARCHY (gameplay readability): the environment must be MUTED and DARKER
+than the characters. Desaturated cold violet-gray marble (#1d1a2a, #2c2840, #4b3f6b), pale
+stone only as highlights (#8f86b5, #bdb6cc, never pure white), black feathers (#120e18),
+tarnished gold (#8a6a2a), and bright color ONLY on light sources: cold violet flame (#9d7bff
+with a #d4c4ff core). No neon, no saturated reds. Hard 1-pixel dark outline (#0b0712) on every
+asset, 3 to 4 shading steps per material, crisp clusters, no anti-aliasing, no blur, no
+gradients, no dithering noise.
+
+THEME: the domain of AZAZEL, THE FALSE GOD, a fallen angel who crowned himself god: a ruined
+celestial cathedral, shattered pale marble, black feathers, broken golden halos, cold violet
+fire, angel statues missing their heads, violet soul crystals, floating skulls, thin violet
+lightning cracks.
+
+Row 1 - large blockers (things the player walks around):
+ Cell 1 - FALLEN CATHEDRAL COLUMN: a fluted marble column snapped at mid-height, the top piece
+   lying beside the base, blackened and scorched at the bottom, a few black feathers stuck to
+   it. Height 2.2 CH, base about 0.9 CH wide.
+ Cell 2 - HEADLESS ANGEL STATUE: a winged angel statue on a square plinth, the head broken
+   off, holding a snapped stone sword downward, tarnished gold trims on the robe. Height 2.4 CH.
+ Cell 3 - GIANT FALLEN STONE WING: one enormous broken marble angel wing lying on the ground,
+   feathers carved in stone, cracked in two pieces. Length 1.9 CH, height 0.8 CH.
+ Cell 4 - SOUL CRYSTAL: a tall jagged violet crystal growing from the floor with the faint
+   dark silhouette of a trapped soul inside, small shards around its base, inner violet glow.
+   Height 1.8 CH.
+
+Row 2 - marble rubble, the SAME material in four sizes (so they can be mixed):
+ Cell 5 - MARBLE BLOCK LARGE: a big cracked cut marble block with a worn gold trim line and
+   one black feather on top. Height 1.0 CH, width 1.4 CH.
+ Cell 6 - MARBLE BLOCKS MEDIUM: two medium marble blocks leaning together. Height 0.7 CH.
+ Cell 7 - MARBLE CHUNKS SMALL: a cluster of 4 small marble chunks. Height 0.3 CH, width 0.8 CH.
+ Cell 8 - RUBBLE WITH HALO: broken carved stone fragments with a cracked stone halo ring lying
+   among them. Height 0.4 CH, width 1.2 CH.
+
+Row 3 - light sources (the game adds the glow, keep flames compact):
+ Cell 9 - COLD FIRE BRAZIER: a tall wrought-iron brazier with a spiked bowl holding a compact
+   cold violet flame. Height 1.5 CH.
+ Cell 10 - BROKEN CANDELABRA: a tall gothic candelabra bent to one side, five black candles
+   with small violet flames. Height 1.3 CH.
+ Cell 11 - CANDLE CLUSTER: seven black candles of different heights on the floor, wax pooled
+   together, tiny violet flames. Height 0.4 CH, width 0.8 CH.
+ Cell 12 - SKULL LANTERN: an iron pole with a hanging horned skull, violet fire burning inside
+   its eyes and mouth. Height 1.3 CH.
+
+Row 4 - set dressing with personality:
+ Cell 13 - BROKEN GOLDEN HALO: a large tarnished golden halo half buried in the floor, cracked,
+   faint violet glow on the break. Height 0.5 CH, width 1.2 CH.
+ Cell 14 - BLACK FEATHER HEAP: a knee-high heap of black feathers with a few small violet
+   embers. Height 0.4 CH, width 0.9 CH.
+ Cell 15 - SHATTERED STAINED GLASS: a large broken stained glass window piece leaning on a
+   stone frame, violet and gold glass showing half of an angel. Height 1.4 CH.
+ Cell 16 - BROKEN PEW: a cathedral pew bench split in the middle, dark wood with gold
+   carvings. Height 0.6 CH, width 1.4 CH.
+```
+
+**Folha B — detalhes de chão e entulho pequeno (`ch2-decals.png`)**
+
+```text
+TOP-DOWN ENVIRONMENT SPRITE SHEET for a dark gothic pixel art survival game, art style of a
+premium 16-bit era action RPG. Canvas 2048x2048 px, solid flat magenta background (#FF00FF)
+everywhere outside the art. Invisible 4x4 grid of 512x512 cells, exactly ONE asset per cell,
+centered, never touching or crossing another cell, at least 32 px of pure magenta margin.
+No text, no letters, no UI, no characters, no creatures, no frames around the cells.
+
+CRITICAL SCALE RULE: every asset uses the SAME pixel density, as if one art pixel equals
+4 screen pixels everywhere. Sizes are relative to ONE HUMAN-SIZED CHARACTER HEIGHT (1 CH);
+respect them exactly, do not stretch small assets to fill the cell.
+
+CAMERA FOR ROWS 1 AND 2 (DECALS): perfectly flat top-down decals painted ON the floor, no
+height, no front face, no contact shadow, semi-irregular silhouettes, slightly darker than a
+dark violet-gray marble floor (#1d1a2a to #2c2840).
+CAMERA FOR ROWS 3 AND 4 (SMALL CLUTTER): top-down 3/4 view, about 45 degrees, light from the
+upper-left, a small dark contact shadow (#0e0a16) under each object.
+
+PALETTE: muted and dark, cold violet-gray stone (#1d1a2a, #2c2840, #4b3f6b), pale highlights
+(#8f86b5), black feathers (#120e18), tarnished gold (#8a6a2a); bright only where stated
+(violet #9d7bff, magenta void glow #c23bff). Hard 1-pixel dark outline (#0b0712) on clutter,
+3 to 4 shading steps, crisp clusters, no anti-aliasing, no blur, no gradients.
+
+THEME: the ruined celestial cathedral of AZAZEL, THE FALSE GOD.
+
+Row 1 - large floor decals:
+ Cell 1 - CRACKED MARBLE PATCH: broken marble slabs with dark deep cracks spreading out, 2.0 CH wide.
+ Cell 2 - LIGHTNING SCORCH: a burned black star-shaped mark with thin violet lightning lines
+   branching from it, 1.6 CH wide.
+ Cell 3 - FADED FALSE-GOD SIGIL: an old circle drawn in ash on the floor, a crowned eye inside
+   a broken halo, partly erased, very low contrast, 2.4 CH wide.
+ Cell 4 - VOID CRACK: a jagged crack in the floor with a thin glowing magenta void line inside,
+   the only bright decal, 1.8 CH long.
+
+Row 2 - medium floor decals:
+ Cell 5 - SCATTERED BLACK FEATHERS: a loose trail of flat black feathers, 1.0 CH wide.
+ Cell 6 - DARK HOLY WATER PUDDLE: a small still puddle reflecting faint violet, 1.0 CH wide.
+ Cell 7 - STAINED GLASS SHARDS: tiny violet and gold glass shards scattered flat, 0.8 CH wide.
+ Cell 8 - ASH PILE STAIN: a gray ash spill with burned feather bits, 0.9 CH wide.
+
+Row 3 - small clutter:
+ Cell 9 - FALLEN ANGEL STONE HEAD: a cracked marble angel head lying on its side. 0.25 CH.
+ Cell 10 - BROKEN CHAIN with an open shackle lying on the floor. 0.7 CH long.
+ Cell 11 - FALLEN SWORD: a rusted holy sword with a tarnished gold guard, lying diagonally. 0.9 CH long.
+ Cell 12 - BURNED PRAYER BOOK: an open scorched book with torn pages. 0.3 CH.
+
+Row 4 - small clutter:
+ Cell 13 - CANDLE STUB: a single melted black candle with a tiny violet flame. 0.2 CH.
+ Cell 14 - SKULL WITH EMBER EYES: a single skull with faint violet embers in the eye sockets. 0.2 CH.
+ Cell 15 - CRYSTAL SHARD: a small violet crystal shard stuck in the floor, faint inner glow. 0.3 CH.
+ Cell 16 - SPIDER WEB stretched in a corner shape (to place at the base of walls). 0.8 CH.
+```
+
+**Altar de Invocação (`ch2-altar.png`)**
+
+```text
+TOP-DOWN 3/4 VIEW PIXEL ART SPRITE SHEET, 2 frames side by side, canvas 1024x512, each frame
+512x512, solid flat magenta background (#FF00FF), no text. The same object in both frames,
+same size and same position: a circular SUMMONING ALTAR for the boss AZAZEL, THE FALSE GOD,
+a round raised dais of cracked pale marble (diameter 2.2 CH, where 1 CH is one human height),
+a broken golden halo standing upright at the back like a throne, a crowned-eye sigil carved in
+the floor of the dais, four short black candles at the edges.
+FRAME 1 (DORMANT): cold and dark, candles unlit, sigil barely visible.
+FRAME 2 (AWAKENED): the sigil glows cold violet (#9d7bff with #d4c4ff core), violet lightning
+crawls around the halo, candles burn with violet flames.
+One art pixel = 4 screen pixels, top-down 3/4 view, light from the upper-left, small dark
+contact shadow, hard 1-pixel dark outline (#0b0712), muted violet-gray stone, crisp pixels,
+no anti-aliasing, no blur, no gradients.
+```
+
+### Capítulo 3 — Templo de Shylph, a Serafim Caída
+
+Clima tirado da arte do menu: templo de pedra escura, braseiros pendurados em correntes, pilares rachados com lava, escadas, auréolas douradas quebradas, sangue no mármore branco, penas brancas com ponta vermelha, vendas e olhos.
+
+**Piso (`floor-ch3.png`)**
+
+```text
+Seamless tileable top-down floor texture for a dark gothic pixel art survival game: the floor of
+a DESECRATED BLOOD TEMPLE of blindfolded angels. Worn warm dark-gray marble tiles (#231c1e to
+#34292b) laid in a large diamond pattern, thin dark mortar lines, old dried blood that seeped
+into the grout lines (#3a0a12, low contrast), a few faint worn gold inlay lines (#4a3a1c), a
+couple of flat white feathers with red tips pressed into the cracks. NO big landmarks, NO
+skulls, NO bright spots, NO lava, extremely low contrast so characters and enemies pop on top of
+it. Uniform chunky pixel grid matching 4 screen pixels per art pixel, crisp pixels, no
+anti-aliasing, no blur. 512x512, tiles perfectly on all four sides with no visible seams.
+```
+
+**Folha A — objetos grandes e fontes de luz (`ch3-props.png`)**
+
+```text
+TOP-DOWN 3/4 VIEW ENVIRONMENT SPRITE SHEET for a dark gothic pixel art survival game, art
+style of a premium 16-bit era action RPG. Canvas 2048x2048 px, solid flat magenta background
+(#FF00FF) everywhere outside the art. Invisible 4x4 grid of 512x512 cells, exactly ONE asset
+per cell, centered horizontally, standing on an invisible ground line at 85% of the cell
+height, never touching or crossing another cell, at least 32 px of pure magenta margin.
+No text, no letters, no UI, no characters, no creatures, no frames around the cells.
+
+CRITICAL SCALE RULE: every asset uses the SAME pixel density, as if one art pixel equals
+4 screen pixels everywhere (chunky, uniform pixel grid, no mixed resolutions). Sizes are given
+relative to ONE HUMAN-SIZED CHARACTER HEIGHT (1 CH). Respect the stated size of each asset
+exactly; smaller assets must look small in the cell, do not stretch them to fill.
+
+CAMERA: top-down 3/4 view, about 45 degrees, the same angle for every asset: we see the top
+surface AND the front face of objects. Light comes from the upper-left, so the right and
+bottom faces are darker. Every grounded asset has a small, solid, dark red-black contact
+shadow (#120608) directly under its base, slightly offset to the lower-right, inside its cell.
+
+PALETTE AND VALUE HIERARCHY (gameplay readability): the environment must be MUTED and DARKER
+than the characters. Warm dark stone (#231c1e, #34292b, #4a3b3c), ivory marble only as
+highlights (#cfc3b0, never pure white), dried blood (#3a0a12, #5a0f1c), fresh blood (#8a0f2e)
+used sparingly, tarnished gold (#8a6a2a, brighter #c9a14a only on halos), black iron (#16110f),
+and bright color ONLY on light sources: orange fire (#ff7a1f with #ffb347 core) and lava
+(#ff5a1f). No neon, no pink, no violet. Hard 1-pixel dark outline (#0c0606) on every asset,
+3 to 4 shading steps per material, crisp clusters, no anti-aliasing, no blur, no gradients,
+no dithering noise.
+
+THEME: the temple of SHYLPH, THE FALLEN SERAPH, a blood-soaked sanctuary where angels pray
+with bandaged eyes: dark stone and stained white marble, iron chains and hanging fire bowls,
+cracked pillars with glowing lava veins, broken golden halos, white feathers with blood-red
+tips, bloody bandages, carved eyes, bleeding white candles.
+
+Row 1 - large blockers (things the player walks around):
+ Cell 1 - HANGING FIRE BOWL POST: a tall black iron post with an arm from which an iron fire
+   bowl hangs on three chains, compact orange flame in the bowl. Height 2.0 CH.
+ Cell 2 - BLINDFOLDED ANGEL STATUE: a kneeling praying angel statue in stained white marble on
+   a low plinth, its eyes wrapped in a carved stone bandage with real dried blood running down
+   from under it, wings folded. Height 2.2 CH.
+ Cell 3 - LAVA-VEINED PILLAR: a square dark stone pillar, cracked down the front, a glowing
+   orange lava fissure running vertically inside the crack, broken top. Height 2.5 CH.
+ Cell 4 - BLOOD FONT: a round stone baptismal font on a carved pedestal, filled to the brim with
+   dark blood that drips over the rim, two white feathers floating on it. Height 1.0 CH.
+
+Row 2 - stained marble rubble, the SAME material in four sizes (so they can be mixed):
+ Cell 5 - MARBLE BLOCK LARGE: a big cracked block of dark stone with an ivory marble face, a
+   bloody handprint smeared on it. Height 1.0 CH, width 1.4 CH.
+ Cell 6 - MARBLE BLOCKS MEDIUM: two medium stained blocks leaning together. Height 0.7 CH.
+ Cell 7 - MARBLE CHUNKS SMALL: a cluster of 4 small chunks with a few blood spots. Height 0.3 CH,
+   width 0.8 CH.
+ Cell 8 - BROKEN STAIRS: a short broken flight of three dark stone steps going nowhere, cracked,
+   blood in the corners. Height 0.6 CH, width 1.4 CH.
+
+Row 3 - light sources (the game adds the glow, keep flames compact):
+ Cell 9 - FLOOR FIRE BOWL: a low black iron bowl on three clawed legs with embers and a small
+   orange flame. Height 0.9 CH.
+ Cell 10 - BLEEDING CANDLE STAND: a tall iron candle stand with five white candles whose wax
+   runs down blood-red, small orange flames. Height 1.4 CH.
+ Cell 11 - CANDLE CLUSTER: seven white candles of different heights on the floor, red wax pooled
+   together like blood, tiny flames. Height 0.4 CH, width 0.8 CH.
+ Cell 12 - STANDING BROKEN HALO: a large cracked golden halo standing upright on a stone base
+   like a monument, faint warm glow along the cracks. Height 1.6 CH.
+
+Row 4 - set dressing with personality:
+ Cell 13 - BANDAGES AND FEATHERS: a knee-high heap of bloody white bandages and white feathers
+   with red tips. Height 0.4 CH, width 0.9 CH.
+ Cell 14 - ANGEL CAGE: an empty black iron cage, door torn open, loose white feathers and
+   bloody bandage strips inside. Height 1.3 CH.
+ Cell 15 - CHOIR LECTERN: a carved stone lectern with an open hymn book whose pages drip blood
+   onto the floor. Height 1.1 CH.
+ Cell 16 - TABLET OF EYES: an upright stone tablet carved with many closed eyes in rows and one
+   single open eye painted in blood in the middle. Height 1.5 CH.
+```
+
+**Folha B — detalhes de chão e entulho pequeno (`ch3-decals.png`)**
+
+```text
+TOP-DOWN ENVIRONMENT SPRITE SHEET for a dark gothic pixel art survival game, art style of a
+premium 16-bit era action RPG. Canvas 2048x2048 px, solid flat magenta background (#FF00FF)
+everywhere outside the art. Invisible 4x4 grid of 512x512 cells, exactly ONE asset per cell,
+centered, never touching or crossing another cell, at least 32 px of pure magenta margin.
+No text, no letters, no UI, no characters, no creatures, no frames around the cells.
+
+CRITICAL SCALE RULE: every asset uses the SAME pixel density, as if one art pixel equals
+4 screen pixels everywhere. Sizes are relative to ONE HUMAN-SIZED CHARACTER HEIGHT (1 CH);
+respect them exactly, do not stretch small assets to fill the cell.
+
+CAMERA FOR ROWS 1 AND 2 (DECALS): perfectly flat top-down decals painted ON the floor, no
+height, no front face, no contact shadow, semi-irregular silhouettes, slightly darker than a
+warm dark-gray marble floor (#231c1e to #34292b).
+CAMERA FOR ROWS 3 AND 4 (SMALL CLUTTER): top-down 3/4 view, about 45 degrees, light from the
+upper-left, a small dark contact shadow (#120608) under each object.
+
+PALETTE: muted and dark, warm dark stone (#231c1e, #34292b, #4a3b3c), ivory highlights
+(#cfc3b0), dried blood (#3a0a12, #5a0f1c), fresh blood (#8a0f2e) sparingly, tarnished gold
+(#8a6a2a); bright only where stated (lava orange #ff5a1f). Hard 1-pixel dark outline (#0c0606)
+on clutter, 3 to 4 shading steps, crisp clusters, no anti-aliasing, no blur, no gradients.
+
+THEME: the blood temple of SHYLPH, THE FALLEN SERAPH (blindfolded angels, white feathers with
+red tips, bandages, eyes, golden halos, chains, lava cracks).
+
+Row 1 - large floor decals:
+ Cell 1 - CRACKED MARBLE PATCH: broken tiles with dried blood filling the cracks, 2.0 CH wide.
+ Cell 2 - BLOOD POOL WITH DRAG MARKS: a dark dried blood pool with two long drag smears
+   leading out of it, 1.6 CH wide.
+ Cell 3 - SERAPH SIGIL: a circle painted in old blood on the floor, six wings around a single
+   open eye in the middle, partly worn away, very low contrast, 2.4 CH wide.
+ Cell 4 - LAVA FISSURE: a jagged crack in the floor with a thin glowing orange lava line
+   inside, the only bright decal, 1.8 CH long.
+
+Row 2 - medium floor decals:
+ Cell 5 - SCATTERED FEATHERS: a loose trail of flat white feathers with blood-red tips, 1.0 CH wide.
+ Cell 6 - RED WAX DRIPS: hardened blood-red candle wax splashes, 0.8 CH wide.
+ Cell 7 - BLOODY FOOTPRINTS: a short trail of bare bloody footprints walking unevenly
+   (staggering), 1.2 CH long.
+ Cell 8 - SCORCH MARK: a burned black star-shaped mark with ember specks, 1.2 CH wide.
+
+Row 3 - small clutter:
+ Cell 9 - DISCARDED BLINDFOLD: a long white bandage strip soaked in blood, lying curled on the
+   floor. 0.15 CH tall, 0.6 CH wide.
+ Cell 10 - HALO SHARD: a broken piece of a golden halo lying on the floor. 0.4 CH.
+ Cell 11 - SNAPPED CHAIN with an open shackle lying on the floor. 0.7 CH long.
+ Cell 12 - SHATTERED STONE HAND: a broken marble angel hand, palm up, a little blood in it. 0.3 CH.
+
+Row 4 - small clutter:
+ Cell 13 - SKULL WITH FEATHER: a single skull with a white red-tipped feather stuck in its eye
+   socket. 0.2 CH.
+ Cell 14 - OFFERING BOWL: a small spilled stone bowl with blood running out of it. 0.3 CH.
+ Cell 15 - CARVED STONE EYE: a small round stone carved as a closed eye, a blood tear under it. 0.25 CH.
+ Cell 16 - EMBER PILE: a small pile of glowing coals and ash. 0.3 CH.
+```
+
+**Altar de Invocação (`ch3-altar.png`)**
+
+```text
+TOP-DOWN 3/4 VIEW PIXEL ART SPRITE SHEET, 2 frames side by side, canvas 1024x512, each frame
+512x512, solid flat magenta background (#FF00FF), no text. The same object in both frames,
+same size and same position: a circular SUMMONING ALTAR for the boss SHYLPH, THE FALLEN SERAPH,
+a round raised dais of dark stone with an ivory marble rim (diameter 2.2 CH, where 1 CH is one
+human height), three short steps at the front, a seraph sigil (six wings around one eye) carved
+in the floor of the dais, a cracked golden halo floating low above the center, four iron posts
+at the edges with fire bowls hanging on chains.
+FRAME 1 (DORMANT): dark and cold, fire bowls unlit, the carved eye closed, dried blood in the grooves.
+FRAME 2 (AWAKENED): the carved eye is OPEN, fresh blood fills the sigil grooves and glows
+crimson (#c0123a), the halo shines gold (#c9a14a), the fire bowls burn orange (#ff7a1f).
+One art pixel = 4 screen pixels, top-down 3/4 view, light from the upper-left, small dark
+contact shadow, hard 1-pixel dark outline (#0c0606), muted warm dark stone, crisp pixels,
+no anti-aliasing, no blur, no gradients.
+```

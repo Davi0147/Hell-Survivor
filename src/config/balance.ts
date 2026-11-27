@@ -549,7 +549,7 @@ export const SUCCUBUS_BOSS_BALANCE = {
 } as const;
 
 // ============================================================================
-// 5. CHEFE DO CAPÍTULO 2: AZAZEL, O ANJO CAÍDO
+// 5. CHEFE DO CAPÍTULO 2: AZAZEL, O FALSO DEUS
 // ============================================================================
 export const AZAZEL_BOSS_BALANCE = {
   /** 31200 = 24000 +30% (pedido do dono em 2026-11-24; antes 16000 → 24000). */
@@ -726,6 +726,127 @@ export const AZAZEL_BOSS_BALANCE = {
 } as const;
 
 // ============================================================================
+// 5b. CHEFE DO CAPÍTULO 3: SHYLPH, A SERAFIM CAÍDA
+// ============================================================================
+/**
+ * Três fases pela vida (pedido do dono, 2026-11-27):
+ *  - Normal (100% → 50%): anda como zumbi, Penas Cravadas, Vendaval e lambida de sangue.
+ *  - Serafim (49% → 25%): fica branca, vira um serafim de muitas asas com um olho no meio,
+ *    atira chuvas de penas rápidas em padrões, some e reaparece em outro lugar.
+ *  - Final (24% → 0%): o Serafim se desfaz, ela cai de joelhos (só a animação, sem tela de
+ *    vitória), levanta rindo e volta mais rápida, com penas girando em volta e mais ataques.
+ */
+export const SHYLPH_BOSS_BALANCE = {
+  hp: 28000,
+  /** Fração da vida em que cada fase começa. */
+  phaseAt: { seraph: 0.5, final: 0.25 },
+  /** Velocidade do andar cambaleante (fase normal) e da fase final. */
+  speed: 72,
+  finalSpeed: 125,
+  /** Dano de encostar nela. */
+  contactDamage: 12,
+  scale: 1.25,
+  /** Imunidade da heroína depois de levar um golpe dela (ms): golpes não se somam no mesmo instante. */
+  playerHitCooldownMs: 450,
+  damageTaken: { normal: 0.9, licking: 1.5, seraph: 1 },
+  /**
+   * Penas Cravadas: leque marcado no chão, as penas voam, cravam no fim do caminho, piscam
+   * e voltam para ela pelo mesmo trilho (dá para desviar das duas viagens).
+   */
+  feathers: {
+    cooldownMs: 5200,
+    finalCooldownMs: 3000,
+    firstCooldownMs: 2600,
+    telegraphMs: 700,
+    count: 5,
+    finalCount: 9,
+    /** Abertura total do leque (radianos). */
+    spread: 0.9,
+    finalSpread: 1.4,
+    range: 430,
+    speed: 520,
+    returnSpeed: 620,
+    stuckMs: 1100,
+    damage: 11,
+    hitRadius: 18,
+  },
+  /** Vendaval: bate as asas e solta tornados que perseguem e puxam a heroína. */
+  tornado: {
+    cooldownMs: 9500,
+    finalCooldownMs: 5500,
+    firstCooldownMs: 6500,
+    /** Tempo da animação de bater asas antes dos tornados saírem. */
+    windupMs: 750,
+    count: 2,
+    finalCount: 4,
+    /** Mais rápidos (pedido do dono, 2026-11-27): antes 70. */
+    speed: 125,
+    finalSpeed: 150,
+    /** Quanto o tornado corrige o rumo para a heroína (radianos por segundo). */
+    turnRate: 1.2,
+    /** Escala do sprite do furacão (quadro de 94x129 → ~70x97 na tela). */
+    artScale: 0.75,
+    lifeMs: 6000,
+    hitRadius: 30,
+    pullRadius: 190,
+    /** Puxão máximo (px/s), mais forte perto do centro. */
+    pullStrength: 95,
+    damage: 9,
+    hitCooldownMs: 700,
+  },
+  /** Lambida de sangue: para, lambe a mão e recebe mais dano (janela para o jogador). */
+  lick: {
+    cooldownMs: 12000,
+    firstCooldownMs: 9000,
+    durationMs: 2400,
+  },
+  /**
+   * Forma de Serafim: chuva de penas em padrões. Cada ciclo: aparece, atira um padrão,
+   * some e reaparece em outro lugar com o padrão seguinte. Só leva dano enquanto aparece.
+   */
+  seraph: {
+    /** Transformação: pisca branca antes de virar Serafim (e ao se desfazer). */
+    whiteFlashMs: 900,
+    appearMs: 350,
+    fireMs: 2600,
+    vanishMs: 350,
+    hiddenMs: 450,
+    /** Distância do novo ponto até a heroína ao reaparecer. */
+    teleportMin: 240,
+    teleportMax: 360,
+    /** Escala da arte do Serafim (quadro de 250x276 → ~200x220 na tela). */
+    artScale: 0.8,
+    /**
+     * Bater de asas: batida para baixo rápida (asas embaixo, o corpo é erguido pela batida)
+     * e subida das asas mais lenta (o corpo afunda um pouco). Em px de tela.
+     */
+    flap: { periodMs: 760, downstrokeFraction: 0.35, liftPx: 12, sinkPx: 4 },
+    bolt: { speed: 430, damage: 8, lifeMs: 2200, hitRadius: 14 },
+    /** Anel: várias penas em todas as direções, em ondas desencontradas. */
+    ring: { bolts: 14, waves: 4, intervalMs: 600 },
+    /** Espiral: dois braços girando. */
+    spiral: { arms: 2, intervalMs: 75, angleStep: 0.3 },
+    /** Leques mirados na heroína. */
+    aimed: { bolts: 7, spread: 1.0, intervalMs: 480 },
+    /** Estrela girando. */
+    star: { points: 6, intervalMs: 260, rotateStep: 0.2 },
+  },
+  /** Queda entre o Serafim e a fase final (só a animação). */
+  collapse: { kneelMs: 1700, riseMs: 1100 },
+  /** Fase final: penas girando em volta dela, mais longe para pegar uma área maior. */
+  orbit: {
+    count: 9,
+    /** Antes 92 (pedido do dono, 2026-11-27: mais longe). */
+    radius: 150,
+    /** Radianos por ms (0.005 ≈ uma volta a cada 1,25 s). */
+    spinPerMs: 0.005,
+    damage: 8,
+    hitRadius: 16,
+  },
+  soulReward: { min: 110, max: 140 },
+} as const;
+
+// ============================================================================
 // 6. REDE DE SEGURANÇA DAS LUTAS DE CHEFE (para qualquer build conseguir passar)
 // ============================================================================
 /**
@@ -739,9 +860,10 @@ export interface BossFatigueConfig {
   maxBonus: number;
 }
 
-export const BOSS_FATIGUE: Record<'rosalin' | 'azazel', BossFatigueConfig> = {
+export const BOSS_FATIGUE: Record<'rosalin' | 'azazel' | 'shylph', BossFatigueConfig> = {
   rosalin: { startsAfterMs: 100000, stepMs: 15000, bonusPerStep: 0.15, maxBonus: 1.5 },
   azazel: { startsAfterMs: 180000, stepMs: 15000, bonusPerStep: 0.15, maxBonus: 1.5 },
+  shylph: { startsAfterMs: 160000, stepMs: 15000, bonusPerStep: 0.15, maxBonus: 1.5 },
 };
 
 /** Multiplicador de dano recebido pelo chefe depois de `elapsedMs` de combate. */

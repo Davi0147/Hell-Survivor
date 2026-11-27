@@ -3,6 +3,7 @@ import type { BaseCharacter } from '../entities/characters/BaseCharacter';
 import { BaseEnemy } from '../entities/enemies/BaseEnemy';
 import { SuccubusBoss } from '../entities/enemies/SuccubusBoss';
 import { AzazelBoss, AzazelPhantomClone } from '../entities/enemies/AzazelBoss';
+import { ShylphBoss } from '../entities/enemies/ShylphBoss';
 import { BossSummonAltar } from '../entities/items/BossSummonAltar';
 import { AzazelCrystal } from '../entities/items/AzazelCrystal';
 import type { GemType } from '../entities/items/SoulGem';
@@ -13,9 +14,10 @@ import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { MetaProgressManager } from './MetaProgressManager';
 import { MapStorageManager, ChapterMapConfig } from '../config/mapData';
-import { ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, getBossRematchDialogue } from '../config/dialogues';
+import { ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, SHYLPH_FIGHT_TEXT, getBossRematchDialogue } from '../config/dialogues';
 import {
   AZAZEL_BOSS_BALANCE,
+  SHYLPH_BOSS_BALANCE,
   CAMERA_BALANCE,
   SUCCUBUS_BOSS_BALANCE,
   ENEMY_BALANCE,
@@ -24,10 +26,14 @@ import {
   getBossMercy,
   getBossDefeatOutcome,
 } from '../config/balance';
-import { CRYSTAL_ARENA_THEME } from '../config/theme';
+import { CRYSTAL_ARENA_THEME, SUMMON_ALTAR_EMBERS } from '../config/theme';
+import { CHAPTER_DECOR_KITS } from '../config/sceneryCatalog';
 import { getCrystalHordeStrength, getCrystalWaveIntervalMs, getBossRegenHp, clampToCircle } from './crystalPhaseRules';
 
-export type BossId = 'rosalin' | 'azazel';
+export type BossId = 'rosalin' | 'azazel' | 'shylph';
+
+/** Nome curto usado nos avisos de luta. */
+const BOSS_SHORT_NAME: Record<BossId, string> = { rosalin: 'ROSALIN', azazel: 'AZAZEL', shylph: 'SHYLPH' };
 
 /** Mapa da Dimensão Corrompida (fase dos cristais do Azazel). */
 const AZAZEL_DIMENSION_MAP_ID = 202;
@@ -62,6 +68,7 @@ export interface IBossFightContext {
   isChapterCompleted: boolean;
   bossInstance?: SuccubusBoss;
   azazelBoss?: AzazelBoss;
+  shylphBoss?: ShylphBoss;
   bossSummonAltar: BossSummonAltar | null;
 
   clampToArena(x: number, y: number, margin?: number): { x: number; y: number };
@@ -122,7 +129,14 @@ export class BossFightSystem {
   /** Chefe que o jogador está enfrentando agora (para registrar mortes e revanches). */
   public getActiveBossId(): BossId | undefined {
     if (!this.ctx.isBossFightActive) return undefined;
+    if (this.ctx.currentChapter === 3 || this.ctx.shylphBoss?.active) return 'shylph';
     return this.ctx.currentChapter === 2 || this.ctx.azazelBoss?.active ? 'azazel' : 'rosalin';
+  }
+
+  private getBossById(id: BossId): { active: boolean; isDead: boolean; damageTakenMultiplier: number } | undefined {
+    if (id === 'azazel') return this.ctx.azazelBoss;
+    if (id === 'shylph') return this.ctx.shylphBoss;
+    return this.ctx.bossInstance;
   }
 
   /** Multiplicador atual de dano recebido pelo chefe (1 = sem exaustão). */
@@ -168,7 +182,7 @@ export class BossFightSystem {
 
   private updateFatigue(delta: number): void {
     if (!this.fightBossId) return;
-    const boss = this.fightBossId === 'azazel' ? this.ctx.azazelBoss : this.ctx.bossInstance;
+    const boss = this.getBossById(this.fightBossId);
     if (!boss || !boss.active || boss.isDead) return;
 
     this.fightElapsedMs += delta;
@@ -177,7 +191,7 @@ export class BossFightSystem {
 
     if (mult > 1 && !this.fatigueAnnounced) {
       this.fatigueAnnounced = true;
-      const name = this.fightBossId === 'azazel' ? 'AZAZEL' : 'ROSALIN';
+      const name = BOSS_SHORT_NAME[this.fightBossId];
       this.hud?.showWaveAlert(`${name} ESTÁ CANSANDO!\nSEUS GOLPES CAUSAM MAIS DANO!`, 3500);
       DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Exaustão do chefe iniciada (${name}) aos ${Math.round(this.fightElapsedMs / 1000)}s de luta.`);
     }
@@ -211,7 +225,10 @@ export class BossFightSystem {
       this.ctx.bossSummonAltar.destroy();
       this.ctx.bossSummonAltar = null;
     }
-    const altar = new BossSummonAltar(this.scene, x, y);
+    // Altar com a arte do capítulo, quando existe (Capítulos 2 e 3)
+    const kitAltar = CHAPTER_DECOR_KITS[this.ctx.currentChapter]?.altar;
+    const look = kitAltar ? { ...kitAltar, embers: SUMMON_ALTAR_EMBERS[this.ctx.currentChapter] } : undefined;
+    const altar = new BossSummonAltar(this.scene, x, y, look);
     altar.on('boss-summon-triggered', () => this.handleSummonTriggered());
     this.ctx.bossSummonAltar = altar;
   }
@@ -223,7 +240,7 @@ export class BossFightSystem {
     altar.activate();
     this.ctx.isHordeSpawningPaused = true;
 
-    const bossLabel = this.ctx.currentChapter === 2 ? 'AZAZEL' : 'ROSALIN';
+    const bossLabel = this.ctx.currentChapter === 3 ? 'SHYLPH' : this.ctx.currentChapter === 2 ? 'AZAZEL' : 'ROSALIN';
     this.hud?.showCenterAnnouncement('O ALTAR DE INVOCAÇÃO FOI INVOCADO!', `SIGA O MARCADOR PARA O CONFRONTO CONTRA ${bossLabel}`);
     DebugSessionLogger.getInstance().log('ALTAR', 'INFO', `Altar de Invocação ativado (${bossLabel})! Hordas pausadas.`);
   }
@@ -240,7 +257,9 @@ export class BossFightSystem {
 
   private handleSummonTriggered(): void {
     if (this.ctx.isBossFightActive) return;
-    if (this.ctx.currentChapter === 2) {
+    if (this.ctx.currentChapter === 3) {
+      this.startShylphEncounter();
+    } else if (this.ctx.currentChapter === 2) {
       this.startAzazelEncounter();
     } else {
       this.startRosalinEncounter();
@@ -252,7 +271,7 @@ export class BossFightSystem {
   // ===========================================================================
 
   private isBossEntity(e: BaseEnemy): boolean {
-    return e === this.ctx.bossInstance || e === this.ctx.azazelBoss || e instanceof AzazelPhantomClone;
+    return e === this.ctx.bossInstance || e === this.ctx.azazelBoss || e === this.ctx.shylphBoss || e instanceof AzazelPhantomClone;
   }
 
   /** Pulveriza todos os monstros comuns, deixando só o chefe em campo. */
@@ -478,6 +497,65 @@ export class BossFightSystem {
       return;
     }
     this.completeChapter(1, SUCCUBUS_BOSS_BALANCE.soulReward);
+  }
+
+  // ===========================================================================
+  // SHYLPH, A SERAFIM CAÍDA (Capítulo 3): morte falsa entre as fases
+  // ===========================================================================
+
+  private startShylphEncounter(): void {
+    this.ctx.isBossFightActive = true;
+    SoundManager.getInstance().playBossMusic(2200);
+    this.dissipateMinions();
+    this.ctx.clearCombatSpeechBubbles();
+    this.scene.cameras.main.flash(350, 255, 255, 255);
+    this.scene.cameras.main.shake(250, 0.02);
+    this.spawnShylph();
+  }
+
+  /** Coloca a Shylph em campo já lutando (o diálogo de entrada vem com o Capítulo 3). */
+  public spawnShylph(): void {
+    // No Modo de Teste ela nasce perto da heroína (o ponto de chefe do mapa pode estar longe)
+    const pos = this.ctx.gameMode === 'sandbox'
+      ? this.ctx.clampToArena(this.ctx.player.x + 220, this.ctx.player.y - 160)
+      : this.resolveBossSpawn(220, -160);
+    const mercy = this.getMercy('shylph');
+    const boss = new ShylphBoss(this.scene, pos.x, pos.y);
+    this.ctx.enemiesGroup.add(boss);
+    boss.spawn(pos.x, pos.y, Math.round(SHYLPH_BOSS_BALANCE.hp * mercy.hpMultiplier));
+    boss.attackDamageMultiplier = mercy.damageMultiplier;
+    this.ctx.shylphBoss = boss;
+    this.startFightClock('shylph');
+    if (mercy.stacks > 0) this.announceMercy('SHYLPH ESTÁ ENFRAQUECIDA');
+
+    const logPhase = (label: string): void =>
+      DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Shylph: ${label} aos ${Math.round(this.fightElapsedMs / 1000)}s de luta.`);
+    boss.on('shylph-seraph', () => {
+      logPhase('forma de Serafim');
+      this.ctx.showCombatSpeechBubble(boss, SHYLPH_FIGHT_TEXT.seraphTaunt, 2200, false);
+    });
+    boss.on('shylph-collapse', () => logPhase('caiu de joelhos'));
+    boss.on('shylph-rise', () => this.ctx.showCombatSpeechBubble(boss, SHYLPH_FIGHT_TEXT.risePhrase, 2400, false));
+    boss.on('shylph-final', () => logPhase('fase final'));
+    boss.on('shylph-lick', () => {
+      const taunts = SHYLPH_FIGHT_TEXT.lickTaunts;
+      this.ctx.showCombatSpeechBubble(boss, taunts[Phaser.Math.Between(0, taunts.length - 1)], 2000, false);
+    });
+    boss.on('boss-defeated', () => {
+      this.ctx.bossSummonAltar?.complete();
+      this.handleShylphDefeated(boss);
+    });
+  }
+
+  private handleShylphDefeated(boss: ShylphBoss): void {
+    DebugSessionLogger.getInstance().log('BOSS', 'INFO', `Shylph derrotada em ${Math.round(this.fightElapsedMs / 1000)}s de luta.`);
+    this.stopFightClock();
+    if (getBossDefeatOutcome(this.ctx.gameMode) === 'continue-run') {
+      if (this.ctx.shylphBoss === boss) this.ctx.shylphBoss = undefined;
+      this.continueRunAfterBoss(SHYLPH_FIGHT_TEXT.defeatLabel, boss.x, boss.y, SHYLPH_BOSS_BALANCE.soulReward);
+      return;
+    }
+    this.completeChapter(3, SHYLPH_BOSS_BALANCE.soulReward);
   }
 
   // ===========================================================================

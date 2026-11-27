@@ -134,6 +134,10 @@
 - [x] **Ritmo de Combate (v0.10.0):** combo de abates com Frenesi, esquiva com invulnerabilidade, golpes críticos e cinco cartas novas (`CombatFeelSystem.ts`).
 - [ ] **Sistema de Conquistas In-Game (Achievements):** Notificações estilo arcade aproveitando os dados de `MetaProgressManager.stats`.
 - [ ] **Capítulo 3:** Novo bioma, chefe inédito e continuação da campanha.
+  - [x] Chefe **Shylph, a Serafim Caída** (`ShylphBoss.ts`): fase normal (andar de zumbi, Penas Cravadas, Vendaval, lambida de sangue), forma de Serafim de 49% a 25% (chuva de penas em padrões + teleporte), queda de joelhos e fase final com anel largo de penas. Jogável só pelo Modo de Teste.
+  - [x] Arte do Serafim (2 quadros de asas, bater de asas com o corpo subindo e descendo) e do furacão animado (11 quadros).
+  - [ ] Mapa/bioma, entrada no Modo História (`chapterCatalog.ts` `released`), diálogo de entrada e de revanche, retrato de diálogo, arte do capítulo e cena final.
+  - [ ] Efeito visual das penas (o dono vai trazer a arte dos projéteis).
 - [x] **Prólogo do Capítulo I (pedido do dono em 2026-11-26):** corredor do RH (`PrologueScene`) com paredes, funcionários que conversam e porta de saída; chegada na arena pela porta, encontro com o cão, latido e horda (`StoryArrivalSystem`); ressurgir mantém a entrada antiga; sem PULAR no corredor (decisão do dono).
   - [x] Arte do estagiário e da dupla de fofoqueiras (2026-11-26).
   - [x] Segurança (múmia vigia) e porta animada da chegada (sobe no fogo, abre, fecha, afunda).

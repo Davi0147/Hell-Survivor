@@ -2,13 +2,13 @@ import Phaser from 'phaser';
 import type { MapEntityProp } from '../config/mapData';
 import { ARENA_CONFIG } from '../config/balance';
 import {
-  CH1_DECOR,
-  CH1_LEGACY_SWAP,
-  CH1_LANDMARKS,
+  CHAPTER_DECOR_KITS,
   DECOR_SCATTER,
   DECOR_TEXTURE_SCALE,
   DecorPiece,
+  type ChapterDecorKit,
 } from '../config/sceneryCatalog';
+import { SCENERY_LIGHT_TINT } from '../config/theme';
 
 /** Contrato mínimo que a cena expõe para o ChapterDecorSystem. */
 export interface IChapterDecorContext {
@@ -84,14 +84,29 @@ export class ChapterDecorSystem {
   /** Pegadas sólidas dos objetos grandes (a cena liga a colisão com a heroína e os monstros). */
   public readonly blockers: Phaser.Physics.Arcade.StaticGroup;
 
+  /** Capítulo do mapa carregado (a Dimensão Corrompida, 202, não tem kit e usa o cenário antigo). */
+  private kitChapter = 1;
+
   constructor(private readonly ctx: IChapterDecorContext, private readonly owner: IDecorOwner) {
-    for (const p of CH1_DECOR) this.pieces.set(p.key, p);
+    for (const kit of Object.values(CHAPTER_DECOR_KITS)) {
+      for (const p of kit.pieces) this.pieces.set(p.key, p);
+    }
     this.blockers = ctx.physics.add.staticGroup();
   }
 
-  /** O kit vale para este capítulo e a arte carregou? */
+  /** Escolhe o kit pelo capítulo do mapa que vai ser montado. */
+  public useChapter(chapter: number): void {
+    this.kitChapter = chapter;
+  }
+
+  private get kit(): ChapterDecorKit | undefined {
+    return CHAPTER_DECOR_KITS[this.kitChapter];
+  }
+
+  /** O kit vale para este mapa e a arte carregou? */
   public get isActive(): boolean {
-    return this.ctx.currentChapter === 1 && this.ctx.textures.exists('ch1-pillar');
+    const kit = this.kit;
+    return !!kit && this.ctx.textures.exists(kit.pieces[0].key);
   }
 
   public isDecorKey(key: string): boolean {
@@ -101,7 +116,7 @@ export class ChapterDecorSystem {
   /** Coloca os props de um mapa trocando os tipos antigos pelos novos. */
   public placeMapProps(props: MapEntityProp[], placeOther: (p: MapEntityProp) => void): void {
     for (const p of props) {
-      const swap = CH1_LEGACY_SWAP[p.type];
+      const swap = this.kit?.legacySwap[p.type];
       if (swap) {
         this.addPiece(stablePick(swap, p.x, p.y), p.x, p.y);
       } else if (this.pieces.has(p.type)) {
@@ -117,7 +132,9 @@ export class ChapterDecorSystem {
    * longe do ponto de partida e dos pontos informados em `keepClear`).
    */
   public scatter(keepClear: { x: number; y: number }[]): void {
-    const rng = new Phaser.Math.RandomDataGenerator([DECOR_SCATTER.seed]);
+    const kit = this.kit;
+    if (!kit) return;
+    const rng = new Phaser.Math.RandomDataGenerator([kit.seed]);
     const margin = 260;
     const randomPoint = (): { x: number; y: number } => ({
       x: rng.between(ARENA_CONFIG.MIN_X + margin, ARENA_CONFIG.MAX_X - margin),
@@ -137,7 +154,7 @@ export class ChapterDecorSystem {
     }
 
     for (const spot of landmarkSpots) {
-      const recipe = rng.pick(CH1_LANDMARKS);
+      const recipe = rng.pick(kit.landmarks);
       for (const floorKey of recipe.floor) {
         this.addPiece(floorKey, spot.x + rng.between(-30, 30), spot.y + rng.between(-10, 30));
       }
@@ -156,8 +173,8 @@ export class ChapterDecorSystem {
       }
     }
 
-    const decals = CH1_DECOR.filter((p) => p.layer === 'decal').map((p) => p.key);
-    const clutter = CH1_DECOR.filter((p) => p.layer === 'clutter').map((p) => p.key);
+    const decals = kit.pieces.filter((p) => p.layer === 'decal').map((p) => p.key);
+    const clutter = kit.pieces.filter((p) => p.layer === 'clutter').map((p) => p.key);
     for (let i = 0; i < DECOR_SCATTER.decals; i++) {
       const pt = randomPoint();
       if (isClear(pt.x, pt.y)) this.addPiece(rng.pick(decals), pt.x, pt.y);
@@ -199,7 +216,7 @@ export class ChapterDecorSystem {
     if (piece.layer === 'tall') {
       this.tall.push({ image: img, baseY: y, halfW: img.displayWidth / 2, height: img.displayHeight });
     }
-    if (piece.light) this.addLight(x, y - piece.light.offsetY, piece.light.scale);
+    if (piece.light) this.addLight(x, y - piece.light.offsetY, piece.light.scale, piece.light.tint);
     if (piece.block) this.addBlockers(piece.block, x, y);
     return img;
   }
@@ -269,10 +286,11 @@ export class ChapterDecorSystem {
     }
   }
 
-  private addLight(x: number, y: number, scale: number): void {
+  private addLight(x: number, y: number, scale: number, tint?: keyof typeof SCENERY_LIGHT_TINT): void {
     if (!this.ctx.textures.exists('torch-light')) return;
     const halo = this.ctx.add.image(x, y, 'torch-light');
     halo.setDepth(DEPTH.light).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setScale(scale);
+    if (tint) halo.setTint(SCENERY_LIGHT_TINT[tint]);
     this.ctx.tweens.add({
       targets: halo,
       scaleX: { from: scale * 0.92, to: scale * 1.1 },

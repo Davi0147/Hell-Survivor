@@ -32,7 +32,7 @@ const RELEASED: ChapterInfo[] = [
     number: 1,
     numeral: 'I',
     title: 'O DESPERTAR NO ABISMO',
-    boss: 'IMPERATRIZ ROSALIN',
+    boss: 'ROSALIN, A SÚCUBO INFERNAL',
     summary: 'Nixy larga o emprego no Inferno e acorda nas catacumbas do abismo. A saída passa pela Imperatriz Rosalin, a súcubo que manda nesses corredores.',
     released: true,
     art: 'chapter-01.jpg',
@@ -42,11 +42,22 @@ const RELEASED: ChapterInfo[] = [
     number: 2,
     numeral: 'II',
     title: 'O DOMÍNIO DE AZAZEL',
-    boss: 'AZAZEL, O ANJO CAÍDO',
+    boss: 'AZAZEL, O FALSO DEUS',
     summary: 'O segundo círculo cheira a enxofre e arrogância. Azazel apaga a luz, prende almas em cristais e não deixa ninguém sair do seu domínio.',
     released: true,
     art: 'chapter-02.jpg',
     fallbackSprite: 'azazel-idle-south',
+  },
+  {
+    // Ainda fechado ("em breve"), mas a arte já aparece atrás das correntes.
+    // Título e resumo provisórios (o dono decide ao lançar); fechado, a tela mostra "???".
+    number: 3,
+    numeral: 'III',
+    title: 'O CORO QUE SANGRA',
+    boss: 'SHYLPH, A SERAFIM CAÍDA',
+    summary: 'Um templo onde os anjos rezam de olhos vendados. Shylph sorri, lambe o sangue dos dedos e espera você acreditar que venceu.',
+    released: false,
+    art: 'chapter-03.jpg',
   },
 ];
 

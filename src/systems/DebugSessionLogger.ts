@@ -17,6 +17,8 @@ export interface ILoggerWorld {
   readonly mapItemsGroup?: Phaser.GameObjects.Group;
   readonly weapons?: ReadonlyArray<{ name?: string }>;
   readonly bossInstance?: { active: boolean; isDead: boolean; hp: number; maxHp: number } | null;
+  readonly azazelBoss?: { active: boolean; isDead: boolean; hp: number; maxHp: number } | null;
+  readonly shylphBoss?: { active: boolean; isDead: boolean; hp: number; maxHp: number } | null;
 }
 import { STORAGE_KEYS } from '../config/storageKeys';
 
@@ -280,7 +282,8 @@ export class DebugSessionLogger {
     const playerPos = p ? `(${Math.round(p.x)}, ${Math.round(p.y)})` : '(0, 0)';
     const playerLevel = p ? p.currentLevel : 1;
 
-    const boss = gameScene.bossInstance;
+    // Qualquer chefe em campo (antes só a Rosalin aparecia no relatório)
+    const boss = [gameScene.shylphBoss, gameScene.azazelBoss, gameScene.bossInstance].find((b) => b && b.active && !b.isDead);
     const bossActive = Boolean(boss && boss.active && !boss.isDead);
     const bossHp = boss && bossActive ? `${Math.ceil(boss.hp)}/${boss.maxHp}` : undefined;
 
