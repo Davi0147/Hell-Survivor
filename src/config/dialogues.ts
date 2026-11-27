@@ -543,75 +543,68 @@ export function getBossRematchDialogue(bossId: string, deathsToBoss: number): Di
   return [];
 }
 
-/** Uma fala curta no corredor do prólogo (balão em cima de quem fala, sem retrato). */
-export interface PrologueTalkLine {
-  /** `npc2`: a segunda pessoa de um NPC em dupla (ver `speakers` em config/prologueData.ts). */
-  who: 'npc' | 'npc2' | 'nixy';
-  text: string;
+/** Fala da Nixy na tela de diálogo (retrato na esquerda). */
+function nixySays(text: string): DialogueLine {
+  return { speaker: 'nixy', speakerName: 'Nixy', portraitKey: 'chat-nixy', text };
+}
+
+/** Fala de um funcionário do corredor (retrato `portrait-<id>` na direita). */
+function npcSays(id: string, name: string, text: string): DialogueLine {
+  return { speaker: id, speakerName: name, portraitKey: `portrait-${id}`, text };
+}
+
+/** Lina e Gina aparecem juntas; só acende quem fala (as duas = falando juntas). */
+const LINA_GINA: readonly [string, string] = ['portrait-lina', 'portrait-gina'];
+function duoSays(who: 'lina' | 'gina' | 'ambas', text: string): DialogueLine {
+  const speaking = who === 'lina' ? [0] : who === 'gina' ? [1] : [0, 1];
+  const name = who === 'lina' ? 'Lina' : who === 'gina' ? 'Gina' : 'Lina e Gina';
+  return { speaker: who === 'gina' ? 'gina' : 'lina', speakerName: name, portraitKey: 'portrait-lina', text, duo: { portraits: LINA_GINA, speaking } };
 }
 
 /**
- * Conversas dos funcionários parados no corredor do RH (o `id` vem de config/prologueData.ts).
- * Cada vez que a Nixy fala com a mesma pessoa, vem a próxima conversa da lista.
+ * Conversas com os funcionários do corredor do RH (o `id` vem de config/prologueData.ts), na
+ * mesma tela de diálogo da história: Nixy na esquerda, o funcionário na direita. Roteiro do dono.
  */
-export const PROLOGUE_NPC_TALKS: Record<string, PrologueTalkLine[][]> = {
-  arquivista: [
-    [
-      { who: 'npc', text: 'Formulário 666-B em três vias... não, quatro... não, cinco...' },
-      { who: 'nixy', text: 'Faz quantos séculos que você tá nesse formulário?' },
-      { who: 'npc', text: 'Quatro. Mas esse ano eu termino.' },
-    ],
-    [
-      { who: 'npc', text: 'Você não pode sair do setor sem carimbo de saída.' },
-      { who: 'nixy', text: 'Carimba isso aqui, ó.' },
-    ],
-    [
-      { who: 'npc', text: 'Arquivaram meu pedido de férias. No arquivo morto. Junto comigo.' },
-    ],
+export const PROLOGUE_NPC_DIALOGUES: Record<string, DialogueLine[]> = {
+  carlos: [
+    npcSays('carlos', 'Carlos', 'Que barulho foi esse saindo da tua sala?'),
+    nixySays('Eu vou fugir daqui.'),
+    npcSays('carlos', 'Carlos', '...'),
+    npcSays('carlos', 'Carlos', 'Endoidou?'),
+    nixySays('Estou mais sã do que nunca.'),
+    nixySays('Todos aqui vacilaram comigo, e eu não vou mais aceitar ser usada!'),
+    npcSays('carlos', 'Carlos', 'Nossa, que coragem, hein...'),
+    npcSays('carlos', 'Carlos', 'Boa sorte...'),
+    nixySays('Você quer vir comigo?'),
+    npcSays('carlos', 'Carlos', 'Nah, obrigado. O plano de saúde daqui é muito bom...'),
+    npcSays('carlos', 'Carlos', 'Deus me livre depender do público...'),
+    nixySays('Deus?!?!'),
+    npcSays('carlos', 'Carlos', 'Eita...'),
   ],
-  estagiario: [
-    [
-      { who: 'npc', text: 'Oi! Eu sou o estagiário! Faz 300 anos que eu sou o estagiário!' },
-      { who: 'nixy', text: 'E a efetivação?' },
-      { who: 'npc', text: 'Ano que vem! Sempre ano que vem!' },
-    ],
-    [
-      { who: 'npc', text: 'O Chefe pediu pra eu buscar café. Em 1543.' },
-      { who: 'nixy', text: 'Larga essa bandeja e foge comigo.' },
-      { who: 'npc', text: 'E perder meu vale-refeição de enxofre? Nem pensar!' },
-    ],
+  'lina-gina': [
+    duoSays('lina', 'Oiiii, Nixy, tá um arraso hoje, hein...'),
+    duoSays('gina', 'Eu adoro a sua capa de Drácula espalhafatosa.'),
+    duoSays('lina', 'Com certeza um acessório muito importante para o ambiente corporativo.'),
+    duoSays('gina', 'Para completar, só falta um chapéu tão grande quanto essa sua cabeça.'),
+    nixySays('Haha, muito engraçadas, meninas. Eu adoraria ficar aqui e concordar com todas as suas opiniões...'),
+    nixySays('Mas aí seriam três pessoas falando merda.'),
+    nixySays('Se eu fosse vocês, eu me apressaria para lamber as bolas do chefe. Já faz um tempo que ele tá fora e acredito que já estão secas.'),
   ],
-  // Duas colegas juntas: 'npc' é a de cabelo preto (café na mão), 'npc2' a loira
-  fofoqueiras: [
-    [
-      { who: 'npc', text: 'Menina, você soube? A Nixy chutou a mesa do Chefe!' },
-      { who: 'npc2', text: 'Não acredito! Na frente de todo mundo?' },
-      { who: 'nixy', text: 'Eu tô bem aqui, viu.' },
-      { who: 'npc', text: '...Enfim. E esse café, hein? Tá horrível.' },
-    ],
-    [
-      { who: 'npc2', text: 'Dizem que quem foge do RH vira ração do cachorro lá fora.' },
-      { who: 'npc', text: 'Dizem que o cachorro é do próprio RH.' },
-      { who: 'nixy', text: 'Ótimo. Mais um colega de trabalho pra eu odiar.' },
-    ],
-    [
-      { who: 'npc', text: 'Fuga do expediente? Vão descontar do seu salário.' },
-      { who: 'nixy', text: 'Que salário?' },
-      { who: 'npc2', text: 'Exatamente.' },
-    ],
-  ],
-  seguranca: [
-    [
-      { who: 'npc', text: 'Ei. Ninguém passa daquela porta sem crachá.' },
-      { who: 'nixy', text: 'E se eu passar mesmo assim?' },
-      { who: 'npc', text: '...Meu turno acaba em cinco minutos. Eu não vi nada.' },
-    ],
-    [
-      { who: 'npc', text: 'Lá fora tem cachorro. Daqueles que não gostam de gente.' },
-      { who: 'nixy', text: 'Que bom. Eu também não.' },
-    ],
+  leo: [
+    npcSays('leo', 'Léo', 'Já tá no horário de almoço?'),
+    nixySays('Não...'),
+    npcSays('leo', 'Léo', 'Então por que não tá trabalhando?'),
+    nixySays('Porque não quero...'),
+    npcSays('leo', 'Léo', 'Não sei se temos essa escolha aqui...'),
+    nixySays('Olha, Léo, eu vou embora. E, sendo sincera, eu vou com você deixando ou não...'),
+    npcSays('leo', 'Léo', '...'),
+    npcSays('leo', 'Léo', 'Acho que cê é cabeça dura demais pra eu tentar te impedir.'),
+    npcSays('leo', 'Léo', 'Bom, não é como se você fosse conseguir ir muito longe mesmo...'),
   ],
 };
+
+/** Léo segura a porta: se ela tentar sair sem falar com ele, a conversa começa por aqui. */
+export const PROLOGUE_GUARD_STOP_LINE: DialogueLine = npcSays('leo', 'Léo', 'Ei, espera aí!');
 
 /** Na arena, logo depois de sair pela porta: a Nixy dá de cara com o cão de guarda. */
 export const STORY_ARRIVAL_DIALOGUE: DialogueLine[] = [

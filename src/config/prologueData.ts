@@ -69,6 +69,8 @@ export const PROLOGUE_START = { x: 1010, y: 800 };
 
 /** Pisou aqui (na frente da porta de saída da última sala), ela atravessa. */
 export const PROLOGUE_EXIT_ZONE: PrologueRect = { x: 1504, y: 660, w: 324, h: 112 };
+/** Alto da moldura da porta de saída (a seta dourada fica um pouco acima). */
+export const PROLOGUE_EXIT_DOOR_TOP = 262;
 
 /**
  * Largura da faixa nas pontas de cada sala que leva à vizinha (px originais). Ao chegar, ela
@@ -91,19 +93,26 @@ export interface PrologueNpcDef {
   /** Altura na arte original (px, dos chifres aos pés). A arte é ajustada para isto. */
   displayHeight: number;
   /**
-   * Onde sai a fala de cada pessoa da imagem, como fração da largura a partir do centro
-   * (`who: 'npc'` usa o primeiro, `'npc2'` o segundo). Imagem com duas pessoas = um NPC só.
+   * Segura a porta de saída: se a Nixy pisar na porta sem ter falado com ele, a conversa
+   * começa sozinha (com `PROLOGUE_GUARD_STOP_LINE` antes) e só depois a porta libera.
    */
-  speakers?: readonly number[];
+  guardsExit?: boolean;
 }
 
-/** Os pés ficam logo abaixo da parede do fundo (encostados nela, deixando o corredor livre). */
+/**
+ * Os pés ficam logo abaixo da parede do fundo (encostados nela, deixando o corredor livre).
+ * Imagem com duas pessoas (Lina e Gina) = um NPC só. Conversas em config/dialogues.ts
+ * (PROLOGUE_NPC_DIALOGUES), retratos `portrait-<nome>` (scripts/cut-prologue-portraits.py).
+ */
 export const PROLOGUE_NPCS: readonly PrologueNpcDef[] = [
-  { id: 'arquivista', room: 'meio-a', x: 940, y: 706, hasArt: false, placeholderTexture: 'mummy-idle-south', displayHeight: 200 },
-  { id: 'estagiario', room: 'meio-b', x: 640, y: 718, hasArt: true, placeholderTexture: 'transporter-idle-south', displayHeight: 215 },
-  { id: 'fofoqueiras', room: 'meio-c', x: 1020, y: 714, hasArt: true, placeholderTexture: 'archer-idle-south', displayHeight: 235, speakers: [-0.23, 0.2] },
-  { id: 'seguranca', room: 'fim', x: 660, y: 698, hasArt: true, placeholderTexture: 'ghoul-idle-south', displayHeight: 215 },
+  { id: 'carlos', room: 'meio-b', x: 640, y: 718, hasArt: true, placeholderTexture: 'transporter-idle-south', displayHeight: 215 },
+  { id: 'lina-gina', room: 'meio-c', x: 1020, y: 714, hasArt: true, placeholderTexture: 'archer-idle-south', displayHeight: 235 },
+  // Do lado esquerdo da porta de saída
+  { id: 'leo', room: 'fim', x: 1350, y: 700, hasArt: true, placeholderTexture: 'ghoul-idle-south', displayHeight: 215, guardsExit: true },
 ];
+
+/** Retratos de diálogo dos funcionários (carregados pela PrologueScene). */
+export const PROLOGUE_PORTRAITS = ['portrait-carlos', 'portrait-lina', 'portrait-gina', 'portrait-leo'] as const;
 
 export function npcTextureKey(id: string): string {
   return `npc-${id}`;

@@ -298,14 +298,16 @@ export const INPUT_HINT_THEME = {
   prompt: '#f3d17a',
 } as const;
 
+/** Tela de diálogo da história. */
+export const DIALOGUE_THEME = {
+  /** Retrato apagado de quem NÃO está falando numa dupla (ex.: Lina e Gina). */
+  duoDimTint: 0x4a4a55,
+} as const;
+
 /** Prólogo (corredor do RH e chegada na arena). */
 export const PROLOGUE_THEME = {
   /** Fundo fora do corredor e cor do escurecer. */
   background: 0x000000,
-  /** Fala da Nixy no balão (a mesma dos balões de combate). */
-  nixyText: COLORS.phraseNixy,
-  /** Fala dos funcionários: papel velho. */
-  npcText: '#e8dcc0',
   /** Latido do cão. */
   barkText: '#ff3b3b',
   /** "FALAR" em cima do NPC. */

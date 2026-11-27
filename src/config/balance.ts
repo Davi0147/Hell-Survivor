@@ -110,8 +110,6 @@ export const PROLOGUE_BALANCE = {
   exitFadeMs: 800,
   /** Andar sozinha até a porta antes de escurecer. */
   exitWalkMs: 450,
-  /** Tempo mínimo entre duas falas (um toque não pula duas). */
-  talkAdvanceCooldownMs: 220,
 } as const;
 
 /**

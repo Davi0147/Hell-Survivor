@@ -87,16 +87,6 @@ export function nearestInRange<T extends Positioned>(items: readonly T[], x: num
   return best;
 }
 
-/**
- * Qual conversa o NPC usa agora: roda a lista em ordem, começando de um ponto sorteado, para
- * a mesma pessoa não repetir a mesma fala duas vezes seguidas.
- */
-export function nextTalkIndex(count: number, previous: number | undefined, random: number): number {
-  if (count <= 0) return -1;
-  if (previous === undefined) return Math.min(count - 1, Math.floor(random * count));
-  return (previous + 1) % count;
-}
-
 export interface ArrivalCheck {
   mode: 'story' | 'endless' | 'sandbox';
   chapter: number;

@@ -1752,7 +1752,9 @@ Quando for gerar os funcionários, cada um sai **parado, de corpo inteiro, de fr
 - Altura de uma pessoa nas salas do corredor: uns **200 px na imagem de 2000 px** (o jogo ajusta). Personagem baixinho, menos.
 - Um por imagem: `art-source/novos/prologo/npc-<nome>.jpg`. Duas pessoas juntas numa imagem viram um NPC só, e cada uma fala em cima da própria cabeça.
 
-Eu recorto (`scripts/cut-prologue-npcs.py`), coloco no corredor e ligo as falas. Já entraram o estagiário e a dupla de fofoqueiras; faltam o arquivista e o segurança.
+Eu recorto (`scripts/cut-prologue-npcs.py`), coloco no corredor e ligo as falas. Já entraram Carlos, Lina e Gina, e Léo.
+
+**Retrato de diálogo (um por NPC):** a conversa usa a tela de diálogo da história, então cada NPC também precisa de um retrato detalhado em fundo verde, de busto (da cintura para cima) ou de corpo inteiro, de preferência olhando para a esquerda, para a Nixy. Salve como `art-source/novos/prologo/retrato-<nome>.jpg`. Eu recorto com `scripts/cut-prologue-portraits.py`, e retrato olhando para o lado errado eu espelho.
 
 ### O cão do encontro (já salvo)
 

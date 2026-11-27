@@ -137,7 +137,7 @@
 - [x] **Prólogo do Capítulo I (pedido do dono em 2026-11-26):** corredor do RH (`PrologueScene`) com paredes, funcionários que conversam e porta de saída; chegada na arena pela porta, encontro com o cão, latido e horda (`StoryArrivalSystem`); ressurgir mantém a entrada antiga; sem PULAR no corredor (decisão do dono).
   - [x] Arte do estagiário e da dupla de fofoqueiras (2026-11-26).
   - [x] Segurança (múmia vigia) e porta animada da chegada (sobe no fogo, abre, fecha, afunda).
-  - [ ] Arte do arquivista (sala meio-a, hoje a múmia inimiga provisória). Arte nova: `art-source/novos/prologo/npc-<id>.jpg` em fundo verde, rodar `scripts/cut-prologue-npcs.py` e marcar `hasArt: true`.
+  - [x] Conversas na tela de diálogo da história, com retratos (Carlos, Lina e Gina em dupla, Léo); roteiro do dono. Léo segura a porta, seta dourada na saída. O arquivista provisório saiu (a sala meio-a ficou sem ninguém). Arte nova: `art-source/novos/prologo/npc-<id>.jpg` em fundo verde, rodar `scripts/cut-prologue-npcs.py` e marcar `hasArt: true`.
   - [x] Emendas entre os pedaços: resolvido trocando a montagem lado a lado por salas (a ponta escurece e passa para a vizinha, ideia do dono).
   - [ ] Não verificado no iPhone de verdade (só no formato de celular no navegador do PC).
 - [x] **Balanceamento do fim de partida (feito em 2026-11-20; curva acelerada do Infinito, teto do roubo de vida e Pressão do Abismo só no Infinito, por decisão do dono. Falta medir com partidas longas reais e ajustar os números em `balance.ts`):** com build pronta (nível ~44, +115% dano, +11 projéteis, 5 armas) a Nixy fica parada e nada a ameaça. Duas frentes:

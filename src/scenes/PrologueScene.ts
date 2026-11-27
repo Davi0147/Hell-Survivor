@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import { Nixy } from '../entities/characters/Nixy';
 import { PROLOGUE_BALANCE, isDevSandboxEnabled } from '../config/balance';
-import { PROLOGUE_THEME } from '../config/theme';
+import { PROLOGUE_THEME, chapterUiKey } from '../config/theme';
 import { getHudLayout } from '../config/hudLayout';
 import {
   CORRIDOR_ROOMS,
+  PROLOGUE_EXIT_DOOR_TOP,
   PROLOGUE_EXIT_ZONE,
   PROLOGUE_NPCS,
+  PROLOGUE_PORTRAITS,
   PROLOGUE_START,
   ROOM_CONTENT,
   ROOM_EDGE,
@@ -15,11 +17,10 @@ import {
   npcTextureKey,
   type PrologueNpcDef,
 } from '../config/prologueData';
-import { PROLOGUE_NPC_TALKS, type PrologueTalkLine } from '../config/dialogues';
+import { PROLOGUE_GUARD_STOP_LINE, PROLOGUE_NPC_DIALOGUES } from '../config/dialogues';
 import {
   clampToWalkBand,
   nearestInRange,
-  nextTalkIndex,
   rectContains,
   roomEntryX,
   roomExitAt,
@@ -28,12 +29,12 @@ import {
   roomsToKeep,
   scaleRect,
 } from '../systems/prologueLogic';
+import { DialogueSystem } from '../systems/DialogueSystem';
 import { GamepadManager } from '../systems/GamepadManager';
 import { SoundManager } from '../systems/SoundManager';
 import { TouchControls } from '../ui/TouchControls';
 import { InputHint } from '../ui/InputHint';
 import { isTouchDevice } from '../ui/SkipButton';
-import { WorldTalkBubble } from '../ui/WorldTalkBubble';
 
 /**
  * Caixa dos pés (só os pés colidem no prólogo), em px da textura. Os quadros da Nixy têm
@@ -41,12 +42,12 @@ import { WorldTalkBubble } from '../ui/WorldTalkBubble';
  * partir do CENTRO do quadro: `belowCenter` = do centro até o topo da caixa.
  */
 const FEET_BOX = { w: 28, h: 8, belowCenter: 20 } as const;
-/** Do centro do quadro até a cabeça (px da textura), para as falas. */
-const HEAD_ABOVE_CENTER = 36;
 const ROOM_DEPTH = 0;
 const ACTOR_DEPTH = 10;
 /** Folga (px originais) ao encaixar os pés na faixa andável da sala nova. */
 const WALK_BAND_MARGIN = 24;
+/** Seta dourada da saída: px acima da porta e quanto ela balança. */
+const EXIT_ARROW = { aboveDoor: 140, bob: 14, bobMs: 520, scale: 0.55 } as const;
 
 interface NpcActor {
   def: PrologueNpcDef;
@@ -56,12 +57,6 @@ interface NpcActor {
   y: number;
 }
 
-interface ActiveTalk {
-  npc: NpcActor;
-  lines: PrologueTalkLine[];
-  index: number;
-}
-
 /**
  * Prólogo do Capítulo I: a Nixy foge do setor dela por um corredor de escritório. Sem combate:
  * ela só anda (paredes de verdade), conversa com quem está parado no caminho e sai pela porta da
@@ -69,7 +64,8 @@ interface ActiveTalk {
  *
  * Cada imagem do corredor é uma SALA que cobre a tela. Chegar na ponta esquerda/direita escurece
  * e passa para a sala vizinha (indo e voltando), então as imagens não precisam se encaixar.
- * A cena não tem zoom: a sala é ampliada (escala `s`), e os botões de toque e as falas vivem nela.
+ * Conversas na mesma tela de diálogo da história (Nixy na esquerda, o funcionário na direita).
+ * O segurança (Léo) segura a porta até a Nixy falar com ele; aí aparece a seta da saída.
  */
 export class PrologueScene extends Phaser.Scene {
   private player!: Nixy;
@@ -79,14 +75,15 @@ export class PrologueScene extends Phaser.Scene {
   private roomImage?: Phaser.GameObjects.Image;
   private wallGroup!: Phaser.Physics.Arcade.StaticGroup;
   private npcs: NpcActor[] = [];
-  /** Última conversa de cada pessoa (sobrevive à troca de sala). */
-  private talkIndexById = new Map<string, number>();
   private nearNpc: NpcActor | null = null;
-  private talk: ActiveTalk | null = null;
-  private lastAdvanceAt = 0;
+  private dialogue!: DialogueSystem;
+  /** Já conversou com o segurança: a porta de saída está liberada. */
+  private exitUnlocked = false;
+  /** Pés na porta no quadro anterior (atravessar = entrar na porta, não ficar parada nela). */
+  private wasOnExit = false;
+  private exitArrow?: Phaser.GameObjects.Image;
   private isLeaving = false;
   private isChangingRoom = false;
-  private bubble!: WorldTalkBubble;
   private prompt!: Phaser.GameObjects.Container;
   private touch?: TouchControls;
   private debugGfx?: Phaser.GameObjects.Graphics;
@@ -100,10 +97,10 @@ export class PrologueScene extends Phaser.Scene {
     this.roomIndex = 0;
     this.roomImage = undefined;
     this.npcs = [];
-    this.talkIndexById = new Map();
     this.nearNpc = null;
-    this.talk = null;
-    this.lastAdvanceAt = 0;
+    this.exitUnlocked = false;
+    this.wasOnExit = false;
+    this.exitArrow = undefined;
     this.isLeaving = false;
     this.isChangingRoom = false;
     this.touch = undefined;
@@ -113,14 +110,16 @@ export class PrologueScene extends Phaser.Scene {
   preload(): void {
     // Só a primeira sala e a vizinha; as outras chegam conforme ela anda (memória do iPhone)
     for (const i of roomsToKeep(0, CORRIDOR_ROOMS.length)) this.queueRoomTexture(i);
-    // Funcionários com arte própria (pequenos: todos de uma vez)
-    for (const def of PROLOGUE_NPCS) {
-      const key = npcTextureKey(def.id);
-      if (!def.hasArt || this.textures.exists(key)) continue;
+    // Funcionários e retratos (pequenos: todos de uma vez)
+    const smallArt = [...PROLOGUE_NPCS.filter((d) => d.hasArt).map((d) => npcTextureKey(d.id)), ...PROLOGUE_PORTRAITS];
+    for (const key of smallArt) {
+      if (this.textures.exists(key)) continue;
       this.load.image(key, `assets/sprites/prologue/${key}.png`);
-      this.load.once(`filecomplete-image-${key}`, () => {
-        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
-      });
+      if (key.startsWith('npc-')) {
+        this.load.once(`filecomplete-image-${key}`, () => {
+          this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+        });
+      }
     }
   }
 
@@ -159,10 +158,10 @@ export class PrologueScene extends Phaser.Scene {
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.fadeIn(PROLOGUE_BALANCE.fadeInMs, 0, 0, 0);
 
-    // 3. Falas, aviso de "falar", controles e botão de pular
+    // 3. Tela de diálogo ANTES dos atalhos da cena: ela ouve Espaço/Enter/clique primeiro, então
+    // o mesmo aperto que abre a conversa não pula a primeira fala
+    this.dialogue = new DialogueSystem(this);
     const touchDevice = isTouchDevice(this);
-    // Grandes de propósito: no iPhone o jogo inteiro é encolhido para ~48%
-    this.bubble = new WorldTalkBubble(this, touchDevice ? 36 : 28, touchDevice ? 620 : 520);
     this.prompt = this.createPrompt(touchDevice);
     this.setupKeyboard();
     this.setupPointer();
@@ -179,22 +178,20 @@ export class PrologueScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (this.isLeaving) return;
-    this.bubble.follow();
 
     if (this.isChangingRoom) {
       this.player.updateNixy(0, 0, false, delta);
       return;
     }
 
-    const pad = GamepadManager.getInstance().getGameplayInput(this);
-
-    // Conversando: parada, cada aperto avança uma fala
-    if (this.talk) {
+    // Conversando: parada; a tela de diálogo cuida do controle (A avança, B pula)
+    if (this.dialogue.isDialogueActive()) {
       this.player.updateNixy(0, 0, false, delta);
-      if (pad.isDash) this.advanceTalk();
+      this.dialogue.update(delta);
       return;
     }
 
+    const pad = GamepadManager.getInstance().getGameplayInput(this);
     const move = this.readMove(pad);
     this.player.updateNixy(move.dx, move.dy, move.isSprint, delta);
     this.syncFeetBox();
@@ -203,7 +200,10 @@ export class PrologueScene extends Phaser.Scene {
     // Perto de alguém: aviso de "falar" em cima da cabeça
     this.nearNpc = nearestInRange(this.npcs, this.feetX(), this.feetY(), PROLOGUE_BALANCE.interactRadius * this.s);
     this.updatePrompt();
-    if (pad.isDash && this.nearNpc) this.startTalk(this.nearNpc);
+    if (pad.isDash && this.nearNpc) {
+      this.startTalk(this.nearNpc);
+      return;
+    }
 
     // Ponta da sala: passa para a vizinha
     const last = CORRIDOR_ROOMS.length - 1;
@@ -211,10 +211,18 @@ export class PrologueScene extends Phaser.Scene {
     if (exit === 'prev' && move.dx < 0) this.changeRoom(-1);
     else if (exit === 'next' && move.dx > 0) this.changeRoom(1);
 
-    // Última sala: pisou na frente da porta de saída, atravessa
-    if (this.roomIndex === last && rectContains(scaleRect(PROLOGUE_EXIT_ZONE, this.s), this.feetX(), this.feetY())) {
-      this.leave();
+    // Última sala: entrou na porta de saída. Sem ter falado com o segurança, ele segura ela.
+    const onExit = this.roomIndex === last && rectContains(scaleRect(PROLOGUE_EXIT_ZONE, this.s), this.feetX(), this.feetY());
+    if (onExit && !this.wasOnExit) {
+      if (this.exitUnlocked) {
+        this.leave();
+      } else {
+        const guard = this.npcs.find((n) => n.def.guardsExit);
+        if (guard) this.startTalk(guard, true);
+        else this.leave();
+      }
     }
+    this.wasOnExit = onExit;
 
     if (this.debugGfx) this.drawDebug();
   }
@@ -244,6 +252,7 @@ export class PrologueScene extends Phaser.Scene {
     for (const def of PROLOGUE_NPCS) {
       if (def.room === room.id) this.spawnNpc(def);
     }
+    this.updateExitArrow();
 
     const roomW = ROOM_IMAGE.width * s;
     this.physics.world.setBounds(0, 0, roomW, ROOM_IMAGE.height * s);
@@ -274,6 +283,7 @@ export class PrologueScene extends Phaser.Scene {
         const x = roomEntryX(step > 0 ? 'prev' : 'next', ROOM_EDGE.entry);
         const bodyH = (this.player.body as Phaser.Physics.Arcade.Body).height / this.s;
         this.placeFeet(x * this.s, clampToWalkBand(room, feetYOrig, bodyH, WALK_BAND_MARGIN) * this.s);
+        this.wasOnExit = false;
         this.snapCamera();
         cam.fadeIn(PROLOGUE_BALANCE.roomFadeMs, 0, 0, 0);
         this.isChangingRoom = false;
@@ -384,18 +394,21 @@ export class PrologueScene extends Phaser.Scene {
       up: add(K.UP), left: add(K.LEFT), down: add(K.DOWN), right: add(K.RIGHT),
       shift: add(K.SHIFT),
     };
-    for (const code of [K.E, K.SPACE, K.ENTER]) {
-      add(code)?.on('down', () => this.onInteractPressed());
+    // Espaço/Enter avançam a conversa pela própria tela de diálogo; o E também avança
+    add(K.E)?.on('down', () => {
+      if (this.dialogue.isDialogueActive()) this.dialogue.handleAdvance();
+      else this.onInteractPressed();
+    });
+    for (const code of [K.SPACE, K.ENTER]) {
+      add(code)?.on('down', () => {
+        if (!this.dialogue.isDialogueActive()) this.onInteractPressed();
+      });
     }
   }
 
   private setupPointer(): void {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.isLeaving || this.isChangingRoom) return;
-      if (this.talk) {
-        this.advanceTalk();
-        return;
-      }
+      if (this.isLeaving || this.isChangingRoom || this.dialogue.isDialogueActive()) return;
       // Tocar/clicar no aviso ou na pessoa começa a conversa
       const npc = this.nearNpc;
       if (!npc) return;
@@ -406,8 +419,7 @@ export class PrologueScene extends Phaser.Scene {
 
   private onInteractPressed(): void {
     if (this.isLeaving || this.isChangingRoom) return;
-    if (this.talk) this.advanceTalk();
-    else if (this.nearNpc) this.startTalk(this.nearNpc);
+    if (this.nearNpc) this.startTalk(this.nearNpc);
   }
 
   private readMove(pad: { isActive: boolean; dx: number; dy: number; isSprint: boolean }): { dx: number; dy: number; isSprint: boolean } {
@@ -452,46 +464,61 @@ export class PrologueScene extends Phaser.Scene {
     if (npc) this.prompt.setPosition(Math.round(npc.x), Math.round(npc.sprite.getBounds().top) - 26);
   }
 
-  private startTalk(npc: NpcActor): void {
-    const talks = PROLOGUE_NPC_TALKS[npc.def.id] ?? [];
-    const idx = nextTalkIndex(talks.length, this.talkIndexById.get(npc.def.id), Math.random());
-    if (idx < 0) return;
-    this.talkIndexById.set(npc.def.id, idx);
-    this.talk = { npc, lines: talks[idx], index: 0 };
+  /**
+   * Abre a conversa com o funcionário na tela de diálogo. `stopped`: ela tentou passar pela porta
+   * sem falar com o segurança, então ele começa com "Ei, espera aí!".
+   */
+  private startTalk(npc: NpcActor, stopped: boolean = false): void {
+    const script = PROLOGUE_NPC_DIALOGUES[npc.def.id] ?? [];
+    const lines = stopped ? [PROLOGUE_GUARD_STOP_LINE, ...script] : script;
+    if (lines.length === 0) return;
     this.prompt.setVisible(false);
+    this.nearNpc = null;
+    (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
     this.player.currentDirection = npc.x < this.player.x ? 'west' : 'east';
-    this.lastAdvanceAt = this.time.now;
-    this.showTalkLine();
+    this.dialogue.startDialogue(lines, () => this.onTalkDone(npc, stopped));
+    // O A do controle que abriu a conversa não pode avançar a primeira fala no mesmo aperto
+    GamepadManager.getInstance().getMenuNavigation(this);
   }
 
-  private advanceTalk(): void {
-    if (!this.talk) return;
-    if (this.time.now - this.lastAdvanceAt < PROLOGUE_BALANCE.talkAdvanceCooldownMs) return;
-    this.lastAdvanceAt = this.time.now;
-    this.talk.index++;
-    if (this.talk.index >= this.talk.lines.length) {
-      this.talk = null;
-      this.bubble.hide();
+  private onTalkDone(npc: NpcActor, stopped: boolean): void {
+    if (!npc.def.guardsExit) return;
+    this.exitUnlocked = true;
+    this.updateExitArrow();
+    // Parada na porta quando ele a segurou: dá um passo para trás, para entrar nela de novo
+    if (stopped) {
+      const zone = scaleRect(PROLOGUE_EXIT_ZONE, this.s);
+      this.placeFeet(this.feetX(), zone.y + zone.h + 30 * this.s);
+      this.player.currentDirection = 'north';
+      this.wasOnExit = false;
+    }
+  }
+
+  /** Seta dourada balançando em cima da porta de saída, depois que o segurança libera. */
+  private updateExitArrow(): void {
+    const onLastRoom = this.roomIndex === CORRIDOR_ROOMS.length - 1;
+    if (!this.exitUnlocked || !onLastRoom) {
+      this.exitArrow?.destroy();
+      this.exitArrow = undefined;
       return;
     }
-    this.showTalkLine();
-  }
-
-  private showTalkLine(): void {
-    if (!this.talk) return;
-    const line = this.talk.lines[this.talk.index];
-    if (line.who === 'nixy') {
-      const headOffset = -HEAD_ABOVE_CENTER * this.player.scaleY + 8;
-      this.bubble.show(this.player, headOffset, line.text, PROLOGUE_THEME.nixyText);
-      SoundManager.getInstance().playDialogueVoice('nixy');
-    } else {
-      // Em dupla, a fala sai em cima de quem está falando (esquerda ou direita da imagem)
-      const npc = this.talk.npc;
-      const spot = npc.def.speakers?.[line.who === 'npc2' ? 1 : 0] ?? 0;
-      const anchor = { x: npc.x + spot * npc.sprite.displayWidth, y: npc.y };
-      this.bubble.show(anchor, npc.sprite.getBounds().top - npc.y - 8, line.text, PROLOGUE_THEME.npcText);
-      SoundManager.getInstance().playDialogueVoice('npc');
-    }
+    if (this.exitArrow?.active) return;
+    const zone = scaleRect(PROLOGUE_EXIT_ZONE, this.s);
+    const x = zone.x + zone.w / 2;
+    const y = (PROLOGUE_EXIT_DOOR_TOP - EXIT_ARROW.aboveDoor) * this.s;
+    // A seta da tela de capítulos aponta para a direita: girada, aponta para baixo
+    this.exitArrow = this.add.image(x, y, chapterUiKey('arrow'))
+      .setAngle(90)
+      .setScale(EXIT_ARROW.scale)
+      .setDepth(1800);
+    this.tweens.add({
+      targets: this.exitArrow,
+      y: y + EXIT_ARROW.bob,
+      duration: EXIT_ARROW.bobMs,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
   }
 
   // --- Saída ----------------------------------------------------------------------------------
@@ -500,9 +527,8 @@ export class PrologueScene extends Phaser.Scene {
   private leave(): void {
     if (this.isLeaving) return;
     this.isLeaving = true;
-    this.talk = null;
-    this.bubble.hide();
     this.prompt.setVisible(false);
+    this.exitArrow?.setVisible(false);
     this.touch?.setVisible(false);
 
     // Entra na porta: um passo para cima e o estrondo dela batendo
@@ -556,7 +582,6 @@ export class PrologueScene extends Phaser.Scene {
   private cleanup(): void {
     // No SHUTDOWN o mundo da física pode já ter sido desligado (e leva o ouvinte junto)
     this.physics.world?.off(Phaser.Physics.Arcade.Events.WORLD_STEP, this.keepFeetOnFloor, this);
-    this.bubble?.destroy();
     this.input.removeAllListeners();
     this.input.keyboard?.removeAllKeys(true);
     this.time.removeAllEvents();
@@ -570,8 +595,7 @@ export class PrologueScene extends Phaser.Scene {
     }
     for (const npc of this.npcs) npc.sprite.destroy();
     this.npcs = [];
-    for (const def of PROLOGUE_NPCS) {
-      const key = npcTextureKey(def.id);
+    for (const key of [...PROLOGUE_NPCS.map((d) => npcTextureKey(d.id)), ...PROLOGUE_PORTRAITS]) {
       if (this.textures.exists(key)) this.textures.remove(key);
     }
   }
@@ -580,4 +604,3 @@ export class PrologueScene extends Phaser.Scene {
 function roomKey(id: string): string {
   return `prologue-corridor-${id}`;
 }
-

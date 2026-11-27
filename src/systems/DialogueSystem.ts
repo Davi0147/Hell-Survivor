@@ -4,13 +4,18 @@ import { enableCensoredTextHighlight } from './TextHighlight';
 import { GamepadManager } from './GamepadManager';
 import { SkipButton } from '../ui/SkipButton';
 import { InputHint } from '../ui/InputHint';
-import { INPUT_HINT_THEME } from '../config/theme';
+import { DIALOGUE_THEME, INPUT_HINT_THEME } from '../config/theme';
 
 export interface DialogueLine {
   speaker: string; // 'nixy', 'succubus', ou futuros NPCs
   speakerName: string;
   portraitKey: string;
   text: string;
+  /**
+   * Dupla no lado direito (ex.: Lina e Gina): os dois retratos aparecem lado a lado e só acende
+   * quem está falando (`speaking` = índices em `portraits`; os dois = falando juntas).
+   */
+  duo?: { portraits: readonly [string, string]; speaking: readonly number[] };
 }
 
 export class DialogueSystem {
@@ -28,6 +33,9 @@ export class DialogueSystem {
   private container!: Phaser.GameObjects.Container;
   private leftBustImage!: Phaser.GameObjects.Image;
   private rightBustImage!: Phaser.GameObjects.Image;
+  /** Dupla do lado direito (retratos lado a lado). */
+  private duoImages: Phaser.GameObjects.Image[] = [];
+  private readonly DUO_SPREAD = 110;
 
   // Sub-container deslizante do balão de fala
   private balloonContainer!: Phaser.GameObjects.Container;
@@ -87,6 +95,14 @@ export class DialogueSystem {
     this.rightBustImage.setDepth(3010);
     this.rightBustImage.setAlpha(0);
     this.container.add(this.rightBustImage);
+
+    // 3.1. Dupla no lado direito: a da esquerda fica um pouco atrás da da direita
+    this.duoImages = [-1, 1].map((side) => {
+      const img = this.scene.add.image(this.BUST_RIGHT_X + side * this.DUO_SPREAD, height + 8, 'chat-succubus');
+      img.setOrigin(0.5, 1.0).setAlpha(0);
+      this.container.add(img);
+      return img;
+    });
 
     // 4. Sub-container deslizante do balão de fala
     this.balloonContainer = this.scene.add.container(this.BALLOON_RIGHT_X, height - 155);
@@ -188,6 +204,7 @@ export class DialogueSystem {
     // Reseta estado dos bustos
     this.leftBustImage.setAlpha(0);
     this.rightBustImage.setAlpha(0);
+    this.hideDuo();
 
     this.container.setVisible(true);
     this.skipButton.setVisible(true);
@@ -260,17 +277,24 @@ export class DialogueSystem {
       // 1. Mesmo personagem falando: NÃO reinicia a animação de entrada nem mexe no balão!
       if (newSide === 'left') {
         this.leftBustImage.setTexture(textureKey);
-        this.leftBustImage.setDisplaySize(this.BUST_W, this.BUST_H);
+        this.fitBust(this.leftBustImage);
         this.drawNameplate(line.speakerName, true);
       } else {
-        this.rightBustImage.setTexture(textureKey);
-        this.rightBustImage.setDisplaySize(this.BUST_W, this.BUST_H);
+        if (line.duo) {
+          this.setupDuo(line.duo);
+        } else {
+          this.hideDuo();
+          this.rightBustImage.setTexture(textureKey);
+          this.fitBust(this.rightBustImage);
+          this.rightBustImage.setAlpha(1);
+        }
         this.drawNameplate(line.speakerName, false);
       }
     } else {
       // 2. Mudança de personagem (ou primeiro balão): executa a transição entre lados
       this.scene.tweens.killTweensOf(this.leftBustImage);
       this.scene.tweens.killTweensOf(this.rightBustImage);
+      this.scene.tweens.killTweensOf(this.duoImages);
       this.scene.tweens.killTweensOf(this.balloonContainer);
 
       if (newSide === 'left') {
@@ -284,9 +308,12 @@ export class DialogueSystem {
             ease: 'Quad.easeIn'
           });
         }
+        for (const img of this.duoImages) {
+          if (img.alpha > 0) this.scene.tweens.add({ targets: img, x: img.x + 60, alpha: 0, duration: 200, ease: 'Quad.easeIn' });
+        }
 
         this.leftBustImage.setTexture(textureKey);
-        this.leftBustImage.setDisplaySize(this.BUST_W, this.BUST_H);
+        this.fitBust(this.leftBustImage);
         this.leftBustImage.clearTint();
         this.leftBustImage.setPosition(70, height + 8);
         this.leftBustImage.setAlpha(0);
@@ -322,19 +349,31 @@ export class DialogueSystem {
           });
         }
 
-        this.rightBustImage.setTexture(textureKey);
-        this.rightBustImage.setDisplaySize(this.BUST_W, this.BUST_H);
-        this.rightBustImage.clearTint();
-        this.rightBustImage.setPosition(width - 70, height + 8);
-        this.rightBustImage.setAlpha(0);
+        if (line.duo) {
+          // Dupla: os dois retratos entram juntos, só quem fala aceso
+          this.rightBustImage.setAlpha(0);
+          this.setupDuo(line.duo);
+          this.duoImages.forEach((img, i) => {
+            const targetX = this.duoX(i);
+            img.setPosition(targetX + 60, height + 8).setAlpha(0);
+            this.scene.tweens.add({ targets: img, x: targetX, alpha: 1, duration: 260, ease: 'Back.easeOut' });
+          });
+        } else {
+          this.hideDuo();
+          this.rightBustImage.setTexture(textureKey);
+          this.fitBust(this.rightBustImage);
+          this.rightBustImage.clearTint();
+          this.rightBustImage.setPosition(width - 70, height + 8);
+          this.rightBustImage.setAlpha(0);
 
-        this.scene.tweens.add({
-          targets: this.rightBustImage,
-          x: this.BUST_RIGHT_X,
-          alpha: 1,
-          duration: 260,
-          ease: 'Back.easeOut'
-        });
+          this.scene.tweens.add({
+            targets: this.rightBustImage,
+            x: this.BUST_RIGHT_X,
+            alpha: 1,
+            duration: 260,
+            ease: 'Back.easeOut'
+          });
+        }
 
         // Balão de fala desliza para a ESQUERDA
         this.scene.tweens.add({
@@ -383,6 +422,58 @@ export class DialogueSystem {
         }
       }
     });
+  }
+
+  /**
+   * Retrato no tamanho do busto sem distorcer: os quadrados (Nixy, chefes) ficam 420x420 como
+   * sempre; os mais estreitos ocupam a mesma altura com a largura proporcional.
+   */
+  private fitBust(img: Phaser.GameObjects.Image): void {
+    const fw = img.frame.width;
+    const fh = img.frame.height;
+    if (!fw || !fh) return;
+    const scale = Math.min(this.BUST_H / fh, (this.BUST_W * 1.15) / fw);
+    img.setScale(scale);
+  }
+
+  /** Mostra a dupla (texturas e quem está aceso). */
+  private setupDuo(duo: NonNullable<DialogueLine['duo']>): void {
+    this.duoImages.forEach((img, i) => {
+      const key = duo.portraits[i];
+      img.setTexture(this.scene.textures.exists(key) ? key : 'succubus-idle-south');
+      this.fitBust(img);
+      // A de trás (esquerda) fica atrás; quem fala vem para a frente
+      const lit = duo.speaking.includes(i);
+      if (lit) img.clearTint();
+      else img.setTint(DIALOGUE_THEME.duoDimTint);
+      img.setDepth(3010 + (lit ? 2 : 0) + i * 0.1);
+      img.setAlpha(1);
+    });
+    this.duoImages.forEach((img, i) => {
+      if (!this.scene.tweens.isTweening(img)) img.setX(this.duoX(i));
+    });
+    this.container.sort('depth');
+  }
+
+  /**
+   * Centro de cada retrato da dupla: lado a lado em volta do lugar do busto da direita, mas a
+   * da direita nunca sai da tela (em 16:9 ela era cortada).
+   */
+  private duoX(index: number): number {
+    const width = this.scene.scale.width;
+    const right = this.duoImages[1];
+    const left = this.duoImages[0];
+    const rightX = Math.min(this.BUST_RIGHT_X + this.DUO_SPREAD, width - right.displayWidth / 2 - 8);
+    if (index === 1) return rightX;
+    // A da esquerda fica encostada na da direita, com um pouco de sobreposição
+    return rightX - (right.displayWidth + left.displayWidth) / 2 + 40;
+  }
+
+  private hideDuo(): void {
+    for (const img of this.duoImages) {
+      this.scene.tweens.killTweensOf(img);
+      img.setAlpha(0);
+    }
   }
 
   private resolvePortraitTexture(speaker: string, requestedKey: string): string {
@@ -533,6 +624,7 @@ export class DialogueSystem {
     this.skipButton.setVisible(false);
     this.leftBustImage.setAlpha(0);
     this.rightBustImage.setAlpha(0);
+    this.hideDuo();
     this.currentSpeakerSide = undefined;
 
     if (this.onCompleteCallback) {

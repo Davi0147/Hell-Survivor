@@ -3,16 +3,16 @@ import {
   CORRIDOR_ROOMS,
   PROLOGUE_EXIT_ZONE,
   PROLOGUE_NPCS,
+  PROLOGUE_PORTRAITS,
   PROLOGUE_START,
   ROOM_CONTENT,
   ROOM_EDGE,
   ROOM_IMAGE,
 } from '../config/prologueData';
-import { PROLOGUE_NPC_TALKS, STORY_ARRIVAL_DIALOGUE } from '../config/dialogues';
+import { PROLOGUE_GUARD_STOP_LINE, PROLOGUE_NPC_DIALOGUES, STORY_ARRIVAL_DIALOGUE } from '../config/dialogues';
 import {
   clampToWalkBand,
   nearestInRange,
-  nextTalkIndex,
   rectContains,
   roomEntryX,
   roomExitAt,
@@ -115,22 +115,36 @@ describe('funcionários do corredor', () => {
     }
   });
 
-  it('cada um tem pelo menos uma conversa, e toda conversa tem fala', () => {
+  it('cada um tem conversa, e todo retrato usado existe na lista de retratos', () => {
+    const known = new Set<string>([...PROLOGUE_PORTRAITS, 'chat-nixy']);
     for (const npc of PROLOGUE_NPCS) {
-      const talks = PROLOGUE_NPC_TALKS[npc.id];
-      expect(talks?.length, npc.id).toBeGreaterThan(0);
-      for (const talk of talks) {
-        expect(talk.length).toBeGreaterThan(0);
-        for (const line of talk) expect(line.text.trim()).not.toBe('');
+      const lines = PROLOGUE_NPC_DIALOGUES[npc.id];
+      expect(lines?.length, npc.id).toBeGreaterThan(0);
+      for (const line of lines) {
+        expect(line.text.trim()).not.toBe('');
+        if (line.duo) for (const p of line.duo.portraits) expect(known.has(p), p).toBe(true);
+        else expect(known.has(line.portraitKey), line.portraitKey).toBe(true);
       }
     }
   });
 
-  it('só quem é dupla tem falas da segunda pessoa (npc2)', () => {
-    for (const npc of PROLOGUE_NPCS) {
-      const usesSecond = (PROLOGUE_NPC_TALKS[npc.id] ?? []).some((t) => t.some((l) => l.who === 'npc2'));
-      if (usesSecond) expect(npc.speakers?.length, npc.id).toBe(2);
+  it('Lina e Gina: só acende quem fala (uma ou as duas)', () => {
+    const lines = PROLOGUE_NPC_DIALOGUES['lina-gina'].filter((l) => l.duo);
+    expect(lines.length).toBeGreaterThan(0);
+    for (const l of lines) {
+      const lit = l.duo?.speaking ?? [];
+      expect(lit.length).toBeGreaterThanOrEqual(1);
+      expect(lit.every((i) => i === 0 || i === 1)).toBe(true);
+      if (l.speakerName === 'Lina') expect(lit).toEqual([0]);
+      if (l.speakerName === 'Gina') expect(lit).toEqual([1]);
     }
+  });
+
+  it('só um segurança segura a porta, e ele fica na última sala', () => {
+    const guards = PROLOGUE_NPCS.filter((n) => n.guardsExit);
+    expect(guards).toHaveLength(1);
+    expect(guards[0].room).toBe(CORRIDOR_ROOMS[CORRIDOR_ROOMS.length - 1].id);
+    expect(PROLOGUE_GUARD_STOP_LINE.speaker).toBe(guards[0].id);
   });
 
   it('o mais perto dentro do raio é quem responde', () => {
@@ -139,13 +153,6 @@ describe('funcionários do corredor', () => {
     expect(nearestInRange(people, 200, 0, 50)).toBeNull();
   });
 
-  it('as conversas rodam sem repetir a mesma em seguida', () => {
-    expect(nextTalkIndex(0, undefined, 0.5)).toBe(-1);
-    expect(nextTalkIndex(3, undefined, 0.99)).toBe(2);
-    expect(nextTalkIndex(3, 2, 0)).toBe(0);
-    expect(nextTalkIndex(3, 0, 0.7)).toBe(1);
-    expect(nextTalkIndex(1, 0, 0.7)).toBe(0);
-  });
 });
 
 describe('chegada na arena', () => {
