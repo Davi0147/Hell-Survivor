@@ -138,7 +138,7 @@
   - [x] Arte do estagiário e da dupla de fofoqueiras (2026-11-26).
   - [ ] Arte do arquivista (sala meio-a, hoje múmia) e do segurança (sala fim, hoje ghoul). Arte nova: `art-source/novos/prologo/npc-<id>.jpg` em fundo verde, rodar `scripts/cut-prologue-npcs.py` e marcar `hasArt: true`.
   - [x] Emendas entre os pedaços: resolvido trocando a montagem lado a lado por salas (a ponta escurece e passa para a vizinha, ideia do dono).
-  - [ ] Porta da arena é provisória (recorte da porta do corredor, com borda de parede). Arte própria de porta solta fica melhor.
+  - [ ] Porta da arena: já fica na borda de cima do mapa e sobe/afunda por código (esticando o recorte da porta do corredor). Falta a folha de sprites própria (fechada, abrindo, subindo do chão no fogo); prompt passado ao dono no chat em 2026-11-26.
   - [ ] Não verificado no iPhone de verdade (só no formato de celular no navegador do PC).
 - [x] **Balanceamento do fim de partida (feito em 2026-11-20; curva acelerada do Infinito, teto do roubo de vida e Pressão do Abismo só no Infinito, por decisão do dono. Falta medir com partidas longas reais e ajustar os números em `balance.ts`):** com build pronta (nível ~44, +115% dano, +11 projéteis, 5 armas) a Nixy fica parada e nada a ameaça. Duas frentes:
   1. **Monstros mais fortes com o tempo** para forçar builds melhores (rever a curva de HP/dano/quantidade em `balance.ts`).

@@ -115,18 +115,21 @@ export const PROLOGUE_BALANCE = {
 } as const;
 
 /**
- * Chegada na arena depois do corredor (StoryArrivalSystem): ela sai por uma porta, anda até um
- * cão, conversa, o cão late e a horda começa. Distâncias em px do mundo, a partir do ponto de
- * nascimento do mapa. A porta e o cão vêm em px de tela (arte 1:1), por isso a escala 1/zoom.
+ * Chegada na arena depois do corredor (StoryArrivalSystem): uma porta sobe do chão encostada na
+ * borda de cima do mapa (na coluna do ponto de nascimento), ela sai, desce até um cão, conversa,
+ * o cão late e a horda começa. Distâncias em px do mundo. A porta e o cão vêm em px de tela
+ * (arte 1:1), por isso a escala 1/zoom.
  */
 export const STORY_ARRIVAL_BALANCE = {
-  /** A porta fica à direita do ponto de nascimento. */
-  doorOffsetX: 150,
-  /** Quanto ela anda sozinha para a esquerda depois de sair. */
+  /** Base da porta, a partir da borda de cima do mapa (a porta inteira fica dentro da arena). */
+  doorTopMargin: 130,
+  /** A porta subindo do chão em brasa. */
+  doorRiseMs: 700,
+  /** Quanto ela desce sozinha depois de sair. */
   walkDistance: 170,
   /** Velocidade da caminhada sozinha (mais lenta que o normal, de cena). */
   walkSpeed: 95,
-  /** Distância do cão até onde ela para. */
+  /** Distância do cão (à esquerda) até onde ela para. */
   dogGap: 150,
   artScale: 1 / CAMERA_BALANCE.gameplayZoom,
   fadeInMs: 600,
@@ -138,7 +141,7 @@ export const STORY_ARRIVAL_BALANCE = {
   barkShakeIntensity: 0.006,
   /** Respiro depois do último latido antes da horda chegar. */
   afterBarkMs: 700,
-  /** A porta some em fumaça depois que ela se afasta. */
+  /** A porta afunda de volta no chão depois que ela se afasta. */
   doorVanishMs: 900,
 } as const;
 

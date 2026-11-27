@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { STORY_ARRIVAL_BALANCE as B } from '../config/balance';
+import { ARENA_CONFIG, STORY_ARRIVAL_BALANCE as B } from '../config/balance';
 import { COLORS, FONTS, PROLOGUE_THEME } from '../config/theme';
 import {
   STORY_ARRIVAL_AFTER_BARK_TEXT,
@@ -31,7 +31,10 @@ export interface IStoryArrivalContext {
   spawnZombieDogAt(x: number, y: number): void;
 }
 
-type Step = 'idle' | 'walking' | 'talking' | 'barking' | 'done';
+type Step = 'idle' | 'rising' | 'walking' | 'talking' | 'barking' | 'done';
+
+/** Do centro do sprite da Nixy até os pés, em px do mundo (quadro de 64, pés em 60). */
+const NIXY_FEET_BELOW_CENTER = 28;
 
 /**
  * Começo do Capítulo I depois do corredor do prólogo: a Nixy sai por uma porta à direita do
@@ -55,39 +58,60 @@ export class StoryArrivalSystem {
     return this.step !== 'idle' && this.step !== 'done';
   }
 
-  /** Monta a porta e o cão e começa a cena. A Nixy já está no ponto de nascimento. */
+  /**
+   * Monta a porta (encostada na borda de cima do mapa) e o cão, e começa a cena: a porta sobe do
+   * chão no fogo, a Nixy sai por ela e desce até o cão.
+   */
   public start(): void {
     const p = this.ctx.player;
-    const startX = p.x;
-    const startY = p.y;
-    const doorX = startX + B.doorOffsetX;
-    const stopX = startX - B.walkDistance + B.doorOffsetX;
+    const doorX = p.x;
+    const doorBaseY = ARENA_CONFIG.MIN_Y + B.doorTopMargin;
+    const startY = doorBaseY - NIXY_FEET_BELOW_CENTER + 4;
+    const stopY = startY + B.walkDistance;
 
-    // A Nixy nasce na porta, de costas para ela, e anda para a esquerda
+    // A Nixy espera escondida na frente da porta e depois anda para baixo
     p.setPosition(doorX, startY);
     (p.body as Phaser.Physics.Arcade.Body | null)?.reset(doorX, startY);
     p.setAlpha(0);
-    p.currentDirection = 'west';
+    p.currentDirection = 'south';
+    this.ctx.cameras.main.centerOn(doorX, stopY);
 
-    this.door = this.ctx.add.image(doorX, startY + 28, ARRIVAL_TEXTURES.door)
+    this.door = this.ctx.add.image(doorX, doorBaseY, ARRIVAL_TEXTURES.door)
       .setOrigin(0.5, 1)
-      .setScale(B.artScale)
+      .setScale(B.artScale, 0)
       .setDepth(p.depth - 1);
-    this.dog = this.ctx.add.image(stopX - B.dogGap, startY + 20, ARRIVAL_TEXTURES.dogIdle)
+    // O cão espera ao lado de onde ela para, olhando para ela (a arte olha para a direita)
+    this.dog = this.ctx.add.image(doorX - B.dogGap, stopY + NIXY_FEET_BELOW_CENTER, ARRIVAL_TEXTURES.dogIdle)
       .setOrigin(0.5, 1)
       .setScale(B.artScale)
       .setDepth(p.depth - 1);
 
     this.ctx.setHUDVisible(false);
     this.ctx.cameras.main.fadeIn(B.fadeInMs, 0, 0, 0);
+    this.step = 'rising';
+    this.later(B.fadeInMs * 0.5, () => this.riseDoor());
+  }
 
-    // Porta abre: clarão laranja, ela aparece e começa a andar
-    this.door.setTint(PROLOGUE_THEME.doorGlow);
-    this.later(500, () => this.door?.clearTint());
-    SoundManager.getInstance().playTableKick();
-    this.ctx.tweens.add({ targets: p, alpha: 1, duration: 260 });
-    this.walkLeft = B.walkDistance;
-    this.step = 'walking';
+  /** A porta sobe do chão, em brasa; quando termina, a Nixy sai por ela. */
+  private riseDoor(): void {
+    const door = this.door;
+    if (!door) return;
+    door.setTint(PROLOGUE_THEME.doorGlow);
+    this.ctx.cameras.main.shake(B.doorRiseMs, B.barkShakeIntensity * 0.6);
+    SoundManager.getInstance().playSmokePoof();
+    this.ctx.tweens.add({
+      targets: door,
+      scaleY: B.artScale,
+      duration: B.doorRiseMs,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        door.clearTint();
+        SoundManager.getInstance().playTableKick();
+        this.ctx.tweens.add({ targets: this.ctx.player, alpha: 1, duration: 260 });
+        this.walkLeft = B.walkDistance;
+        this.step = 'walking';
+      },
+    });
   }
 
   /** Chamado pela GameScene a cada quadro enquanto `isActive`. */
@@ -101,16 +125,18 @@ export class StoryArrivalSystem {
     this.walkLeft -= step;
     const p = this.ctx.player;
     // Anda pela física desligada da velocidade normal: posição direta, animação de corrida
-    p.updateNixy(-1, 0, false, delta);
+    p.updateNixy(0, 1, false, delta);
     const body = p.body as Phaser.Physics.Arcade.Body | null;
     body?.setVelocity(0, 0);
-    p.x -= step;
+    p.y += step;
     body?.reset(p.x, p.y);
 
     if (this.walkLeft <= 0) {
       this.step = 'talking';
+      // Para virada para o cão (que está à esquerda)
+      p.currentDirection = 'west';
       p.updateNixy(0, 0, false, 0);
-      this.vanishDoor();
+      this.sinkDoor();
       this.later(B.beforeDialogueMs, () => {
         this.ctx.playDialogue(STORY_ARRIVAL_DIALOGUE, () => this.barkSequence());
       });
@@ -167,16 +193,15 @@ export class StoryArrivalSystem {
     this.onCombatStart(x, y);
   }
 
-  /** A porta se desfaz em fumaça (não fica atrapalhando a arena). */
-  private vanishDoor(): void {
+  /** A porta volta a afundar no chão em brasa (o contrário de quando subiu) e some. */
+  private sinkDoor(): void {
     const door = this.door;
     if (!door) return;
     SoundManager.getInstance().playSmokePoof();
-    door.setTint(PROLOGUE_THEME.doorSmoke);
+    door.setTint(PROLOGUE_THEME.doorGlow);
     this.ctx.tweens.add({
       targets: door,
-      alpha: 0,
-      scaleY: door.scaleY * 0.2,
+      scaleY: 0,
       duration: B.doorVanishMs,
       ease: 'Quad.easeIn',
       onComplete: () => door.destroy(),

@@ -554,7 +554,8 @@ export class PrologueScene extends Phaser.Scene {
   }
 
   private cleanup(): void {
-    this.physics.world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, this.keepFeetOnFloor, this);
+    // No SHUTDOWN o mundo da física pode já ter sido desligado (e leva o ouvinte junto)
+    this.physics.world?.off(Phaser.Physics.Arcade.Events.WORLD_STEP, this.keepFeetOnFloor, this);
     this.bubble?.destroy();
     this.input.removeAllListeners();
     this.input.keyboard?.removeAllKeys(true);
