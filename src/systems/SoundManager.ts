@@ -187,6 +187,11 @@ export class SoundManager {
     MusicDirector.getInstance().setMusicState('BOSS_SUCCUBUS', 'SoundManager.playBossMusic', { fadeInMs });
   }
 
+  /** Luta da Shylph (chefe do Capítulo 3): "Dragon's Final Breath". */
+  public playShylphMusic(fadeInMs: number = 2000): void {
+    MusicDirector.getInstance().setMusicState('BOSS_SHYLPH', 'SoundManager.playShylphMusic', { fadeInMs });
+  }
+
   /**
    * Toca a música da cena pós-chefe ("Spooky Halloween") bem baixinha de fundo
    */

@@ -507,7 +507,7 @@ export class BossFightSystem {
 
   private startShylphEncounter(): void {
     this.ctx.isBossFightActive = true;
-    SoundManager.getInstance().playBossMusic(2200);
+    SoundManager.getInstance().playShylphMusic(2200);
     this.dissipateMinions();
     this.ctx.clearCombatSpeechBubbles();
     this.scene.cameras.main.flash(350, 255, 255, 255);

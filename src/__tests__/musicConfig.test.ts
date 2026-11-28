@@ -27,7 +27,7 @@ describe('Music Configuration (musicConfig.ts)', () => {
   });
 
   describe('Track Keys Catalog', () => {
-    it('contains all 10 audio keys used across the game', () => {
+    it('contains all 11 audio keys used across the game', () => {
       expect(ALL_BGM_KEYS).toEqual([
         'bgm-menu',
         'bgm-battle',
@@ -38,7 +38,8 @@ describe('Music Configuration (musicConfig.ts)', () => {
         'bgm-azazel-mid',
         'bgm-azazel-fight',
         'bgm-battle-ch2',
-        'bgm-battle-ch3'
+        'bgm-battle-ch3',
+        'bgm-boss-shylph'
       ]);
     });
 
@@ -58,6 +59,13 @@ describe('Music Configuration (musicConfig.ts)', () => {
       expect(MUSIC_CONFIGS.BATTLE_CH2).toMatchObject({ trackKey: 'bgm-battle-ch2', loop: true });
       expect(MUSIC_CONFIGS.BATTLE_CH3).toMatchObject({ trackKey: 'bgm-battle-ch3', loop: true });
     });
+
+    it('Shylph has her own boss track, about as loud as the Rosalin fight', () => {
+      expect(MUSIC_CONFIGS.BOSS_SHYLPH).toMatchObject({ trackKey: 'bgm-boss-shylph', loop: true });
+      // Faixa medida 0,8 dB mais alta: volume ~0,91x o da Rosalin (10^(-0.8/20))
+      const ratio = MUSIC_CONFIGS.BOSS_SHYLPH.calculateVolume(0.1) / MUSIC_CONFIGS.BOSS_SUCCUBUS.calculateVolume(0.1);
+      expect(ratio).toBeCloseTo(0.91, 1);
+    });
   });
 
   describe('State Definitions, Loops and Fades', () => {
@@ -68,6 +76,7 @@ describe('Music Configuration (musicConfig.ts)', () => {
       'BATTLE_CH2',
       'BATTLE_CH3',
       'BOSS_SUCCUBUS',
+      'BOSS_SHYLPH',
       'AZAZEL_INTRO',
       'AZAZEL_MID',
       'AZAZEL_FIGHT',

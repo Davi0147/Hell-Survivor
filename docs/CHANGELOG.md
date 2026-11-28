@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — Diálogo novo do Azazel, música da Shylph e menu de capítulos
+
+#### Resumo para o Jogador
+- **Novo diálogo do primeiro encontro com o Azazel** (Nixy provocando: "Quem? ... Perguntou.").
+- **Música própria na luta da Shylph** (chefe do Capítulo 3): "Dragon's Final Breath", no mesmo volume da luta da Rosalin.
+- **Escolha de capítulo:** os capítulos fechados (não selecionados) ficam com a imagem cinza; o selecionado ganha cor ao abrir.
+
+#### Técnico
+- `AZAZEL_INTRO_DIALOGUE` reescrito; estado `BOSS_SHYLPH` (`bgm-boss-shylph`, `assets/audio/chapter3-boss.mp3`, fator 1.05 por ser 0,8 dB mais alta) e `SoundManager.playShylphMusic`.
+- `ChapterSelectMenu`: cinza proporcional à abertura do painel (`applyClosedGrey`) nos jogáveis e "em breve"; bloqueados continuam cinza sempre.
+
 ## [Não publicado] — Azazel mais forte, roda de caveiras nova e música do Capítulo 3
 
 #### Resumo para o Jogador

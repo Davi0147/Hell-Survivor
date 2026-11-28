@@ -25,6 +25,7 @@ export type MusicState =
   | 'BATTLE_CH2'
   | 'BATTLE_CH3'
   | 'BOSS_SUCCUBUS'
+  | 'BOSS_SHYLPH'
   | 'AZAZEL_INTRO'
   | 'AZAZEL_MID'
   | 'AZAZEL_FIGHT'
@@ -56,7 +57,8 @@ export const ALL_BGM_KEYS: readonly string[] = [
   'bgm-azazel-mid',
   'bgm-azazel-fight',
   'bgm-battle-ch2',
-  'bgm-battle-ch3'
+  'bgm-battle-ch3',
+  'bgm-boss-shylph'
 ] as const;
 
 /** Música das hordas por capítulo (o chefe de cada capítulo tem a própria trilha). */
@@ -119,6 +121,17 @@ export const MUSIC_CONFIGS: Readonly<Record<MusicState, MusicTrackConfig>> = {
     // setMusicVolume linha 74 usa Clamp(this.musicVolume * 1.15 * this.bgmBoostMultiplier, 0, 1)
     calculateLegacySetVolume: (baseVolume: number, boostMultiplier = 1.0) =>
       clampVolume(baseVolume * 1.15 * boostMultiplier, 0, 1)
+  },
+  BOSS_SHYLPH: {
+    state: 'BOSS_SHYLPH',
+    // "Dragon's Final Breath" (Capítulo 3). Medida 0,8 dB mais alta que a da Rosalin
+    // (-17.1 vs -17.9 dB): 1.05 em vez de 1.15 deixa as duas lutas no mesmo volume.
+    trackKey: 'bgm-boss-shylph',
+    defaultFadeInMs: 2000,
+    loop: true,
+    calculateVolume: (baseVolume: number, boostMultiplier = 1.0) => baseVolume * 1.05 * boostMultiplier,
+    calculateLegacySetVolume: (baseVolume: number, boostMultiplier = 1.0) =>
+      clampVolume(baseVolume * 1.05 * boostMultiplier, 0, 1)
   },
   AZAZEL_INTRO: {
     state: 'AZAZEL_INTRO',

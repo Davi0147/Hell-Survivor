@@ -227,32 +227,20 @@ export const ROSALIN_INTRO_DIALOGUE: DialogueLine[] = [
   }
 ];
 
-/** Primeiro encontro com Azazel (chefe do Capítulo 2). */
+/** Primeiro encontro com Azazel (chefe do Capítulo 2). Roteiro do dono (2026-11-27). */
+const azazelSays = (text: string): DialogueLine => ({ speaker: 'azazel', speakerName: 'Azazel', portraitKey: 'chat-azazel', text });
+
 export const AZAZEL_INTRO_DIALOGUE: DialogueLine[] = [
-  {
-    speaker: 'azazel',
-    speakerName: 'Azazel',
-    portraitKey: 'chat-azazel',
-    text: 'Então é você a funcionária rebelde que esmagou Rosalin... Eu sentia o cheiro da sua insolência desde o primeiro círculo.'
-  },
-  {
-    speaker: 'nixy',
-    speakerName: 'Nixy',
-    portraitKey: 'chat-nixy',
-    text: 'Ótimo, já me poupa o trabalho de me apresentar. Você vai sair da frente por bem ou vou ter que te carimbar na parede também?'
-  },
-  {
-    speaker: 'azazel',
-    speakerName: 'Azazel',
-    portraitKey: 'chat-azazel',
-    text: 'Tola. Rosalin brincava com força bruta. Eu governo a escuridão e a mente dos condenados... Aqui dentro, cada passo seu pertence a mim.'
-  },
-  {
-    speaker: 'nixy',
-    speakerName: 'Nixy',
-    portraitKey: 'chat-nixy',
-    text: 'Todo chefe que fala bonito demais cai do mesmo jeito. Vem tentar a sorte, seu desgraçado!'
-  }
+  azazelSays('O que uma criatura tão inferior está fazendo causando desgraça no reino?'),
+  nixySays('Ah, Azazel, cê ainda tá nessa? Seu reino? Sério?'),
+  azazelSays('Eu sou o Deus do novo mundo, curve-se diante de mim, demônio insolente!'),
+  nixySays('Bem que falaram que você havia enlouquecido de vez, mas eu achei que fosse mentira...'),
+  azazelSays('Como ousa me taxar de louco?!'),
+  azazelSays('Você vai pagar pela sua boca! Eu irei arrancar a sua cabeça e condenar sua alma para fazer parte do meu trono por toda a eternidade!'),
+  nixySays('Quem?'),
+  azazelSays('Hã?! O quê---'),
+  nixySays('Perguntou.'),
+  azazelSays('Vai se fuder!')
 ];
 
 /** Como a cena entra numa imagem nova da cinemática de fim de capítulo. */

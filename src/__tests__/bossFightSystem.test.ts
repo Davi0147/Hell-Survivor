@@ -116,6 +116,7 @@ vi.mock('../entities/items/AzazelCrystal', () => ({
 
 const sound = {
   playBossMusic: vi.fn(),
+  playShylphMusic: vi.fn(),
   playBattleMusic: vi.fn(),
   playEnemyDeath: vi.fn(),
   stopMusic: vi.fn(),

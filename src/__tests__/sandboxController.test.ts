@@ -68,6 +68,7 @@ vi.mock('phaser', () => {
 const mockSoundManager = {
   playBattleMusic: vi.fn(),
   playBossMusic: vi.fn(),
+  playShylphMusic: vi.fn(),
   playAzazelFightMusic: vi.fn()
 };
 

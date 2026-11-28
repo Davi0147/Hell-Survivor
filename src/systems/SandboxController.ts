@@ -208,7 +208,7 @@ export class SandboxController {
     this.removeBoss(false);
     DebugSessionLogger.getInstance().log('BOSS', 'INFO', 'Boss Shylph invocada via Sandbox');
     this.context.isBossFightActive = true;
-    SoundManager.getInstance().playBossMusic(1800);
+    SoundManager.getInstance().playShylphMusic(1800);
     this.context.spawnShylphBoss();
   }
 

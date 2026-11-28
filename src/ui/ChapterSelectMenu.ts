@@ -89,6 +89,12 @@ interface Panel {
   /** 'cover' = arte de fundo do capítulo; 'sprite' = sprite do chefe (arte provisória). */
   artMode: 'cover' | 'sprite';
   artScale: number;
+  /**
+   * Capítulo jogável: a arte fica cinza enquanto o painel está fechado (fora de foco) e ganha
+   * cor ao abrir (pedido do dono em 2026-11-27). `greyFx` no WebGL; no Canvas vira tinta.
+   */
+  greyFx?: Phaser.FX.ColorMatrix;
+  greyAmount: number;
   band: Phaser.GameObjects.Graphics;
   textPanel?: Phaser.GameObjects.NineSlice;
   frameArt?: Phaser.GameObjects.NineSlice;
@@ -276,6 +282,13 @@ export class ChapterSelectMenu {
       if (!playable && state !== 'coming-soon') this.greyOut(art);
       this.container.add(art);
     }
+    // Jogável ou "em breve": começa cinza (fechado); `drawPanel` tira o cinza conforme o painel
+    // abre. Bloqueado já fica cinza sempre (greyOut acima).
+    let greyFx: Phaser.FX.ColorMatrix | undefined;
+    if (art && (playable || state === 'coming-soon')) {
+      const fx = (art as Phaser.GameObjects.Image & { preFX?: Phaser.GameObjects.Components.FX | null }).preFX;
+      greyFx = fx?.addColorMatrix();
+    }
 
     const band = s.add.graphics();
     this.container.add(band);
@@ -367,7 +380,7 @@ export class ChapterSelectMenu {
     });
 
     return {
-      info, state, record: this.opts.records[info.number], x: 0, w: L.minClosedW, bg, art, artMode, artScale,
+      info, state, record: this.opts.records[info.number], x: 0, w: L.minClosedW, bg, art, artMode, artScale, greyFx, greyAmount: -1,
       band, textPanel, frameArt, frameKey, frameG, badge, numeral, padlock, lockG, chains, seal,
       open, ribbon, heading, title, boss, summary, plate, hourglass, footer, zone, shakeMs: 0,
     };
@@ -585,6 +598,7 @@ export class ChapterSelectMenu {
       p.art.setCrop((texW - cropW) / 2, p.artMode === 'cover' ? (texH - cropH) / 2 : 0, cropW, cropH);
       p.art.setPosition(cx, p.artMode === 'cover' ? y + h / 2 : y + h * SPRITE_FEET_Y);
       if (p.artMode === 'sprite' && playable) p.art.setAlpha(0.55 + 0.45 * Math.max(openness, focused ? 1 : 0));
+      if (playable || p.state === 'coming-soon') this.applyClosedGrey(p, 1 - openness);
     }
 
     // Sombra de baixo (degraus de pixel) e faixa curta em cima para o número
@@ -626,6 +640,20 @@ export class ChapterSelectMenu {
 
     p.zone.setPosition(x, y).setSize(w, h);
     if (p.zone.input) (p.zone.input.hitArea as Phaser.Geom.Rectangle).setSize(w, h);
+  }
+
+  /** Cinza do painel jogável fechado: 1 = todo cinza, 0 = cor normal (vai junto com a abertura). */
+  private applyClosedGrey(p: Panel, amount: number): void {
+    const a = Phaser.Math.Clamp(amount, 0, 1);
+    if (Math.abs(a - p.greyAmount) < 0.01 || !p.art) return;
+    p.greyAmount = a;
+    if (p.greyFx) {
+      p.greyFx.grayscale(a);
+    } else if (a > 0.5) {
+      p.art.setTint(T.lockedTint);
+    } else {
+      p.art.clearTint();
+    }
   }
 
   private layoutChains(chains: NonNullable<Panel['chains']>, x: number, y: number, w: number, h: number, openness: number): void {
