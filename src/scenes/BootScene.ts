@@ -26,6 +26,7 @@ export class BootScene extends Phaser.Scene {
     // Limpar áudios prévios
     this.sound.removeByKey('bgm-battle');
     this.sound.removeByKey('bgm-battle-ch2');
+    this.sound.removeByKey('bgm-battle-ch3');
     this.sound.removeByKey('bgm-boss');
     this.sound.removeByKey('bgm-menu');
     this.sound.removeByKey('bgm-intro');
@@ -595,6 +596,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm-menu', 'assets/audio/hell-survivor.mp3');
     this.load.audio('bgm-battle', 'assets/audio/eternal-shadow.mp3');
     this.load.audio('bgm-battle-ch2', 'assets/audio/chapter2-battle.mp3');
+    this.load.audio('bgm-battle-ch3', 'assets/audio/chapter3-battle.mp3');
     this.load.audio('bgm-boss', 'assets/audio/orchestral-overture.mp3');
     this.load.audio('bgm-intro', 'assets/audio/halloween.mp3');
     this.load.audio('bgm-spooky', 'assets/audio/spooky-halloween.mp3');

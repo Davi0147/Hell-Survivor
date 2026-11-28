@@ -23,6 +23,7 @@ export type MusicState =
   | 'INTRO'
   | 'BATTLE'
   | 'BATTLE_CH2'
+  | 'BATTLE_CH3'
   | 'BOSS_SUCCUBUS'
   | 'AZAZEL_INTRO'
   | 'AZAZEL_MID'
@@ -54,12 +55,15 @@ export const ALL_BGM_KEYS: readonly string[] = [
   'bgm-azazel-intro',
   'bgm-azazel-mid',
   'bgm-azazel-fight',
-  'bgm-battle-ch2'
+  'bgm-battle-ch2',
+  'bgm-battle-ch3'
 ] as const;
 
 /** Música das hordas por capítulo (o chefe de cada capítulo tem a própria trilha). */
 export function battleMusicState(chapter: number): MusicState {
-  return chapter === 2 ? 'BATTLE_CH2' : 'BATTLE';
+  if (chapter === 2) return 'BATTLE_CH2';
+  if (chapter === 3) return 'BATTLE_CH3';
+  return 'BATTLE';
 }
 
 export const MUSIC_CONFIGS: Readonly<Record<MusicState, MusicTrackConfig>> = {
@@ -91,6 +95,15 @@ export const MUSIC_CONFIGS: Readonly<Record<MusicState, MusicTrackConfig>> = {
     state: 'BATTLE_CH2',
     // Mesma altura (mean -17 dB) da trilha do Capítulo 1: mesmo volume
     trackKey: 'bgm-battle-ch2',
+    defaultFadeInMs: 2500,
+    loop: true,
+    calculateVolume: (baseVolume: number) => baseVolume,
+    calculateLegacySetVolume: (baseVolume: number) => baseVolume
+  },
+  BATTLE_CH3: {
+    state: 'BATTLE_CH3',
+    // "The Final Guardian": mean -17 dB, igual às outras trilhas de horda
+    trackKey: 'bgm-battle-ch3',
     defaultFadeInMs: 2500,
     loop: true,
     calculateVolume: (baseVolume: number) => baseVolume,

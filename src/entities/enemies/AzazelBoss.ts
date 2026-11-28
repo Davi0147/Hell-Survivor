@@ -3,6 +3,7 @@ import { BaseEnemy } from './BaseEnemy';
 import type { BaseCharacter } from '../characters/BaseCharacter';
 import { DarkOrbProjectile, type ProjectileLook } from '../weapons/DarkOrbProjectile';
 import { AzazelHandSlam } from './AzazelHandSlam';
+import { AzazelSkullRingArena } from './AzazelSkullRingArena';
 import { SoundManager } from '../../systems/SoundManager';
 import { BOSS_TELEGRAPH } from '../../config/theme';
 import { AZAZEL_BOSS_BALANCE } from '../../config/balance';
@@ -223,6 +224,8 @@ export class AzazelBoss extends BaseEnemy {
   private phantomClones: AzazelPhantomClone[] = [];
   private darkCloneShotTimer: number = 0;
   private darkSurroundCenter: { x: number; y: number } = { x: 0, y: 0 };
+  /** Arena parada da roda: a heroína não sai, encostar na borda fere e joga para o centro. */
+  private skullRingArena: AzazelSkullRingArena;
   // Na roda de caveiras o próprio Azazel vira uma delas
   private isSkullForm: boolean = false;
   private skullMouthOpenMs: number = 0;
@@ -270,6 +273,21 @@ export class AzazelBoss extends BaseEnemy {
     });
 
     this.handSlam = new AzazelHandSlam(scene, (player, damage) => this.hitPlayer(player, this.scaleAttack(damage)));
+    this.skullRingArena = new AzazelSkullRingArena(scene);
+  }
+
+  /**
+   * Liga/desliga a arena da roda e avisa a luta (câmera travada no centro enquanto ela existe).
+   * Evento `azazel-skull-ring`: centro e zoom ao começar, `null` ao acabar.
+   */
+  private setSkullRingArena(center: { x: number; y: number } | null): void {
+    if (center) {
+      this.skullRingArena.start(center.x, center.y);
+      this.emit('azazel-skull-ring', center);
+    } else if (this.skullRingArena.isActive) {
+      this.skullRingArena.stop();
+      this.emit('azazel-skull-ring', null);
+    }
   }
 
   public static angleToDir8(angleRad: number): string {
@@ -1190,6 +1208,8 @@ export class AzazelBoss extends BaseEnemy {
     if (this.isDead || this.combatPhase !== 2) return;
     this.deactivatePhantomClones();
     this.exitSkullForm();
+    // Investidas: a câmera volta a seguir a heroína
+    this.setSkullRingArena(null);
 
     this.bossState = 'DARK_FIVE_DASHES';
     this.darkDashCount = 0;
@@ -1309,6 +1329,8 @@ export class AzazelBoss extends BaseEnemy {
     this.darkCloneShotTimer = cfg.firstShotMs;
     this.telegraphGraphics.clear();
     this.darkSurroundCenter = { x: player.x, y: player.y };
+    // A roda fica parada aqui (não segue mais a heroína) e vira a arena dela
+    this.setSkullRingArena(this.darkSurroundCenter);
 
     SoundManager.getInstance().playAzazelTeleport();
     this.scene.cameras.main.shake(200, 0.012);
@@ -1389,9 +1411,11 @@ export class AzazelBoss extends BaseEnemy {
 
     const cfg = AZAZEL_BOSS_BALANCE.darkSkulls;
 
-    // A roda acompanha suavemente a heroína para que nenhuma caveira fique fora da tela
-    this.darkSurroundCenter.x = Phaser.Math.Linear(this.darkSurroundCenter.x, player.x, 0.035);
-    this.darkSurroundCenter.y = Phaser.Math.Linear(this.darkSurroundCenter.y, player.y, 0.035);
+    // Roda parada; a heroína fica presa dentro. Encostou na borda: dano e empurrão para o centro
+    if (this.skullRingArena.enforce(player)) {
+      this.hitPlayer(player, this.scaleAttack(cfg.arena.edgeDamage));
+      this.scene.cameras.main.shake(120, 0.01);
+    }
 
     const baseSpin = (cfg.durationMs - this.stateTimer) * cfg.spinPerMs;
 
@@ -1470,6 +1494,7 @@ export class AzazelBoss extends BaseEnemy {
     this.stopFinalSkulls();
     this.deactivatePhantomClones();
     this.exitSkullForm();
+    this.setSkullRingArena(null);
     this.deactivateAllProjectiles();
 
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -1692,6 +1717,7 @@ export class AzazelBoss extends BaseEnemy {
     this.finalSkullsActive = false;
     this.deactivatePhantomClones();
     this.exitSkullForm();
+    this.setSkullRingArena(null);
     this.deactivateAllProjectiles();
     this.handSlam.destroy();
 

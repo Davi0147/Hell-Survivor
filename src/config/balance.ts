@@ -568,10 +568,11 @@ export const AZAZEL_BOSS_BALANCE = {
   /** 31200 = 24000 +30% (pedido do dono em 2026-11-24; antes 16000 → 24000). */
   maxHp: 31200,
   /**
-   * Multiplica TODO dano dele (golpes, orbes, contato e clones). 1.1 = +10% pedido do
-   * dono em 2026-11-24. Soma-se à revanche (que alivia) por multiplicação.
+   * Multiplica TODO dano dele (golpes, orbes, contato, clones, caveiras e tapa da mão).
+   * 1.1 (+10%, 2026-11-24) x 1.15 (+15%, pedido do dono em 2026-11-27) = 1.265.
+   * Soma-se à revanche (que alivia) por multiplicação. Maior golpe: tapa 32 x 1.265 = 40.
    */
-  damageMultiplier: 1.1,
+  damageMultiplier: 1.265,
   speed: 138,
   scale: 1.65,
   /** Fração do dano que atravessa a armadura dele. */
@@ -649,6 +650,27 @@ export const AZAZEL_BOSS_BALANCE = {
     /** A orbe nasce na boca, não no meio do crânio. */
     mouthOffset: 28,
     hitbox: { width: 30, height: 34, offsetX: 2, offsetY: 6 },
+    /**
+     * Arena da roda (pedido do dono em 2026-11-27): a roda fica parada onde começou (não segue
+     * mais a heroína) e ela não sai de dentro. Encostar na borda dá dano e joga ela para o centro.
+     * Enquanto a roda gira a câmera fica travada no centro, com zoom menor para caber a roda
+     * inteira (diâmetro 640 + caveiras; no zoom da luta, 1.35, só cabem ~533 na altura).
+     */
+    arena: {
+      /** Raio da borda (um pouco para dentro das caveiras, que ficam em `radius`). */
+      edgeRadius: 262,
+      /** Antes do multiplicador do Azazel (14 x 1.265 = 18). */
+      edgeDamage: 14,
+      /** Empurrão para o centro (px/s e ms): ~140 px. */
+      pushForce: 540,
+      pushMs: 260,
+      /** 0.9: sobra uma margem em cima para a caveira do topo não ficar sob a barra do chefe. */
+      cameraZoom: 0.9,
+      cameraMs: 450,
+      /** Ao soltar a câmera, ela alcança a heroína suave (lerp) antes de voltar a colar nela. */
+      releaseLerp: 0.12,
+      releaseMs: 600,
+    },
   },
   /**
    * Arte de cada projétil (folha art-source/novos/projeteis-azazel.jpg, 2026-11-25).

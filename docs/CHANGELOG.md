@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — Azazel mais forte, roda de caveiras nova e música do Capítulo 3
+
+#### Resumo para o Jogador
+- **Azazel bate 15% mais forte** em tudo (golpes, orbes, contato, caveiras e tapa da mão).
+- **Fase escura:** a HUD (vida, barra do chefe, armas) agora continua na tela.
+- **Roda de caveiras:** as caveiras giram em volta de um ponto fixo e não seguem mais a Nixy. Uma borda roxa contínua, com brilho por dentro e pulsando devagar, mostra a arena: a Nixy não sai dela, e encostar na borda dá dano e joga ela para o centro. A câmera fica parada (e um pouco mais afastada, para caber a roda inteira) enquanto a roda gira, e volta a seguir a Nixy quando o Azazel começa as investidas.
+- **Música nova nas hordas do Capítulo 3** ("The Final Guardian").
+
+#### Técnico
+- `AZAZEL_BOSS_BALANCE.damageMultiplier` 1.1 → 1.265; `darkSkulls.arena` (borda, dano, empurrão, zoom e câmera).
+- `entities/enemies/AzazelSkullRingArena.ts` (arena parada, borda em blocos de pixel acima do escuro); evento `azazel-skull-ring` trava/solta a câmera em `BossFightSystem`.
+- Música: `BATTLE_CH3` (`bgm-battle-ch3`, `assets/audio/chapter3-battle.mp3`, mesma altura das outras).
+
 ## [Não publicado] — Minichefes mais fortes, aviso de monstro novo e correções
 
 #### Resumo para o Jogador

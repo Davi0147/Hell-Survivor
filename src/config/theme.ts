@@ -242,6 +242,17 @@ export const CHAPTER2_END_FALLBACK = {
   ground: '#07010c',
 } as const;
 
+/** Borda da arena da roda de caveiras do Azazel (visível no escuro total). */
+export const AZAZEL_SKULL_RING_THEME = {
+  ring: 0x9d4edd,
+  ringCore: 0xf3d9ff,
+  /** Faixa suave por dentro da borda (brilho), bem transparente. */
+  glow: 0x7b2cbf,
+  glowAlpha: 0.28,
+  /** Clarão rápido da borda quando a heroína encosta. */
+  hitFlash: 0xff0055,
+} as const;
+
 /** Aviso discreto que desliza da esquerda ("Novo: Morcegos"). Sem fundo: só texto com contorno. */
 export const SIDE_NOTICE_THEME = {
   label: '#ffd166',

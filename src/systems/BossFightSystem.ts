@@ -111,6 +111,8 @@ export class BossFightSystem {
   private crystalPhaseElapsedMs = 0;
   /** Centro da área da fase dos cristais (a heroína não sai do círculo em volta dele). */
   private crystalArenaCenter?: { x: number; y: number };
+  /** Câmera parada na roda de caveiras do Azazel (solta ao fim da roda, na fase dos cristais e na morte). */
+  private isSkullRingCameraLocked = false;
   private crystalArenaRing?: Phaser.GameObjects.Graphics;
   private fightBossId?: BossId;
   private fightElapsedMs = 0;
@@ -691,10 +693,15 @@ export class BossFightSystem {
     });
 
     boss.on('azazel-darkness-active', (isDark: boolean) => {
-      this.hud?.setHUDVisible(!isDark);
+      // A HUD fica na tela no escuro (pedido do dono em 2026-11-27): vida e barra do chefe à vista.
       // No escuro total só se vê a heroína e os ataques do Azazel (nem o cenário)
       this.ctx.setDecorHidden(isDark);
       if (isDark) this.dissipateMinions();
+    });
+
+    boss.on('azazel-skull-ring', (center: { x: number; y: number } | null) => {
+      if (center) this.lockCameraOnSkullRing(center);
+      else this.releaseSkullRingCamera();
     });
 
     boss.on('azazel-clone-created', (clone: AzazelPhantomClone) => {
@@ -706,6 +713,30 @@ export class BossFightSystem {
     boss.on('boss-defeated', () => {
       this.ctx.bossSummonAltar?.complete();
       this.handleAzazelDefeated(boss);
+    });
+  }
+
+  /** Roda de caveiras: câmera parada no centro da arena e afastada para caber a roda inteira. */
+  private lockCameraOnSkullRing(center: { x: number; y: number }): void {
+    const cfg = AZAZEL_BOSS_BALANCE.darkSkulls.arena;
+    const cam = this.scene.cameras.main;
+    this.isSkullRingCameraLocked = true;
+    cam.stopFollow();
+    cam.pan(center.x, center.y, cfg.cameraMs, 'Sine.easeInOut', true);
+    this.ctx.setCameraZoom(cfg.cameraZoom, cfg.cameraMs);
+  }
+
+  /** Volta a seguir a heroína: alcança suave e depois cola nela de novo (como no resto da luta). */
+  private releaseSkullRingCamera(): void {
+    if (!this.isSkullRingCameraLocked) return;
+    this.isSkullRingCameraLocked = false;
+    const cfg = AZAZEL_BOSS_BALANCE.darkSkulls.arena;
+    const cam = this.scene.cameras.main;
+    cam.panEffect.reset();
+    cam.startFollow(this.ctx.player, true, cfg.releaseLerp, cfg.releaseLerp);
+    this.ctx.setCameraZoom(AZAZEL_FIGHT_ZOOM, cfg.cameraMs);
+    this.scene.time.delayedCall(cfg.releaseMs, () => {
+      if (!this.isSkullRingCameraLocked) cam.setLerp(1, 1);
     });
   }
 
