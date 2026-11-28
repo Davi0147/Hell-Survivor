@@ -1935,6 +1935,35 @@ green on the creature. No text, no frame numbers.
 
 ---
 
+## 29. Monstros do Capítulo 3 pela API do PixelLab (Olho Alado e Guardião de Mármore)
+
+**Só de lado, espelhado no jogo** (pedido do dono para gastar pouco). Gerados em 2026-11-28. Originais e quadros brutos em `art-source/novos/cap3-inimigos/`.
+
+**Mudança na API:** `n_directions: 4` agora exige `reference_image`; sem referência, usar 8 direções (não cobra a chamada recusada).
+
+**Custos medidos:** personagem 64 px em 8 direções = 2 gerações; 128 px = 3. Animação de 8 quadros em 1 direção: 64 px = 1 geração; 128 px = 4. Total destes dois monstros: 14 (sobraram 26 de 40).
+
+**Olho Alado** (`/create-character-v3`, 64x64, `view` "low top-down", contorno preto, `detail` "medium detail"):
+
+```text
+small flying demon eyeball monster: one big round bloodshot eyeball with white sclera, thin red veins, a crimson red iris and a black slit pupil, two small white feathered angel wings with blood red stained feather tips sprouting from its sides, a few torn bloody bandage strips trailing below it, no body, no legs, no arms. Palette: white, ivory, dark blood red, crimson, black. Holy and corrupted gothic horror, clean readable tiny game enemy sprite
+```
+
+Voo (`/animate-character`, "east", 8 quadros): `flying fast forward: the eyeball hovers and bobs up and down while both small feathered wings flap rapidly, bandage strips fluttering behind, the eye stays wide open looking forward. No visual effects, no particles, no wind, no trails: only the creature moves.` O 4º quadro veio com o olho em branco e foi descartado (`--skip 3`).
+
+**Guardião de Mármore** (128x128, mesmos ajustes):
+
+```text
+huge living ancient greek marble statue golem, a muscular bearded man carved in cracked pale white marble with grey veins, blank stone eyes without pupils, greek tunic and toga carved in stone draped over one shoulder, laurel wreath carved on the head, bare stone feet on a small broken marble plinth fragment, holding an enormous two-handed golden war hammer with a heavy ornate gold head resting over his shoulder, a few thin cracks with dried blood in them, heavy and rigid like stone. Palette: pale marble white, light grey, warm grey shadows, rich gold, dark gold, a little dried blood red. Clean readable game sprite
+```
+
+Andar ("east"): `slow heavy stone statue walk: stiff and rigid like carved marble, the whole body barely bends, lifts one heavy stone leg and stomps it down, then the other, torso stays upright and stiff, the golden hammer stays resting on his shoulder, small jolt on each heavy step. No visual effects...`
+Martelo ("east"): `attack: stays in place facing the same direction the whole time, slowly raises the giant golden hammer high above his head with both hands, holds it up for a moment, then smashes it straight down hard into the ground in front of him... No visual effects...` Mesmo pedindo sem efeitos, os quadros 5 a 7 vieram com poeira e lascas; ficaram (ajudam a ler a batida).
+
+Montagem: `python scripts/pack-strip.py <pasta> <saída.png> [--skip N] --crop` (a mesma caixa de recorte para todos os quadros). Folhas no jogo: `WingedEye/winged-eye-fly.png` (7 x 41x62) e `StatueGuardian/statue-guardian.png` (16 x 120x139: andar 0-7, martelo 8-15). Mudou a arte? Atualize os tamanhos em `systems/Chapter3EnemyAssets.ts`.
+
+---
+
 ## 28. Kits de cenário dos Capítulos 2 e 3 (prompts completos, prontos para colar)
 
 Mesmo método da seção 12: cada capítulo tem **4 imagens** (piso, folha A de objetos grandes, folha B de detalhes de chão, altar). Cada prompt abaixo já está completo, é só colar. Gere as 4 imagens de um capítulo no mesmo gerador e, se der, com a mesma *seed*.

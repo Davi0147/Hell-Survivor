@@ -656,6 +656,27 @@ export const AWAKENING_CARD_TEXT = {
 } as const;
 
 /**
+ * Primeiro encontro com a Shylph (Capítulo 3). Roteiro do dono (2026-11-28).
+ * Ela canta "Toxic" da Britney; a letra da música não entra no jogo (direito autoral), então ela
+ * cantarola a melodia e a piada da Nixy ("Cê tá cantando Britney?") continua funcionando.
+ */
+const shylphSays = (text: string): DialogueLine => ({ speaker: 'shylph', speakerName: 'Shylph', portraitKey: 'chat-shylph', text });
+
+export const SHYLPH_INTRO_DIALOGUE: DialogueLine[] = [
+  nixySays('O que diabos é você?'),
+  shylphSays('Oooooohhh...'),
+  shylphSays('Hmm-hmm, hmm-hmm-hmmm... Tã-rã-rã-rãaam...'),
+  nixySays('???'),
+  shylphSays('Tã-rã-rãaa... Hmm-hmm-hmmm...'),
+  nixySays('Cê tá cantando Britney?'),
+  shylphSays('Pobre criatura renegada, sua alma será levada pro mais profundo inferno sem fim... Hmm-hmm-hmmm, tã-rã-rã-rãaaaam!'),
+  nixySays('Caramba, todo esse tempo que eu trabalhei aqui...'),
+  nixySays('Presa no meu próprio cubículo...'),
+  nixySays('Eu nunca pensei nisso!'),
+  nixySays('Aqui só tem retardado!')
+];
+
+/**
  * Shylph, a Serafim Caída (Capítulo 3): falas da luta (balões em cima dela). Sem telas de
  * vitória: a queda entre o Serafim e a fase final é só a animação (decisão do dono).
  */

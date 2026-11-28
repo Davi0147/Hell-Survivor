@@ -149,6 +149,13 @@ export const FX_COLORS = {
   colossusButtonFill: 0x1e293b,
   colossusButtonBorder: 0x94a3b8,
   colossusToast: '#cbd5e1',
+  /** Monstros do Capítulo 3: botões do Modo de Teste e cor dos avisos. */
+  eyeButtonFill: 0x450a0a,
+  eyeButtonBorder: 0xfda4af,
+  eyeToast: '#fda4af',
+  statueButtonFill: 0x3f3a2e,
+  statueButtonBorder: 0xfacc15,
+  statueToast: '#fde68a',
   /** Arqueira Demônia: botão do Modo de Teste e flecha (desenhada por código até ter arte). */
   archerButtonFill: 0x1c1917,
   archerButtonBorder: 0xe7e5e4,
@@ -240,6 +247,17 @@ export const CHAPTER2_END_FALLBACK = {
   skyMid: '#3c096c',
   horizon: '#7b2cbf',
   ground: '#07010c',
+} as const;
+
+/** Guardião de Mármore (minichefe do Capítulo 3): área do martelo e poeira do impacto. */
+export const STATUE_GUARDIAN_THEME = {
+  /** Círculo marcado no chão enquanto ele ergue o martelo (vai enchendo até a batida). */
+  telegraphEdge: 0xffc94a,
+  telegraphFill: 0xff3b1f,
+  telegraphFillAlpha: 0.22,
+  /** Anel de poeira dourada na batida. */
+  impactRing: 0xffe6a3,
+  impactDust: 0xcfc3b0,
 } as const;
 
 /** Borda da arena da roda de caveiras do Azazel (visível no escuro total). */

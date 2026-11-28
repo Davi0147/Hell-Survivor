@@ -18,7 +18,7 @@ import { CAMERA_BALANCE, ENEMY_BALANCE } from '../config/balance';
 
 import type { HordeEventType as HordeEventType2 } from './HordeEventSystem';
 
-export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'archer' | 'colossus' | 'ghoul' | 'lyn';
+export type HordeEnemyType = 'dog' | 'elite_dog' | 'bat' | 'slime' | 'mummy' | 'archer' | 'colossus' | 'ghoul' | 'lyn' | 'eye' | 'statue';
 
 /**
  * Interface estrita de ponte entre o SandboxController, DevSandboxPanel e a GameScene.
@@ -77,6 +77,8 @@ export interface ISandboxContext extends Phaser.Scene {
   // Spawners de monstros e chefes
   spawnGhoulDevourer(): void;
   spawnLyn(): void;
+  spawnStatueGuardian(): void;
+  spawnWingedEyeGroup(count: number): void;
   /** Cronograma de inimigos (só para o botão de avançar o Círculo no Infinito). */
   readonly encounters?: { debugAdvance(ms: number): void; describe(): string };
   spawnColossusFormation(angle?: number, dist?: number): void;
@@ -137,6 +139,14 @@ export class SandboxController {
     }
     if (type === 'lyn') {
       this.context.spawnLyn();
+      return;
+    }
+    if (type === 'statue') {
+      this.context.spawnStatueGuardian();
+      return;
+    }
+    if (type === 'eye') {
+      this.context.spawnWingedEyeGroup(count);
       return;
     }
     if (type === 'bat') {

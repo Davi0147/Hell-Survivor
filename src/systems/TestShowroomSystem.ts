@@ -4,6 +4,7 @@ import { GameScene } from '../scenes/GameScene';
 import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { ARENA_CONFIG } from '../config/balance';
+import { STATUE_ANIMS, STATUE_TEXTURE, WINGED_EYE_ANIM, WINGED_EYE_TEXTURE } from './Chapter3EnemyAssets';
 import {
   SHYLPH_TEXTURE,
   SHYLPH_FEATHER_TEXTURE,
@@ -336,6 +337,8 @@ export class TestShowroomSystem {
           { name: 'Skull Slime', texture: 'skull-slime-idle-south', scale: 1.0, anim: 'skull-slime-idle-south' },
           { name: 'Ghoul Devorador', texture: 'ghoul-idle-south', scale: 1.4, anim: 'ghoul-run-south' },
           { name: 'Lyn (Minichefe)', texture: 'lyn-idle-south', scale: 1.6, anim: 'lyn-fly-south' },
+          { name: 'Olho Alado (Cap. 3)', texture: WINGED_EYE_TEXTURE, scale: 1.2, anim: WINGED_EYE_ANIM },
+          { name: 'Guardião de Mármore', texture: STATUE_TEXTURE, scale: 1.0, anim: STATUE_ANIMS.walk },
           { name: 'Rosalin (Chefe 1)', texture: 'succubus-idle-south', scale: 1.75, anim: 'succubus-fly-south' },
           { name: 'Azazel (Parado)', texture: 'azazel-idle-south', scale: 1.55, anim: 'azazel-idle-south' },
           { name: 'Azazel (Correndo)', texture: 'azazel-run-south-0', scale: 1.55, anim: 'azazel-run-south' },
@@ -382,6 +385,7 @@ export class TestShowroomSystem {
           { name: 'Nixy Damage UI', texture: 'chat-nixy-damage', scale: 0.75 },
           { name: 'Rosalin Defeated', texture: 'chat-rosalin-defeated', scale: 0.75 },
           { name: 'Azazel Chat UI', texture: 'chat-azazel', scale: 0.14 },
+          { name: 'Shylph Chat UI', texture: 'chat-shylph', scale: 0.3 },
           { name: 'Logo Oficial', texture: 'game-title-logo', scale: 0.35 }
         ]
       }

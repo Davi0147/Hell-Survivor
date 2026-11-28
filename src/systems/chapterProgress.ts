@@ -19,11 +19,13 @@ export interface ChapterRecord {
 export function chapterState(
   n: number,
   released: boolean,
-  records: Readonly<Record<number, ChapterRecord | undefined>>
+  records: Readonly<Record<number, ChapterRecord | undefined>>,
+  openForTesting = false
 ): ChapterState {
   if (!released) return 'coming-soon';
   if (records[n]?.completed) return 'cleared';
-  if (n === 1 || records[n - 1]?.completed) return 'open';
+  // Aberto para teste: o dono joga o capítulo novo sem precisar vencer o anterior antes
+  if (n === 1 || openForTesting || records[n - 1]?.completed) return 'open';
   return 'locked';
 }
 

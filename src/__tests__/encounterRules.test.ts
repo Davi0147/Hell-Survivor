@@ -48,9 +48,13 @@ describe('História: Capítulo 1 ensina o básico', () => {
   });
 });
 
+/** O Olho Alado é só do Capítulo 3 (nem no 2, nem no Infinito). */
+const KINDS_BEFORE_CH3 = ALL_ENEMY_KINDS.filter((k) => k !== 'eye');
+
 describe('História: Capítulo 2 junta os inimigos novos', () => {
-  it('no fim do capítulo todos os inimigos estão liberados', () => {
-    for (const k of ALL_ENEMY_KINDS) expect(isUnlockedInStory(2, 1, k)).toBe(true);
+  it('no fim do capítulo todos os inimigos (menos os do Capítulo 3) estão liberados', () => {
+    for (const k of KINDS_BEFORE_CH3) expect(isUnlockedInStory(2, 1, k)).toBe(true);
+    expect(isUnlockedInStory(2, 1, 'eye')).toBe(false);
   });
 
   it('a Arqueira estreia cedo e o Colossus no meio', () => {
@@ -81,18 +85,21 @@ describe('Infinito: Círculos', () => {
     expect(isUnlockedInEndless(1, 0, 'dog')).toBe(true);
     expect(isUnlockedInEndless(1, 0, 'archer')).toBe(false);
     expect(isUnlockedInEndless(1, S.firstCircleUnlocksSec.archer * 1000, 'archer')).toBe(true);
-    for (const k of ALL_ENEMY_KINDS) expect(isUnlockedInEndless(2, 0, k)).toBe(true);
+    for (const k of KINDS_BEFORE_CH3) expect(isUnlockedInEndless(2, 0, k)).toBe(true);
+    expect(isUnlockedInEndless(9, 0, 'eye')).toBe(false);
   });
+
+  const debut = (k: string): number => (S.firstCircleUnlocksSec as Record<string, number>)[k];
 
   it('todo inimigo estreia antes do chefe do Círculo 1 (e antes do silêncio pré-chefe)', () => {
     for (const k of endlessIntroKinds()) {
-      expect(S.firstCircleUnlocksSec[k] * 1000).toBeLessThan(S.circleMs - S.eventQuietBeforeBossMs);
+      expect(debut(k) * 1000).toBeLessThan(S.circleMs - S.eventQuietBeforeBossMs);
     }
   });
 
   it('nenhuma estreia cai perto do minichefe (avisos não se atropelam)', () => {
     for (const k of endlessIntroKinds()) {
-      expect(Math.abs(S.firstCircleUnlocksSec[k] * 1000 - S.miniBossAtMs)).toBeGreaterThanOrEqual(10000);
+      expect(Math.abs(debut(k) * 1000 - S.miniBossAtMs)).toBeGreaterThanOrEqual(10000);
     }
   });
 

@@ -14,7 +14,7 @@ import { SoundManager } from './SoundManager';
 import { DebugSessionLogger } from './DebugSessionLogger';
 import { MetaProgressManager } from './MetaProgressManager';
 import { MapStorageManager, ChapterMapConfig } from '../config/mapData';
-import { ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, SHYLPH_FIGHT_TEXT, getBossRematchDialogue } from '../config/dialogues';
+import { ROSALIN_INTRO_DIALOGUE, AZAZEL_INTRO_DIALOGUE, SHYLPH_INTRO_DIALOGUE, SHYLPH_FIGHT_TEXT, getBossRematchDialogue } from '../config/dialogues';
 import {
   AZAZEL_BOSS_BALANCE,
   SHYLPH_BOSS_BALANCE,
@@ -505,14 +505,31 @@ export class BossFightSystem {
   // SHYLPH, A SERAFIM CAÍDA (Capítulo 3): morte falsa entre as fases
   // ===========================================================================
 
+  /**
+   * Altar da Shylph: na primeira vez toca a conversa (o jogo fica parado durante o diálogo) e ela
+   * aparece com um clarão quando a conversa acaba. Revanche (já morreu para ela): direto na luta.
+   */
   private startShylphEncounter(): void {
     this.ctx.isBossFightActive = true;
-    SoundManager.getInstance().playShylphMusic(2200);
     this.dissipateMinions();
     this.ctx.clearCombatSpeechBubbles();
-    this.scene.cameras.main.flash(350, 255, 255, 255);
-    this.scene.cameras.main.shake(250, 0.02);
-    this.spawnShylph();
+    const deaths = this.ctx.gameMode === 'story' ? MetaProgressManager.getInstance().getDeathsToBoss('shylph') : 0;
+    const begin = (): void => {
+      SoundManager.getInstance().playShylphMusic(2200);
+      this.scene.cameras.main.flash(350, 255, 255, 255);
+      this.scene.cameras.main.shake(250, 0.02);
+      this.spawnShylph();
+    };
+    if (deaths > 0) {
+      begin();
+      return;
+    }
+    this.ctx.isPlayerMovementLocked = true;
+    this.stopPlayer();
+    this.ctx.playDialogue(SHYLPH_INTRO_DIALOGUE, () => {
+      this.ctx.isPlayerMovementLocked = false;
+      begin();
+    });
   }
 
   /** Coloca a Shylph em campo já lutando (o diálogo de entrada vem com o Capítulo 3). */

@@ -5,6 +5,8 @@ import { SkullSlime } from '../entities/enemies/SkullSlime';
 import { BloodBat } from '../entities/enemies/BloodBat';
 import { MummyEnemy } from '../entities/enemies/MummyEnemy';
 import { LynMiniBoss } from '../entities/enemies/LynMiniBoss';
+import { WingedEye } from '../entities/enemies/WingedEye';
+import { StatueGuardian } from '../entities/enemies/StatueGuardian';
 import { getCrystalHordeScaling } from './crystalPhaseRules';
 import { GhoulEnemy } from '../entities/enemies/GhoulEnemy';
 import { TransporterEnemy } from '../entities/enemies/TransporterEnemy';
@@ -234,6 +236,43 @@ export class EnemySpawnSystem {
     return { hp: s.lateHpMultiplier, damage: s.damageMultiplier };
   }
 
+  /** Olho Alado (Capítulo 3): com pooling, como o morcego. */
+  public spawnWingedEyeAt(x: number, y: number): void {
+    const clamped = this.ctx.clampToArena(x, y);
+    let enemy = this.ctx.enemiesGroup.getChildren().find(
+      (child) => !child.active && child instanceof WingedEye
+    ) as WingedEye | undefined;
+
+    if (!enemy) {
+      enemy = new WingedEye(this.scene, clamped.x, clamped.y);
+      this.ctx.enemiesGroup.add(enemy);
+      enemy.on('enemy-killed', (ex: number, ey: number) => {
+        this.ctx.killCount++;
+        SoundManager.getInstance().playEnemyDeath();
+        this.ctx.player.gainUltimateCharge(2);
+        this.ctx.addPurificationPoints(2);
+        // Mais difícil de acertar que o morcego: um pouco mais de azul
+        this.ctx.spawnGemAt(ex, ey, Math.random() < 0.15 ? 'blue' : 'green');
+        if (Math.random() < 0.04) this.ctx.spawnSoulItem(ex, ey, 1);
+      });
+    }
+
+    const eye = ENEMY_BALANCE.wingedEye;
+    const chMult = this.getChapterEnemyStatMultiplier();
+    enemy.spawn(clamped.x, clamped.y, Math.round(eye.hp * chMult), eye.speed, Math.round(eye.damage * chMult));
+  }
+
+  /** Grupinho de Olhos Alados vindo do mesmo lado (fora da tela). */
+  public spawnWingedEyeGroup(count: number, fromAngle?: number): void {
+    const angle = fromAngle ?? Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const dist = this.spawnDist(angle, 360, 460);
+    const ox = this.ctx.player.x + Math.cos(angle) * dist;
+    const oy = this.ctx.player.y + Math.sin(angle) * dist;
+    for (let i = 0; i < count; i++) {
+      this.spawnWingedEyeAt(ox + Phaser.Math.Between(-30, 30), oy + Phaser.Math.Between(-30, 30));
+    }
+  }
+
   /**
    * Spawna um bando coordenado de Blood Bats voando em nuvem do perímetro
    */
@@ -380,6 +419,14 @@ export class EnemySpawnSystem {
         }
         this.spawnBloodBatFlock(flockSize);
       }
+    }
+
+    // 1.1. OLHOS ALADOS (Capítulo 3): grupinhos rápidos, com teto de vivos
+    if (can('eye') && Math.random() < ENEMY_BALANCE.wingedEye.chance) {
+      const eyeCfg = ENEMY_BALANCE.wingedEye;
+      const alive = (this.ctx.enemiesGroup.getChildren() as BaseEnemy[]).filter((e) => e.active && e instanceof WingedEye).length;
+      const room = eyeCfg.maxAlive - alive;
+      if (room > 0) this.spawnWingedEyeGroup(Math.min(room, Phaser.Math.Between(eyeCfg.group.min, eyeCfg.group.max)));
     }
 
     // 2. SKULL SLIMES: aumento estritamente controlado (tanques kamikaze mortais)
@@ -663,6 +710,37 @@ export class EnemySpawnSystem {
 
     this.scene.cameras.main.flash(200, 255, 60, 60);
     this.scene.cameras.main.shake(300, 0.015);
+  }
+
+  /**
+   * Guardião de Mármore (minichefe do Capítulo 3): estátua enorme com martelo de ouro.
+   * Instância própria, fora de qualquer pool (como o Ghoul).
+   * @param hpMultiplier vida extra (Círculos do Infinito / Modo de Teste)
+   */
+  public spawnStatueGuardian(hpMultiplier: number = 1): StatueGuardian {
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const pos = this.ctx.clampToArena(this.ctx.player.x + Math.cos(angle) * 420, this.ctx.player.y + Math.sin(angle) * 420);
+    const statue = new StatueGuardian(this.scene, pos.x, pos.y);
+    this.ctx.enemiesGroup.add(statue);
+
+    const cfg = ENEMY_BALANCE.statueGuardian;
+    const chMult = this.getChapterEnemyStatMultiplier();
+    statue.spawn(pos.x, pos.y, Math.round(cfg.hp * hpMultiplier), cfg.speed, Math.round(cfg.damage * chMult));
+
+    statue.on('enemy-killed', (ex: number, ey: number) => {
+      this.ctx.killCount++;
+      this.ctx.player.gainUltimateCharge(40);
+      this.spawnGemRing(ex, ey, MINIBOSS_GEM_DROPS.statue);
+      this.ctx.spawnSoulItem(ex, ey, Phaser.Math.Between(18, 24));
+      this.ctx.spawnMapItem(ex, ey - 40, 'chest');
+      this.ctx.dropTalismanAt?.(ex, ey + 40);
+      this.scene.cameras.main.shake(320, 0.022);
+    });
+
+    // Chegada pesada: tremor e poeira dourada
+    this.scene.cameras.main.shake(350, 0.018);
+    this.scene.cameras.main.flash(220, 255, 214, 120);
+    return statue;
   }
 
   /**

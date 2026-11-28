@@ -321,6 +321,12 @@ export const CHAPTER_CONFIG: Record<number, ChapterConfig> = {
     enemyStatMultiplier: 1.2,
     altarAppearDelayMs: 3000,
   },
+  // Capítulo 3: um degrau acima do 2 (sem isto ele caía no padrão, mais fácil que o 2)
+  3: {
+    targetSouls: 1500,
+    enemyStatMultiplier: 1.35,
+    altarAppearDelayMs: 3000,
+  },
 };
 
 export function getChapterConfig(chapter: number): ChapterConfig {
@@ -479,6 +485,56 @@ export const ENEMY_BALANCE = {
   // Lyn: minichefe súcubo (antes "Matriarca Succubus"). Arte própria 56/76 px, por isso a escala maior.
   // Vida e dano +30% (pedido do dono em 2026-11-27): 2400→3120, 24→31
   lyn: { hp: 3120, speed: 115, damage: 31, scale: 1.6 },
+  /**
+   * Olho Alado (Capítulo 3, pedido do dono em 2026-11-28): pequeno, bem rápido, vem em grupinhos
+   * e bate encostando. Mais rápido que o morcego (155), mais frágil que o cão.
+   * Arte 64 px (PixelLab), só de lado: o outro lado é espelhado.
+   */
+  wingedEye: {
+    hp: 26,
+    speed: 215,
+    damage: 8,
+    /** Quadro de 41x62 px: na tela fica com ~35x53 (um pouco menor que a Nixy). */
+    scale: 0.85,
+    /** Tamanho do grupinho que nasce junto (sorteado). */
+    group: { min: 2, max: 4 },
+    /** Chance de um grupinho a cada leva de horda, e quantos no máximo vivos ao mesmo tempo. */
+    chance: 0.3,
+    maxAlive: 12,
+    /** Sobe e desce no voo (px e radianos por ms). */
+    bobPx: 3,
+    bobPerMs: 0.012,
+  },
+  /**
+   * Guardião de Mármore: minichefe do Capítulo 3 (pedido do dono em 2026-11-28). Estátua grega
+   * enorme com martelo de ouro: MUITA vida, anda devagar e duro (em passos), e perto da heroína
+   * para, ergue o martelo (área marcada no chão) e bate, ferindo tudo numa área grande.
+   * Arte 128 px (PixelLab), só de lado: o outro lado é espelhado.
+   */
+  statueGuardian: {
+    hp: 9000,
+    speed: 52,
+    damage: 22,
+    scale: 1.55,
+    /** Anda em passos: empurra por `stepMs`, para por `pauseMs` (estátua não desliza). */
+    stepMs: 520,
+    pauseMs: 260,
+    slam: {
+      /** Começa o golpe quando a heroína chega a esta distância. */
+      triggerRange: 190,
+      /** Área marcada no chão antes da batida (dá tempo de sair). */
+      telegraphMs: 1050,
+      radius: 215,
+      /** Regra de ouro: um golpe sozinho fica perto de 45% da vida base (100). */
+      damage: 40,
+      cooldownMs: 2400,
+      firstCooldownMs: 1200,
+      /** Parado com o martelo no chão depois da batida (janela para bater nele). */
+      recoverMs: 750,
+      pushForce: 520,
+      pushMs: 260,
+    },
+  },
 } as const;
 
 /**
@@ -489,6 +545,8 @@ export const ENEMY_BALANCE = {
 export const MINIBOSS_GEM_DROPS = {
   ghoul: ['purple', 'blue', 'blue'],
   lyn: ['purple', 'purple', 'blue', 'blue', 'blue', 'green', 'green', 'green'],
+  /** Guardião de Mármore (Capítulo 3, muito mais vida): 2 roxas + vermelha + 2 azuis = 640 XP. */
+  statue: ['purple', 'purple', 'red', 'blue', 'blue'],
 } as const;
 
 // Lyn, a minichefe súcubo: serva da Rosalin, mas com luta própria. Em vez de perseguir em
@@ -1101,14 +1159,14 @@ export const STORM_BALANCE = {
 // depois entra na mistura. Mudar o momento de algo = editar estas tabelas.
 // Regras puras que leem isto: `src/systems/encounterRules.ts`. Quem executa: `EncounterDirector`.
 
-export type EnemyKind = 'dog' | 'elite' | 'bat' | 'mummy' | 'slime' | 'archer' | 'colossus';
+export type EnemyKind = 'dog' | 'elite' | 'bat' | 'mummy' | 'slime' | 'archer' | 'colossus' | 'eye';
 /**
  * Formações: wall = Muralha (Colossus na frente, Arqueiras atrás), pack = Matilha (Alfas juntos),
  * hunt = Caçada (Arqueiras cercando), swarm = Enxame (morcegos de vários lados),
  * swamp = Pântano (Múmias e Slimes de um lado só).
  */
 export type FormationId = 'wall' | 'pack' | 'hunt' | 'swarm' | 'swamp';
-export type MiniBossId = 'ghoul' | 'lyn';
+export type MiniBossId = 'ghoul' | 'lyn' | 'statue';
 
 export interface StoryChapterSchedule {
   /** Fração da barra de purificação (0 a 1) a partir da qual cada inimigo aparece. Ausente = nunca. */
@@ -1140,6 +1198,17 @@ export const STORY_SCHEDULE: Record<number, StoryChapterSchedule> = {
     ],
     eliteChance: 0.08,
   },
+  // Capítulo 3 — templo da Shylph: estreia o Olho Alado e o Guardião de Mármore
+  3: {
+    unlocks: { dog: 0, bat: 0, eye: 0.08, archer: 0.15, mummy: 0.2, elite: 0.25, colossus: 0.4, slime: 0.6 },
+    miniBoss: { id: 'statue', atRatio: 0.55 },
+    formations: [
+      { id: 'swarm', fromRatio: 0.2 },
+      { id: 'pack', fromRatio: 0.3 },
+      { id: 'wall', fromRatio: 0.5 },
+    ],
+    eliteChance: 0.1,
+  },
 };
 
 /** Capítulos sem tabela própria usam o do Capítulo 2 (todos os inimigos). */
@@ -1156,7 +1225,8 @@ export const ENDLESS_SCHEDULE = {
   circleMs: 300000,
   /** Segundo do Círculo 1 em que cada inimigo estreia (do Círculo 2 em diante, todos desde o início). */
   // (o minichefe chega em 2:30; ninguém estreia perto disso, para os avisos não se atropelarem)
-  firstCircleUnlocksSec: { dog: 0, bat: 45, archer: 90, mummy: 120, elite: 170, colossus: 205, slime: 240 } as Record<EnemyKind, number>,
+  // Sem o Olho Alado: ele é do Capítulo 3 (ausente aqui = nunca aparece no Infinito)
+  firstCircleUnlocksSec: { dog: 0, bat: 45, archer: 90, mummy: 120, elite: 170, colossus: 205, slime: 240 } as Record<Exclude<EnemyKind, 'eye'>, number>,
   miniBossAtMs: 150000,
   /** Minichefe do Círculo N = rotation[(N - 1) % tamanho]. */
   miniBossRotation: ['ghoul', 'lyn'] as MiniBossId[],
@@ -1193,7 +1263,7 @@ export const FORMATION_BALANCE = {
   swarm: { flocks: 3, batsPerFlock: 8 },
   swamp: { mummies: 3, slimes: 2 },
   /** Grupinho que aparece junto do aviso "NOVO INIMIGO" (o cão é o básico, não tem apresentação). */
-  intro: { elite: 2, bat: 6, mummy: 3, slime: 1, archer: 2, colossus: 1 } as Partial<Record<EnemyKind, number>>,
+  intro: { elite: 2, bat: 6, mummy: 3, slime: 1, archer: 2, colossus: 1, eye: 4 } as Partial<Record<EnemyKind, number>>,
 } as const;
 
 // ============================================================================

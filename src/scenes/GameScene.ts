@@ -1042,6 +1042,14 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
     this.enemySpawner.spawnLyn();
   }
 
+  public spawnStatueGuardian(): void {
+    this.enemySpawner.spawnStatueGuardian();
+  }
+
+  public spawnWingedEyeGroup(count: number): void {
+    this.enemySpawner.spawnWingedEyeGroup(count);
+  }
+
   public spawnColossusFormation(angle?: number, dist?: number): void {
     this.enemySpawner.spawnColossusFormation(angle, dist);
   }

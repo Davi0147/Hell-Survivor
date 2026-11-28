@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — Capítulo 3 liberado para teste: Olho Alado, Guardião de Mármore e conversa da Shylph
+
+#### Resumo para o Jogador
+- **Capítulo 3 liberado para teste** (dá para jogar mesmo sem ter vencido o 2). Mais difícil que o 2: monstros 35% mais fortes e barra de 1500 almas.
+- **Monstro novo: Olho Alado.** Pequeno, bem rápido, vem em grupinhos de 2 a 4 e bate encostando. Só aparece no Capítulo 3.
+- **Minichefe novo: Guardião de Mármore.** Estátua grega enorme com martelo de ouro, com muita vida (9000). Anda devagar e duro, passo a passo, e não dá para atravessar. Perto da Nixy, ergue o martelo, marca um círculo no chão e bate: quem estiver dentro leva 40 de dano e é jogado longe. Solta 2 gemas roxas, 1 vermelha, 2 azuis, almas, baú e talismã.
+- **Conversa com a Shylph** antes da luta (com o retrato novo dela). Ela cantarola em vez de cantar a letra da música (a letra tem direito autoral).
+
+#### Técnico
+- Arte gerada pela API do PixelLab, só de lado e espelhada (`docs/ART_PROMPTS.md` §29): 14 gerações no total. Tiras montadas por `scripts/pack-strip.py`; carregadas por `systems/Chapter3EnemyAssets.ts`. Retrato da Shylph por `scripts/cut-shylph-portrait.py`.
+- `WingedEye.ts`, `StatueGuardian.ts` (+ `statueRules.ts`, regras puras testadas); `EnemyKind 'eye'` e `MiniBossId 'statue'`; `STORY_SCHEDULE[3]` e `CHAPTER_CONFIG[3]`. O Olho fica fora do Infinito (`firstCircleUnlocksSec` sem ele).
+- `SHYLPH_INTRO_DIALOGUE`; na revanche a Shylph vem direto para a luta.
+- `chapterCatalog`: Capítulo 3 `released` + `openForTesting` (temporário; tirar quando entrar na ordem normal).
+- Modo de Teste: botões "+6 Olhos Alados" e "Guardião de Mármore"; os dois na galeria; o martelo registra o dano no log.
+
 ## [Não publicado] — Diálogo novo do Azazel, música da Shylph e menu de capítulos
 
 #### Resumo para o Jogador

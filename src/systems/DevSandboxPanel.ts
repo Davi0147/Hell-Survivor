@@ -614,6 +614,24 @@ export class DevSandboxPanel {
           this.showToast('MINI-BOSS LYN INVOCADA!', '#e879f9');
         }
       },
+      {
+        label: 'SPAWNAR +6 OLHOS ALADOS (CAP. 3, RÁPIDOS)',
+        color: FX_COLORS.eyeButtonFill,
+        border: FX_COLORS.eyeButtonBorder,
+        action: () => {
+          gs.sandboxSpawnHorde('eye', 6);
+          this.showToast('+6 OLHOS ALADOS INVOCADOS!', FX_COLORS.eyeToast);
+        }
+      },
+      {
+        label: 'INVOCAR MINI-BOSS: GUARDIÃO DE MÁRMORE (CAP. 3)',
+        color: FX_COLORS.statueButtonFill,
+        border: FX_COLORS.statueButtonBorder,
+        action: () => {
+          gs.sandboxSpawnHorde('statue', 1);
+          this.showToast('GUARDIÃO DE MÁRMORE INVOCADO!', FX_COLORS.statueToast);
+        }
+      },
     ];
 
     mobButtons.forEach((b, i) => {

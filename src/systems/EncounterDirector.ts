@@ -56,6 +56,7 @@ export const ENEMY_NAMES: Record<EnemyKind, string> = {
   slime: 'Skull Slimes',
   archer: 'Arqueiras',
   colossus: 'Colossus',
+  eye: 'Olhos Alados',
 };
 
 const FORMATION_NAMES: Record<FormationId, string> = {
@@ -69,6 +70,7 @@ const FORMATION_NAMES: Record<FormationId, string> = {
 const MINIBOSS_NAMES: Record<MiniBossId, string> = {
   ghoul: 'GHOUL DEVORADOR',
   lyn: 'LYN, A SÚCUBO',
+  statue: 'GUARDIÃO DE MÁRMORE',
 };
 
 /**
@@ -291,6 +293,7 @@ export class EncounterDirector {
     this.hud?.showWaveAlert(`MINICHEFE: ${MINIBOSS_NAMES[id]}!`, 4000);
     this.log(`Minichefe ${id} (vida x${hpMultiplier.toFixed(2)})`);
     if (id === 'ghoul') this.spawner.spawnGhoulDevourer(hpMultiplier);
+    else if (id === 'statue') this.spawner.spawnStatueGuardian(hpMultiplier);
     else this.spawner.spawnLyn(hpMultiplier);
   }
 
@@ -308,6 +311,10 @@ export class EncounterDirector {
     const d = FORMATION_BALANCE.distance;
     if (kind === 'bat') {
       this.spawner.spawnBloodBatFlock(count, angle);
+      return;
+    }
+    if (kind === 'eye') {
+      this.spawner.spawnWingedEyeGroup(count, angle);
       return;
     }
     for (let i = 0; i < count; i++) {

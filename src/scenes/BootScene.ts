@@ -13,6 +13,7 @@ import { InputDeviceTracker } from '../systems/InputDeviceTracker';
 import { CARD_FRAME_KEYS, CHAPTER_UI_PIECES, TALISMAN_THEME, chapterUiKey } from '../config/theme';
 import { CHAPTERS } from '../config/chapterCatalog';
 import { preloadShylphAssets, createShylphAnims, unloadShylphAssets } from '../systems/ShylphAssets';
+import { preloadChapter3EnemyAssets, createChapter3EnemyAnims, unloadChapter3EnemyAssets } from '../systems/Chapter3EnemyAssets';
 
 /** Arquivos em public/assets/sprites/enemies/Azazel/Projectiles (texturas `azazel-proj-<nome>`). */
 const AZAZEL_PROJECTILE_ART = ['comet', 'orb-glossy', 'orb-spiral', 'needle'] as const;
@@ -196,6 +197,7 @@ export class BootScene extends Phaser.Scene {
     if (this.textures.exists('floor-tile-2')) this.textures.remove('floor-tile-2');
     if (this.textures.exists('azazel-crystal')) this.textures.remove('azazel-crystal');
     if (this.textures.exists('chat-azazel')) this.textures.remove('chat-azazel');
+    if (this.textures.exists('chat-shylph')) this.textures.remove('chat-shylph');
     if (this.textures.exists('azazel-orb')) this.textures.remove('azazel-orb');
     if (this.textures.exists('azazel-lightning-bolt')) this.textures.remove('azazel-lightning-bolt');
     for (const k of ['azazel-skull-closed', 'azazel-skull-open', 'azazel-skull-orb', 'azazel-hand-slam', ...AZAZEL_PROJECTILE_ART.map((a) => `azazel-proj-${a}`)]) {
@@ -217,6 +219,7 @@ export class BootScene extends Phaser.Scene {
     if (this.textures.exists('chat-rosalin-defeated')) this.textures.remove('chat-rosalin-defeated');
     if (this.textures.exists('ui-star')) this.textures.remove('ui-star');
     unloadShylphAssets(this.textures, this.anims);
+    unloadChapter3EnemyAssets(this.textures, this.anims);
   }
 
   preload(): void {
@@ -225,6 +228,8 @@ export class BootScene extends Phaser.Scene {
     const cacheBuster = Date.now();
     // Shylph, a Serafim Caída (Capítulo 3): uma folha só com todas as animações
     preloadShylphAssets(this.load, cacheBuster);
+    // Olho Alado e Guardião de Mármore (monstros do Capítulo 3)
+    preloadChapter3EnemyAssets(this.load, cacheBuster);
 
     // Garante carregamento da fonte Pixelzone na memória do navegador
     if (typeof document !== 'undefined' && document.fonts) {
@@ -641,6 +646,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('floor-tile-2', `assets/textures/chao2.jpg?t=${cacheBuster}`);
     this.load.image('azazel-crystal', `assets/sprites/items/CristalAzazel.png?t=${cacheBuster}`);
     this.load.image('chat-azazel', `assets/sprites/enemies/Azazel/AzazelChat.png?t=${cacheBuster}`);
+    this.load.image('chat-shylph', `assets/sprites/portraits/Shylph_Chat.png?t=${cacheBuster}`);
 
     for (const dir of DIRECTIONS_8) {
       this.load.image(
@@ -691,6 +697,7 @@ export class BootScene extends Phaser.Scene {
     // Detector único de teclado / controle / toque para as dicas de botão
     InputDeviceTracker.getInstance().attach(this.game);
     createShylphAnims(this.anims);
+    createChapter3EnemyAnims(this.anims);
 
     // 1. Textura do chão: fallback procedural apenas caso a imagem não exista
     if (!this.textures.exists('floor-tile')) {

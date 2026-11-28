@@ -21,6 +21,13 @@ describe('Capítulos: o que está liberado', () => {
     expect(chapterState(1, true, { 1: done() })).toBe('cleared');
   });
 
+  it('aberto para teste: joga sem vencer o anterior (mas não lançado continua fechado)', () => {
+    expect(chapterState(3, true, {}, true)).toBe('open');
+    expect(chapterState(3, true, {})).toBe('locked');
+    expect(chapterState(3, false, {}, true)).toBe('coming-soon');
+    expect(CHAPTERS.find((c) => c.number === 3)?.released).toBe(true);
+  });
+
   it('não lançado fica bloqueado mesmo com o anterior vencido', () => {
     expect(chapterState(3, false, { 1: done(), 2: done() })).toBe('coming-soon');
     expect(isPlayable('coming-soon')).toBe(false);

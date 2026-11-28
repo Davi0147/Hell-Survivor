@@ -11,7 +11,7 @@ import {
  * Os números moram em `STORY_SCHEDULE` / `ENDLESS_SCHEDULE` (balance.ts).
  */
 
-export const ALL_ENEMY_KINDS: readonly EnemyKind[] = ['dog', 'elite', 'bat', 'mummy', 'slime', 'archer', 'colossus'];
+export const ALL_ENEMY_KINDS: readonly EnemyKind[] = ['dog', 'elite', 'bat', 'mummy', 'slime', 'archer', 'colossus', 'eye'];
 
 // ---------------------------------------------------------------------------
 // História (avanço pela barra de purificação, 0 a 1)
@@ -41,13 +41,21 @@ export function storyFormations(chapter: number, ratio: number): FormationId[] {
 // ---------------------------------------------------------------------------
 
 /** No Círculo 1 cada inimigo estreia no seu segundo; do Círculo 2 em diante, todos liberados. */
+/** Segundo de estreia no Círculo 1; `undefined` = esse inimigo não existe no Infinito. */
+function endlessDebutSec(kind: EnemyKind): number | undefined {
+  return (ENDLESS_SCHEDULE.firstCircleUnlocksSec as Partial<Record<EnemyKind, number>>)[kind];
+}
+
 export function isUnlockedInEndless(circle: number, circleMs: number, kind: EnemyKind): boolean {
+  const sec = endlessDebutSec(kind);
+  // Fora da tabela (ex.: Olho Alado, do Capítulo 3) = nunca no Infinito
+  if (sec === undefined) return false;
   if (circle >= 2) return true;
-  return circleMs >= ENDLESS_SCHEDULE.firstCircleUnlocksSec[kind] * 1000;
+  return circleMs >= sec * 1000;
 }
 
 export function endlessIntroKinds(): EnemyKind[] {
-  return ALL_ENEMY_KINDS.filter((k) => ENDLESS_SCHEDULE.firstCircleUnlocksSec[k] > 0);
+  return ALL_ENEMY_KINDS.filter((k) => (endlessDebutSec(k) ?? 0) > 0);
 }
 
 export function endlessMiniBoss(circle: number): MiniBossId {
