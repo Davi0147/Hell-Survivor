@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import {
   ALL_BGM_KEYS,
   clampVolume,
+  dialogueDuckFor,
   getMusicConfig,
   type MusicState
 } from '../config/musicConfig';
@@ -70,6 +71,8 @@ export class MusicDirector {
   private currentBgmKey?: string;
   private masterMusicVolume: number = 0.10;
   private bgmBoostMultiplier: number = 1.0;
+  /** Conversa na tela: a música fica mais baixa (ver `dialogueDuckFor`). */
+  private inDialogue = false;
 
   private activeFades: ActiveFade[] = [];
   private azazelTimers: number[] = [];
@@ -118,9 +121,23 @@ export class MusicDirector {
 
     if (this.currentBgm) {
       const config = getMusicConfig(this.currentState);
-      const targetVol = config.calculateLegacySetVolume(this.masterMusicVolume, this.bgmBoostMultiplier);
+      const targetVol = config.calculateLegacySetVolume(this.masterMusicVolume, this.bgmBoostMultiplier) * this.duck();
       setSoundVolume(this.currentBgm, targetVol);
     }
+  }
+
+  private duck(state: MusicState = this.currentState): number {
+    return dialogueDuckFor(state, this.inDialogue);
+  }
+
+  /** Começo/fim de diálogo: baixa a música de fundo e depois devolve (fade curto). */
+  public setDialogueDuck(active: boolean): void {
+    if (this.inDialogue === active) return;
+    this.inDialogue = active;
+    if (!this.currentBgm) return;
+    const config = getMusicConfig(this.currentState);
+    const targetVol = config.calculateVolume(this.masterMusicVolume, this.bgmBoostMultiplier) * this.duck();
+    this.startVolumeFade(this.currentBgm, getSoundVolume(this.currentBgm), targetVol, 350);
   }
 
   public getCurrentState(): MusicState {
@@ -155,7 +172,7 @@ export class MusicDirector {
     // Se já estiver no mesmo estado e o áudio estiver tocando, apenas atualiza volume se necessário
     if (oldState === targetState && this.currentBgm && this.currentBgm.isPlaying) {
       const config = getMusicConfig(targetState);
-      const targetVol = config.calculateVolume(this.masterMusicVolume, this.bgmBoostMultiplier);
+      const targetVol = config.calculateVolume(this.masterMusicVolume, this.bgmBoostMultiplier) * this.duck(targetState);
       setSoundVolume(this.currentBgm, targetVol);
       return;
     }
@@ -210,7 +227,7 @@ export class MusicDirector {
         return;
       }
 
-      const targetVolume = config.calculateVolume(this.masterMusicVolume, this.bgmBoostMultiplier);
+      const targetVolume = config.calculateVolume(this.masterMusicVolume, this.bgmBoostMultiplier) * this.duck(targetState);
       const fadeInDuration = options?.fadeInMs ?? config.defaultFadeInMs;
       const startVolume = fadeInDuration > 0 ? 0 : targetVolume;
 
@@ -245,7 +262,7 @@ export class MusicDirector {
     this.bgmBoostMultiplier = multiplier;
     if (this.currentBgm) {
       const config = getMusicConfig(this.currentState);
-      const targetVol = config.calculateVolume(this.masterMusicVolume, this.bgmBoostMultiplier);
+      const targetVol = config.calculateVolume(this.masterMusicVolume, this.bgmBoostMultiplier) * this.duck();
       this.startVolumeFade(this.currentBgm, getSoundVolume(this.currentBgm), targetVol, 500);
     }
   }

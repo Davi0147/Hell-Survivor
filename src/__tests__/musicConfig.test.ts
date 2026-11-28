@@ -5,6 +5,7 @@ import {
   MUSIC_CONFIGS,
   ALL_BGM_KEYS,
   battleMusicState,
+  dialogueDuckFor,
   type MusicState
 } from '../config/musicConfig';
 
@@ -47,6 +48,17 @@ describe('Music Configuration (musicConfig.ts)', () => {
       for (const cfg of Object.values(MUSIC_CONFIGS)) {
         if (cfg.trackKey) expect(ALL_BGM_KEYS).toContain(cfg.trackKey);
       }
+    });
+  });
+
+  describe('Music during dialogue', () => {
+    it('background music gets quieter while a dialogue is open and back to normal after', () => {
+      expect(dialogueDuckFor('BATTLE_CH3', true)).toBeLessThan(0.5);
+      expect(dialogueDuckFor('BATTLE_CH3', false)).toBe(1);
+    });
+
+    it('Azazel intro (already the quiet dialogue track) is not lowered again', () => {
+      expect(dialogueDuckFor('AZAZEL_INTRO', true)).toBe(1);
     });
   });
 

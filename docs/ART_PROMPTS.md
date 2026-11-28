@@ -1960,7 +1960,9 @@ huge living ancient greek marble statue golem, a muscular bearded man carved in 
 Andar ("east"): `slow heavy stone statue walk: stiff and rigid like carved marble, the whole body barely bends, lifts one heavy stone leg and stomps it down, then the other, torso stays upright and stiff, the golden hammer stays resting on his shoulder, small jolt on each heavy step. No visual effects...`
 Martelo ("east"): `attack: stays in place facing the same direction the whole time, slowly raises the giant golden hammer high above his head with both hands, holds it up for a moment, then smashes it straight down hard into the ground in front of him... No visual effects...` Mesmo pedindo sem efeitos, os quadros 5 a 7 vieram com poeira e lascas; ficaram (ajudam a ler a batida).
 
-Montagem: `python scripts/pack-strip.py <pasta> <saída.png> [--skip N] --crop` (a mesma caixa de recorte para todos os quadros). Folhas no jogo: `WingedEye/winged-eye-fly.png` (7 x 41x62) e `StatueGuardian/statue-guardian.png` (16 x 120x139: andar 0-7, martelo 8-15). Mudou a arte? Atualize os tamanhos em `systems/Chapter3EnemyAssets.ts`.
+**Versão sem pedestal (a que está no jogo):** o dono achou estranho a estátua andar com a base. O mesmo prompt começando com `huge living ancient greek marble statue golem walking on his own two bare stone feet directly on the ground, NO pedestal, NO plinth, NO base, NO platform under the feet, ...` (e sem a parte do plinth) resolveu; andar e martelo com as mesmas descrições. Custou 11 gerações (3 + 4 + 4). O martelo novo não tem quadro de "erguido": 0-3 no ombro, 4 batendo, 5-7 faíscas.
+
+Montagem: `python scripts/pack-strip.py <pasta> <saída.png> [--skip N] --crop` (a mesma caixa de recorte para todos os quadros). Folhas no jogo: `WingedEye/winged-eye-fly.png` (7 x 41x62) e `StatueGuardian/statue-guardian.png` (16 x 99x121: andar 0-7, martelo 8-15). Mudou a arte? Atualize os tamanhos em `systems/Chapter3EnemyAssets.ts`.
 
 ---
 

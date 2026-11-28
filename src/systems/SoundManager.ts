@@ -187,6 +187,11 @@ export class SoundManager {
     MusicDirector.getInstance().setMusicState('BOSS_SUCCUBUS', 'SoundManager.playBossMusic', { fadeInMs });
   }
 
+  /** Diálogo na tela: baixa a música de fundo (e devolve quando a conversa acaba). */
+  public setDialogueMusicDuck(active: boolean): void {
+    MusicDirector.getInstance().setDialogueDuck(active);
+  }
+
   /** Luta da Shylph (chefe do Capítulo 3): "Dragon's Final Breath". */
   public playShylphMusic(fadeInMs: number = 2000): void {
     MusicDirector.getInstance().setMusicState('BOSS_SHYLPH', 'SoundManager.playShylphMusic', { fadeInMs });

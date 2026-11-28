@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — Estátua sem pedestal, música baixa nos diálogos e ajustes
+
+#### Resumo para o Jogador
+- **Guardião de Mármore redesenhado** sem a base nos pés: agora anda pisando no chão (continua do mesmo tamanho).
+- **Carta "Reação em Cadeia"** (monstros explodem ao morrer): metade do dano. Nível 1: 36 → 18; nível 3: 56 → 28.
+- **Capítulos na ordem:** cada capítulo só abre depois de vencer o anterior (o Capítulo 3 pede o 2). O botão "Próximo Capítulo" no fim do Capítulo 2 agora leva ao Capítulo 3.
+- **Música baixa durante as conversas** (volta ao normal quando a conversa acaba).
+- Shylph: a fala da Nixy agora é "Você tá cantando?".
+
+#### Técnico
+- Estátua regerada no PixelLab (`docs/ART_PROMPTS.md` §29): 11 gerações; folha nova de 16 x 99x121 (batida no quadro 4). A versão com pedestal ficou em `art-source/novos/cap3-inimigos/estatua-martelo-com-base/`.
+- `CORPSE_EXPLOSION_BALANCE` 26/10 → 13/5. `chapterState` sem a exceção `openForTesting`.
+- `MusicDirector.setDialogueDuck` + `dialogueDuckFor` (`DIALOGUE_MUSIC_DUCK` = 0.35; a intro do Azazel não baixa), chamado pelo `DialogueSystem` ao abrir e fechar a conversa.
+
 ## [Não publicado] — Capítulo 3 liberado para teste: Olho Alado, Guardião de Mármore e conversa da Shylph
 
 #### Resumo para o Jogador

@@ -215,6 +215,7 @@ export class DialogueSystem {
       onComplete();
       return;
     }
+    SoundManager.getInstance().setDialogueMusicDuck(true);
 
     this.lines = this.paginateDialogueLines(lines);
     this.currentLineIndex = 0;
@@ -642,6 +643,7 @@ export class DialogueSystem {
   }
 
   private finishDialogue(): void {
+    SoundManager.getInstance().setDialogueMusicDuck(false);
     this.scene.tweens.killTweensOf(this.leftBustImage);
     this.scene.tweens.killTweensOf(this.rightBustImage);
     this.scene.tweens.killTweensOf(this.balloonContainer);

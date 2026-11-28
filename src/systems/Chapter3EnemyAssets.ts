@@ -12,21 +12,24 @@ export const WINGED_EYE_ANIM = 'winged-eye-fly';
 /** Olho Alado: 7 quadros de 41x62 voando para a direita (o 4º quadro gerado foi descartado). */
 const EYE_FRAME = { width: 41, height: 62, count: 7, frameRate: 14 } as const;
 
-/** Guardião de Mármore: tira com os 8 quadros do andar e depois os 8 do martelo (120x139). */
+/**
+ * Guardião de Mármore: tira com os 8 quadros do andar e depois os 8 do martelo (99x121).
+ * Versão sem pedestal nos pés (o dono achou estranho a estátua andar com a base; 2026-11-28).
+ */
 export const STATUE_TEXTURE = 'statue-guardian';
 export const STATUE_SHEET = {
-  frameWidth: 120,
-  frameHeight: 139,
+  frameWidth: 99,
+  frameHeight: 121,
   /** A arte foi desenhada olhando para a direita. */
   facesRight: true,
   walk: { start: 0, count: 8 },
   /**
-   * Martelo: 0-3 segurando no ombro, 4 erguido, 5 batida no chão (com poeira), 6-7 martelo
-   * parado no chão. `impact` = primeiro quadro da batida.
+   * Martelo: 0-3 segurando no ombro (a marcação no chão avisa a batida), 4 martelo batendo no
+   * chão, 5-7 faíscas e lascas com o martelo no chão. `raised` = pose de espera; `impact` = batida.
    */
-  slam: { start: 8, count: 8, raised: 4, impact: 5 },
+  slam: { start: 8, count: 8, raised: 3, impact: 4 },
   /** Caixa de colisão no corpo/pés (px do quadro, antes da escala). */
-  body: { width: 46, height: 52, bottomGap: 10 },
+  body: { width: 40, height: 46, bottomGap: 3 },
 } as const;
 export const STATUE_ANIMS = { walk: 'statue-guardian-walk' } as const;
 /** Passos de estátua: devagar e pesado. */

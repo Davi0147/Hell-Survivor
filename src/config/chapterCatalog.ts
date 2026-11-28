@@ -21,11 +21,6 @@ export interface ChapterInfo {
   art?: string;
   /** Sprite do chefe usado enquanto a arte de fundo não existe. */
   fallbackSprite?: string;
-  /**
-   * Aberto para teste: dá para jogar sem ter vencido o capítulo anterior. Temporário (o dono
-   * testa capítulo novo direto); tirar quando o capítulo entrar na ordem normal.
-   */
-  openForTesting?: boolean;
 }
 
 export const CHAPTER_COUNT = 10;
@@ -54,14 +49,13 @@ const RELEASED: ChapterInfo[] = [
     fallbackSprite: 'azazel-idle-south',
   },
   {
-    // Liberado para teste em 2026-11-28 (pedido do dono). Título e resumo ainda provisórios.
+    // Lançado em 2026-11-28; abre depois de vencer o Capítulo 2. Título e resumo ainda provisórios.
     number: 3,
     numeral: 'III',
     title: 'O CORO QUE SANGRA',
     boss: 'SHYLPH, A SERAFIM CAÍDA',
     summary: 'Um templo onde os anjos rezam de olhos vendados. Shylph sorri, lambe o sangue dos dedos e espera você acreditar que venceu.',
     released: true,
-    openForTesting: true,
     art: 'chapter-03.jpg',
     fallbackSprite: 'shylph-sheet',
   },

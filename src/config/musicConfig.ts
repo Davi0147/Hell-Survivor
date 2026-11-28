@@ -61,6 +61,19 @@ export const ALL_BGM_KEYS: readonly string[] = [
   'bgm-boss-shylph'
 ] as const;
 
+/**
+ * Durante um diálogo a música de fundo baixa para esta fração (pedido do dono em 2026-11-28),
+ * e volta ao normal quando a conversa acaba. A intro do Azazel já é a música do diálogo
+ * dele (baixa de propósito), então não baixa de novo.
+ */
+export const DIALOGUE_MUSIC_DUCK = 0.35;
+const DIALOGUE_DUCK_EXEMPT: readonly MusicState[] = ['AZAZEL_INTRO', 'SILENCE'];
+
+/** Multiplicador de volume da música agora (1 = normal; menor durante diálogo). */
+export function dialogueDuckFor(state: MusicState, inDialogue: boolean): number {
+  return inDialogue && !DIALOGUE_DUCK_EXEMPT.includes(state) ? DIALOGUE_MUSIC_DUCK : 1;
+}
+
 /** Música das hordas por capítulo (o chefe de cada capítulo tem a própria trilha). */
 export function battleMusicState(chapter: number): MusicState {
   if (chapter === 2) return 'BATTLE_CH2';

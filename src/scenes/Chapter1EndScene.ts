@@ -5,6 +5,7 @@ import { GamepadManager } from '../systems/GamepadManager';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
 import { CHAPTER2_END_FALLBACK, CHAPTER2_ENDING_FX, INPUT_HINT_THEME } from '../config/theme';
 import { CHAPTER2_ENDING, type EndingTransition } from '../config/dialogues';
+import { getChapterInfo } from '../config/chapterCatalog';
 import { SkipButton } from '../ui/SkipButton';
 import { InputHint } from '../ui/InputHint';
 
@@ -1600,13 +1601,15 @@ export class Chapter1EndScene extends Phaser.Scene {
 
         const handleNextChapter = () => {
           SoundManager.getInstance().playMenuClick();
-          if (this.chapter === 1) {
+          // Acabou de vencer este capítulo, então o próximo já está liberado (se foi lançado)
+          const next = getChapterInfo(this.chapter + 1);
+          if (next?.released) {
             SoundManager.getInstance().stopMusic(600);
             this.cameras.main.fadeOut(500, 0, 0, 0);
             this.cameras.main.once('camerafadeoutcomplete', () => {
               this.scene.stop('Chapter1EndScene');
               this.scene.stop('UIScene');
-              this.scene.start('GameScene', { mode: 'story', chapter: 2 });
+              this.scene.start('GameScene', { mode: 'story', chapter: next.number });
             });
             return;
           }
@@ -1614,7 +1617,7 @@ export class Chapter1EndScene extends Phaser.Scene {
           toastNotice.setText('');
           toastNotice.setAlpha(1);
           this.tweens.killTweensOf(toastNotice);
-          this.typeTextLine(toastNotice, 'CAPÍTULO 3 EM BREVE NAS PRÓXIMAS ATUALIZAÇÕES!', 18, () => {
+          this.typeTextLine(toastNotice, `CAPÍTULO ${this.chapter + 1} EM BREVE NAS PRÓXIMAS ATUALIZAÇÕES!`, 18, () => {
             this.tweens.add({
               targets: toastNotice,
               alpha: 0,

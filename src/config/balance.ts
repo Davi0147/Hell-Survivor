@@ -515,7 +515,8 @@ export const ENEMY_BALANCE = {
     hp: 9000,
     speed: 52,
     damage: 22,
-    scale: 1.55,
+    /** Quadro de 99x121 (sem pedestal): na tela fica com ~173x212, bem maior que a Nixy. */
+    scale: 1.75,
     /** Anda em passos: empurra por `stepMs`, para por `pauseMs` (estátua não desliza). */
     stepMs: 520,
     pauseMs: 260,
@@ -1040,8 +1041,9 @@ export const DASH_BALANCE = {
 
 export const CORPSE_EXPLOSION_BALANCE = {
   chancePerCard: 0.15,
-  baseDamage: 26,
-  damagePerCard: 10,
+  // Metade do dano (pedido do dono em 2026-11-28: estava forte demais): 26→13, 10→5
+  baseDamage: 13,
+  damagePerCard: 5,
   radius: 72,
   maxCards: 3,
   /** Trava de desempenho: explosões em cadeia por quadro. */

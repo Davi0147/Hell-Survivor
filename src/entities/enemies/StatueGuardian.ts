@@ -52,6 +52,7 @@ export class StatueGuardian extends BaseEnemy {
     super.spawn(x, y, hp, speed, damage);
     const cfg = ENEMY_BALANCE.statueGuardian;
     this.setScale(cfg.scale);
+    this.setAngle(0);
     this.statueState = 'walk';
     this.stateTimer = 0;
     this.stepClock = 0;
@@ -95,9 +96,11 @@ export class StatueGuardian extends BaseEnemy {
       this.stateTimer -= deltaMs;
       const progress = 1 - Math.max(0, this.stateTimer / cfg.slam.telegraphMs);
       this.drawTelegraph(progress);
-      // Segura o martelo e logo ergue bem alto, parado lá em cima até a batida (leitura clara)
+      // Firma o martelo no ombro esperando a batida (a marcação no chão é o aviso)
       const slam = STATUE_SHEET.slam;
       this.setFrame(slam.start + (progress < 0.25 ? slam.raised - 1 : slam.raised));
+      // Treme de leve no fim, como quem vai descer o martelo
+      if (progress > 0.7) this.setFrame(slam.start + slam.raised).setAngle(Math.sin(progress * 90) * 1.5);
       if (this.stateTimer <= 0) this.slamImpact();
       return;
     }
@@ -105,7 +108,7 @@ export class StatueGuardian extends BaseEnemy {
     if (this.statueState === 'recover') {
       this.setVelocity(0, 0);
       this.stateTimer -= deltaMs;
-      // Batida (5) → poeira (6) → martelo parado no chão (7)
+      // Batida (4) → faíscas e lascas (5 a 7), com o martelo no chão
       const slam = STATUE_SHEET.slam;
       const since = ENEMY_BALANCE.statueGuardian.slam.recoverMs - this.stateTimer;
       this.setFrame(slam.start + Math.min(slam.count - 1, slam.impact + Math.floor(since / 110)));
@@ -163,6 +166,7 @@ export class StatueGuardian extends BaseEnemy {
   private slamImpact(): void {
     const cfg = ENEMY_BALANCE.statueGuardian.slam;
     this.telegraph.clear();
+    this.setAngle(0);
     this.statueState = 'recover';
     this.stateTimer = cfg.recoverMs;
     this.setFrame(STATUE_SHEET.slam.start + STATUE_SHEET.slam.impact);

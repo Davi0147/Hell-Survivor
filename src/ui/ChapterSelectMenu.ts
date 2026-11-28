@@ -156,7 +156,7 @@ export class ChapterSelectMenu {
     this.buildBackgroundArt(width, height);
     this.buildTitle(width / 2);
 
-    const states = CHAPTERS.map((c) => chapterState(c.number, c.released, opts.records, c.openForTesting));
+    const states = CHAPTERS.map((c) => chapterState(c.number, c.released, opts.records));
     CHAPTERS.forEach((info, i) => this.panels.push(this.buildPanel(info, states[i], i)));
     this.focus = initialFocus(states);
 
