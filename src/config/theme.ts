@@ -242,6 +242,13 @@ export const CHAPTER2_END_FALLBACK = {
   ground: '#07010c',
 } as const;
 
+/** Aviso discreto que desliza da esquerda ("Novo: Morcegos"). Sem fundo: só texto com contorno. */
+export const SIDE_NOTICE_THEME = {
+  label: '#ffd166',
+  text: '#ffffff',
+  stroke: '#000000',
+} as const;
+
 /** Clarões dos cortes secos da cinemática de fim do Capítulo 2 (derrota do Azazel). */
 export const CHAPTER2_ENDING_FX = {
   /** Quadro de impacto nos cortes com batida. */

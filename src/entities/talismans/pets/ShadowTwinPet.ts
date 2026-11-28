@@ -18,7 +18,7 @@ export class ShadowTwinPet extends BasePet {
     // A arte já é a sombra (não pinta por cima); logo abaixo da heroína na ordem de desenho
     this.sprite.setAlpha(cfg.alpha);
     // Já nasce no lugar dela ao lado da heroína (perto demais ela não anda e ficaria por trás)
-    this.sprite.setPosition(ctx.player.x + cfg.offsetX, ctx.player.y + cfg.offsetY);
+    this.setPos(ctx.player.x + cfg.offsetX, ctx.player.y + cfg.offsetY);
     this.sprite.setDepth(ctx.player.depth - 1);
 
     this.weapon = new SoulBoltWeapon(ctx.scene, ctx.player);

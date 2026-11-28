@@ -11,7 +11,7 @@ import { ENDLESS_SCHEDULE, FORMATION_BALANCE, STORY_SCHEDULE } from '../config/b
 const FRAME = 100;
 
 function makeWorld(gameMode: 'story' | 'endless') {
-  const hud = { showWaveAlert: vi.fn(), showCenterAnnouncement: vi.fn() };
+  const hud = { showWaveAlert: vi.fn(), showCenterAnnouncement: vi.fn(), showSideNotice: vi.fn() };
   const scene = { scene: { get: () => hud } };
   const spawner = {
     spawnBloodBatFlock: vi.fn(),
@@ -62,7 +62,9 @@ describe('EncounterDirector — Infinito', () => {
     w.run(ENDLESS_SCHEDULE.firstCircleUnlocksSec.archer * 1000 + FRAME);
     expect(w.director.isUnlocked('archer')).toBe(true);
     expect(w.spawner.spawnArcherAt).toHaveBeenCalledTimes(FORMATION_BALANCE.intro.archer!);
-    expect(w.hud.showCenterAnnouncement).toHaveBeenCalledWith(expect.stringContaining('ARQUEIRAS'), expect.any(String), expect.any(Number));
+    // Monstro novo: aviso discreto à esquerda, não mais o anúncio grande no centro
+    expect(w.hud.showSideNotice).toHaveBeenCalledWith('Novo:', 'Arqueiras');
+    expect(w.hud.showCenterAnnouncement).not.toHaveBeenCalledWith(expect.stringContaining('NOVO'), expect.anything(), expect.anything());
   });
 
   it('Círculo 1: Ghoul no meio, avisos e chefe no fim; tudo apresentado antes', () => {
@@ -171,5 +173,6 @@ describe('EncounterDirector — História', () => {
     w.run(FRAME * 10);
     expect(w.spawner.spawnGhoulDevourer).not.toHaveBeenCalled();
     expect(w.hud.showCenterAnnouncement).not.toHaveBeenCalled();
+    expect(w.hud.showSideNotice).not.toHaveBeenCalled();
   });
 });

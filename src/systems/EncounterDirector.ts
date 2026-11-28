@@ -28,6 +28,7 @@ import {
 interface IEncounterHud {
   showWaveAlert(message: string, durationMs?: number): void;
   showCenterAnnouncement(title: string, subtitle?: string, durationMs?: number): void;
+  showSideNotice(label: string, text: string): void;
 }
 
 /** Contrato mínimo que a cena expõe para o EncounterDirector. */
@@ -46,24 +47,15 @@ export interface IEncounterContext {
   hasRoomForEnemies(count: number): boolean;
 }
 
-const ENEMY_NAMES: Record<EnemyKind, string> = {
-  dog: 'CÃES ZUMBIS',
-  elite: 'CÃES ALFA',
-  bat: 'MORCEGOS DE SANGUE',
-  mummy: 'MÚMIAS DO ABISMO',
-  slime: 'SKULL SLIMES',
-  archer: 'ARQUEIRAS DEMÔNIAS',
-  colossus: 'COLOSSUS',
-};
-
-const ENEMY_HINTS: Record<EnemyKind, string> = {
-  dog: '',
-  elite: 'MAIS FORTES E MAIS RÁPIDOS',
-  bat: 'RÁPIDOS E FRÁGEIS, EM BANDO',
-  mummy: 'DEIXAM VENENO NO CHÃO',
-  slime: 'EXPLODEM PERTO DE VOCÊ',
-  archer: 'ATIRAM DE LONGE E FOGEM',
-  colossus: 'ESCUDO: PERFURAÇÃO PARA NELE',
+/** Nome curto no aviso lateral de monstro novo ("Novo: Morcegos"). */
+export const ENEMY_NAMES: Record<EnemyKind, string> = {
+  dog: 'Cães Zumbis',
+  elite: 'Cães Alfa',
+  bat: 'Morcegos',
+  mummy: 'Múmias',
+  slime: 'Skull Slimes',
+  archer: 'Arqueiras',
+  colossus: 'Colossus',
 };
 
 const FORMATION_NAMES: Record<FormationId, string> = {
@@ -288,7 +280,7 @@ export class EncounterDirector {
     this.introduced.add(kind);
     const count = FORMATION_BALANCE.intro[kind] ?? 0;
     if (count <= 0) return;
-    this.hud?.showCenterAnnouncement(`NOVO: ${ENEMY_NAMES[kind]}`, ENEMY_HINTS[kind], 2800);
+    this.hud?.showSideNotice('Novo:', ENEMY_NAMES[kind]);
     this.log(`Apresentação: ${kind}`);
     if (!this.ctx.hasRoomForEnemies(count)) return;
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);

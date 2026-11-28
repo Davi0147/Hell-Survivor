@@ -20,6 +20,7 @@ import { ChestRouletteModal, IChestRouletteGameScene } from '../ui/ChestRoulette
 import { TalismanRevealModal, type ITalismanRevealGameScene } from '../ui/TalismanRevealModal';
 import type { TalismanDef } from '../systems/TalismanCatalog';
 import { ScreenAnnouncer } from '../ui/ScreenAnnouncer';
+import { SideNotice } from '../ui/SideNotice';
 import { StatusPanelHud } from '../ui/StatusPanelHud';
 import { TopCenterHud } from '../ui/TopCenterHud';
 import { IdlePressureHud } from '../ui/IdlePressureHud';
@@ -39,6 +40,7 @@ export class UIScene
   private hudElements: Phaser.GameObjects.GameObject[] = [];
   private isHUDVisibleState: boolean = true;
   private announcer!: ScreenAnnouncer;
+  private sideNotice!: SideNotice;
 
   // Controles Touch Mobile
   public touchControls!: TouchControls;
@@ -207,6 +209,7 @@ export class UIScene
     );
 
     this.announcer = new ScreenAnnouncer(this, pixelFont);
+    this.sideNotice = new SideNotice(this, pixelFont);
 
     // Atalho silencioso de teclado para recarregar com F2 (sem nenhum botão ou texto na tela)
     if (this.input.keyboard) {
@@ -566,6 +569,11 @@ export class UIScene
 
   public showWaveAlert(message: string, durationMs: number = 3000): void {
     this.announcer.showWaveAlert(message, durationMs);
+  }
+
+  /** Aviso discreto que desliza da esquerda (ex.: "Novo: Morcegos"). */
+  public showSideNotice(label: string, text: string): void {
+    this.sideNotice.show(label, text);
   }
 
   public showCenterAnnouncement(title: string, subtitle?: string, durationMs: number = 4600): void {

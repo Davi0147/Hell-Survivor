@@ -4,7 +4,7 @@ import type { BaseCharacter } from '../characters/BaseCharacter';
 import { DarkOrbProjectile } from '../weapons/DarkOrbProjectile';
 import { SoundManager } from '../../systems/SoundManager';
 import { BOSS_TELEGRAPH, LYN_THEME } from '../../config/theme';
-import { LYN_BALANCE } from '../../config/balance';
+import { ENEMY_BALANCE, LYN_BALANCE } from '../../config/balance';
 
 const B = LYN_BALANCE;
 
@@ -42,7 +42,14 @@ export class LynMiniBoss extends BaseEnemy {
     this.projectilesGroup = scene.add.group({ classType: DarkOrbProjectile, maxSize: 24, runChildUpdate: false });
   }
 
-  public override spawn(x: number, y: number, hp = 2400, speed = 115, damage = 24, scale = 1.6): void {
+  public override spawn(
+    x: number,
+    y: number,
+    hp: number = ENEMY_BALANCE.lyn.hp,
+    speed: number = ENEMY_BALANCE.lyn.speed,
+    damage: number = ENEMY_BALANCE.lyn.damage,
+    scale: number = ENEMY_BALANCE.lyn.scale
+  ): void {
     super.spawn(x, y, hp, speed, damage);
     this.setScale(scale);
     this.lynState = 'ORBIT';

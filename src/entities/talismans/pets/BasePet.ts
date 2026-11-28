@@ -9,6 +9,14 @@ const OUTLINE_OFFSETS: ReadonlyArray<[number, number]> = [[-1, 0], [1, 0], [0, -
 const PET_DEPTH = 21;
 
 /**
+ * Posição de desenho a um número inteiro de pixels de tela da âncora (a heroína, que a câmera
+ * segue). `zoom` converte unidade do mundo em pixel de tela.
+ */
+export function snapToScreenGrid(value: number, anchor: number, zoom: number): number {
+  return anchor + Math.round((value - anchor) * zoom) / zoom;
+}
+
+/**
  * Base dos pets: sprite de lado com contorno branco (para não se confundir com os monstros),
  * caminhada até um ponto e virada para o lado em que anda.
  * A arte é desenhada virada para a direita; para a esquerda o sprite é espelhado.
@@ -19,6 +27,12 @@ export abstract class BasePet implements TalismanEffect {
   private readonly outline: Phaser.GameObjects.Sprite[] = [];
   /** `followLoose`: está andando para alcançar o ponto. */
   private following = false;
+  /**
+   * Posição de verdade do pet (jogo). O sprite é desenhado nela, mas encaixado na grade de
+   * pixels da tela (ver `syncOutline`); com zoom 1.6 e arte pixelada, desenhar numa fração de
+   * pixel diferente a cada quadro faz o pet tremer/borrar enquanto a heroína anda.
+   */
+  private readonly pos: { x: number; y: number };
 
   constructor(
     protected readonly ctx: ITalismanContext,
@@ -27,7 +41,8 @@ export abstract class BasePet implements TalismanEffect {
   ) {
     const { scene, player } = ctx;
     const startKey = `pet-${pet}-0`;
-    this.sprite = scene.add.sprite(player.x, player.y + 20, startKey);
+    this.pos = { x: player.x, y: player.y + 20 };
+    this.sprite = scene.add.sprite(this.pos.x, this.pos.y, startKey);
     this.sprite.setScale(scale).setDepth(PET_DEPTH);
     for (let i = 0; i < OUTLINE_OFFSETS.length; i++) {
       const o = scene.add.sprite(this.sprite.x, this.sprite.y, startKey);
@@ -36,22 +51,31 @@ export abstract class BasePet implements TalismanEffect {
     }
     this.playAnim(false, 0);
     this.syncOutline();
+    // Depois da física mover a heroína no quadro: aí a posição dela (e da câmera) já é a final
+    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncOutline, this);
   }
 
   public abstract update(deltaMs: number): void;
 
   public destroy(): void {
+    this.sprite.scene?.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncOutline, this);
     this.sprite.destroy();
     for (const o of this.outline) o.destroy();
     this.outline.length = 0;
   }
 
   protected get x(): number {
-    return this.sprite.x;
+    return this.pos.x;
   }
 
   protected get y(): number {
-    return this.sprite.y;
+    return this.pos.y;
+  }
+
+  /** Muda a posição de verdade do pet (o desenho acompanha em `syncOutline`). */
+  protected setPos(x: number, y: number): void {
+    this.pos.x = x;
+    this.pos.y = y;
   }
 
   /** Ponto de descanso ao lado da heroína (cada pet escolhe o ângulo). */
@@ -76,8 +100,8 @@ export abstract class BasePet implements TalismanEffect {
     // Muito longe (heroína correu ou teleportou): acelera para não ficar para trás
     const boost = dist > TALISMAN_BALANCE.pets.leashRange ? 2.5 : 1;
     const step = Math.min(dist - stopAt, speed * boost * (deltaMs / 1000));
-    this.sprite.x += (dx / dist) * step;
-    this.sprite.y += (dy / dist) * step;
+    this.pos.x += (dx / dist) * step;
+    this.pos.y += (dy / dist) * step;
     this.playAnim(true, dx);
     return false;
   }
@@ -99,7 +123,7 @@ export abstract class BasePet implements TalismanEffect {
 
   /** Coloca o pet direto num ponto (pulos e órbitas). */
   protected placeAt(x: number, y: number, moving: boolean, dx: number): void {
-    this.sprite.setPosition(x, y);
+    this.setPos(x, y);
     this.playAnim(moving, dx);
   }
 
@@ -119,9 +143,17 @@ export abstract class BasePet implements TalismanEffect {
     this.sprite.setFlipX(x < this.x);
   }
 
-  /** Chamar ao fim de `update` para o contorno seguir o quadro, o lado e a posição. */
+  /**
+   * Chamar ao fim de `update` para o contorno seguir o quadro, o lado e a posição (também roda
+   * sozinho depois da física em cada quadro). Desenha o pet a um número inteiro de pixels de
+   * tela da heroína: na tela ele anda junto com ela, sem mudar de fração de pixel a cada quadro.
+   */
   protected syncOutline(): void {
     const s = this.sprite;
+    if (!s.scene) return;
+    const zoom = s.scene.cameras.main.zoom || 1;
+    const p = this.ctx.player;
+    s.setPosition(snapToScreenGrid(this.pos.x, p.x, zoom), snapToScreenGrid(this.pos.y, p.y, zoom));
     for (let i = 0; i < this.outline.length; i++) {
       const o = this.outline[i];
       const [ox, oy] = OUTLINE_OFFSETS[i];

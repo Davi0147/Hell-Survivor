@@ -14,7 +14,7 @@ import type { GemType } from '../entities/items/SoulGem';
 import type { MapItemType } from '../entities/items/MapItem';
 import { SoundManager } from './SoundManager';
 import { offscreenSpawnDist } from './spawnRules';
-import { CAMERA_BALANCE, PERFORMANCE_LIMITS, ENEMY_BALANCE, HORDE_EVENT_BALANCE, ENDLESS_SCHEDULE, getStorySchedule, getEnemyScaling, getChapterConfig, getColossusMaxAlive, getArcherMaxAlive, type EnemyKind } from '../config/balance';
+import { CAMERA_BALANCE, PERFORMANCE_LIMITS, ENEMY_BALANCE, MINIBOSS_GEM_DROPS, HORDE_EVENT_BALANCE, ENDLESS_SCHEDULE, getStorySchedule, getEnemyScaling, getChapterConfig, getColossusMaxAlive, getArcherMaxAlive, type EnemyKind } from '../config/balance';
 
 /** O que o sistema de spawn precisa saber sobre o personagem jogável (qualquer BaseCharacter serve). */
 export interface IEnemySpawnPlayer {
@@ -620,6 +620,18 @@ export class EnemySpawnSystem {
     return thief;
   }
 
+  /** Espalha as gemas de um minichefe em anel em volta do corpo (a primeira fica no centro). */
+  private spawnGemRing(x: number, y: number, gems: readonly GemType[]): void {
+    gems.forEach((type, i) => {
+      if (i === 0) {
+        this.ctx.spawnGemAt(x, y, type);
+        return;
+      }
+      const a = ((i - 1) / (gems.length - 1)) * Math.PI * 2;
+      this.ctx.spawnGemAt(x + Math.cos(a) * 34, y + Math.sin(a) * 34, type);
+    });
+  }
+
   /**
    * Spawna o Mini-Chefe Ghoul Devorador no Modo Infinito (3:00). Instância própria, fora de qualquer pool.
    */
@@ -640,7 +652,7 @@ export class EnemySpawnSystem {
     ghoul.on('enemy-killed', (ex: number, ey: number) => {
       this.ctx.killCount++;
       this.ctx.player.gainUltimateCharge(25);
-      this.ctx.spawnGemAt(ex, ey, 'purple');
+      this.spawnGemRing(ex, ey, MINIBOSS_GEM_DROPS.ghoul);
       // Drop garantido de 10 a 15 Almas Corrompidas
       this.ctx.spawnSoulItem(ex, ey, Phaser.Math.Between(10, 15));
       // Drop de item especial de auxílio (Cálice de Cura ou Ímã)
@@ -673,9 +685,8 @@ export class EnemySpawnSystem {
     lyn.on('boss-defeated', () => {
       this.ctx.killCount++;
       this.ctx.player.gainUltimateCharge(50);
-      // Recompensa lendária: 2 Gemas Roxas, 15-20 Almas e Baú do Abismo
-      this.ctx.spawnGemAt(lyn.x - 20, lyn.y, 'purple');
-      this.ctx.spawnGemAt(lyn.x + 20, lyn.y, 'purple');
+      // Recompensa lendária: gemas (MINIBOSS_GEM_DROPS), 15-20 Almas e Baú do Abismo
+      this.spawnGemRing(lyn.x, lyn.y, MINIBOSS_GEM_DROPS.lyn);
       this.ctx.spawnSoulItem(lyn.x, lyn.y, Phaser.Math.Between(15, 20));
       this.ctx.spawnMapItem(lyn.x, lyn.y - 30, 'chest');
       this.ctx.dropTalismanAt?.(lyn.x, lyn.y + 40);

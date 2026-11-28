@@ -457,13 +457,14 @@ export const ENEMY_BALANCE = {
   },
   // Minichefe (meio do Capítulo 1 e rodízio do Infinito). Substituiu o Titã Cerberus (1400 HP, 95 vel, 20 dano, escala 1.85).
   // O bote é telegrafado e respeita a regra de ouro (golpe <= ~45% da vida base da heroína).
+  // Vida e dano +30% (pedido do dono em 2026-11-27): 2100→2730, 24→31, bote 34→44
   ghoulDevourer: {
-    hp: 2100,
+    hp: 2730,
     speed: 102,
-    damage: 24,
+    damage: 31,
     scale: 2.1,
     lunge: {
-      damage: 34,
+      damage: 44,
       speed: 520,
       telegraphMs: 650,
       durationMs: 420,
@@ -476,7 +477,18 @@ export const ENEMY_BALANCE = {
     knockback: { force: 300, lungeForce: 560, durationMs: 220, lungeDurationMs: 320 },
   },
   // Lyn: minichefe súcubo (antes "Matriarca Succubus"). Arte própria 56/76 px, por isso a escala maior.
-  lyn: { hp: 2400, speed: 115, damage: 24, scale: 1.6 },
+  // Vida e dano +30% (pedido do dono em 2026-11-27): 2400→3120, 24→31
+  lyn: { hp: 3120, speed: 115, damage: 31, scale: 1.6 },
+} as const;
+
+/**
+ * Gemas que cada minichefe solta ao morrer. +15% de XP (pedido do dono em 2026-11-27):
+ * Ghoul 250→290 XP (roxa + 2 azuis); Lyn 500→575 XP (2 roxas + 3 azuis + 3 verdes).
+ * Valores das gemas: verde 5, azul 20, vermelha 100, roxa 250.
+ */
+export const MINIBOSS_GEM_DROPS = {
+  ghoul: ['purple', 'blue', 'blue'],
+  lyn: ['purple', 'purple', 'blue', 'blue', 'blue', 'green', 'green', 'green'],
 } as const;
 
 // Lyn, a minichefe súcubo: serva da Rosalin, mas com luta própria. Em vez de perseguir em
@@ -496,6 +508,7 @@ export const LYN_BALANCE = {
     aimMs: 260,
     dashMs: 260,
     speed: 720,
+    // Fica em 16 mesmo no +30% de 2026-11-27: 3 rasantes x 16 = 48, já no teto da regra de ouro
     damage: 16,
     lineLength: 380,
     gapMs: 140,
@@ -510,7 +523,7 @@ export const LYN_BALANCE = {
     intervalMs: 75,
     angleStep: 0.62,
     speed: 175,
-    damage: 9,
+    damage: 11, // +30% em 2026-11-27 (9→11): tem que ficar abaixo do orbe da Rosalin (12)
     cooldownMs: 6500,
     firstCooldownMs: 6000,
   },

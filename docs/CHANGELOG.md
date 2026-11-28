@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — Minichefes mais fortes, aviso de monstro novo e correções
+
+#### Resumo para o Jogador
+- **Minichefes (Ghoul e Lyn) mais fortes:** +30% de vida e de dano no contato; o bote do Ghoul também bate +30%. Os orbes da Lyn subiram de 9 para 11; o rasante triplo dela continua igual porque já estava no limite de dano de um golpe só.
+- **Mais gemas dos minichefes (+15% de XP):** Ghoul solta roxa + 2 azuis; Lyn solta 2 roxas + 3 azuis + 3 verdes.
+- **Monstro novo:** em vez do anúncio grande no centro, aparece um aviso pequeno à esquerda ("Novo: Morcegos") que desliza para dentro, fica 3 segundos e volta. Sem subtítulo.
+- **Corrigido:** apertar A (ou Espaço) para fechar a última fala de um diálogo não faz mais a Nixy esquivar sem querer.
+- **Corrigido:** os mascotes ficavam tremidos/borrados enquanto a Nixy andava; agora ficam tão nítidos quanto ela.
+
+#### Técnico
+- `MINIBOSS_GEM_DROPS` e novos números em `balance.ts`; `LynMiniBoss.spawn` usa `ENEMY_BALANCE.lyn` como padrão.
+- `PlayerInputSystem`: no primeiro quadro depois de a partida ficar congelada (`RESUME_GAP_MS`), os toques de esquiva/suprema/pausa são lidos (para sincronizar) e descartados.
+- `ui/SideNotice.ts` (aviso lateral empilhável) + `UIScene.showSideNotice`; `EncounterDirector` usa ele e perdeu as dicas.
+- `BasePet`: posição de verdade separada do desenho; o sprite e o contorno são desenhados a um número inteiro de pixels de tela da heroína (`snapToScreenGrid`), depois da física.
+
 ## [Não publicado] — Cena de derrota do Azazel
 
 ### Fim do Capítulo 2

@@ -25,8 +25,20 @@ export interface IPlayerInputActions {
  * controles de toque e o bot de testes [F3] em um único vetor de movimento.
  * Ordem de prioridade: bot > toque > gamepad > teclado.
  */
+/**
+ * Se a partida ficou este tempo sem ler os controles (diálogo, roleta de baú, cut-in), o primeiro
+ * quadro de volta não vale como toque novo: o A/Espaço que fechou o diálogo não pode virar esquiva.
+ */
+export const RESUME_GAP_MS = 120;
+
+/** O quadro atual é o primeiro depois de a partida ficar congelada? */
+export function isResumeFrame(lastReadAt: number | undefined, now: number): boolean {
+  return lastReadAt !== undefined && now - lastReadAt > RESUME_GAP_MS;
+}
+
 export class PlayerInputSystem {
   private readonly keys: Record<'w' | 'a' | 's' | 'd' | 'up' | 'left' | 'down' | 'right' | 'shift' | 'space', Phaser.Input.Keyboard.Key | undefined>;
+  private lastReadAt?: number;
 
   constructor(private readonly scene: Phaser.Scene & IAutoPlayWorld, private readonly actions: IPlayerInputActions) {
     const kb = scene.input.keyboard;
@@ -40,13 +52,17 @@ export class PlayerInputSystem {
   }
 
   public read(delta: number, isMovementLocked: boolean): MoveInput {
-    const input = this.readRaw(delta);
+    const now = this.scene.time.now;
+    const resumed = isResumeFrame(this.lastReadAt, now);
+    this.lastReadAt = now;
+    const input = this.readRaw(delta, resumed);
     // Travas cinematográficas (ex.: transição de Azazel) zeram o movimento
     if (isMovementLocked) return { dx: 0, dy: 0, isSprint: false, isDash: false };
     return input;
   }
 
-  private readRaw(delta: number): MoveInput {
+  /** @param resumed primeiro quadro depois de um congelamento: lê tudo (para sincronizar), mas ignora toques */
+  private readRaw(delta: number, resumed: boolean): MoveInput {
     const bot = AutoPlayTestAgent.getInstance();
     if (bot.isEnabled) {
       const ai = bot.updateAgent(this.scene, delta);
@@ -71,9 +87,11 @@ export class PlayerInputSystem {
         dy = pad.dy;
       }
       if (pad.isSprint) isSprint = true;
-      if (pad.isDash) isDash = true;
-      if (pad.isUltimate) this.actions.onUltimatePressed();
-      if (pad.isPause) this.actions.onPausePressed();
+      if (!resumed) {
+        if (pad.isDash) isDash = true;
+        if (pad.isUltimate) this.actions.onUltimatePressed();
+        if (pad.isPause) this.actions.onPausePressed();
+      }
     }
 
     const ui = this.scene.scene.get('UIScene') as { touchControls?: TouchControls } | null;
@@ -88,6 +106,8 @@ export class PlayerInputSystem {
       if (touch.consumeDash()) isDash = true;
     }
 
+    // O toque que fechou o diálogo já foi consumido acima; aqui ele só é descartado
+    if (resumed) isDash = false;
     return { dx, dy, isSprint, isDash };
   }
 }
