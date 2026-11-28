@@ -3,7 +3,8 @@ import { SoundManager } from '../systems/SoundManager';
 import { enableCensoredTextHighlight } from '../systems/TextHighlight';
 import { GamepadManager } from '../systems/GamepadManager';
 import { MetaProgressManager } from '../systems/MetaProgressManager';
-import { CHAPTER2_END_FALLBACK, INPUT_HINT_THEME } from '../config/theme';
+import { CHAPTER2_END_FALLBACK, CHAPTER2_ENDING_FX, INPUT_HINT_THEME } from '../config/theme';
+import { CHAPTER2_ENDING, type EndingTransition } from '../config/dialogues';
 import { SkipButton } from '../ui/SkipButton';
 import { InputHint } from '../ui/InputHint';
 
@@ -13,7 +14,19 @@ interface DialogueStep {
   speakerName: string;
   text: string;
   action?: (scene: Chapter1EndScene) => void;
+  enter?: EndingTransition;
+  autoAdvanceMs?: number;
 }
+
+/** Imagens da derrota do Azazel: carregadas só quando a cena do Capítulo 2 abre (memória do celular). */
+const CHAPTER2_ENDING_IMAGES = 7;
+const AZAZEL_WEAK_PORTRAIT = 'chat-azazel-weak';
+/** Ajuste do busto do Azazel fraco em relação ao lugar padrão do chefe (pedido do dono). */
+const AZAZEL_WEAK_BUST_OFFSET = { x: 60, y: 45 };
+/** Tempo de tela preta antes do estrondo da imagem final. */
+const FINALE_BLACK_MS = 900;
+/** Quanto tempo a tela treme na imagem final antes do resumo do capítulo. */
+const FINALE_SHAKE_MS = 5000;
 
 export class Chapter1EndScene extends Phaser.Scene {
   private chapter: number = 1;
@@ -95,6 +108,31 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.victoryButtons = [];
   }
 
+  preload(): void {
+    if (this.chapter !== 2) return;
+    for (let i = 1; i <= CHAPTER2_ENDING_IMAGES; i++) {
+      if (!this.textures.exists(`endchap2-${i}`)) {
+        this.load.image(`endchap2-${i}`, `assets/scenes/chapter2/EndChap2_${i}.jpg`);
+      }
+    }
+    if (!this.textures.exists(AZAZEL_WEAK_PORTRAIT)) {
+      this.load.image(AZAZEL_WEAK_PORTRAIT, 'assets/sprites/enemies/Azazel/AzazelChatFraco.png');
+    }
+  }
+
+  /** Onde o busto do chefe fica (base do retrato). O Azazel fraco fica mais baixo e mais à direita. */
+  private bossBustSpot(): { x: number; y: number } {
+    const { height } = this.scale;
+    const offset = this.chapter === 2 ? AZAZEL_WEAK_BUST_OFFSET : { x: 0, y: 0 };
+    return { x: this.BUST_RIGHT_X + offset.x, y: height + 10 + offset.y };
+  }
+
+  /** Retrato do chefe derrotado no balão de fala. */
+  private bossPortraitKey(): string {
+    if (this.chapter !== 2) return 'chat-rosalin-defeated';
+    return this.textures.exists(AZAZEL_WEAK_PORTRAIT) ? AZAZEL_WEAK_PORTRAIT : 'chat-azazel';
+  }
+
   create(): void {
     const { width, height } = this.scale;
     const pixelFont = "'Silkscreen', 'Press Start 2P', monospace";
@@ -106,6 +144,7 @@ export class Chapter1EndScene extends Phaser.Scene {
 
     // 1. Camadas de Fundo (A e B) para transições sem bordas pretas
     const firstBg = this.chapter === 2 ? this.chapter2Bg(1) : 'endchap1-1';
+    this.currentBgKey = firstBg;
     this.bgImageA = this.add.image(width / 2, height / 2, firstBg).setDepth(0);
     this.fitBackground(this.bgImageA);
 
@@ -119,8 +158,8 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.leftBust.setDepth(30);
     this.leftBust.setAlpha(0);
 
-    const rightPortraitKey = this.chapter === 2 ? 'chat-azazel' : 'chat-rosalin-defeated';
-    this.rightBust = this.add.image(this.BUST_RIGHT_X, height + 10, rightPortraitKey);
+    const bossSpot = this.bossBustSpot();
+    this.rightBust = this.add.image(bossSpot.x, bossSpot.y, this.bossPortraitKey());
     this.rightBust.setOrigin(0.5, 1.0);
     this.rightBust.setDisplaySize(this.BUST_W, this.BUST_H);
     this.rightBust.setDepth(30);
@@ -154,7 +193,8 @@ export class Chapter1EndScene extends Phaser.Scene {
     const boxX = (width - this.BOX_W) / 2;
     const boxY = height - this.BOX_H - 24;
 
-    this.boxContainer = this.add.container(boxX, boxY).setDepth(50);
+    // Escondida até a primeira fala (senão o nome "NIXY" padrão aparece solto durante o fade)
+    this.boxContainer = this.add.container(boxX, boxY).setDepth(50).setVisible(false);
 
     this.boxGraphics = this.add.graphics();
     this.boxContainer.add(this.boxGraphics);
@@ -233,6 +273,10 @@ export class Chapter1EndScene extends Phaser.Scene {
       }
       this.input.removeAllListeners();
       this.time.removeAllEvents();
+      // As imagens grandes da derrota do Azazel só servem aqui: libera a memória de vídeo
+      for (let i = 1; i <= CHAPTER2_ENDING_IMAGES; i++) {
+        if (this.textures.exists(`endchap2-${i}`)) this.textures.remove(`endchap2-${i}`);
+      }
     });
   }
 
@@ -392,53 +436,15 @@ export class Chapter1EndScene extends Phaser.Scene {
 
   private setupStorySteps(): void {
     if (this.chapter === 2) {
-      this.steps = [
-        {
-          bgKey: this.chapter2Bg(1),
-          speaker: 'narrator',
-          speakerName: '',
-          text: '*(Os cristais despedaçados ecoam pelo vazio enquanto o domínio de sombras de Azazel se desfaz em cinzas. O senhor da mente cai de joelhos diante de Nixy.)*'
-        },
-        {
-          bgKey: this.chapter2Bg(1),
-          speaker: 'azazel',
-          speakerName: 'AZAZEL',
-          text: 'Impossível... Minha escuridão... Meus espelhos de sangue... Como uma simples alma condenada pôde rasgar o meu mundo?!'
-        },
-        {
-          bgKey: this.chapter2Bg(1),
-          speaker: 'nixy',
-          speakerName: 'NIXY',
-          text: 'Simples, seu mágico de circo: quem trabalha mil anos no escuro daquele escritório não tem medo de luz apagada!'
-        },
-        {
-          bgKey: this.chapter2Bg(1),
-          speaker: 'azazel',
-          speakerName: 'AZAZEL',
-          text: 'Você não faz ideia do que está despertando nos círculos superiores, Nixy... A minha queda é apenas o começo do seu tormento!'
-        },
-        {
-          bgKey: this.chapter2Bg(1),
-          speaker: 'nixy',
-          speakerName: 'NIXY',
-          text: 'Ótimo. Manda lembranças pros seus chefes quando chegar no fundo do abismo!'
-        },
-        {
-          bgKey: this.chapter2Bg(2),
-          speaker: 'narrator',
-          speakerName: '',
-          text: '*(Com um golpe implacável, Nixy dissipa a essência sombria de Azazel e absorve o poder do Segundo Círculo.)*'
-        },
-        {
-          bgKey: this.chapter2Bg(3),
-          speaker: 'nixy',
-          speakerName: 'NIXY',
-          text: 'Dois já foram. E a minha lista de demissões ainda tá longe de acabar.',
-          action: (scene) => {
-            scene.zoomBackgroundLeftOnNixy(1200);
-          }
-        }
-      ];
+      const names = { azazel: 'AZAZEL', nixy: 'NIXY', narrator: '' } as const;
+      this.steps = CHAPTER2_ENDING.map((line) => ({
+        bgKey: this.chapter2Bg(line.image),
+        speaker: line.speaker,
+        speakerName: names[line.speaker],
+        text: line.text,
+        enter: line.enter,
+        autoAdvanceMs: line.autoAdvanceMs
+      }));
       return;
     }
 
@@ -784,17 +790,18 @@ export class Chapter1EndScene extends Phaser.Scene {
       }
     } else if ((speaker === 'rosalin' || speaker === 'azazel') && !isAfterSlash) {
       // Destaca Rosalin ou Azazel derrotado na direita
-      this.rightBust.setTexture(speaker === 'azazel' ? 'chat-azazel' : 'chat-rosalin-defeated');
+      this.rightBust.setTexture(this.bossPortraitKey());
       this.rightBust.setDisplaySize(this.BUST_W, this.BUST_H);
       this.rightBust.clearTint();
       this.rightBust.setDepth(35);
 
       if (this.rightBust.alpha < 0.95) {
         this.tweens.killTweensOf(this.rightBust);
-        this.rightBust.setPosition(width - 80, height + 10);
+        const spot = this.bossBustSpot();
+        this.rightBust.setPosition(spot.x + (width - 80 - this.BUST_RIGHT_X), spot.y);
         this.tweens.add({
           targets: this.rightBust,
-          x: this.BUST_RIGHT_X,
+          x: spot.x,
           alpha: 1,
           duration: 250,
           ease: 'Back.easeOut'
@@ -815,7 +822,8 @@ export class Chapter1EndScene extends Phaser.Scene {
 
   private startStep(index: number): void {
     if (index >= this.steps.length) {
-      this.finishScene();
+      if (this.chapter === 2) this.playChapter2Finale();
+      else this.finishScene();
       return;
     }
 
@@ -832,10 +840,77 @@ export class Chapter1EndScene extends Phaser.Scene {
 
     // Troca de Fundo com Crossfade suave sem bordas vazias
     if (step.bgKey !== this.currentBgKey) {
-      this.crossfadeBackground(step.bgKey);
+      if (step.enter === 'cut' || step.enter === 'cut-shake') {
+        this.hardCut(step.bgKey, step.enter === 'cut-shake');
+      } else {
+        this.crossfadeBackground(step.bgKey);
+      }
     }
 
     this.renderStepContent(step);
+  }
+
+  /** Corte seco para outra imagem com som de batida (e uma tremidinha, se pedido). */
+  private hardCut(bgKey: string, shake: boolean): void {
+    const { width, height } = this.scale;
+    this.crossfadeBackground(bgKey, 0);
+    SoundManager.getInstance().playPunchHit();
+    if (shake) this.cameras.main.shake(160, 0.009);
+
+    const fx = CHAPTER2_ENDING_FX;
+    const flash = this.add
+      .rectangle(width / 2, height / 2, width, height, fx.impactFlash, fx.impactFlashAlpha)
+      .setDepth(41);
+    this.tweens.add({ targets: flash, alpha: 0, duration: 110, onComplete: () => flash.destroy() });
+  }
+
+  /** Fala interrompida ("faz---"): segue sozinha assim que termina de aparecer. */
+  private onTypingDone(): void {
+    const index = this.currentStepIndex;
+    const delay = this.steps[index]?.autoAdvanceMs;
+    if (delay === undefined) return;
+    this.time.delayedCall(delay, () => {
+      if (!this.isEnding && this.currentStepIndex === index) this.startStep(index + 1);
+    });
+  }
+
+  /**
+   * Fim do Capítulo 2: corte seco para o preto, silêncio, e então estrondo + grito com a imagem
+   * da cabeça arrancada, tremendo a tela por alguns segundos antes do resumo do capítulo.
+   */
+  private playChapter2Finale(): void {
+    if (this.isEnding) return;
+    const { width, height } = this.scale;
+    this.isSlashCutPlaying = true; // trava avanço/clique durante a cinemática
+    if (this.typeTimer) this.typeTimer.remove();
+    this.boxContainer.setVisible(false);
+    this.tweens.killTweensOf(this.rightBust);
+    this.tweens.killTweensOf(this.leftBust);
+    this.rightBust.setAlpha(0);
+    this.leftBust.setAlpha(0);
+    this.tweens.killTweensOf(this.blackOverlay);
+    this.blackOverlay.setAlpha(1);
+    SoundManager.getInstance().stopMusic(120);
+
+    this.time.delayedCall(FINALE_BLACK_MS, () => {
+      if (this.isEnding) return;
+      this.crossfadeBackground(this.chapter2Bg(7), 0);
+      this.blackOverlay.setAlpha(0);
+      SoundManager.getInstance().playGoreRip();
+      SoundManager.getInstance().playDemonScream(2.6);
+      this.cameras.main.shake(FINALE_SHAKE_MS, 0.012);
+
+      const fx = CHAPTER2_ENDING_FX;
+      const flash = this.add
+        .rectangle(width / 2, height / 2, width, height, fx.finaleFlash, fx.finaleFlashAlpha)
+        .setDepth(41);
+      this.tweens.add({ targets: flash, alpha: 0, duration: 450, ease: 'Quad.easeOut', onComplete: () => flash.destroy() });
+
+      this.time.delayedCall(FINALE_SHAKE_MS, () => {
+        this.isSlashCutPlaying = false;
+        this.finishScene();
+      });
+    });
   }
 
   private renderStepContent(step: DialogueStep): void {
@@ -885,6 +960,7 @@ export class Chapter1EndScene extends Phaser.Scene {
 
         if (charIndex >= this.fullText.length) {
           this.isTyping = false;
+          this.onTypingDone();
         }
       }
     });
@@ -1131,6 +1207,7 @@ export class Chapter1EndScene extends Phaser.Scene {
       this.dialogueText.setText(this.fullText);
       enableCensoredTextHighlight(this.dialogueText);
       this.isTyping = false;
+      this.onTypingDone();
       return;
     }
 
@@ -1157,8 +1234,16 @@ export class Chapter1EndScene extends Phaser.Scene {
     this.leftBust.setAlpha(0);
     this.rightBust.setAlpha(0);
 
-    // Garante que o fundo final (endchap1-5 com zoom na Nixy à esquerda) esteja posicionado
-    if (this.currentBgKey !== 'endchap1-5') {
+    if (this.chapter === 2) {
+      // Fundo final: Nixy com a cabeça do Azazel (também quando a cena é pulada)
+      this.cameras.main.shakeEffect.reset();
+      this.isSlashCutPlaying = false;
+      const finalBg = this.chapter2Bg(7);
+      if (this.currentBgKey !== finalBg) this.crossfadeBackground(finalBg, 0);
+      this.tweens.killTweensOf(this.blackOverlay);
+      SoundManager.getInstance().playSpookyMusic(2500);
+    } else if (this.currentBgKey !== 'endchap1-5') {
+      // Garante que o fundo final (endchap1-5 com zoom na Nixy à esquerda) esteja posicionado
       this.crossfadeBackground('endchap1-5', 0);
       this.zoomBackgroundLeftOnNixy(0);
     }

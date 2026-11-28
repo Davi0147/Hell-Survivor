@@ -338,7 +338,7 @@ export class GameScene extends Phaser.Scene implements ISandboxContext, ICombatB
 
     SoundManager.getInstance().setScene(this);
     // Inicia a música de batalha com fade-in suave
-    SoundManager.getInstance().playBattleMusic(3000);
+    SoundManager.getInstance().playBattleMusic(3000, this.currentChapter);
 
     // Inicializa o controlador do Modo Sandbox
     if (!this.sandboxController) {

@@ -324,7 +324,7 @@ export class BossFightSystem {
     this.ctx.isHordeSpawningPaused = false;
     this.ctx.isPlayerMovementLocked = false;
     this.ctx.clearCombatSpeechBubbles();
-    SoundManager.getInstance().playBattleMusic(1500);
+    SoundManager.getInstance().playBattleMusic(1500, this.ctx.currentChapter);
 
     if (this.ctx.gameMode === 'sandbox') {
       this.dropBossLoot(x, y, 2, souls);

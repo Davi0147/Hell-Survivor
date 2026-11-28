@@ -242,6 +242,16 @@ export const CHAPTER2_END_FALLBACK = {
   ground: '#07010c',
 } as const;
 
+/** Clarões dos cortes secos da cinemática de fim do Capítulo 2 (derrota do Azazel). */
+export const CHAPTER2_ENDING_FX = {
+  /** Quadro de impacto nos cortes com batida. */
+  impactFlash: 0xffffff,
+  impactFlashAlpha: 0.55,
+  /** Clarão violeta quando a imagem final (cabeça arrancada) aparece. */
+  finaleFlash: 0xc77dff,
+  finaleFlashAlpha: 0.85,
+} as const;
+
 /** Controles de toque (celular): contorno dos botões e transparência do analógico. */
 export const TOUCH_THEME = {
   ring: 0xffffff,

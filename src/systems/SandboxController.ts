@@ -291,7 +291,7 @@ export class SandboxController {
 
     this.context.setCameraZoom(CAMERA_BALANCE.gameplayZoom, 600);
     if (restoreBattleMusic) {
-      SoundManager.getInstance().playBattleMusic(1500);
+      SoundManager.getInstance().playBattleMusic(1500, this.context.currentChapter);
     }
     DebugSessionLogger.getInstance().log(
       'BOSS',

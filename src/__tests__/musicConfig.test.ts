@@ -4,6 +4,7 @@ import {
   getMusicConfig,
   MUSIC_CONFIGS,
   ALL_BGM_KEYS,
+  battleMusicState,
   type MusicState
 } from '../config/musicConfig';
 
@@ -26,7 +27,7 @@ describe('Music Configuration (musicConfig.ts)', () => {
   });
 
   describe('Track Keys Catalog', () => {
-    it('contains all 8 audio keys used across the game', () => {
+    it('contains all 9 audio keys used across the game', () => {
       expect(ALL_BGM_KEYS).toEqual([
         'bgm-menu',
         'bgm-battle',
@@ -35,8 +36,24 @@ describe('Music Configuration (musicConfig.ts)', () => {
         'bgm-spooky',
         'bgm-azazel-intro',
         'bgm-azazel-mid',
-        'bgm-azazel-fight'
+        'bgm-azazel-fight',
+        'bgm-battle-ch2'
       ]);
+    });
+
+    it('every state track is in the stop-all list', () => {
+      for (const cfg of Object.values(MUSIC_CONFIGS)) {
+        if (cfg.trackKey) expect(ALL_BGM_KEYS).toContain(cfg.trackKey);
+      }
+    });
+  });
+
+  describe('Horde music per chapter', () => {
+    it('chapter 2 hordes use their own track; other chapters keep the original', () => {
+      expect(battleMusicState(1)).toBe('BATTLE');
+      expect(battleMusicState(2)).toBe('BATTLE_CH2');
+      expect(battleMusicState(3)).toBe('BATTLE');
+      expect(MUSIC_CONFIGS.BATTLE_CH2).toMatchObject({ trackKey: 'bgm-battle-ch2', loop: true });
     });
   });
 
@@ -45,6 +62,7 @@ describe('Music Configuration (musicConfig.ts)', () => {
       'MENU',
       'INTRO',
       'BATTLE',
+      'BATTLE_CH2',
       'BOSS_SUCCUBUS',
       'AZAZEL_INTRO',
       'AZAZEL_MID',

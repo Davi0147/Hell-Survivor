@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { STORAGE_KEYS } from '../config/storageKeys';
 import { MusicDirector } from './MusicDirector';
+import { battleMusicState } from '../config/musicConfig';
 import type { SfxOutput } from './audio/SfxOutput';
 import * as uiSfx from './audio/uiSfx';
 import * as dialogueSfx from './audio/dialogueSfx';
@@ -175,8 +176,8 @@ export class SoundManager {
   /**
    * Toca a música da horda normal ("Eternal Shadow") com fade-in suave
    */
-  public playBattleMusic(fadeInMs: number = 2500): void {
-    MusicDirector.getInstance().setMusicState('BATTLE', 'SoundManager.playBattleMusic', { fadeInMs });
+  public playBattleMusic(fadeInMs: number = 2500, chapter: number = 1): void {
+    MusicDirector.getInstance().setMusicState(battleMusicState(chapter), 'SoundManager.playBattleMusic', { fadeInMs });
   }
 
   /**
@@ -452,6 +453,21 @@ export class SoundManager {
   public playStampImpact(): void {
     const s = this.getSfxOutput();
     if (s) cutsceneSfx.playStampImpact(s);
+  }
+
+  public playPunchHit(): void {
+    const s = this.getSfxOutput();
+    if (s) cutsceneSfx.playPunchHit(s);
+  }
+
+  public playGoreRip(): void {
+    const s = this.getSfxOutput();
+    if (s) cutsceneSfx.playGoreRip(s);
+  }
+
+  public playDemonScream(seconds?: number): void {
+    const s = this.getSfxOutput();
+    if (s) cutsceneSfx.playDemonScream(s, seconds);
   }
 
   public playStarSlam(starIndex: number = 0): void {

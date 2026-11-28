@@ -313,3 +313,152 @@ export function playDogBark(s: SfxOutput): void {
   growl.stop(now + 0.28);
   wobble.stop(now + 0.28);
 }
+
+/** Ruído branco curto (rajada de ar, rasgo, grito chiado). */
+function noiseSource(ctx: AudioContext, seconds: number): AudioBufferSourceNode {
+  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  return src;
+}
+
+/**
+ * Soco seco de corte de cena: estalo de pele + baque grave curto.
+ */
+export function playPunchHit(s: SfxOutput): void {
+  const { ctx } = s;
+  const now = ctx.currentTime;
+
+  const thud = ctx.createOscillator();
+  const thudGain = ctx.createGain();
+  thud.type = 'sine';
+  thud.frequency.setValueAtTime(190, now);
+  thud.frequency.exponentialRampToValueAtTime(40, now + 0.16);
+  thudGain.gain.setValueAtTime(0.7 * s.volume, now);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+  thud.connect(thudGain);
+  thudGain.connect(s.out);
+  thud.start(now);
+  thud.stop(now + 0.22);
+
+  const slap = noiseSource(ctx, 0.08);
+  const slapFilter = ctx.createBiquadFilter();
+  const slapGain = ctx.createGain();
+  slapFilter.type = 'bandpass';
+  slapFilter.frequency.setValueAtTime(1600, now);
+  slapFilter.Q.setValueAtTime(0.8, now);
+  slapGain.gain.setValueAtTime(0.55 * s.volume, now);
+  slapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+  slap.connect(slapFilter);
+  slapFilter.connect(slapGain);
+  slapGain.connect(s.out);
+  slap.start(now);
+  slap.stop(now + 0.08);
+}
+
+/**
+ * Estrondo de carne e osso arrancados: baque enorme + rasgo chiado descendo.
+ */
+export function playGoreRip(s: SfxOutput): void {
+  const { ctx } = s;
+  const now = ctx.currentTime;
+
+  const boom = ctx.createOscillator();
+  const boomGain = ctx.createGain();
+  boom.type = 'sine';
+  boom.frequency.setValueAtTime(110, now);
+  boom.frequency.exponentialRampToValueAtTime(22, now + 0.9);
+  boomGain.gain.setValueAtTime(0.85 * s.volume, now);
+  boomGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+  boom.connect(boomGain);
+  boomGain.connect(s.out);
+  boom.start(now);
+  boom.stop(now + 1.05);
+
+  const rip = noiseSource(ctx, 0.5);
+  const ripFilter = ctx.createBiquadFilter();
+  const ripGain = ctx.createGain();
+  ripFilter.type = 'lowpass';
+  ripFilter.frequency.setValueAtTime(5000, now);
+  ripFilter.frequency.exponentialRampToValueAtTime(300, now + 0.45);
+  ripGain.gain.setValueAtTime(0.6 * s.volume, now);
+  ripGain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+  rip.connect(ripFilter);
+  ripFilter.connect(ripGain);
+  ripGain.connect(s.out);
+  rip.start(now);
+  rip.stop(now + 0.5);
+
+  const crack = ctx.createOscillator();
+  const crackGain = ctx.createGain();
+  crack.type = 'square';
+  crack.frequency.setValueAtTime(900, now);
+  crack.frequency.exponentialRampToValueAtTime(120, now + 0.06);
+  crackGain.gain.setValueAtTime(0.4 * s.volume, now);
+  crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+  crack.connect(crackGain);
+  crackGain.connect(s.out);
+  crack.start(now);
+  crack.stop(now + 0.08);
+}
+
+/**
+ * Grito demoníaco: voz rasgada que sobe, treme e despenca, com chiado de garganta por cima.
+ */
+export function playDemonScream(s: SfxOutput, seconds: number = 2.2): void {
+  const { ctx } = s;
+  const now = ctx.currentTime;
+  const end = now + seconds;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.001, now);
+  master.gain.exponentialRampToValueAtTime(0.5 * s.volume, now + 0.08);
+  master.gain.setValueAtTime(0.5 * s.volume, now + seconds * 0.55);
+  master.gain.exponentialRampToValueAtTime(0.001, end);
+  master.connect(s.out);
+
+  // Duas vozes desafinadas entre si (som de garganta, não de apito)
+  const vibrato = ctx.createOscillator();
+  const vibratoDepth = ctx.createGain();
+  vibrato.frequency.setValueAtTime(7, now);
+  vibratoDepth.gain.setValueAtTime(35, now);
+  vibrato.connect(vibratoDepth);
+
+  const formant = ctx.createBiquadFilter();
+  formant.type = 'bandpass';
+  formant.frequency.setValueAtTime(900, now);
+  formant.frequency.linearRampToValueAtTime(1400, now + seconds * 0.3);
+  formant.frequency.exponentialRampToValueAtTime(500, end);
+  formant.Q.setValueAtTime(1.4, now);
+  formant.connect(master);
+
+  for (const detune of [0, 1.07]) {
+    const voice = ctx.createOscillator();
+    voice.type = 'sawtooth';
+    voice.frequency.setValueAtTime(260 * (1 + detune * 0.04), now);
+    voice.frequency.exponentialRampToValueAtTime(620 * (1 + detune * 0.04), now + seconds * 0.3);
+    voice.frequency.exponentialRampToValueAtTime(140, end);
+    vibratoDepth.connect(voice.frequency);
+    voice.connect(formant);
+    voice.start(now);
+    voice.stop(end + 0.05);
+  }
+
+  const rasp = noiseSource(ctx, seconds);
+  const raspFilter = ctx.createBiquadFilter();
+  const raspGain = ctx.createGain();
+  raspFilter.type = 'bandpass';
+  raspFilter.frequency.setValueAtTime(2400, now);
+  raspFilter.Q.setValueAtTime(0.7, now);
+  raspGain.gain.setValueAtTime(0.35, now);
+  rasp.connect(raspFilter);
+  raspFilter.connect(raspGain);
+  raspGain.connect(master);
+  rasp.start(now);
+  rasp.stop(end);
+
+  vibrato.start(now);
+  vibrato.stop(end + 0.05);
+}

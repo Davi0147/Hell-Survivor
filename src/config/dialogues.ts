@@ -255,6 +255,37 @@ export const AZAZEL_INTRO_DIALOGUE: DialogueLine[] = [
   }
 ];
 
+/** Como a cena entra numa imagem nova da cinemática de fim de capítulo. */
+export type EndingTransition = 'fade' | 'cut' | 'cut-shake';
+
+export interface EndingLine {
+  /** Número da imagem (`EndChapN_<image>.jpg`). */
+  image: number;
+  speaker: 'nixy' | 'azazel' | 'narrator';
+  text: string;
+  /** Entrada na imagem quando ela muda: fade suave, corte seco com batida, ou corte + tremida. */
+  enter?: EndingTransition;
+  /** Fala interrompida: passa sozinha para a próxima etapa depois de terminar de digitar. */
+  autoAdvanceMs?: number;
+}
+
+/**
+ * Derrota do Azazel (fim do Capítulo 2). Depois da última fala a tela corta para o preto e a
+ * imagem 7 (Nixy arrancando a cabeça dele) entra com estrondo, grito e tela tremendo.
+ */
+export const CHAPTER2_ENDING: EndingLine[] = [
+  { image: 1, speaker: 'azazel', text: 'Ai... Não acredito, como isso aconteceu?' },
+  { image: 1, speaker: 'azazel', text: 'Como um deus pode ter perdido pra um demônio tão inferior?' },
+  { image: 1, speaker: 'azazel', text: 'Como!' },
+  { image: 2, speaker: 'azazel', text: 'Ahhh, pera aí, isso dói!', enter: 'cut' },
+  { image: 3, speaker: 'azazel', text: 'Hehe, Nixy... Meu amor, olha, você sabe que eu tava brincando, né?', enter: 'fade' },
+  { image: 3, speaker: 'azazel', text: 'Eu sempre gostei tanto de você, eu que te indiquei quando chegou aqui, sabia?' },
+  { image: 4, speaker: 'azazel', text: 'Oh...', enter: 'cut-shake' },
+  { image: 4, speaker: 'azazel', text: 'Nixy?...' },
+  { image: 5, speaker: 'azazel', text: 'Ehh...', enter: 'cut-shake' },
+  { image: 6, speaker: 'azazel', text: 'O que você vai faz---', enter: 'cut', autoAdvanceMs: 120 }
+];
+
 /**
  * Retorna falas de ressurreição da Nixy com o ódio escalando progressivamente a cada morte no Modo História
  */

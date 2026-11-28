@@ -2,6 +2,23 @@
 
 Todas as mudanças relevantes, pacotes de refatoração, correções de bugs e novas funcionalidades deste projeto são documentadas neste arquivo.
 
+## [Não publicado] — Cena de derrota do Azazel
+
+### Fim do Capítulo 2
+
+#### Resumo para o Jogador
+- **Cena nova ao derrotar o Azazel:** ele rastejando no chão, o chute da Nixy, ele tentando puxar saco, as mãos dela agarrando os chifres... e um corte para o preto antes de ela arrancar a cabeça dele, com estrondo, grito e a tela tremendo por 5 segundos. Depois aparece o resumo do capítulo (estrelas, nível, almas, tempo), igual ao Capítulo 1.
+- Cortes secos com som de soco (alguns com tremidinha) e um fade; a última fala ("O que você vai faz---") é interrompida sozinha.
+- No balão de fala, o Azazel aparece com o retrato novo, mais fraco e acabado (um pouco mais baixo e mais à direita).
+- **Música nova nas hordas do Capítulo 2** (a luta contra o Azazel continua com a trilha dele; o Capítulo 1 mantém a música antiga).
+- Corrigido: o nome "NIXY" aparecia solto no meio da tela durante o fade de abertura das cenas finais.
+
+#### Técnico
+- Roteiro em `dialogues.ts` (`CHAPTER2_ENDING`, com tipo de entrada por imagem e `autoAdvanceMs` para fala cortada); `Chapter1EndScene` ganhou `hardCut`, `onTypingDone` e `playChapter2Finale`.
+- As 7 imagens (1280px) e o retrato fraco carregam só quando a cena do Cap. 2 abre e são liberadas ao sair (memória de vídeo no celular). Arte preparada por `scripts/cut-azazel-defeat.py` (originais em `art-source/novos/azazel-derrota/`).
+- Sons novos sintetizados: `playPunchHit`, `playGoreRip`, `playDemonScream`. Clarões em `CHAPTER2_ENDING_FX` (`theme.ts`).
+- Música: estado `BATTLE_CH2` (`bgm-battle-ch2`, `assets/audio/chapter2-battle.mp3`, mesma altura medida da trilha antiga) e `battleMusicState(chapter)`; `playBattleMusic` recebe o capítulo.
+
 ## [Publicado em 2026-11-27] — Shylph e cenário dos Capítulos 2 e 3
 
 ### Cenário próprio dos Capítulos 2 e 3

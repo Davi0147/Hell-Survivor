@@ -324,7 +324,7 @@ describe('SandboxController (Pacote 3 — Etapa 1)', () => {
       expect(mockContext.clearAzazelCrystals).toHaveBeenCalledTimes(1);
       expect(mockContext.setHUDVisible).toHaveBeenCalledWith(true);
       expect(mockContext.setCameraZoom).toHaveBeenCalledWith(CAMERA_BALANCE.gameplayZoom, 600);
-      expect(mockSoundManager.playBattleMusic).toHaveBeenCalledWith(1500);
+      expect(mockSoundManager.playBattleMusic).toHaveBeenCalledWith(1500, mockContext.currentChapter);
     });
 
     it('removeBoss com restoreBattleMusic = false NÃO toca música de batalha', () => {
